@@ -8,6 +8,7 @@ import { queryClient } from "./lib/supabase/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SelectionProvider } from "./contexts/SelectionContext";
 import { NewAuthProvider } from "./contexts/NewAuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { SupportProvider } from "./contexts/SupportContext";
 import CreateTicketDialog from "./components/support/CreateTicketDialog";
 import { lazy, useEffect, useState } from "react";
@@ -186,11 +187,12 @@ const App = () => {
   
   return (
     <ErrorBoundary>
+      <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <SafeRender>
             <Toaster />
-            <SonnerToaster position="top-right" theme="dark" richColors />
+            <SonnerToaster position="top-right" richColors />
           </SafeRender>
           <NewAuthProvider>
             <SelectionProvider>
@@ -278,6 +280,7 @@ const App = () => {
           </NewAuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 };

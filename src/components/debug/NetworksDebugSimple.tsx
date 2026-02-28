@@ -156,7 +156,7 @@ export function NetworksDebugSimple() {
 
         {/* Последнее действие */}
         {lastAction && (
-          <div className="text-sm text-slate-300 bg-slate-800 p-2 rounded">
+          <div className="text-sm text-foreground/80 bg-card p-2 rounded">
             <strong>Статус:</strong> {lastAction}
           </div>
         )}
@@ -198,9 +198,9 @@ export function NetworksDebugSimple() {
 
         {/* Ошибки */}
         {error && (
-          <div className="p-3 rounded-lg bg-red-900/20 border border-red-700 text-sm">
+          <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-sm">
             <div className="flex items-center gap-2 mb-1">
-              <XCircle className="w-4 h-4 text-red-400" />
+              <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
               <strong>Ошибка:</strong>
             </div>
             <div className="font-mono text-xs">{error}</div>
@@ -213,13 +213,13 @@ export function NetworksDebugSimple() {
             <strong className="text-sm">Загруженные сети:</strong>
             <div className="mt-2 space-y-1 max-h-32 overflow-y-auto text-xs">
               {networks.slice(0, 5).map((network) => (
-                <div key={network.id} className="flex justify-between bg-slate-800 p-2 rounded">
+                <div key={network.id} className="flex justify-between bg-card p-2 rounded">
                   <span>{network.name}</span>
-                  <span className="text-slate-400">ID: {network.id}</span>
+                  <span className="text-muted-foreground">ID: {network.id}</span>
                 </div>
               ))}
               {networks.length > 5 && (
-                <div className="text-slate-400 text-center">
+                <div className="text-muted-foreground text-center">
                   ... и еще {networks.length - 5} сетей
                 </div>
               )}

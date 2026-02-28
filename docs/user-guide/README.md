@@ -1,6 +1,6 @@
-# Руководство пользователя TradeFrame Builder
+# Руководство пользователя TradeControl Builder
 
-Добро пожаловать в документацию для пользователей TradeFrame Builder!
+Добро пожаловать в документацию для пользователей TradeControl Builder!
 
 ## Содержимое директории
 
@@ -64,7 +64,7 @@
 1. Проверьте раздел FAQ в USER_GUIDE.md
 2. Обратитесь в техподдержку:
    - 📧 Email: support@tradeframe.com
-   - 📱 Telegram: @TradeFrameSupport
+   - 📱 Telegram: @TradeControlSupport
    - 📞 Телефон: +7 (XXX) XXX-XX-XX
 
 ---

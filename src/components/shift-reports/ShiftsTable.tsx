@@ -36,28 +36,28 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
     switch (status) {
       case 'open':
         return (
-          <Badge className="bg-emerald-500/10 text-green-400 border-green-500 flex items-center gap-1">
+          <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500 flex items-center gap-1">
             <ClockIcon className="w-3 h-3" />
             Открыта
           </Badge>
         );
       case 'closed':
         return (
-          <Badge className="bg-blue-500/10 text-blue-400 border-blue-500 flex items-center gap-1">
+          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500 flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
             Закрыта
           </Badge>
         );
       case 'synchronized':
         return (
-          <Badge className="bg-purple-500/10 text-purple-400 border-purple-500 flex items-center gap-1">
+          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500 flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
             Синхронизирована
           </Badge>
         );
       default:
         return (
-          <Badge className="bg-slate-500/10 text-slate-400 border-slate-500">
+          <Badge className="bg-muted-foreground/10 text-muted-foreground border-border">
             Неизвестно
           </Badge>
         );
@@ -67,7 +67,7 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="text-slate-400">Загрузка смен...</div>
+        <div className="text-muted-foreground">Загрузка смен...</div>
       </div>
     );
   }
@@ -76,8 +76,8 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <p className="text-slate-400 text-lg mb-2">Смены не найдены</p>
-          <p className="text-slate-500 text-sm">
+          <p className="text-muted-foreground text-lg mb-2">Смены не найдены</p>
+          <p className="text-muted-foreground text-sm">
             Измените фильтры или период для отображения данных
           </p>
         </div>
@@ -86,48 +86,48 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-600">
+    <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm">
-        <thead className="bg-slate-700/80">
+        <thead className="bg-secondary/80">
           <tr>
-            <th className="px-6 py-4 text-left text-slate-100 font-medium">ТТ</th>
-            <th className="px-6 py-4 text-left text-slate-100 font-medium">СМЕНА №</th>
-            <th className="px-6 py-4 text-left text-slate-100 font-medium">ОТКРЫТА</th>
-            <th className="px-6 py-4 text-left text-slate-100 font-medium">ЗАКРЫТА</th>
-            <th className="px-6 py-4 text-center text-slate-100 font-medium">СТАТУС</th>
+            <th className="px-6 py-4 text-left text-foreground font-medium">ТТ</th>
+            <th className="px-6 py-4 text-left text-foreground font-medium">СМЕНА №</th>
+            <th className="px-6 py-4 text-left text-foreground font-medium">ОТКРЫТА</th>
+            <th className="px-6 py-4 text-left text-foreground font-medium">ЗАКРЫТА</th>
+            <th className="px-6 py-4 text-center text-foreground font-medium">СТАТУС</th>
           </tr>
         </thead>
-        <tbody className="bg-slate-800">
+        <tbody className="bg-card">
           {shifts.map((shift) => (
             <tr
               key={shift.id}
-              className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors cursor-pointer"
+              className="border-b border-border hover:bg-secondary/50 transition-colors cursor-pointer"
               onClick={() => {
                 onSelectShift(shift);
               }}
             >
               {/* ТТ */}
               <td className="px-6 py-4">
-                <div className="text-white">
+                <div className="text-foreground">
                   {shift.stationName || `ТТ ${shift.stationCode}`}
                 </div>
               </td>
 
               {/* Номер смены */}
               <td className="px-6 py-4">
-                <span className="text-white font-semibold text-base">
+                <span className="text-foreground font-semibold text-base">
                   #{shift.shiftNumber}
                 </span>
               </td>
 
               {/* Дата открытия */}
               <td className="px-6 py-4">
-                <div className="text-white">{formatDateTime(shift.openedAt)}</div>
+                <div className="text-foreground">{formatDateTime(shift.openedAt)}</div>
               </td>
 
               {/* Дата закрытия */}
               <td className="px-6 py-4">
-                <div className="text-white">
+                <div className="text-foreground">
                   {shift.closedAt ? formatDateTime(shift.closedAt) : '—'}
                 </div>
               </td>

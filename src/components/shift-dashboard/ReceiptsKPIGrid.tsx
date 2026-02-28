@@ -51,7 +51,7 @@ function ReceiptFuelCard({ fuel, isLoading, onClick }: { fuel: ReceiptsByFuel; i
 
   return (
     <div
-      className="bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700 cursor-pointer hover:border-slate-500 transition-colors"
+      className="bg-card rounded-xl p-3 sm:p-4 border border-border cursor-pointer hover:border-border transition-colors"
       onClick={onClick}
     >
       <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
@@ -59,51 +59,51 @@ function ReceiptFuelCard({ fuel, isLoading, onClick }: { fuel: ReceiptsByFuel; i
           className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
           style={{ backgroundColor: fuel.color || '#3b82f6' }}
         />
-        <span className="text-xs sm:text-sm font-medium text-white truncate">{fuel.fuelName}</span>
-        <span className="text-[10px] sm:text-xs text-slate-500 ml-auto flex-shrink-0">{fuel.ttnCount} ТТН</span>
+        <span className="text-xs sm:text-sm font-medium text-foreground truncate">{fuel.fuelName}</span>
+        <span className="text-[10px] sm:text-xs text-muted-foreground ml-auto flex-shrink-0">{fuel.ttnCount} ТТН</span>
       </div>
 
       {isLoading ? (
         <div className="space-y-1.5 sm:space-y-2">
-          <div className="h-5 sm:h-6 w-20 sm:w-24 bg-slate-700 rounded animate-pulse" />
-          <div className="h-4 w-16 sm:w-20 bg-slate-700 rounded animate-pulse" />
+          <div className="h-5 sm:h-6 w-20 sm:w-24 bg-secondary rounded animate-pulse" />
+          <div className="h-4 w-16 sm:w-20 bg-secondary rounded animate-pulse" />
         </div>
       ) : (
         <div className="space-y-1 sm:space-y-2">
           {/* По документу */}
           <div className="flex items-baseline justify-between">
-            <span className="text-[10px] sm:text-xs text-slate-500">DOC:</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">DOC:</span>
             <div className="flex items-baseline gap-0.5 sm:gap-1">
-              <span className="text-sm sm:text-lg font-bold text-white">{formatVolume(fuel.docVolume)}</span>
-              <span className="text-[10px] sm:text-xs text-slate-400">л</span>
+              <span className="text-sm sm:text-lg font-bold text-foreground">{formatVolume(fuel.docVolume)}</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
             </div>
           </div>
 
           {/* Фактически */}
           <div className="flex items-baseline justify-between">
-            <span className="text-[10px] sm:text-xs text-slate-500">FACT:</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">FACT:</span>
             <div className="flex items-baseline gap-0.5 sm:gap-1">
-              <span className="text-sm sm:text-lg text-blue-400">{formatVolume(fuel.factVolume)}</span>
-              <span className="text-[10px] sm:text-xs text-slate-400">л</span>
+              <span className="text-sm sm:text-lg text-blue-600 dark:text-blue-400">{formatVolume(fuel.factVolume)}</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
             </div>
           </div>
 
           {/* Разница */}
-          <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-slate-700">
-            <span className="text-[10px] sm:text-xs text-slate-500">Разн:</span>
+          <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-border">
+            <span className="text-[10px] sm:text-xs text-muted-foreground">Разн:</span>
             <div className="flex items-center gap-0.5 sm:gap-1">
-              {isPositive && <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" />}
-              {isNegative && <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-red-400" />}
-              {!isPositive && !isNegative && <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400" />}
+              {isPositive && <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-600 dark:text-green-400" />}
+              {isNegative && <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-red-600 dark:text-red-400" />}
+              {!isPositive && !isNegative && <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-muted-foreground" />}
               <span className={cn(
                 'text-xs sm:text-sm font-medium',
-                isPositive && 'text-green-400',
-                isNegative && 'text-red-400',
-                !isPositive && !isNegative && 'text-slate-400'
+                isPositive && 'text-green-600 dark:text-green-400',
+                isNegative && 'text-red-600 dark:text-red-400',
+                !isPositive && !isNegative && 'text-muted-foreground'
               )}>
                 {isPositive && '+'}{formatVolume(fuel.volumeDiff)}
               </span>
-              <span className="text-[10px] sm:text-xs text-slate-400">л</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
             </div>
           </div>
         </div>
@@ -132,56 +132,56 @@ function ReceiptsTotalCard({
 
   return (
     <div
-      className="bg-gradient-to-br from-emerald-900/50 to-slate-800 rounded-xl p-3 sm:p-4 border border-emerald-700/50 cursor-pointer hover:border-emerald-500/70 transition-colors"
+      className="bg-gradient-to-br from-emerald-900/50 to-card rounded-xl p-3 sm:p-4 border border-emerald-300 dark:border-emerald-700/50 cursor-pointer hover:border-emerald-500/70 transition-colors"
       onClick={onClick}
     >
       <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-        <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-        <span className="text-xs sm:text-sm font-bold text-white">ИТОГО</span>
-        <span className="text-[10px] sm:text-xs text-slate-500 ml-auto">{receipts.ttnCount} ТТН</span>
+        <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
+        <span className="text-xs sm:text-sm font-bold text-foreground">ИТОГО</span>
+        <span className="text-[10px] sm:text-xs text-muted-foreground ml-auto">{receipts.ttnCount} ТТН</span>
       </div>
 
       {isLoading ? (
         <div className="space-y-1.5 sm:space-y-2">
-          <div className="h-6 sm:h-8 w-24 sm:w-32 bg-slate-700 rounded animate-pulse" />
-          <div className="h-5 sm:h-6 w-20 sm:w-28 bg-slate-700 rounded animate-pulse" />
+          <div className="h-6 sm:h-8 w-24 sm:w-32 bg-secondary rounded animate-pulse" />
+          <div className="h-5 sm:h-6 w-20 sm:w-28 bg-secondary rounded animate-pulse" />
         </div>
       ) : (
         <div className="space-y-1 sm:space-y-2">
           {/* По документу */}
           <div className="flex items-baseline justify-between">
-            <span className="text-[10px] sm:text-xs text-slate-500">DOC:</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">DOC:</span>
             <div className="flex items-baseline gap-0.5 sm:gap-1">
-              <span className="text-base sm:text-xl font-bold text-white">{formatVolume(receipts.totalDocVolume)}</span>
-              <span className="text-[10px] sm:text-sm text-slate-400">л</span>
+              <span className="text-base sm:text-xl font-bold text-foreground">{formatVolume(receipts.totalDocVolume)}</span>
+              <span className="text-[10px] sm:text-sm text-muted-foreground">л</span>
             </div>
           </div>
 
           {/* Фактически */}
           <div className="flex items-baseline justify-between">
-            <span className="text-[10px] sm:text-xs text-slate-500">FACT:</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">FACT:</span>
             <div className="flex items-baseline gap-0.5 sm:gap-1">
-              <span className="text-base sm:text-xl text-emerald-400">{formatVolume(receipts.totalFactVolume)}</span>
-              <span className="text-[10px] sm:text-sm text-slate-400">л</span>
+              <span className="text-base sm:text-xl text-emerald-600 dark:text-emerald-400">{formatVolume(receipts.totalFactVolume)}</span>
+              <span className="text-[10px] sm:text-sm text-muted-foreground">л</span>
             </div>
           </div>
 
           {/* Разница */}
-          <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-emerald-700/50">
-            <span className="text-[10px] sm:text-xs text-slate-500">Разн:</span>
+          <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-emerald-300 dark:border-emerald-700/50">
+            <span className="text-[10px] sm:text-xs text-muted-foreground">Разн:</span>
             <div className="flex items-center gap-0.5 sm:gap-1">
-              {isPositive && <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />}
-              {isNegative && <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-400" />}
-              {!isPositive && !isNegative && <Minus className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400" />}
+              {isPositive && <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />}
+              {isNegative && <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-600 dark:text-red-400" />}
+              {!isPositive && !isNegative && <Minus className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />}
               <span className={cn(
                 'text-xs sm:text-base font-bold',
-                isPositive && 'text-green-400',
-                isNegative && 'text-red-400',
-                !isPositive && !isNegative && 'text-slate-400'
+                isPositive && 'text-green-600 dark:text-green-400',
+                isNegative && 'text-red-600 dark:text-red-400',
+                !isPositive && !isNegative && 'text-muted-foreground'
               )}>
                 {isPositive && '+'}{formatVolume(receipts.totalDiff)}
               </span>
-              <span className="text-[10px] sm:text-xs text-slate-400">л</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
             </div>
           </div>
         </div>
@@ -204,12 +204,12 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
   if (!isLoading && safeReceipts.ttnCount === 0) {
     return (
       <div className={cn('', className)}>
-        <h3 className="text-xs sm:text-sm font-medium text-slate-400 mb-2 sm:mb-3 uppercase tracking-wide">
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3 uppercase tracking-wide">
           Поступления по ТТН
         </h3>
-        <div className="bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-700 text-center">
-          <Truck className="w-6 h-6 sm:w-8 sm:h-8 text-slate-600 mx-auto mb-2" />
-          <p className="text-xs sm:text-sm text-slate-500">Нет поступлений за выбранный период</p>
+        <div className="bg-card rounded-xl p-4 sm:p-6 border border-border text-center">
+          <Truck className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-xs sm:text-sm text-muted-foreground">Нет поступлений за выбранный период</p>
         </div>
       </div>
     );
@@ -267,16 +267,16 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
     <div className={cn('space-y-4', className)}>
       {/* Заголовок секции */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-wide">
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Поступления по ТТН
           {selectedFuel && isExpanded && (
-            <span className="ml-2 text-white">→ {selectedFuel.fuelName}</span>
+            <span className="ml-2 text-foreground">→ {selectedFuel.fuelName}</span>
           )}
         </h3>
         {isExpanded && (
           <button
             onClick={handleCloseJournal}
-            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
           >
             <span className="hidden sm:inline">Скрыть журнал</span>
             <span className="sm:hidden">Скрыть</span>
@@ -315,7 +315,7 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
           </div>
           <button
             onClick={handleResetFilter}
-            className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
             <span className="hidden sm:inline">Показать все топлива</span>
             <span className="sm:hidden">Все топлива</span>
@@ -325,50 +325,50 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
 
       {/* Таблица детализации по ТТН */}
       {isExpanded && filteredDetails.length > 0 && (
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm">
-              <thead className="bg-slate-900/50">
+              <thead className="bg-background/50">
                 <tr>
-                  <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Дата
                   </th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     ТТН
                   </th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Топливо
                   </th>
-                  <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Резерв.
                   </th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     DOC
                   </th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     FACT
                   </th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     <span className="hidden sm:inline">Разница</span>
                     <span className="sm:hidden">±</span>
                   </th>
-                  <th className="hidden lg:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="hidden lg:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Нефтебаза
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-border">
                 {filteredDetails.map((item, idx) => {
                   const diffPercent = item.docVolume > 0 ? (item.volumeDiff / item.docVolume) * 100 : 0;
                   const isPositive = item.volumeDiff > 0;
                   const isNegative = item.volumeDiff < 0;
 
                   return (
-                    <tr key={`${item.ttn}-${item.tankNumber}-${idx}`} className="hover:bg-slate-700/30">
-                      <td className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-slate-300 whitespace-nowrap text-xs">
+                    <tr key={`${item.ttn}-${item.tankNumber}-${idx}`} className="hover:bg-secondary/30">
+                      <td className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-foreground/80 whitespace-nowrap text-xs">
                         {formatDate(item.datetime)}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-white font-medium">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-foreground font-medium">
                         {item.ttn}
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3">
@@ -377,46 +377,46 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
                             className="w-2 h-2 rounded-full flex-shrink-0"
                             style={{ backgroundColor: item.color || '#3b82f6' }}
                           />
-                          <span className="text-slate-300 truncate max-w-[60px] sm:max-w-none">{item.fuelName}</span>
+                          <span className="text-foreground/80 truncate max-w-[60px] sm:max-w-none">{item.fuelName}</span>
                         </div>
                       </td>
-                      <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-center text-slate-400">
+                      <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-center text-muted-foreground">
                         №{item.tankNumber}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-slate-300">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-foreground/80">
                         {formatVolume(item.docVolume)}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-blue-400">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-blue-600 dark:text-blue-400">
                         {formatVolume(item.factVolume)}
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
                         <div className="flex items-center justify-end gap-0.5 sm:gap-1">
                           <span className={cn(
                             'font-medium text-xs sm:text-sm',
-                            isPositive && 'text-green-400',
-                            isNegative && 'text-red-400',
-                            !isPositive && !isNegative && 'text-slate-400'
+                            isPositive && 'text-green-600 dark:text-green-400',
+                            isNegative && 'text-red-600 dark:text-red-400',
+                            !isPositive && !isNegative && 'text-muted-foreground'
                           )}>
                             {isPositive && '+'}{formatVolume(item.volumeDiff)}
                           </span>
                           <span className={cn(
                             'text-[10px] sm:text-xs hidden sm:inline',
-                            isPositive && 'text-green-400',
-                            isNegative && 'text-red-400',
-                            !isPositive && !isNegative && 'text-slate-500'
+                            isPositive && 'text-green-600 dark:text-green-400',
+                            isNegative && 'text-red-600 dark:text-red-400',
+                            !isPositive && !isNegative && 'text-muted-foreground'
                           )}>
                             ({diffPercent >= 0 ? '+' : ''}{diffPercent.toFixed(1)}%)
                           </span>
                         </div>
                       </td>
-                      <td className="hidden lg:table-cell px-2 sm:px-4 py-2 sm:py-3 text-slate-400 max-w-[150px] truncate" title={item.baseName}>
+                      <td className="hidden lg:table-cell px-2 sm:px-4 py-2 sm:py-3 text-muted-foreground max-w-[150px] truncate" title={item.baseName}>
                         {item.baseName || '-'}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
-              <tfoot className="bg-slate-900/50 border-t border-slate-600">
+              <tfoot className="bg-background/50 border-t border-border">
                 {(() => {
                   // Подсчет итогов для фильтрованных данных
                   const totalDoc = filteredDetails.reduce((sum, item) => sum + item.docVolume, 0);
@@ -426,22 +426,22 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
 
                   return (
                     <tr>
-                      <td colSpan={3} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white">
+                      <td colSpan={3} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold text-foreground">
                         <span className="hidden sm:inline">ИТОГО ({ttnCount} ТТН{selectedFuel ? ` - ${selectedFuel.fuelName}` : ''})</span>
                         <span className="sm:hidden">Σ {ttnCount}</span>
                       </td>
                       <td className="hidden md:table-cell"></td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-foreground">
                         {formatVolume(totalDoc)}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-blue-400">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400">
                         {formatVolume(totalFact)}
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold">
                         <span className={cn(
-                          totalDiff > 0 && 'text-green-400',
-                          totalDiff < 0 && 'text-red-400',
-                          totalDiff === 0 && 'text-slate-400'
+                          totalDiff > 0 && 'text-green-600 dark:text-green-400',
+                          totalDiff < 0 && 'text-red-600 dark:text-red-400',
+                          totalDiff === 0 && 'text-muted-foreground'
                         )}>
                           {totalDiff > 0 && '+'}{formatVolume(totalDiff)}
                         </span>

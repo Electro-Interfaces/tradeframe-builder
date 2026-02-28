@@ -67,8 +67,8 @@ const generateMockData = (): DayData[] => {
 };
 
 const getIntensityColor = (value: number): string => {
-  if (value === 0) return "bg-slate-700";
-  if (value < 0.2) return "bg-emerald-900/40";
+  if (value === 0) return "bg-secondary";
+  if (value < 0.2) return "bg-emerald-100 dark:bg-emerald-900/40";
   if (value < 0.4) return "bg-emerald-700/60";
   if (value < 0.6) return "bg-emerald-600/70";
   if (value < 0.8) return "bg-emerald-500/80";
@@ -125,21 +125,21 @@ export function ActivityHeatmap({ title = "Активность торговых
       'Последние 7 дней';
 
     return (
-      <Card className={`bg-slate-800 border-slate-700 ${className}`}>
+      <Card className={`bg-card border-border ${className}`}>
         <CardHeader className="pb-4">
-          <CardTitle className="text-white flex items-center justify-between">
+          <CardTitle className="text-foreground flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span>🕒</span>
               {title}
             </div>
-            <div className="text-sm text-slate-400 font-normal">
+            <div className="text-sm text-muted-foreground font-normal">
               {periodLabel}
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Заголовок часов (0-23) */}
-          <div className="flex items-center text-xs text-slate-400 font-medium">
+          <div className="flex items-center text-xs text-muted-foreground font-medium">
             <div className="w-12 shrink-0"></div> {/* Пространство для дней недели */}
             <div className="flex-1 flex justify-between">
               {Array.from({ length: 24 }, (_, hour) => (
@@ -155,7 +155,7 @@ export function ActivityHeatmap({ title = "Активность торговых
             {hourlyGrid.map((dayHours, dayIndex) => (
               <div key={dayIndex} className="flex items-center">
                 {/* День недели */}
-                <div className="w-12 text-xs text-slate-300 font-medium text-center shrink-0">
+                <div className="w-12 text-xs text-foreground/80 font-medium text-center shrink-0">
                   {dayNames[dayIndex]}
                 </div>
                 
@@ -164,16 +164,16 @@ export function ActivityHeatmap({ title = "Активность торговых
                   {dayHours.map((hourData, hourIndex) => (
                     <div
                       key={hourIndex}
-                      className={`flex-1 h-4 rounded-sm border border-slate-600/50 group relative cursor-pointer transition-all hover:border-slate-400 ${
+                      className={`flex-1 h-4 rounded-sm border border-border/50 group relative cursor-pointer transition-all hover:border-border ${
                         getIntensityColor(hourData.value)
                       }`}
                       title={`${dayNames[dayIndex]} ${hourData.displayTime}: ${hourData.transactions} транзакций, ${hourData.revenue.toLocaleString()} ₽`}
                     >
                       {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap border border-slate-600 pointer-events-none">
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background text-foreground text-xs rounded px-2 py-1 whitespace-nowrap border border-border pointer-events-none">
                         <div className="font-medium">{dayNames[dayIndex]} {hourData.displayTime}</div>
-                        <div className="text-slate-300">{hourData.transactions} транзакций</div>
-                        <div className="text-green-400">{hourData.revenue.toLocaleString()} ₽</div>
+                        <div className="text-foreground/80">{hourData.transactions} транзакций</div>
+                        <div className="text-green-600 dark:text-green-400">{hourData.revenue.toLocaleString()} ₽</div>
                       </div>
                     </div>
                   ))}
@@ -184,37 +184,37 @@ export function ActivityHeatmap({ title = "Активность торговых
           
           {/* Легенда */}
           <div className="flex items-center justify-between text-xs pt-2">
-            <span className="text-slate-400">Меньше</span>
+            <span className="text-muted-foreground">Меньше</span>
             <div className="flex gap-1">
-              <div className="w-3 h-3 bg-slate-700 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-emerald-900/40 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-emerald-700/60 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-emerald-600/70 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-emerald-500/80 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-emerald-400 rounded-sm border border-slate-600"></div>
+              <div className="w-3 h-3 bg-secondary rounded-sm border border-border"></div>
+              <div className="w-3 h-3 bg-emerald-100 dark:bg-emerald-900/40 rounded-sm border border-border"></div>
+              <div className="w-3 h-3 bg-emerald-700/60 rounded-sm border border-border"></div>
+              <div className="w-3 h-3 bg-emerald-600/70 rounded-sm border border-border"></div>
+              <div className="w-3 h-3 bg-emerald-500/80 rounded-sm border border-border"></div>
+              <div className="w-3 h-3 bg-emerald-400 rounded-sm border border-border"></div>
             </div>
-            <span className="text-slate-400">Больше</span>
+            <span className="text-muted-foreground">Больше</span>
           </div>
           
           {/* Статистика */}
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-600">
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
             <div className="text-center">
-              <div className="text-lg font-semibold text-white">
+              <div className="text-lg font-semibold text-foreground">
                 {data.reduce((sum, hour) => sum + hour.transactions, 0).toLocaleString()}
               </div>
-              <div className="text-xs text-slate-400">Всего транзакций</div>
+              <div className="text-xs text-muted-foreground">Всего транзакций</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-green-400">
+              <div className="text-lg font-semibold text-green-600 dark:text-green-400">
                 {(data.reduce((sum, hour) => sum + hour.revenue, 0) / 1000).toFixed(0)}К ₽
               </div>
-              <div className="text-xs text-slate-400">Общая выручка</div>
+              <div className="text-xs text-muted-foreground">Общая выручка</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-blue-400">
+              <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
                 {data.filter(hour => hour.transactions > 0).length}
               </div>
-              <div className="text-xs text-slate-400">Активных часов</div>
+              <div className="text-xs text-muted-foreground">Активных часов</div>
             </div>
           </div>
         </CardContent>
@@ -248,14 +248,14 @@ export function ActivityHeatmap({ title = "Активность торговых
   const dayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
   return (
-    <Card className={`bg-slate-800 border-slate-700 ${className}`}>
+    <Card className={`bg-card border-border ${className}`}>
       <CardHeader className="pb-4">
-        <CardTitle className="text-white flex items-center justify-between">
+        <CardTitle className="text-foreground flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span>📊</span>
             {title}
           </div>
-          <div className="text-sm text-slate-400 font-normal">
+          <div className="text-sm text-muted-foreground font-normal">
             {periodLabel}
           </div>
         </CardTitle>
@@ -263,7 +263,7 @@ export function ActivityHeatmap({ title = "Активность торговых
       <CardContent className="space-y-4">
         {/* Заголовок дней недели */}
         <div className="flex justify-center">
-          <div className="text-xs text-slate-400 font-medium">
+          <div className="text-xs text-muted-foreground font-medium">
             Последние {data?.length || 84} дней
           </div>
         </div>
@@ -272,7 +272,7 @@ export function ActivityHeatmap({ title = "Активность торговых
         <div className="w-full">
           <div className="flex justify-between gap-2 overflow-x-auto min-h-[8rem]">
             {/* Метки дней недели */}
-            <div className="flex flex-col gap-1 text-xs text-slate-400 min-w-[24px] shrink-0">
+            <div className="flex flex-col gap-1 text-xs text-muted-foreground min-w-[24px] shrink-0">
               <div className="h-3"></div> {/* Отступ для заголовков */}
               {dayLabels.map((dayLabel, index) => (
                 <div key={index} className="h-3 flex items-center">
@@ -289,8 +289,8 @@ export function ActivityHeatmap({ title = "Активность торговых
                     return (
                       <div
                         key={dayIndex}
-                        className={`w-full aspect-square rounded-sm border border-slate-600 group relative cursor-pointer transition-all hover:border-slate-400 ${
-                          day ? getIntensityColor(day.value) : 'bg-slate-700/30'
+                        className={`w-full aspect-square rounded-sm border border-border group relative cursor-pointer transition-all hover:border-border ${
+                          day ? getIntensityColor(day.value) : 'bg-secondary/30'
                         }`}
                         title={day ? 
                           `${formatDate(day.date)}: ${day.transactions} транзакций, ${day.revenue.toLocaleString()} ₽` : 
@@ -299,16 +299,16 @@ export function ActivityHeatmap({ title = "Активность торговых
                       >
                         {/* Показываем день месяца для активных дней */}
                         {day && day.transactions > 0 && (
-                          <div className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium opacity-70">
+                          <div className="absolute inset-0 flex items-center justify-center text-xs text-foreground font-medium opacity-70">
                             {new Date(day.date).getDate()}
                           </div>
                         )}
                         {/* Tooltip */}
                         {day && (
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap border border-slate-600 pointer-events-none">
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background text-foreground text-xs rounded px-2 py-1 whitespace-nowrap border border-border pointer-events-none">
                             <div className="font-medium">{formatDate(day.date)}</div>
-                            <div className="text-slate-300">{day.transactions} транзакций</div>
-                            <div className="text-green-400">{day.revenue.toLocaleString()} ₽</div>
+                            <div className="text-foreground/80">{day.transactions} транзакций</div>
+                            <div className="text-green-600 dark:text-green-400">{day.revenue.toLocaleString()} ₽</div>
                           </div>
                         )}
                       </div>
@@ -322,37 +322,37 @@ export function ActivityHeatmap({ title = "Активность торговых
         
         {/* Легенда */}
         <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-400">Меньше</span>
+          <span className="text-muted-foreground">Меньше</span>
           <div className="flex gap-1">
-            <div className="w-3 h-3 bg-slate-700 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-emerald-900/40 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-emerald-700/60 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-emerald-600/70 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-emerald-500/80 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-emerald-400 rounded-sm border border-slate-600"></div>
+            <div className="w-3 h-3 bg-secondary rounded-sm border border-border"></div>
+            <div className="w-3 h-3 bg-emerald-100 dark:bg-emerald-900/40 rounded-sm border border-border"></div>
+            <div className="w-3 h-3 bg-emerald-700/60 rounded-sm border border-border"></div>
+            <div className="w-3 h-3 bg-emerald-600/70 rounded-sm border border-border"></div>
+            <div className="w-3 h-3 bg-emerald-500/80 rounded-sm border border-border"></div>
+            <div className="w-3 h-3 bg-emerald-400 rounded-sm border border-border"></div>
           </div>
-          <span className="text-slate-400">Больше</span>
+          <span className="text-muted-foreground">Больше</span>
         </div>
         
         {/* Статистика */}
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-600">
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
           <div className="text-center">
-            <div className="text-lg font-semibold text-white">
+            <div className="text-lg font-semibold text-foreground">
               {heatmapData.reduce((sum, day) => sum + day.transactions, 0).toLocaleString()}
             </div>
-            <div className="text-xs text-slate-400">Всего транзакций</div>
+            <div className="text-xs text-muted-foreground">Всего транзакций</div>
           </div>
           <div className="text-center">
-            <div className="text-lg font-semibold text-green-400">
+            <div className="text-lg font-semibold text-green-600 dark:text-green-400">
               {(heatmapData.reduce((sum, day) => sum + day.revenue, 0) / 1000000).toFixed(1)}М ₽
             </div>
-            <div className="text-xs text-slate-400">Общая выручка</div>
+            <div className="text-xs text-muted-foreground">Общая выручка</div>
           </div>
           <div className="text-center">
-            <div className="text-lg font-semibold text-blue-400">
+            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
               {Math.round(heatmapData.reduce((sum, day) => sum + day.transactions, 0) / heatmapData.length)}
             </div>
-            <div className="text-xs text-slate-400">Среднее в день</div>
+            <div className="text-xs text-muted-foreground">Среднее в день</div>
           </div>
         </div>
       </CardContent>

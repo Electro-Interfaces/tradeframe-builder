@@ -308,7 +308,7 @@ const ExternalDatabaseSettings = () => {
                 </div>
                 
                 <div className="flex items-start gap-3">
-                  <Clock className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                  <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
                     <strong>Применение изменений:</strong> Перезагрузите страницу после изменения настроек
                   </div>

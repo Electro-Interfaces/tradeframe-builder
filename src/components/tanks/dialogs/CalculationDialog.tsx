@@ -100,41 +100,41 @@ export function CalculationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-blue-400" />
+          <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             Расчет калибровочной таблицы
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-base">
+          <DialogDescription className="text-muted-foreground text-base">
             Таблица рассчитывается на основе реальных отпусков ТРК за выбранный период с учетом установленных параметров
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Выбор периода */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-400" />
+                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Период анализа данных
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="dialog_start_date" className="text-sm text-slate-300">Начальная дата</Label>
+                  <Label htmlFor="dialog_start_date" className="text-sm text-foreground/80">Начальная дата</Label>
                   <Input
                     id="dialog_start_date"
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     max={endDate || undefined}
-                    className="mt-1.5 bg-slate-900 border-slate-600 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="mt-1.5 bg-background border-border [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="dialog_end_date" className="text-sm text-slate-300">Конечная дата</Label>
+                  <Label htmlFor="dialog_end_date" className="text-sm text-foreground/80">Конечная дата</Label>
                   <Input
                     id="dialog_end_date"
                     type="date"
@@ -142,13 +142,13 @@ export function CalculationDialog({
                     onChange={(e) => setEndDate(e.target.value)}
                     min={startDate || undefined}
                     max={new Date().toISOString().split('T')[0]}
-                    className="mt-1.5 bg-slate-900 border-slate-600 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="mt-1.5 bg-background border-border [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
               </div>
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-2.5">
-                <p className="text-xs text-blue-300 flex items-center gap-2">
-                  <span className="text-blue-400">i</span>
+                <p className="text-xs text-blue-600 dark:text-blue-300 flex items-center gap-2">
+                  <span className="text-blue-600 dark:text-blue-400">i</span>
                   Данные из /v1/tank_history (обновление каждые 10 минут)
                 </p>
               </div>
@@ -156,23 +156,23 @@ export function CalculationDialog({
           </Card>
 
           {/* Параметры расчета */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Settings className="h-4 w-4 text-green-400" />
+                <Settings className="h-4 w-4 text-green-600 dark:text-green-400" />
                 Параметры расчета
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="dialog_calibration_method" className="text-sm font-medium text-slate-200">
+                <Label htmlFor="dialog_calibration_method" className="text-sm font-medium text-foreground">
                   Алгоритм расчета
                 </Label>
                 <Select
                   value={settings.calibration_method}
                   onValueChange={(value) => updateSetting('calibration_method', value as CalibrationMethod)}
                 >
-                  <SelectTrigger id="dialog_calibration_method" className="bg-slate-900 border-slate-600">
+                  <SelectTrigger id="dialog_calibration_method" className="bg-background border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -181,16 +181,16 @@ export function CalculationDialog({
                     <SelectItem value="moving_average">Скользящее среднее</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="bg-slate-800/50 border border-slate-700 rounded-md p-2.5">
-                  <p className="text-xs text-slate-300">
+                <div className="bg-card/50 border border-border rounded-md p-2.5">
+                  <p className="text-xs text-foreground/80">
                     {settings.calibration_method === 'linear_regression' && (
-                      <><span className="font-semibold text-blue-400">Линейная регрессия:</span> Строит линейную зависимость между уровнем и объемом. Быстрый и простой метод, подходит для резервуаров с простой геометрией.</>
+                      <><span className="font-semibold text-blue-600 dark:text-blue-400">Линейная регрессия:</span> Строит линейную зависимость между уровнем и объемом. Быстрый и простой метод, подходит для резервуаров с простой геометрией.</>
                     )}
                     {settings.calibration_method === 'least_squares' && (
-                      <><span className="font-semibold text-green-400">МНК:</span> Минимизирует сумму квадратов отклонений. Наиболее точный метод, учитывает все точки данных. Рекомендуется для коммерческого учета.</>
+                      <><span className="font-semibold text-green-600 dark:text-green-400">МНК:</span> Минимизирует сумму квадратов отклонений. Наиболее точный метод, учитывает все точки данных. Рекомендуется для коммерческого учета.</>
                     )}
                     {settings.calibration_method === 'moving_average' && (
-                      <><span className="font-semibold text-orange-400">Скользящее среднее:</span> Сглаживает колебания данных усреднением. Устойчив к выбросам, хорош для данных с шумом и частыми колебаниями.</>
+                      <><span className="font-semibold text-orange-600 dark:text-orange-400">Скользящее среднее:</span> Сглаживает колебания данных усреднением. Устойчив к выбросам, хорош для данных с шумом и частыми колебаниями.</>
                     )}
                   </p>
                 </div>
@@ -199,12 +199,12 @@ export function CalculationDialog({
               <Separator className="my-3" />
 
               <div className="space-y-3">
-                <h5 className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-orange-400" />
+                <h5 className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                   Фильтрация данных
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
+                  <div className="flex items-center justify-between p-3 bg-background rounded-md border border-border">
                     <Label htmlFor="dialog_outlier_filter" className="text-sm cursor-pointer">
                       Фильтр выбросов
                     </Label>
@@ -216,16 +216,16 @@ export function CalculationDialog({
                   </div>
                   {settings.outlier_filter_enabled && (
                     <div className="space-y-2">
-                      <Label htmlFor="dialog_outlier_sigma" className="text-sm text-slate-300">Sigma</Label>
+                      <Label htmlFor="dialog_outlier_sigma" className="text-sm text-foreground/80">Sigma</Label>
                       <Input
                         id="dialog_outlier_sigma"
                         type="number"
                         step="0.1"
                         value={settings.outlier_filter_sigma || ''}
                         onChange={(e) => handleNumberInput('outlier_filter_sigma', e.target.value)}
-                        className="bg-slate-900 border-slate-600"
+                        className="bg-background border-border"
                       />
-                      <p className="text-xs text-slate-400">3sigma = 99.7% данных</p>
+                      <p className="text-xs text-muted-foreground">3sigma = 99.7% данных</p>
                     </div>
                   )}
                 </div>
@@ -234,10 +234,10 @@ export function CalculationDialog({
           </Card>
 
           {/* Примечания */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <FileSpreadsheet className="h-4 w-4 text-purple-400" />
+                <FileSpreadsheet className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 Примечания к расчету
               </CardTitle>
             </CardHeader>
@@ -247,7 +247,7 @@ export function CalculationDialog({
                 value={calculationNotes}
                 onChange={(e) => setCalculationNotes(e.target.value)}
                 rows={3}
-                className="bg-slate-900 border-slate-600 resize-none"
+                className="bg-background border-border resize-none"
               />
             </CardContent>
           </Card>
@@ -268,49 +268,49 @@ export function CalculationDialog({
 
           {/* Результаты расчета */}
           {calculationResult && (
-            <div className={`mt-4 p-4 rounded-lg border ${calculationResult.success ? 'bg-emerald-900/20 border-green-600/50' : 'bg-red-900/20 border-red-600/50'}`}>
+            <div className={`mt-4 p-4 rounded-lg border ${calculationResult.success ? 'bg-emerald-100 dark:bg-emerald-900/20 border-green-600/50' : 'bg-red-100 dark:bg-red-900/20 border-red-600/50'}`}>
               {calculationResult.success ? (
                 <>
-                  <h4 className="font-semibold text-green-400 flex items-center gap-2 mb-3">
+                  <h4 className="font-semibold text-green-600 dark:text-green-400 flex items-center gap-2 mb-3">
                     <CheckCircle2 className="w-4 h-4" />
                     Расчет завершен успешно
                   </h4>
                   {calculationResult.statistics && (
                     <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Точек данных:</span>
-                        <span className="font-semibold text-white">{calculationResult.statistics.data_points_used}</span>
+                        <span className="text-muted-foreground">Точек данных:</span>
+                        <span className="font-semibold text-foreground">{calculationResult.statistics.data_points_used}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Отфильтровано:</span>
-                        <span className="font-semibold text-white">{calculationResult.statistics.data_points_filtered}</span>
+                        <span className="text-muted-foreground">Отфильтровано:</span>
+                        <span className="font-semibold text-foreground">{calculationResult.statistics.data_points_filtered}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Среднее откл.:</span>
-                        <span className="font-semibold text-white">{calculationResult.statistics.average_deviation_percent?.toFixed(2)}%</span>
+                        <span className="text-muted-foreground">Среднее откл.:</span>
+                        <span className="font-semibold text-foreground">{calculationResult.statistics.average_deviation_percent?.toFixed(2)}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">R2:</span>
-                        <span className="font-semibold text-white">{calculationResult.statistics.r_squared?.toFixed(4)}</span>
+                        <span className="text-muted-foreground">R2:</span>
+                        <span className="font-semibold text-foreground">{calculationResult.statistics.r_squared?.toFixed(4)}</span>
                       </div>
                       {calculationResult.table && (
                         <div className="flex justify-between col-span-2">
-                          <span className="text-slate-400">Точек в таблице:</span>
-                          <span className="font-semibold text-white">{calculationResult.table.length}</span>
+                          <span className="text-muted-foreground">Точек в таблице:</span>
+                          <span className="font-semibold text-foreground">{calculationResult.table.length}</span>
                         </div>
                       )}
                     </div>
                   )}
                   {calculationResult.comparison?.has_previous && (
-                    <div className="mb-4 p-3 bg-slate-800/50 rounded">
+                    <div className="mb-4 p-3 bg-card/50 rounded">
                       <p className="text-sm font-semibold mb-2">Сравнение с активной таблицей:</p>
                       <div className="text-sm space-y-1">
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Среднее отличие:</span>
+                          <span className="text-muted-foreground">Среднее отличие:</span>
                           <span className="font-semibold">{calculationResult.comparison.average_difference_percent?.toFixed(2)}%</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Макс. отличие:</span>
+                          <span className="text-muted-foreground">Макс. отличие:</span>
                           <span className="font-semibold">{calculationResult.comparison.max_difference_percent?.toFixed(2)}%</span>
                         </div>
                       </div>
@@ -326,7 +326,7 @@ export function CalculationDialog({
                   </div>
                 </>
               ) : (
-                <div className="flex items-center gap-2 text-red-400">
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                   <XCircle className="w-4 h-4" />
                   <span>Ошибка: {calculationResult.error}</span>
                 </div>

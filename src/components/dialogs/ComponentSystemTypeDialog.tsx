@@ -137,7 +137,7 @@ export function ComponentSystemTypeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-md sm:w-full">
+      <DialogContent className="bg-card border-border w-[95vw] max-w-md sm:w-full">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>
@@ -158,7 +158,7 @@ export function ComponentSystemTypeDialog({
                 id="label"
                 {...register("label")}
                 placeholder="Датчик уровня"
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
               {errors.label && (
                 <p className="text-sm text-destructive">{errors.label.message}</p>
@@ -171,14 +171,14 @@ export function ComponentSystemTypeDialog({
                 id="value"
                 {...register("value")}
                 placeholder="sensor_level"
-                className="bg-slate-700 border-slate-600 text-white font-mono"
+                className="bg-secondary border-border text-foreground font-mono"
                 disabled={!!systemType} // Нельзя менять код у существующего типа
               />
               {errors.value && (
                 <p className="text-sm text-destructive">{errors.value.message}</p>
               )}
               {systemType && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Технический код нельзя изменить у существующего типа
                 </p>
               )}
@@ -190,7 +190,7 @@ export function ComponentSystemTypeDialog({
                 value={watch("category")}
                 onValueChange={(value) => setValue("category", value)}
               >
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="bg-secondary border-border text-foreground">
                   <SelectValue placeholder="Выберите категорию" />
                 </SelectTrigger>
                 <SelectContent>
@@ -213,7 +213,7 @@ export function ComponentSystemTypeDialog({
                 {...register("description")}
                 placeholder="Подробное описание системного типа компонента..."
                 rows={3}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
             </div>
 

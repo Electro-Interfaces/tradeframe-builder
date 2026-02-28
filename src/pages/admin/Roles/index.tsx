@@ -71,7 +71,7 @@ export default function RolesPage() {
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-slate-400">Загрузка данных...</p>
+            <p className="mt-4 text-muted-foreground">Загрузка данных...</p>
           </div>
         </div>
       </MainLayout>
@@ -84,22 +84,22 @@ export default function RolesPage() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Роли системы</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Роли системы</h1>
             <HelpButton route="/admin/roles" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 
         {/* Панель управления */}
-        <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700">
+        <div className="bg-card mb-6 rounded-lg border border-border">
           <div className="px-4 md:px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-4 h-4 text-white" />
+                  <Shield className="w-4 h-4 text-foreground" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Роли системы</h2>
-                  <div className="text-sm text-slate-400">
+                  <h2 className="text-lg font-semibold text-foreground">Роли системы</h2>
+                  <div className="text-sm text-muted-foreground">
                     Всего: {filteredRoles.length} из {rolesState.roles.length}
                   </div>
                 </div>
@@ -131,16 +131,16 @@ export default function RolesPage() {
             {/* Фильтры */}
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Поиск ролей по названию или описанию..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pl-10"
+                  className="bg-secondary border-border text-foreground placeholder-muted-foreground pl-10"
                 />
               </div>
               <Select value={scopeFilter} onValueChange={setScopeFilter}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-full md:w-48">
+                <SelectTrigger className="bg-secondary border-border text-foreground w-full md:w-48">
                   <SelectValue placeholder="Все области" />
                 </SelectTrigger>
                 <SelectContent>
@@ -166,13 +166,13 @@ export default function RolesPage() {
           <TabsContent value="roles" className="mt-6">
             {filteredRoles.length === 0 ? (
               <div className="text-center py-16">
-                <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-8 h-8 text-slate-400" />
+                <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   {searchTerm || scopeFilter !== 'all' ? 'Роли не найдены' : 'Нет ролей'}
                 </h3>
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   {searchTerm || scopeFilter !== 'all'
                     ? 'Попробуйте изменить критерии поиска'
                     : 'Создайте первую роль для управления доступом пользователей'
@@ -194,7 +194,7 @@ export default function RolesPage() {
                 {/* Mobile карточки */}
                 <div className="md:hidden">
                   {rolesState.loading ? (
-                    <div className="text-center py-8 text-slate-400">Загрузка...</div>
+                    <div className="text-center py-8 text-muted-foreground">Загрузка...</div>
                   ) : (
                     <RolesCards
                       roles={filteredRoles}

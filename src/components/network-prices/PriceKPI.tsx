@@ -27,30 +27,30 @@ export function PriceKPI({ statistics, isMobile }: PriceKPIProps) {
       {statistics.map((stat) => (
         <Card
           key={stat.fuelType}
-          className="bg-slate-800 border-slate-700 p-4 hover:border-slate-600 transition-colors"
+          className="bg-card border-border p-4 hover:border-border transition-colors"
         >
           <div className="space-y-2">
             {/* Название топлива */}
-            <div className={`font-medium text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            <div className={`font-medium text-foreground/80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
               {stat.fuelType}
             </div>
 
             {/* Подпись "Средняя цена" */}
-            <div className={`text-slate-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+            <div className={`text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
               Средняя цена
             </div>
 
             {/* Средняя цена */}
             <div className="flex items-baseline gap-2">
-              <span className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+              <span className={`font-bold text-foreground ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 {formatPrice(stat.averagePrice)}
               </span>
-              <span className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>₽</span>
+              <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>₽</span>
             </div>
 
             {/* Разброс цен */}
             {stat.priceRange > 0 && (
-              <div className={`text-slate-500 ${isMobile ? 'text-[10px]' : 'text-xs'} pt-1 border-t border-slate-700`}>
+              <div className={`text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-xs'} pt-1 border-t border-border`}>
                 Разброс: {formatPrice(stat.priceRange)} ₽
                 {stat.priceRangePercent > 5 && (
                   <span className="text-yellow-500 ml-1">

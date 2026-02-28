@@ -159,9 +159,9 @@ export default function LegalUsersAcceptances() {
   };
 
   const getStatusIcon = (percentage: number) => {
-    if (percentage === 100) return <CheckCircle className="w-5 h-5 text-green-400" />;
-    if (percentage > 0) return <Clock className="w-5 h-5 text-yellow-400" />;
-    return <XCircle className="w-5 h-5 text-red-400" />;
+    if (percentage === 100) return <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />;
+    if (percentage > 0) return <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />;
+    return <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />;
   };
 
   const getStatusBadge = (percentage: number) => {
@@ -240,10 +240,10 @@ export default function LegalUsersAcceptances() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full report-full-width">
           <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-            <h1 className="text-2xl font-semibold text-white">Согласия пользователей</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Согласия пользователей</h1>
           </div>
           <div className="flex items-center justify-center py-16">
-            <div className="text-slate-400">Загрузка данных...</div>
+            <div className="text-muted-foreground">Загрузка данных...</div>
           </div>
         </div>
       </MainLayout>
@@ -262,15 +262,15 @@ export default function LegalUsersAcceptances() {
                 onClick={() => navigate('/admin/legal-documents')}
                 variant="outline"
                 size="sm"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                className="bg-secondary border-border text-foreground hover:bg-secondary"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Назад к документам
               </Button>
               
               <div>
-                <h1 className="text-2xl font-semibold text-white">Согласия пользователей</h1>
-                <p className="text-slate-400 mt-1">
+                <h1 className="text-2xl font-semibold text-foreground">Согласия пользователей</h1>
+                <p className="text-muted-foreground mt-1">
                   Статус подписания правовых документов всеми пользователями системы
                 </p>
               </div>
@@ -280,7 +280,7 @@ export default function LegalUsersAcceptances() {
               <Button
                 onClick={handleExportAcceptances}
                 variant="outline"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                className="bg-secondary border-border text-foreground hover:bg-secondary"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Экспорт в Excel
@@ -293,16 +293,16 @@ export default function LegalUsersAcceptances() {
         <div className="mx-4 md:mx-6 lg:mx-8 mb-6">
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Поиск пользователя..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-slate-700 border-slate-600 text-white"
+                className="pl-10 bg-secondary border-border text-foreground"
               />
             </div>
             
-            <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="w-4 h-4" />
               Найдено: {filteredUsers.length}
             </div>
@@ -312,13 +312,13 @@ export default function LegalUsersAcceptances() {
         {/* Список пользователей */}
         <div className="mx-4 md:mx-6 lg:mx-8 pb-6">
           {filteredUsers.length === 0 ? (
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardContent className="p-8 text-center">
-                <Users className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   Пользователи не найдены
                 </h3>
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   {searchQuery ? 'Попробуйте изменить критерии поиска' : 'В системе пока нет пользователей с согласиями'}
                 </p>
               </CardContent>
@@ -328,7 +328,7 @@ export default function LegalUsersAcceptances() {
               {filteredUsers.map((user) => (
                 <Card 
                   key={user.user_id} 
-                  className="bg-slate-800 border-slate-700 hover:bg-slate-750 transition-colors cursor-pointer"
+                  className="bg-card border-border hover:bg-secondary transition-colors cursor-pointer"
                   onClick={() => handleUserClick(user)}
                 >
                   <CardContent className="p-6">
@@ -337,19 +337,19 @@ export default function LegalUsersAcceptances() {
                       {/* Информация о пользователе */}
                       <div className="flex items-center gap-4 min-w-0 flex-1">
                         <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <User className="w-6 h-6 text-white" />
+                          <User className="w-6 h-6 text-foreground" />
                         </div>
                         
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-white font-medium text-lg leading-tight">
+                          <h3 className="text-foreground font-medium text-lg leading-tight">
                             {user.user_name}
                           </h3>
-                          <p className="text-slate-400 text-sm truncate">
+                          <p className="text-muted-foreground text-sm truncate">
                             {user.user_email}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
                             {getStatusIcon(user.completion_percentage)}
-                            <span className="text-sm text-slate-300">
+                            <span className="text-sm text-foreground/80">
                               {user.accepted_documents} из {user.total_documents} документов
                             </span>
                           </div>
@@ -361,25 +361,25 @@ export default function LegalUsersAcceptances() {
                         
                         {/* Статус */}
                         <div className="text-center">
-                          <div className="text-slate-400 mb-1">Статус</div>
+                          <div className="text-muted-foreground mb-1">Статус</div>
                           {getStatusBadge(user.completion_percentage)}
                         </div>
 
                         {/* Процент завершения */}
                         <div className="text-center">
-                          <div className="text-slate-400 mb-1">Прогресс</div>
-                          <div className="text-white font-medium">
+                          <div className="text-muted-foreground mb-1">Прогресс</div>
+                          <div className="text-foreground font-medium">
                             {user.completion_percentage}%
                           </div>
                         </div>
 
                         {/* Последнее согласие */}
                         <div className="text-center min-w-[140px]">
-                          <div className="text-slate-400 mb-1 flex items-center gap-1">
+                          <div className="text-muted-foreground mb-1 flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             Последнее согласие
                           </div>
-                          <div className="text-slate-300 text-xs">
+                          <div className="text-foreground/80 text-xs">
                             {formatDate(user.last_acceptance_date)}
                           </div>
                         </div>
@@ -387,7 +387,7 @@ export default function LegalUsersAcceptances() {
                         {/* Детали согласий */}
                         {user.acceptances.length > 0 && (
                           <div className="text-center">
-                            <div className="text-slate-400 mb-1">Документы</div>
+                            <div className="text-muted-foreground mb-1">Документы</div>
                             <div className="flex gap-1">
                               {['tos', 'privacy', 'pdn'].map((docType) => {
                                 const hasAcceptance = user.acceptances.some(a => a.doc_type_code === docType);
@@ -395,7 +395,7 @@ export default function LegalUsersAcceptances() {
                                   <div
                                     key={docType}
                                     className={`w-2 h-2 rounded-full ${
-                                      hasAcceptance ? 'bg-emerald-400' : 'bg-slate-600'
+                                      hasAcceptance ? 'bg-emerald-400' : 'bg-secondary'
                                     }`}
                                     title={`${DOCUMENT_TYPES[docType as DocumentType]} - ${hasAcceptance ? 'Подписано' : 'Не подписано'}`}
                                   />

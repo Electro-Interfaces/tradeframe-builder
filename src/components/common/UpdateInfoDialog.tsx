@@ -51,12 +51,12 @@ export const UpdateInfoDialog: React.FC<UpdateInfoDialogProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Статус:</span>
             {details.hasUpdate ? (
-              <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20">
+              <Badge className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 Обновление найдено
               </Badge>
             ) : (
-              <Badge className="bg-emerald-500/10 text-green-400 border-green-500/20">
+              <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500/20">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Актуальная версия
               </Badge>
@@ -69,14 +69,14 @@ export const UpdateInfoDialog: React.FC<UpdateInfoDialogProps> = ({
             <div className="text-xs space-y-1 text-muted-foreground">
               <div className="flex justify-between">
                 <span>Service Worker:</span>
-                <span className={details.swActive ? 'text-green-400' : 'text-red-400'}>
+                <span className={details.swActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                   {details.swActive ? 'Активен' : 'Неактивен'}
                 </span>
               </div>
 
               <div className="flex justify-between">
                 <span>Ожидающие обновления:</span>
-                <span className={details.swWaiting ? 'text-orange-400' : 'text-green-400'}>
+                <span className={details.swWaiting ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}>
                   {details.swWaiting ? 'Есть' : 'Нет'}
                 </span>
               </div>
@@ -93,17 +93,17 @@ export const UpdateInfoDialog: React.FC<UpdateInfoDialogProps> = ({
 
           <div className={`text-xs p-3 rounded-md ${
             details.hasUpdate
-              ? 'text-orange-200 bg-orange-500/10 border border-orange-500/20'
+              ? 'text-orange-700 dark:text-orange-200 bg-orange-500/10 border border-orange-500/20'
               : 'text-muted-foreground bg-muted/30'
           }`}>
             {details.hasUpdate ? (
               <p>
-                🔄 <strong>Обновление найдено!</strong> Новая версия TradeFrame устанавливается.
+                🔄 <strong>Обновление найдено!</strong> Новая версия TradeControl устанавливается.
                 Страница автоматически перезагрузится через несколько секунд.
               </p>
             ) : (
               <p>
-                ✨ <strong>Хорошие новости!</strong> У вас установлена последняя версия TradeFrame.
+                ✨ <strong>Хорошие новости!</strong> У вас установлена последняя версия TradeControl.
                 Система автоматически проверяет обновления и уведомит вас, когда появится новая версия.
               </p>
             )}

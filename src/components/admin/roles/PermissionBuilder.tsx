@@ -181,17 +181,17 @@ export function PermissionBuilder() {
     <div className="space-y-6">
       {/* Селектор роли */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-slate-200">Роль для редактирования</label>
+        <label className="text-sm font-medium text-foreground">Роль для редактирования</label>
         <Select 
           value={selectedRole?.id || ''} 
           onValueChange={handleRoleChange}
         >
-          <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+          <SelectTrigger className="bg-card border-border text-foreground">
             <SelectValue placeholder="Выберите роль" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
+          <SelectContent className="bg-card border-border">
             {roles.map(role => (
-              <SelectItem key={role.id} value={role.id} className="text-white hover:bg-slate-700">
+              <SelectItem key={role.id} value={role.id} className="text-foreground hover:bg-secondary">
                 <div className="flex items-center space-x-2">
                   <span>{role.name}</span>
                   <Badge variant="default" className="text-xs">
@@ -207,9 +207,9 @@ export function PermissionBuilder() {
       {selectedRole && (
         <div className="space-y-6">
           {/* Информация о роли */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between text-slate-200">
+              <CardTitle className="flex items-center justify-between text-foreground">
                 <div className="flex items-center space-x-2">
                   <span>{selectedRole.name}</span>
                   <Badge variant="default">
@@ -227,7 +227,7 @@ export function PermissionBuilder() {
                   )}
                 </div>
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 {selectedRole.description} • Область: {
                   selectedRole.scope === 'global' ? 'Глобальная' :
                   selectedRole.scope === 'network' ? 'Сеть' :
@@ -239,9 +239,9 @@ export function PermissionBuilder() {
           </Card>
 
           {/* Редактор разрешений */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-200 flex items-center justify-between">
+              <CardTitle className="text-foreground flex items-center justify-between">
                 <span>Редактирование разрешений</span>
                 <div className="flex space-x-2">
                   <Button
@@ -249,7 +249,7 @@ export function PermissionBuilder() {
                     size="sm"
                     onClick={resetPermissions}
                     disabled={!hasChanges()}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    className="border-border text-foreground/80 hover:bg-secondary"
                   >
                     Сбросить
                   </Button>
@@ -263,28 +263,28 @@ export function PermissionBuilder() {
                   </Button>
                 </div>
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Выберите разрешения для данной роли по разделам системы
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {Object.values(PERMISSION_SECTIONS).map(section => (
-                  <div key={section.code} className="border border-slate-600 rounded-lg p-4 bg-slate-700">
+                  <div key={section.code} className="border border-border rounded-lg p-4 bg-secondary">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="font-medium text-slate-200">{section.name}</h3>
-                        <p className="text-sm text-slate-400">{section.description}</p>
+                        <h3 className="font-medium text-foreground">{section.name}</h3>
+                        <p className="text-sm text-muted-foreground">{section.description}</p>
                       </div>
                     </div>
                     
                     <div className="space-y-3">
                       {Object.values(section.resources).map(resource => (
-                        <div key={resource.code} className="border border-slate-600 rounded p-3 bg-slate-600">
+                        <div key={resource.code} className="border border-border rounded p-3 bg-secondary">
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <h4 className="font-medium text-slate-200">{resource.name}</h4>
-                              <p className="text-sm text-slate-400">{resource.description}</p>
+                              <h4 className="font-medium text-foreground">{resource.name}</h4>
+                              <p className="text-sm text-muted-foreground">{resource.description}</p>
                             </div>
                           </div>
                           <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-4'}`}>
@@ -295,11 +295,11 @@ export function PermissionBuilder() {
                               const typedAction = action as PermissionAction
                               const isChecked = hasPermission(section.code, resource.code, typedAction)
                               const colorClasses: Record<PermissionAction, string> = {
-                                read: isChecked ? 'border-green-500 bg-emerald-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-green-400',
-                                write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-blue-400',
-                                delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-red-400',
-                                manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-purple-400',
-                                view_menu: isChecked ? 'border-yellow-500 bg-yellow-900 text-yellow-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-yellow-400'
+                                read: isChecked ? 'border-green-500 bg-emerald-100 dark:bg-emerald-900 text-green-600 dark:text-green-300' : 'border-border bg-secondary text-muted-foreground hover:border-green-400',
+                                write: isChecked ? 'border-blue-500 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : 'border-border bg-secondary text-muted-foreground hover:border-blue-400',
+                                delete: isChecked ? 'border-red-500 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300' : 'border-border bg-secondary text-muted-foreground hover:border-red-400',
+                                manage: isChecked ? 'border-purple-500 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300' : 'border-border bg-secondary text-muted-foreground hover:border-purple-400',
+                                view_menu: isChecked ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300' : 'border-border bg-secondary text-muted-foreground hover:border-yellow-400'
                               }
 
                               return (

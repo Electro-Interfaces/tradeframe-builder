@@ -147,14 +147,14 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (tables.length === 0) {
     return (
-      <div className="text-center p-8 text-slate-400">
+      <div className="text-center p-8 text-muted-foreground">
         <p>Калибровочные таблицы еще не создавались</p>
         <p className="text-sm mt-2">Используйте раздел "Расчет таблицы" для создания первой таблицы</p>
       </div>
@@ -200,7 +200,7 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
           </DropdownMenuItem>
         )}
         {!t.is_active && t.status !== 'approved' && (
-          <DropdownMenuItem onClick={() => handleDelete(t.id)} className="text-red-400">
+          <DropdownMenuItem onClick={() => handleDelete(t.id)} className="text-red-600 dark:text-red-400">
             <Trash2 className="w-4 h-4 mr-2" />
             Удалить
           </DropdownMenuItem>
@@ -213,7 +213,7 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
     return (
       <div className="space-y-3">
         {tables.map((table) => (
-          <Card key={table.id} className={table.is_active ? 'bg-slate-800/50' : ''}>
+          <Card key={table.id} className={table.is_active ? 'bg-card/50' : ''}>
             <div className="p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -225,21 +225,21 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
               </div>
               <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                 <div>
-                  <span className="text-slate-400 text-xs">Период</span>
+                  <span className="text-muted-foreground text-xs">Период</span>
                   <div>{format(new Date(table.analysis_start_date), 'dd.MM.yy', { locale: ru })} — {format(new Date(table.analysis_end_date), 'dd.MM.yy', { locale: ru })}</div>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-xs">Создана</span>
+                  <span className="text-muted-foreground text-xs">Создана</span>
                   <div>{format(new Date(table.created_at), 'dd.MM.yy HH:mm', { locale: ru })}</div>
                 </div>
                 {table.statistics && (
                   <>
                     <div>
-                      <span className="text-slate-400 text-xs">Точек</span>
+                      <span className="text-muted-foreground text-xs">Точек</span>
                       <div className="font-semibold">{table.statistics.data_points_used}</div>
                     </div>
                     <div>
-                      <span className="text-slate-400 text-xs">R²</span>
+                      <span className="text-muted-foreground text-xs">R²</span>
                       <div className="font-semibold">{table.statistics.r_squared?.toFixed(3)}</div>
                     </div>
                   </>
@@ -268,7 +268,7 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
           </TableHeader>
           <TableBody>
             {tables.map((table) => (
-              <TableRow key={table.id} className={table.is_active ? 'bg-slate-800/50' : ''}>
+              <TableRow key={table.id} className={table.is_active ? 'bg-card/50' : ''}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">v{table.version}</span>
@@ -281,7 +281,7 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
                 <TableCell>
                   <div className="text-sm">
                     <div>{format(new Date(table.analysis_start_date), 'dd.MM.yyyy', { locale: ru })}</div>
-                    <div className="text-slate-400">
+                    <div className="text-muted-foreground">
                       {format(new Date(table.analysis_end_date), 'dd.MM.yyyy', { locale: ru })}
                     </div>
                   </div>
@@ -290,11 +290,11 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
                   {table.statistics && (
                     <div className="text-sm space-y-1">
                       <div className="flex justify-between gap-4">
-                        <span className="text-slate-400">Точек:</span>
+                        <span className="text-muted-foreground">Точек:</span>
                         <span className="font-semibold">{table.statistics.data_points_used}</span>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <span className="text-slate-400">R²:</span>
+                        <span className="text-muted-foreground">R²:</span>
                         <span className="font-semibold">{table.statistics.r_squared?.toFixed(3)}</span>
                       </div>
                     </div>

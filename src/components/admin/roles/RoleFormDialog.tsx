@@ -252,7 +252,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} overflow-y-auto bg-slate-900 border-slate-700 text-white`}>
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} overflow-y-auto bg-background border-border text-foreground`}>
         <DialogHeader>
           <DialogTitle>
             {role ? 'Редактирование роли' : 'Создание новой роли'}
@@ -264,7 +264,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className={`grid w-full ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-2'} bg-slate-800 border-slate-700`}>
+            <TabsList className={`grid w-full ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-2'} bg-card border-border`}>
               <TabsTrigger value="basic">
                 Основные настройки
               </TabsTrigger>
@@ -282,7 +282,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
             <TabsContent value="basic" className="space-y-4 overflow-y-auto">
               <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 <div className="space-y-2">
-                  <Label htmlFor="code" className="text-slate-200">Код роли *</Label>
+                  <Label htmlFor="code" className="text-foreground">Код роли *</Label>
                   <Input
                     id="code"
                     value={formData.code}
@@ -290,37 +290,37 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     placeholder="network_admin"
                     disabled={!!role} // Код нельзя менять при редактировании
                     required
-                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
+                    className="bg-card border-border text-foreground placeholder-muted-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-200">Название роли *</Label>
+                  <Label htmlFor="name" className="text-foreground">Название роли *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Администратор сети"
                     required
-                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
+                    className="bg-card border-border text-foreground placeholder-muted-foreground"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-slate-200">Описание</Label>
+                <Label htmlFor="description" className="text-foreground">Описание</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Описание роли и её назначения"
                   rows={3}
-                  className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
+                  className="bg-card border-border text-foreground placeholder-muted-foreground"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-200">Область действия</Label>
+                <Label className="text-foreground">Область действия</Label>
                 <Select
                   value={formData.scope}
                   onValueChange={(value: RoleScope) => setFormData(prev => ({
@@ -329,15 +329,15 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     scopeValues: value !== 'trading_point' && value !== 'assigned' ? [] : prev.scopeValues
                   }))}
                 >
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="bg-card border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-card border-border">
                     {SCOPE_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value} className="text-white hover:bg-slate-700">
+                      <SelectItem key={option.value} value={option.value} className="text-foreground hover:bg-secondary">
                         <div>
                           <div className="font-medium">{option.label}</div>
-                          <div className="text-sm text-slate-400">{option.description}</div>
+                          <div className="text-sm text-muted-foreground">{option.description}</div>
                         </div>
                       </SelectItem>
                     ))}
@@ -347,19 +347,19 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
               {/* Выбор торговых сетей для scope='network' */}
               {formData.scope === 'network' && (
-                <div className="space-y-4 p-4 bg-slate-800/50 border border-purple-700/50 rounded-lg">
+                <div className="space-y-4 p-4 bg-card/50 border border-purple-300 dark:border-purple-700/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <h4 className="font-medium text-slate-200">Доступ к торговым сетям</h4>
+                    <h4 className="font-medium text-foreground">Доступ к торговым сетям</h4>
                   </div>
 
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-muted-foreground">
                     Выберите торговые сети, к которым будет предоставлен полный доступ пользователям с этой ролью.
                     Пользователь получит доступ ко всем торговым точкам выбранных сетей.
                   </p>
 
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Торговые сети</Label>
+                    <Label className="text-foreground/80">Торговые сети</Label>
                     <MultiNetworkSelect
                       value={formData.scopeNetworkIds}
                       onValueChange={(values) => setFormData(prev => ({ ...prev, scopeNetworkIds: values }))}
@@ -368,7 +368,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   </div>
 
                   {formData.scopeNetworkIds.length > 0 && (
-                    <div className="text-sm text-purple-400">
+                    <div className="text-sm text-purple-600 dark:text-purple-400">
                       ✓ Выбрано сетей: {formData.scopeNetworkIds.length}
                     </div>
                   )}
@@ -377,20 +377,20 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
               {/* Выбор конкретных торговых точек */}
               {(formData.scope === 'trading_point' || formData.scope === 'assigned') && (
-                <div className="space-y-4 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+                <div className="space-y-4 p-4 bg-card/50 border border-border rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <h4 className="font-medium text-slate-200">Ограничение доступа к торговым точкам</h4>
+                    <h4 className="font-medium text-foreground">Ограничение доступа к торговым точкам</h4>
                   </div>
 
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-muted-foreground">
                     Выберите сеть, затем укажите торговые точки, к которым будет ограничен доступ пользователей с этой ролью.
                     {formData.scopeValues.length === 0 && " Если не выбрать ни одной точки, доступ будет ко всем точкам сети."}
                   </p>
 
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label className="text-slate-300">Сеть</Label>
+                      <Label className="text-foreground/80">Сеть</Label>
                       <NetworkSelect
                         value={formData.scopeNetworkId}
                         onValueChange={(value) => setFormData(prev => ({
@@ -398,12 +398,12 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                           scopeNetworkId: value,
                           scopeValues: [] // Сбрасываем выбор при смене сети
                         }))}
-                        className="bg-slate-800 border-slate-700"
+                        className="bg-card border-border"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-slate-300">Торговые точки</Label>
+                      <Label className="text-foreground/80">Торговые точки</Label>
                       <MultiPointSelect
                         value={formData.scopeValues}
                         onValueChange={(values) => setFormData(prev => ({ ...prev, scopeValues: values }))}
@@ -414,7 +414,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     </div>
 
                     {formData.scopeValues.length > 0 && (
-                      <div className="text-sm text-green-400">
+                      <div className="text-sm text-green-600 dark:text-green-400">
                         ✓ Выбрано торговых точек: {formData.scopeValues.length}
                       </div>
                     )}
@@ -428,20 +428,20 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
                 />
-                <Label htmlFor="is_active" className="text-slate-200">Роль активна</Label>
+                <Label htmlFor="is_active" className="text-foreground">Роль активна</Label>
               </div>
 
               {/* Подсказка о следующем шаге */}
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+              <div className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <div className="text-blue-400">ℹ️</div>
+                  <div className="text-blue-600 dark:text-blue-400">ℹ️</div>
                   <div>
-                    <h4 className="font-medium text-slate-200">Следующий шаг: Настройка разрешений</h4>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <h4 className="font-medium text-foreground">Следующий шаг: Настройка разрешений</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
                       После заполнения основных данных перейдите на вкладку "Разрешения", чтобы настроить права доступа по разделам системы.
                     </p>
                     {permissions.length > 0 && (
-                      <p className="text-sm text-green-400 mt-2">
+                      <p className="text-sm text-green-600 dark:text-green-400 mt-2">
                         ✓ Настроено {permissions.reduce((sum, p) => sum + (p.actions?.length || 0), 0)} разрешений
                       </p>
                     )}
@@ -449,13 +449,13 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-blue-600 dark:text-blue-400 hover:text-blue-300"
                         onClick={() => setActiveTab('permissions')}
                       >
                         Перейти к настройке разрешений →
                       </Button>
                       {formData.name && formData.code && permissions.length > 0 && (
-                        <div className="flex items-center space-x-2 text-green-400">
+                        <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
                           <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
                           <span className="text-xs">Готово к сохранению</span>
                         </div>
@@ -469,38 +469,38 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
             {/* Разрешения */}
             <TabsContent value="permissions" className="flex-1 overflow-y-auto space-y-4">
               {/* Заголовок с инструкцией */}
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                <h3 className="font-medium text-slate-200 mb-2">Настройка разрешений по разделам системы</h3>
-                <p className="text-sm text-slate-400 mb-3">
+              <div className="bg-card border border-border rounded-lg p-4">
+                <h3 className="font-medium text-foreground mb-2">Настройка разрешений по разделам системы</h3>
+                <p className="text-sm text-muted-foreground mb-3">
                   Выберите разделы и действия, которые будут доступны пользователям с этой ролью:
                 </p>
                 <div className={`grid gap-4 text-xs ${isMobile ? 'grid-cols-2' : 'grid-cols-5'}`}>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-emerald-800 border border-green-600 rounded"></div>
-                    <span className="text-green-300 font-medium">Чтение</span> - просмотр данных
+                    <div className="w-3 h-3 bg-emerald-200 dark:bg-emerald-800 border border-green-600 rounded"></div>
+                    <span className="text-green-600 dark:text-green-300 font-medium">Чтение</span> - просмотр данных
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-blue-800 border border-blue-600 rounded"></div>
-                    <span className="text-blue-300 font-medium">Запись</span> - создание и редактирование
+                    <div className="w-3 h-3 bg-blue-200 dark:bg-blue-800 border border-blue-600 rounded"></div>
+                    <span className="text-blue-600 dark:text-blue-300 font-medium">Запись</span> - создание и редактирование
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-red-800 border border-red-600 rounded"></div>
-                    <span className="text-red-300 font-medium">Удаление</span> - удаление записей
+                    <div className="w-3 h-3 bg-red-200 dark:bg-red-800 border border-red-600 rounded"></div>
+                    <span className="text-red-600 dark:text-red-300 font-medium">Удаление</span> - удаление записей
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-purple-800 border border-purple-600 rounded"></div>
-                    <span className="text-purple-300 font-medium">Управление</span> - полные права
+                    <div className="w-3 h-3 bg-purple-200 dark:bg-purple-800 border border-purple-600 rounded"></div>
+                    <span className="text-purple-600 dark:text-purple-300 font-medium">Управление</span> - полные права
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-yellow-800 border border-yellow-600 rounded"></div>
-                    <span className="text-yellow-300 font-medium">Видимость меню</span> - показывать в меню
+                    <div className="w-3 h-3 bg-yellow-200 dark:bg-yellow-800 border border-yellow-600 rounded"></div>
+                    <span className="text-yellow-600 dark:text-yellow-300 font-medium">Видимость меню</span> - показывать в меню
                   </div>
                 </div>
               </div>
 
               {/* Быстрые шаблоны */}
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                <h4 className="font-medium text-slate-200 mb-3">🚀 Быстрые шаблоны ролей</h4>
+              <div className="bg-card border border-border rounded-lg p-4">
+                <h4 className="font-medium text-foreground mb-3">🚀 Быстрые шаблоны ролей</h4>
                 <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'}`}>
                   <Button
                     type="button"
@@ -511,7 +511,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   >
                     <div>
                       <div className="font-medium">👑 Администратор</div>
-                      <div className="text-xs text-slate-400">Полные права кроме системных настроек</div>
+                      <div className="text-xs text-muted-foreground">Полные права кроме системных настроек</div>
                     </div>
                   </Button>
                   <Button
@@ -523,7 +523,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   >
                     <div>
                       <div className="font-medium">🏢 Менеджер</div>
-                      <div className="text-xs text-slate-400">Управление операциями и отчеты</div>
+                      <div className="text-xs text-muted-foreground">Управление операциями и отчеты</div>
                     </div>
                   </Button>
                   <Button
@@ -535,7 +535,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   >
                     <div>
                       <div className="font-medium">👀 Только чтение</div>
-                      <div className="text-xs text-slate-400">Просмотр данных без изменения</div>
+                      <div className="text-xs text-muted-foreground">Просмотр данных без изменения</div>
                     </div>
                   </Button>
                 </div>
@@ -543,15 +543,15 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
               {/* Единый список всех разрешений */}
               <div className="space-y-4">
-                <Card className="bg-slate-800 border-slate-700">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg text-slate-200">Список разрешений</CardTitle>
+                      <CardTitle className="text-lg text-foreground">Список разрешений</CardTitle>
                       <Badge variant="outline">
                         {permissions.reduce((sum, p) => sum + (p.actions?.length || 0), 0)} из {Object.values(PERMISSION_SECTIONS).reduce((total, section) => total + Object.keys(section.resources).length * 4, 0)} возможных
                       </Badge>
                     </div>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-muted-foreground">
                       Выберите необходимые разрешения для данной роли
                     </CardDescription>
                   </CardHeader>
@@ -559,13 +559,13 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     <div className="space-y-3">
                       {Object.values(PERMISSION_SECTIONS).flatMap(section => 
                         Object.values(section.resources).map(resource => (
-                          <div key={`${section.code}-${resource.code}`} className="border border-slate-600 rounded-lg p-4 bg-slate-700">
+                          <div key={`${section.code}-${resource.code}`} className="border border-border rounded-lg p-4 bg-secondary">
                             <div className="flex items-start justify-between mb-3">
                               <div>
-                                <h4 className="font-medium text-slate-200">
+                                <h4 className="font-medium text-foreground">
                                   {section.name} → {resource.name}
                                 </h4>
-                                <p className="text-sm text-slate-400 mt-1">{resource.description}</p>
+                                <p className="text-sm text-muted-foreground mt-1">{resource.description}</p>
                               </div>
                             </div>
                             <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
@@ -575,11 +575,11 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                               ).map(action => {
                                 const isChecked = hasPermission(section.code, resource.code, action)
                                 const colorClasses = {
-                                  read: isChecked ? 'border-green-500 bg-emerald-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-400',
-                                  write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-400', 
-                                  delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-400',
-                                  manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-400',
-                                  view_menu: isChecked ? 'border-yellow-500 bg-yellow-900 text-yellow-300' : 'border-slate-600 bg-slate-700 text-slate-400'
+                                  read: isChecked ? 'border-green-500 bg-emerald-100 dark:bg-emerald-900 text-green-600 dark:text-green-300' : 'border-border bg-secondary text-muted-foreground',
+                                  write: isChecked ? 'border-blue-500 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : 'border-border bg-secondary text-muted-foreground', 
+                                  delete: isChecked ? 'border-red-500 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300' : 'border-border bg-secondary text-muted-foreground',
+                                  manage: isChecked ? 'border-purple-500 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300' : 'border-border bg-secondary text-muted-foreground',
+                                  view_menu: isChecked ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300' : 'border-border bg-secondary text-muted-foreground'
                                 }
                                 
                                 return (

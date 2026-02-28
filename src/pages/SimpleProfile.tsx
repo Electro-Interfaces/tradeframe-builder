@@ -162,8 +162,8 @@ export default function SimpleProfile() {
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Мой профиль</h1>
-              <p className="text-slate-400 mt-2">
+              <h1 className="text-2xl font-semibold text-foreground">Мой профиль</h1>
+              <p className="text-muted-foreground mt-2">
                 Личная информация и настройки аккаунта
               </p>
             </div>
@@ -172,11 +172,11 @@ export default function SimpleProfile() {
         </div>
 
         {/* Основная карточка профиля */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 mb-6">
+        <div className="bg-card rounded-lg border border-border mb-6">
           <div className="px-6 py-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                <User className="w-8 h-8 text-white" />
+                <User className="w-8 h-8 text-foreground" />
               </div>
               <div className="flex-1">
                 {isEditingName ? (
@@ -184,7 +184,7 @@ export default function SimpleProfile() {
                     <Input
                       value={editedName}
                       onChange={(e) => setEditedName(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white text-xl font-semibold"
+                      className="bg-secondary border-border text-foreground text-xl font-semibold"
                       disabled={isLoading}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -208,14 +208,14 @@ export default function SimpleProfile() {
                       disabled={isLoading}
                       size="sm"
                       variant="outline"
-                      className="border-slate-600 text-slate-300"
+                      className="border-border text-foreground/80"
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 mb-2">
-                    <h2 className="text-xl font-semibold text-white">
+                    <h2 className="text-xl font-semibold text-foreground">
                       {user?.name || user?.firstName ?
                         (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name) :
                         'Пользователь системы'
@@ -225,21 +225,21 @@ export default function SimpleProfile() {
                       onClick={handleEditName}
                       size="sm"
                       variant="ghost"
-                      className="text-slate-400 hover:text-white p-1"
+                      className="text-muted-foreground hover:text-foreground p-1"
                       disabled={isLoading}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
                   </div>
                 )}
-                <p className="text-slate-300">{user?.email}</p>
+                <p className="text-foreground/80">{user?.email}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge variant={user?.status === 'active' ? 'default' : 'secondary'}
-                         className={user?.status === 'active' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-600 hover:bg-slate-700'}>
+                         className={user?.status === 'active' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-secondary hover:bg-secondary'}>
                     {user?.status === 'active' ? 'Активен' : 'Неактивен'}
                   </Badge>
                   {user?.roles && user.roles.length > 0 && (
-                    <Badge variant="outline" className="border-slate-500 text-slate-300">
+                    <Badge variant="outline" className="border-border text-foreground/80">
                       {user.roles[0].roleName}
                     </Badge>
                   )}
@@ -247,24 +247,24 @@ export default function SimpleProfile() {
               </div>
             </div>
 
-            <Separator className="bg-slate-600 mb-6" />
+            <Separator className="bg-secondary mb-6" />
 
             {/* Информация о пользователе */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-slate-400" />
+                  <Mail className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-slate-400">Email</p>
-                    <p className="text-white">{user?.email || 'Не указан'}</p>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="text-foreground">{user?.email || 'Не указан'}</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-slate-400" />
+                  <Calendar className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-slate-400">Последний вход</p>
-                    <p className="text-white">{formatDate(user?.lastLogin)}</p>
+                    <p className="text-sm text-muted-foreground">Последний вход</p>
+                    <p className="text-foreground">{formatDate(user?.lastLogin)}</p>
                   </div>
                 </div>
 
@@ -272,25 +272,25 @@ export default function SimpleProfile() {
 
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-slate-400" />
+                  <Shield className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-slate-400">Роли</p>
+                    <p className="text-sm text-muted-foreground">Роли</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {user?.roles?.map((role, index) => (
-                        <Badge key={index} variant="outline" className="text-xs border-slate-500 text-slate-300">
+                        <Badge key={index} variant="outline" className="text-xs border-border text-foreground/80">
                           {role.roleName}
                         </Badge>
-                      )) || <span className="text-slate-400">Нет ролей</span>}
+                      )) || <span className="text-muted-foreground">Нет ролей</span>}
                     </div>
                   </div>
                 </div>
 
                 {user?.permissions && user.permissions.length > 0 && (
                   <div className="flex items-center gap-3">
-                    <Lock className="w-5 h-5 text-slate-400" />
+                    <Lock className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-slate-400">Разрешения</p>
-                      <p className="text-white text-sm">
+                      <p className="text-sm text-muted-foreground">Разрешения</p>
+                      <p className="text-foreground text-sm">
                         {user.permissions.includes('all') ? 'Все разрешения' : `${user.permissions.length} разрешений`}
                       </p>
                     </div>
@@ -300,13 +300,13 @@ export default function SimpleProfile() {
             </div>
 
             {/* Действия */}
-            <Separator className="bg-slate-600 mb-6" />
+            <Separator className="bg-secondary mb-6" />
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={() => setShowPasswordForm(!showPasswordForm)}
                 variant="outline"
-                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
+                className="border-border text-foreground/80 hover:text-foreground hover:bg-secondary"
               >
                 <Lock className="w-4 h-4 mr-2" />
                 {showPasswordForm ? 'Отменить смену пароля' : 'Сменить пароль'}
@@ -326,33 +326,33 @@ export default function SimpleProfile() {
 
         {/* Форма смены пароля */}
         {showPasswordForm && (
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Смена пароля</CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardTitle className="text-foreground">Смена пароля</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Введите текущий пароль и новый пароль для смены
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmitPassword)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword" className="text-slate-300">Текущий пароль</Label>
+                  <Label htmlFor="currentPassword" className="text-foreground/80">Текущий пароль</Label>
                   <Input
                     id="currentPassword"
                     type="password"
                     {...register("currentPassword", {
                       required: "Введите текущий пароль"
                     })}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                     disabled={isLoading}
                   />
                   {errors.currentPassword && (
-                    <p className="text-sm text-red-400">{errors.currentPassword.message}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{errors.currentPassword.message}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="text-slate-300">Новый пароль</Label>
+                  <Label htmlFor="newPassword" className="text-foreground/80">Новый пароль</Label>
                   <Input
                     id="newPassword"
                     type="password"
@@ -363,16 +363,16 @@ export default function SimpleProfile() {
                         message: "Минимум 8 символов"
                       }
                     })}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                     disabled={isLoading}
                   />
                   {errors.newPassword && (
-                    <p className="text-sm text-red-400">{errors.newPassword.message}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{errors.newPassword.message}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-slate-300">Подтвердите пароль</Label>
+                  <Label htmlFor="confirmPassword" className="text-foreground/80">Подтвердите пароль</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
@@ -380,11 +380,11 @@ export default function SimpleProfile() {
                       required: "Подтвердите пароль",
                       validate: value => value === watch("newPassword") || "Пароли не совпадают"
                     })}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                     disabled={isLoading}
                   />
                   {errors.confirmPassword && (
-                    <p className="text-sm text-red-400">{errors.confirmPassword.message}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{errors.confirmPassword.message}</p>
                   )}
                 </div>
 
@@ -405,20 +405,20 @@ export default function SimpleProfile() {
                       reset();
                     }}
                     disabled={isLoading}
-                    className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
+                    className="border-border text-foreground/80 hover:text-foreground hover:bg-secondary"
                   >
                     Отмена
                   </Button>
                 </div>
 
-                <div className="mt-4 p-4 bg-amber-900/20 rounded-lg border border-amber-800/30">
+                <div className="mt-4 p-4 bg-amber-100 dark:bg-amber-900/20 rounded-lg border border-amber-800/30">
                   <div className="flex gap-2">
-                    <Lock className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-amber-100">
                         Важно
                       </p>
-                      <p className="text-sm text-amber-200">
+                      <p className="text-sm text-amber-700 dark:text-amber-200">
                         После смены пароля вы будете автоматически разлогинены и потребуется войти в систему заново с новым паролем.
                       </p>
                     </div>

@@ -1,5 +1,5 @@
 /**
- * Конфигурация Supabase для TradeFrame Builder
+ * Конфигурация Supabase для TradeControl Builder
  * Поддержка development и production режимов
  */
 

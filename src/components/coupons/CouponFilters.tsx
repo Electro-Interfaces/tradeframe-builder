@@ -30,13 +30,13 @@ export function CouponFilters({
   onClearFilters
 }: CouponFiltersProps) {
   return (
-    <Card className="bg-slate-800 border-slate-700 mb-6">
+    <Card className="bg-card border-border mb-6">
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
         <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50 transition-colors">
+          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-slate-400" />
-              <span className="font-medium text-white">Фильтры</span>
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">Фильтры</span>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -57,24 +57,24 @@ export function CouponFilters({
                   onRefresh();
                 }}
                 disabled={loading}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>
               {filtersOpen ? (
-                <ChevronDown className="h-4 w-4 text-slate-400" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-slate-400" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="p-4 border-t border-slate-700">
+          <div className="p-4 border-t border-border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Поиск */}
               <div>
-                <Label htmlFor="search" className="text-xs text-slate-400">
+                <Label htmlFor="search" className="text-xs text-muted-foreground">
                   Поиск по номеру
                 </Label>
                 <Input
@@ -91,7 +91,7 @@ export function CouponFilters({
 
               {/* Дата начала */}
               <div>
-                <Label htmlFor="dateFrom" className="text-xs text-slate-400">
+                <Label htmlFor="dateFrom" className="text-xs text-muted-foreground">
                   Дата от
                 </Label>
                 <Input
@@ -107,7 +107,7 @@ export function CouponFilters({
 
               {/* Дата окончания */}
               <div>
-                <Label htmlFor="dateTo" className="text-xs text-slate-400">
+                <Label htmlFor="dateTo" className="text-xs text-muted-foreground">
                   Дата до
                 </Label>
                 <Input

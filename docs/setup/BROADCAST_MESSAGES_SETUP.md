@@ -47,8 +47,8 @@ apply-messages-migration.sql
 В файле `server/.env` должны быть установлены:
 ```env
 TELEGRAM_BOT_TOKEN=your_bot_token_from_@BotFather
-TELEGRAM_BOT_NAME=TradeFrame Notifications
-TELEGRAM_BOT_USERNAME=TradeFrameDW_Bot
+TELEGRAM_BOT_NAME=TradeControl Notifications
+TELEGRAM_BOT_USERNAME=TradeControlDW_Bot
 ```
 
 ### 3. Проверить настройки Email (опционально)
@@ -103,7 +103,7 @@ https://prod.dataworker.ru/network/broadcast-messages
 
 **Для Telegram:**
 1. Убедитесь что пользователь привязал Telegram через `/settings/notifications`
-2. Открыл бота @TradeFrameDW_Bot и выполнил `/start [код]`
+2. Открыл бота @TradeControlDW_Bot и выполнил `/start [код]`
 3. Получил подтверждение привязки
 
 **Для Email:**
@@ -175,7 +175,7 @@ pm2 logs tradeframe-backend-proxy
 
 1. Проверьте что Telegram Bot запущен:
    ```
-   [Telegram Bot] Initialized successfully: TradeFrame Notifications
+   [Telegram Bot] Initialized successfully: TradeControl Notifications
    [Telegram Bot] Polling started
    ```
 

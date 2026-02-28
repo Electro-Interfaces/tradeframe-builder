@@ -1,4 +1,4 @@
-# 🚀 TradeFrame Deployment
+# 🚀 TradeControl Deployment
 
 ## 📋 Система двойного развертывания
 

@@ -165,10 +165,10 @@ export default function ShiftDashboard() {
     return (
       <MainLayout fullWidth={true}>
         <div className="w-full h-full px-4 md:px-6 lg:px-8 py-8">
-          <div className="flex flex-col items-center justify-center h-64 bg-slate-800 rounded-xl border border-slate-700">
+          <div className="flex flex-col items-center justify-center h-64 bg-card rounded-xl border border-border">
             <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
-            <p className="text-lg text-slate-300 mb-2">Выберите торговую точку</p>
-            <p className="text-sm text-slate-500">Для отображения дашборда необходимо выбрать торговую точку</p>
+            <p className="text-lg text-foreground/80 mb-2">Выберите торговую точку</p>
+            <p className="text-sm text-muted-foreground">Для отображения дашборда необходимо выбрать торговую точку</p>
           </div>
         </div>
       </MainLayout>
@@ -185,18 +185,18 @@ export default function ShiftDashboard() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/point/shift-reports-v2')}
-              className="text-slate-400 hover:text-white px-2 sm:px-3"
+              className="text-muted-foreground hover:text-foreground px-2 sm:px-3"
             >
               <ArrowLeft className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Назад к сменам</span>
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-semibold text-white truncate">
+              <h1 className="text-lg sm:text-2xl font-semibold text-foreground truncate">
                 <span className="hidden sm:inline">Дашборд аналитики по сменным отчетам</span>
                 <span className="sm:hidden">Аналитика смен</span>
               </h1>
               <div className="flex items-center gap-2">
-                <p className="text-xs sm:text-sm text-slate-400 truncate">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
                   {selectedStation?.name || selectedNetwork?.name || 'Все точки'}
                 </p>
                 {/* Фильтр по сменам - только для одной станции */}
@@ -206,7 +206,7 @@ export default function ShiftDashboard() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 px-2 text-xs text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500"
+                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-border"
                       >
                         <Filter className="w-3 h-3 mr-1" />
                         {selectedShifts.length > 0
@@ -215,15 +215,15 @@ export default function ShiftDashboard() {
                         <ChevronDown className="w-3 h-3 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-64 p-0 bg-slate-800 border-slate-700" align="start">
-                      <div className="p-3 border-b border-slate-700">
+                    <PopoverContent className="w-64 p-0 bg-card border-border" align="start">
+                      <div className="p-3 border-b border-border">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-white">Выбор смен</span>
+                          <span className="text-sm font-medium text-foreground">Выбор смен</span>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={handleSelectAllShifts}
-                            className="h-6 px-2 text-xs text-blue-400 hover:text-blue-300"
+                            className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
                           >
                             {selectedShifts.length === allShiftsForFilter.length ? 'Снять все' : 'Выбрать все'}
                           </Button>
@@ -233,16 +233,16 @@ export default function ShiftDashboard() {
                         {allShiftsForFilter.map((shift: any) => (
                           <label
                             key={shift.shiftNumber}
-                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700 rounded cursor-pointer"
+                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-secondary rounded cursor-pointer"
                           >
                             <Checkbox
                               checked={selectedShifts.includes(shift.shiftNumber)}
                               onCheckedChange={() => handleShiftToggle(shift.shiftNumber)}
                             />
-                            <span className="text-sm text-slate-300">
+                            <span className="text-sm text-foreground/80">
                               №{shift.shiftNumber}
                             </span>
-                            <span className="text-xs text-slate-500 ml-auto">
+                            <span className="text-xs text-muted-foreground ml-auto">
                               {new Date(shift.openedAt).toLocaleDateString('ru-RU', {
                                 day: '2-digit',
                                 month: '2-digit',
@@ -252,12 +252,12 @@ export default function ShiftDashboard() {
                         ))}
                       </div>
                       {selectedShifts.length > 0 && (
-                        <div className="p-2 border-t border-slate-700">
+                        <div className="p-2 border-t border-border">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setSelectedShifts([])}
-                            className="w-full h-7 text-xs text-slate-400 hover:text-white"
+                            className="w-full h-7 text-xs text-muted-foreground hover:text-foreground"
                           >
                             Сбросить фильтр
                           </Button>
@@ -285,8 +285,8 @@ export default function ShiftDashboard() {
 
         {/* Ошибка загрузки */}
         {error && (
-          <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg">
-            <div className="flex items-center gap-2 text-red-400">
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
               <AlertCircle className="w-5 h-5" />
               <span>Ошибка загрузки данных: {error.message}</span>
             </div>
@@ -295,7 +295,7 @@ export default function ShiftDashboard() {
 
         {/* Индикатор фоновой загрузки */}
         {isFetching && data && (
-          <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-blue-900/30 border border-blue-700/30 rounded-lg text-sm text-blue-300">
+          <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700/30 rounded-lg text-sm text-blue-600 dark:text-blue-300">
             <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
             Обновление данных...
           </div>
@@ -367,17 +367,17 @@ export default function ShiftDashboard() {
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Скелетон KPI карточек */}
             <div>
-              <div className="h-4 w-32 bg-slate-700 rounded mb-3" />
+              <div className="h-4 w-32 bg-secondary rounded mb-3" />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700">
+                  <div key={i} className="bg-card rounded-xl p-3 sm:p-4 border border-border">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-3 h-3 rounded-full bg-slate-700 animate-pulse" />
-                      <div className="h-3.5 w-16 bg-slate-700 rounded animate-pulse" />
+                      <div className="w-3 h-3 rounded-full bg-secondary animate-pulse" />
+                      <div className="h-3.5 w-16 bg-secondary rounded animate-pulse" />
                     </div>
                     <div className="space-y-1.5">
-                      <div className="h-6 w-24 bg-slate-700 rounded animate-pulse" />
-                      <div className="h-5 w-20 bg-slate-700 rounded animate-pulse" />
+                      <div className="h-6 w-24 bg-secondary rounded animate-pulse" />
+                      <div className="h-5 w-20 bg-secondary rounded animate-pulse" />
                     </div>
                   </div>
                 ))}
@@ -386,17 +386,17 @@ export default function ShiftDashboard() {
 
             {/* Скелетон способов оплаты */}
             <div>
-              <div className="h-4 w-40 bg-slate-700 rounded mb-3" />
+              <div className="h-4 w-40 bg-secondary rounded mb-3" />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                 {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700">
+                  <div key={i} className="bg-card rounded-xl p-3 sm:p-4 border border-border">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-lg bg-slate-700 animate-pulse" />
-                      <div className="h-3.5 w-20 bg-slate-700 rounded animate-pulse" />
+                      <div className="w-7 h-7 rounded-lg bg-secondary animate-pulse" />
+                      <div className="h-3.5 w-20 bg-secondary rounded animate-pulse" />
                     </div>
                     <div className="space-y-1.5">
-                      <div className="h-5 w-28 bg-slate-700 rounded animate-pulse" />
-                      <div className="h-4 w-20 bg-slate-700 rounded animate-pulse" />
+                      <div className="h-5 w-28 bg-secondary rounded animate-pulse" />
+                      <div className="h-4 w-20 bg-secondary rounded animate-pulse" />
                     </div>
                   </div>
                 ))}
@@ -406,9 +406,9 @@ export default function ShiftDashboard() {
             {/* Скелетон графиков */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map(i => (
-                <div key={i} className="bg-slate-800 rounded-xl p-4 border border-slate-700 h-64">
-                  <div className="h-4 w-32 bg-slate-700 rounded animate-pulse mb-4" />
-                  <div className="h-44 bg-slate-700/30 rounded animate-pulse" />
+                <div key={i} className="bg-card rounded-xl p-4 border border-border h-64">
+                  <div className="h-4 w-32 bg-secondary rounded animate-pulse mb-4" />
+                  <div className="h-44 bg-secondary/30 rounded animate-pulse" />
                 </div>
               ))}
             </div>
@@ -416,7 +416,7 @@ export default function ShiftDashboard() {
             {/* Индикатор загрузки */}
             <div className="flex items-center justify-center gap-3 py-4">
               <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 {loadingStations
                   ? 'Загрузка торговых точек...'
                   : `Загрузка сменных отчетов (${stations.length} ${stations.length === 1 ? 'станция' : 'станций'})...`

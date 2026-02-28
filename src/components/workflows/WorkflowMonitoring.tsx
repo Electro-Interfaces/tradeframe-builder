@@ -94,21 +94,21 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-400';
-      case 'failed': return 'text-red-400';
-      case 'running': return 'text-yellow-400';
-      case 'cancelled': return 'text-gray-400';
-      default: return 'text-slate-400';
+      case 'completed': return 'text-green-600 dark:text-green-400';
+      case 'failed': return 'text-red-600 dark:text-red-400';
+      case 'running': return 'text-yellow-600 dark:text-yellow-400';
+      case 'cancelled': return 'text-muted-foreground';
+      default: return 'text-muted-foreground';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="w-4 h-4 text-green-400" />;
-      case 'failed': return <XCircle className="w-4 h-4 text-red-400" />;
-      case 'running': return <Activity className="w-4 h-4 text-yellow-400 animate-pulse" />;
-      case 'cancelled': return <XCircle className="w-4 h-4 text-gray-400" />;
-      default: return <Clock className="w-4 h-4 text-slate-400" />;
+      case 'completed': return <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />;
+      case 'failed': return <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />;
+      case 'running': return <Activity className="w-4 h-4 text-yellow-600 dark:text-yellow-400 animate-pulse" />;
+      case 'cancelled': return <XCircle className="w-4 h-4 text-muted-foreground" />;
+      default: return <Clock className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -123,8 +123,8 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-white">Мониторинг регламентов</h2>
-          <p className="text-slate-400 text-sm">
+          <h2 className="text-2xl font-bold text-foreground">Мониторинг регламентов</h2>
+          <p className="text-muted-foreground text-sm">
             Последнее обновление: {lastRefresh.toLocaleTimeString('ru-RU')}
           </p>
         </div>
@@ -153,74 +153,74 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-slate-600">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Всего регламентов</p>
-                <p className="text-2xl font-bold text-white">{stats.total_workflows}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm text-muted-foreground">Всего регламентов</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total_workflows}</p>
+                <p className="text-xs text-muted-foreground">
                   Активных: {stats.active_workflows}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-blue-400" />
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/20 rounded-full flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-600">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Выполнений за {timeRange}</p>
-                <p className="text-2xl font-bold text-white">{stats.executions_last_24h}</p>
+                <p className="text-sm text-muted-foreground">Выполнений за {timeRange}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.executions_last_24h}</p>
                 <div className="flex items-center gap-1 text-xs">
                   {stats.executions_last_24h > 0 ? (
-                    <TrendingUp className="w-3 h-3 text-green-400" />
+                    <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400" />
                   ) : (
-                    <TrendingDown className="w-3 h-3 text-red-400" />
+                    <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400" />
                   )}
-                  <span className="text-slate-500">от предыдущего периода</span>
+                  <span className="text-muted-foreground">от предыдущего периода</span>
                 </div>
               </div>
-              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
-                <Activity className="w-6 h-6 text-purple-400" />
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-500/20 rounded-full flex items-center justify-center">
+                <Activity className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-600">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Успешность</p>
-                <p className="text-2xl font-bold text-white">{getSuccessRate()}%</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm text-muted-foreground">Успешность</p>
+                <p className="text-2xl font-bold text-foreground">{getSuccessRate()}%</p>
+                <p className="text-xs text-muted-foreground">
                   {stats.successful_executions} из {stats.total_executions}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-400" />
+              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-500/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-600">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Среднее время</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-sm text-muted-foreground">Среднее время</p>
+                <p className="text-2xl font-bold text-foreground">
                   {Math.round(stats.avg_execution_time / 1000)}с
                 </p>
-                <p className="text-xs text-slate-500">выполнения</p>
+                <p className="text-xs text-muted-foreground">выполнения</p>
               </div>
-              <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-orange-400" />
+              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-500/20 rounded-full flex items-center justify-center">
+                <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
           </CardContent>
@@ -236,7 +236,7 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
 
         {/* Recent Executions */}
         <TabsContent value="executions" className="mt-6">
-          <Card className="border-slate-600">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5" />
@@ -247,20 +247,20 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
               <div className="space-y-3">
                 {recentExecutions.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-slate-400">Нет данных о выполнениях</p>
+                    <p className="text-muted-foreground">Нет данных о выполнениях</p>
                   </div>
                 ) : (
                   recentExecutions.map((execution) => {
                     const workflow = workflows.find(w => w.id === execution.workflow_id);
                     return (
-                      <div key={execution.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                      <div key={execution.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
                         <div className="flex items-center gap-3">
                           {getStatusIcon(execution.status)}
                           <div>
-                            <p className="font-medium text-white">
+                            <p className="font-medium text-foreground">
                               {workflow?.name || 'Неизвестный регламент'}
                             </p>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                               {new Date(execution.started_at).toLocaleString('ru-RU')}
                             </p>
                           </div>
@@ -272,7 +272,7 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                              execution.status === 'running' ? 'Выполняется' : 'Отменен'}
                           </Badge>
                           {execution.duration_ms && (
-                            <p className="text-sm text-slate-400 mt-1">
+                            <p className="text-sm text-muted-foreground mt-1">
                               {Math.round(execution.duration_ms / 1000)}с
                             </p>
                           )}
@@ -288,7 +288,7 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
 
         {/* Workflows Status */}
         <TabsContent value="workflows" className="mt-6">
-          <Card className="border-slate-600">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" />
@@ -299,18 +299,18 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
               <div className="space-y-3">
                 {workflows.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-slate-400">Регламенты не найдены</p>
+                    <p className="text-muted-foreground">Регламенты не найдены</p>
                   </div>
                 ) : (
                   workflows.map((workflow) => {
                     const lastExecution = recentExecutions.find(e => e.workflow_id === workflow.id);
                     return (
-                      <div key={workflow.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                      <div key={workflow.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${workflow.status === 'active' ? 'bg-emerald-400' : 'bg-gray-400'}`} />
+                          <div className={`w-3 h-3 rounded-full ${workflow.status === 'active' ? 'bg-emerald-400' : 'bg-muted-foreground'}`} />
                           <div>
-                            <p className="font-medium text-white">{workflow.name}</p>
-                            <p className="text-sm text-slate-400">
+                            <p className="font-medium text-foreground">{workflow.name}</p>
+                            <p className="text-sm text-muted-foreground">
                               {workflow.type} • {workflow.schedule.frequency}
                             </p>
                           </div>
@@ -318,10 +318,10 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                         <div className="flex items-center gap-3">
                           {lastExecution && (
                             <div className="text-right">
-                              <p className="text-sm text-slate-400">Последнее выполнение:</p>
+                              <p className="text-sm text-muted-foreground">Последнее выполнение:</p>
                               <div className="flex items-center gap-2">
                                 {getStatusIcon(lastExecution.status)}
-                                <span className="text-sm text-white">
+                                <span className="text-sm text-foreground">
                                   {new Date(lastExecution.started_at).toLocaleString('ru-RU')}
                                 </span>
                               </div>
@@ -342,7 +342,7 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
 
         {/* Alerts */}
         <TabsContent value="alerts" className="mt-6">
-          <Card className="border-slate-600">
+          <Card className="border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
@@ -354,10 +354,10 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                 {/* Generate alerts based on statistics */}
                 {getSuccessRate() < 80 && (
                   <div className="flex items-start gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
                     <div>
-                      <p className="font-medium text-red-400">Низкая успешность выполнений</p>
-                      <p className="text-sm text-slate-400">
+                      <p className="font-medium text-red-600 dark:text-red-400">Низкая успешность выполнений</p>
+                      <p className="text-sm text-muted-foreground">
                         Успешность составляет {getSuccessRate()}%. Рекомендуется проверить конфигурацию регламентов.
                       </p>
                     </div>
@@ -366,10 +366,10 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                 
                 {workflows.filter(w => w.status === 'inactive').length > workflows.length * 0.3 && (
                   <div className="flex items-start gap-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                     <div>
-                      <p className="font-medium text-yellow-400">Много неактивных регламентов</p>
-                      <p className="text-sm text-slate-400">
+                      <p className="font-medium text-yellow-600 dark:text-yellow-400">Много неактивных регламентов</p>
+                      <p className="text-sm text-muted-foreground">
                         {workflows.filter(w => w.status === 'inactive').length} из {workflows.length} регламентов неактивны.
                       </p>
                     </div>
@@ -378,10 +378,10 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
 
                 {stats.avg_execution_time > 60000 && (
                   <div className="flex items-start gap-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                    <Clock className="w-5 h-5 text-orange-400 mt-0.5" />
+                    <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5" />
                     <div>
-                      <p className="font-medium text-orange-400">Медленное выполнение</p>
-                      <p className="text-sm text-slate-400">
+                      <p className="font-medium text-orange-600 dark:text-orange-400">Медленное выполнение</p>
+                      <p className="text-sm text-muted-foreground">
                         Среднее время выполнения превышает 1 минуту. Возможна оптимизация.
                       </p>
                     </div>
@@ -390,10 +390,10 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
 
                 {stats.executions_last_24h === 0 && (
                   <div className="flex items-start gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <Zap className="w-5 h-5 text-blue-400 mt-0.5" />
+                    <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                     <div>
-                      <p className="font-medium text-blue-400">Нет выполнений</p>
-                      <p className="text-sm text-slate-400">
+                      <p className="font-medium text-blue-600 dark:text-blue-400">Нет выполнений</p>
+                      <p className="text-sm text-muted-foreground">
                         За последние 24 часа не было выполнений регламентов.
                       </p>
                     </div>
@@ -406,9 +406,9 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                  stats.avg_execution_time <= 60000 && 
                  stats.executions_last_24h > 0 && (
                   <div className="text-center py-8">
-                    <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                    <p className="text-green-400 font-medium">Все в порядке!</p>
-                    <p className="text-slate-400 text-sm">Система работает стабильно, критических проблем не обнаружено.</p>
+                    <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-3" />
+                    <p className="text-green-600 dark:text-green-400 font-medium">Все в порядке!</p>
+                    <p className="text-muted-foreground text-sm">Система работает стабильно, критических проблем не обнаружено.</p>
                   </div>
                 )}
               </div>

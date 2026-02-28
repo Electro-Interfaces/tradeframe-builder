@@ -46,34 +46,34 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
     switch (status) {
       case 'open':
         return (
-          <Badge className="bg-emerald-500/10 text-green-400 border-green-500 flex items-center gap-1">
+          <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500 flex items-center gap-1">
             <ClockIcon className="w-3 h-3" />
             Открыта
           </Badge>
         );
       case 'closed':
         return (
-          <Badge className="bg-blue-500/10 text-blue-400 border-blue-500 flex items-center gap-1">
+          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500 flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
             Закрыта
           </Badge>
         );
       case 'synchronized':
         return (
-          <Badge className="bg-purple-500/10 text-purple-400 border-purple-500 flex items-center gap-1">
+          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500 flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
             Синхр.
           </Badge>
         );
       default:
-        return <Badge className="bg-slate-500/10 text-slate-400 border-slate-500">—</Badge>;
+        return <Badge className="bg-muted-foreground/10 text-muted-foreground border-border">—</Badge>;
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="text-slate-400">Загрузка смен...</div>
+        <div className="text-muted-foreground">Загрузка смен...</div>
       </div>
     );
   }
@@ -82,8 +82,8 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center px-4">
-          <p className="text-slate-400 text-base mb-2">Смены не найдены</p>
-          <p className="text-slate-500 text-sm">
+          <p className="text-muted-foreground text-base mb-2">Смены не найдены</p>
+          <p className="text-muted-foreground text-sm">
             Измените фильтры или период для отображения данных
           </p>
         </div>
@@ -98,14 +98,14 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
     <div className="space-y-3">
       {/* Заголовок с чекбоксом "Выбрать все" */}
       {onToggleAllShifts && shifts.length > 0 && (
-        <div className="flex items-center gap-3 px-2 py-2 bg-slate-700/50 rounded-lg">
+        <div className="flex items-center gap-3 px-2 py-2 bg-secondary/50 rounded-lg">
           <Checkbox
             checked={allSelected}
             onCheckedChange={(checked) => onToggleAllShifts(!!checked)}
             aria-label="Выбрать все смены"
-            className="border-slate-500"
+            className="border-border"
           />
-          <span className="text-sm text-slate-300">
+          <span className="text-sm text-foreground/80">
             {allSelected ? 'Снять все' : someSelected ? `Выбрано: ${selectedShiftIds.length}` : 'Выбрать все'}
           </span>
         </div>
@@ -119,8 +119,8 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
             key={shift.id}
             className={`border transition-all ${
               isSelected
-                ? 'bg-blue-900/20 border-blue-500/50'
-                : 'bg-slate-700 border-slate-600 hover:bg-slate-600'
+                ? 'bg-blue-100 dark:bg-blue-900/20 border-blue-500/50'
+                : 'bg-secondary border-border hover:bg-secondary'
             }`}
           >
             <CardContent className="p-3">
@@ -132,7 +132,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
                     onCheckedChange={() => onToggleShiftSelection(shift.id)}
                     onClick={(e) => e.stopPropagation()}
                     aria-label={`Выбрать смену ${shift.shiftNumber}`}
-                    className="mt-0.5 border-slate-500"
+                    className="mt-0.5 border-border"
                   />
                 )}
 
@@ -141,7 +141,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
                   onClick={() => onSelectShift(shift)}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-white font-semibold text-base">
+                    <span className="text-foreground font-semibold text-base">
                       Смена #{shift.shiftNumber}
                     </span>
                     {getStatusBadge(shift.status)}
@@ -149,7 +149,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
 
                   {/* ТТ */}
                   <div className="mb-2">
-                    <span className="text-slate-300 text-sm">
+                    <span className="text-foreground/80 text-sm">
                       {shift.stationName || `ТТ ${shift.stationCode}`}
                     </span>
                   </div>
@@ -157,26 +157,26 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
                   {/* Даты - компактный вид */}
                   <div className="space-y-1 text-sm mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-400 text-xs">Открыта:</span>
-                      <span className="text-slate-200">{formatDateTime(shift.openedAt)}</span>
+                      <span className="text-muted-foreground text-xs">Открыта:</span>
+                      <span className="text-foreground">{formatDateTime(shift.openedAt)}</span>
                     </div>
                     {shift.closedAt && (
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-400 text-xs">Закрыта:</span>
-                        <span className="text-slate-200">{formatDateTime(shift.closedAt)}</span>
+                        <span className="text-muted-foreground text-xs">Закрыта:</span>
+                        <span className="text-foreground">{formatDateTime(shift.closedAt)}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Метрики - компактный вид */}
-                  <div className="grid grid-cols-2 gap-2 text-sm bg-slate-800/50 rounded-md p-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm bg-card/50 rounded-md p-2">
                     <div>
-                      <div className="text-slate-400 text-xs">Выручка</div>
-                      <div className="text-white font-semibold">{formatCurrency(shift.totalRevenue)}</div>
+                      <div className="text-muted-foreground text-xs">Выручка</div>
+                      <div className="text-foreground font-semibold">{formatCurrency(shift.totalRevenue)}</div>
                     </div>
                     <div>
-                      <div className="text-slate-400 text-xs">Объем</div>
-                      <div className="text-white font-semibold">{formatVolume(shift.totalVolume)}</div>
+                      <div className="text-muted-foreground text-xs">Объем</div>
+                      <div className="text-foreground font-semibold">{formatVolume(shift.totalVolume)}</div>
                     </div>
                   </div>
 

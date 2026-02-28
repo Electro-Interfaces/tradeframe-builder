@@ -36,7 +36,7 @@ function getStatusIcon(status: string, className: string = 'w-5 h-5') {
     case 'error':
       return <AlertCircle className={`${className} text-red-500`} />;
     default:
-      return <AlertCircle className={`${className} text-gray-500`} />;
+      return <AlertCircle className={`${className} text-muted-foreground`} />;
   }
 }
 
@@ -89,17 +89,17 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
 
   return (
     <div
-      className={`rounded-lg ${isMobile ? 'p-4' : 'p-6'} border-2 border-slate-600 bg-slate-800/50 hover:border-slate-500 transition-colors`}
+      className={`rounded-lg ${isMobile ? 'p-4' : 'p-6'} border-2 border-border bg-card/50 hover:border-border transition-colors`}
     >
       {/* Заголовок */}
       <div className={`${isMobile ? 'space-y-3 mb-3' : 'flex items-center justify-between mb-4'}`}>
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Banknote className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400 flex-shrink-0`} />
+          <Banknote className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-600 dark:text-green-400 flex-shrink-0`} />
           <div className="flex-1 min-w-0">
-            <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white truncate`}>
+            <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-foreground truncate`}>
               {billAcceptor.name}
             </h3>
-            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 truncate`}>
+            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground truncate`}>
               {billAcceptor.location}
             </p>
           </div>
@@ -149,7 +149,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
                 e.stopPropagation();
                 setIsSettingsExpanded(!isSettingsExpanded);
               }}
-              className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
+              className="border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
             >
               <Settings className="w-4 h-4 mr-1.5" />
               <span>{isSettingsExpanded ? 'Скрыть настройки' : 'Настроить пороги'}</span>
@@ -180,7 +180,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
                 e.stopPropagation();
                 setIsSettingsExpanded(!isSettingsExpanded);
               }}
-              className="flex-1 border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
+              className="flex-1 border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
             >
               <Settings className="w-4 h-4" />
               {isSettingsExpanded ? (
@@ -197,15 +197,15 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
       {thresholdStatus.message && (
         <div className={`mb-4 p-3 rounded-lg border-l-4 ${
           thresholdStatus.level === 'critical'
-            ? 'bg-red-900/20 border-red-500'
-            : 'bg-yellow-900/20 border-yellow-500'
+            ? 'bg-red-100 dark:bg-red-900/20 border-red-500'
+            : 'bg-yellow-100 dark:bg-yellow-900/20 border-yellow-500'
         }`}>
           <div className="flex items-start gap-2">
             <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
               thresholdStatus.level === 'critical' ? 'text-red-500' : 'text-yellow-500'
             }`} />
             <p className={`text-sm ${
-              thresholdStatus.level === 'critical' ? 'text-red-200' : 'text-yellow-200'
+              thresholdStatus.level === 'critical' ? 'text-red-700 dark:text-red-200' : 'text-yellow-700 dark:text-yellow-200'
             }`}>
               {thresholdStatus.message}
             </p>
@@ -219,74 +219,74 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
         <div className="space-y-4">
           {/* Текущие показатели */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-700/50 p-3 rounded-lg">
-              <div className="text-xs text-slate-400 mb-1">Купюр (шт)</div>
-              <div className="text-lg font-bold text-blue-400">{billAcceptor.billCount || 0}</div>
+            <div className="bg-secondary/50 p-3 rounded-lg">
+              <div className="text-xs text-muted-foreground mb-1">Купюр (шт)</div>
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{billAcceptor.billCount || 0}</div>
             </div>
-            <div className="bg-slate-700/50 p-3 rounded-lg">
-              <div className="text-xs text-slate-400 mb-1">Сумма (₽)</div>
-              <div className="text-lg font-bold text-blue-400">{(billAcceptor.billAmount || 0).toLocaleString()}</div>
+            <div className="bg-secondary/50 p-3 rounded-lg">
+              <div className="text-xs text-muted-foreground mb-1">Сумма (₽)</div>
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{(billAcceptor.billAmount || 0).toLocaleString()}</div>
             </div>
           </div>
 
           {/* Пороговые значения */}
           {isSettingsExpanded && (
-            <div className="space-y-3 pt-2 border-t border-slate-600">
-              <div className="text-sm font-medium text-slate-300 mb-3">Пороговые значения</div>
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div className="text-sm font-medium text-foreground/80 mb-3">Пороговые значения</div>
 
               {/* Пороги по количеству купюр */}
-              <div className="bg-slate-700/30 p-3 rounded-lg space-y-2">
-                <div className="text-xs font-medium text-slate-400 mb-2">Количество купюр</div>
+              <div className="bg-secondary/30 p-3 rounded-lg space-y-2">
+                <div className="text-xs font-medium text-muted-foreground mb-2">Количество купюр</div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs text-slate-400">⚠️ Предупреждение</Label>
+                    <Label className="text-xs text-muted-foreground">⚠️ Предупреждение</Label>
                     <Input
                       type="number"
                       min="0"
                       placeholder="100"
                       value={thresholdForm.billCountWarning}
                       onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountWarning: e.target.value }))}
-                      className="bg-slate-800 border-slate-600 text-white h-10 text-sm mt-1"
+                      className="bg-card border-border text-foreground h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-400">🔴 Критично</Label>
+                    <Label className="text-xs text-muted-foreground">🔴 Критично</Label>
                     <Input
                       type="number"
                       min="0"
                       placeholder="150"
                       value={thresholdForm.billCountCritical}
                       onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountCritical: e.target.value }))}
-                      className="bg-slate-800 border-slate-600 text-white h-10 text-sm mt-1"
+                      className="bg-card border-border text-foreground h-10 text-sm mt-1"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Пороги по сумме */}
-              <div className="bg-slate-700/30 p-3 rounded-lg space-y-2">
-                <div className="text-xs font-medium text-slate-400 mb-2">Сумма (₽)</div>
+              <div className="bg-secondary/30 p-3 rounded-lg space-y-2">
+                <div className="text-xs font-medium text-muted-foreground mb-2">Сумма (₽)</div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs text-slate-400">⚠️ Предупреждение</Label>
+                    <Label className="text-xs text-muted-foreground">⚠️ Предупреждение</Label>
                     <Input
                       type="number"
                       min="0"
                       placeholder="50000"
                       value={thresholdForm.cashAmountWarning}
                       onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountWarning: e.target.value }))}
-                      className="bg-slate-800 border-slate-600 text-white h-10 text-sm mt-1"
+                      className="bg-card border-border text-foreground h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-400">🔴 Критично</Label>
+                    <Label className="text-xs text-muted-foreground">🔴 Критично</Label>
                     <Input
                       type="number"
                       min="0"
                       placeholder="100000"
                       value={thresholdForm.cashAmountCritical}
                       onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountCritical: e.target.value }))}
-                      className="bg-slate-800 border-slate-600 text-white h-10 text-sm mt-1"
+                      className="bg-card border-border text-foreground h-10 text-sm mt-1"
                     />
                   </div>
                 </div>
@@ -296,27 +296,27 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
 
           {/* Текущие пороги (когда настройки скрыты) */}
           {!isSettingsExpanded && thresholds && (
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-600">
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
               <div className="space-y-2">
-                <div className="text-xs text-slate-400">Пороги купюр</div>
+                <div className="text-xs text-muted-foreground">Пороги купюр</div>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-yellow-500">⚠️</span>
-                  <span className="text-white">{thresholds.billCountWarning || '—'}</span>
+                  <span className="text-foreground">{thresholds.billCountWarning || '—'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-red-500">🔴</span>
-                  <span className="text-white">{thresholds.billCountCritical || '—'}</span>
+                  <span className="text-foreground">{thresholds.billCountCritical || '—'}</span>
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="text-xs text-slate-400">Пороги суммы</div>
+                <div className="text-xs text-muted-foreground">Пороги суммы</div>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-yellow-500">⚠️</span>
-                  <span className="text-white">{thresholds.cashAmountWarning?.toLocaleString() || '—'}</span>
+                  <span className="text-foreground">{thresholds.cashAmountWarning?.toLocaleString() || '—'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-red-500">🔴</span>
-                  <span className="text-white">{thresholds.cashAmountCritical?.toLocaleString() || '—'}</span>
+                  <span className="text-foreground">{thresholds.cashAmountCritical?.toLocaleString() || '—'}</span>
                 </div>
               </div>
             </div>
@@ -327,31 +327,31 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-600">
-                <th className="text-left pb-2 px-2 text-slate-300 font-medium">Устройство</th>
-                <th className="text-center pb-2 px-2 text-slate-300 font-medium">Купюр (шт)</th>
-                <th className="text-center pb-2 px-2 text-slate-300 font-medium">Сумма (₽)</th>
-                <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог ⚠️ купюр</th>
-                <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог 🔴 купюр</th>
-                <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог ⚠️ сумма</th>
-                <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог 🔴 сумма</th>
+              <tr className="border-b border-border">
+                <th className="text-left pb-2 px-2 text-foreground/80 font-medium">Устройство</th>
+                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Купюр (шт)</th>
+                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Сумма (₽)</th>
+                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Порог ⚠️ купюр</th>
+                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Порог 🔴 купюр</th>
+                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Порог ⚠️ сумма</th>
+                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Порог 🔴 сумма</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-slate-700 hover:bg-slate-700/30">
+              <tr className="border-b border-border hover:bg-secondary/30">
                 <td className="py-2 px-2">
                   <div className="flex items-center gap-2">
-                    <Banknote className="w-4 h-4 text-green-400" />
-                    <span className="text-white font-medium">{billAcceptor.name}</span>
+                    <Banknote className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <span className="text-foreground font-medium">{billAcceptor.name}</span>
                   </div>
                 </td>
                 <td className="py-2 px-2 text-center">
-                  <span className="font-bold text-blue-400">
+                  <span className="font-bold text-blue-600 dark:text-blue-400">
                     {billAcceptor.billCount || 0}
                   </span>
                 </td>
                 <td className="py-2 px-2 text-center">
-                  <span className="font-bold text-blue-400">
+                  <span className="font-bold text-blue-600 dark:text-blue-400">
                     {(billAcceptor.billAmount || 0).toLocaleString()}
                   </span>
                 </td>
@@ -365,10 +365,10 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
                       onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountWarning: e.target.value }))}
                       onFocus={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-slate-800 border-slate-600 text-white h-7 text-sm w-20 text-center"
+                      className="bg-card border-border text-foreground h-7 text-sm w-20 text-center"
                     />
                   ) : (
-                    <span className="text-white font-medium">{thresholds?.billCountWarning || '—'}</span>
+                    <span className="text-foreground font-medium">{thresholds?.billCountWarning || '—'}</span>
                   )}
                 </td>
                 <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
@@ -381,10 +381,10 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
                       onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountCritical: e.target.value }))}
                       onFocus={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-slate-800 border-slate-600 text-white h-7 text-sm w-20 text-center"
+                      className="bg-card border-border text-foreground h-7 text-sm w-20 text-center"
                     />
                   ) : (
-                    <span className="text-white font-medium">{thresholds?.billCountCritical || '—'}</span>
+                    <span className="text-foreground font-medium">{thresholds?.billCountCritical || '—'}</span>
                   )}
                 </td>
                 <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
@@ -397,10 +397,10 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
                       onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountWarning: e.target.value }))}
                       onFocus={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-slate-800 border-slate-600 text-white h-7 text-sm w-24 text-center"
+                      className="bg-card border-border text-foreground h-7 text-sm w-24 text-center"
                     />
                   ) : (
-                    <span className="text-white font-medium">{thresholds?.cashAmountWarning?.toLocaleString() || '—'}</span>
+                    <span className="text-foreground font-medium">{thresholds?.cashAmountWarning?.toLocaleString() || '—'}</span>
                   )}
                 </td>
                 <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
@@ -413,10 +413,10 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
                       onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountCritical: e.target.value }))}
                       onFocus={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-slate-800 border-slate-600 text-white h-7 text-sm w-24 text-center"
+                      className="bg-card border-border text-foreground h-7 text-sm w-24 text-center"
                     />
                   ) : (
-                    <span className="text-white font-medium">{thresholds?.cashAmountCritical?.toLocaleString() || '—'}</span>
+                    <span className="text-foreground font-medium">{thresholds?.cashAmountCritical?.toLocaleString() || '—'}</span>
                   )}
                 </td>
               </tr>
@@ -427,7 +427,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
 
       {/* Кнопка сохранения */}
       {isSettingsExpanded && (
-        <div className="mt-4 flex justify-end border-t border-slate-600 pt-3">
+        <div className="mt-4 flex justify-end border-t border-border pt-3">
           <Button
             size="sm"
             onClick={handleSave}

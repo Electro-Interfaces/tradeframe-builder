@@ -2,7 +2,7 @@
 
 > **Дата проверки:** 19 января 2025
 > **Версия:** 1.5.31
-> **Проверяющий:** TradeFrame Development Team
+> **Проверяющий:** TradeControl Development Team
 
 ---
 

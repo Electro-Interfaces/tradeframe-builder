@@ -30,23 +30,23 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
         key={paymentKey}
         className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
           isSelected
-            ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-            : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+            ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+            : 'bg-card border-border hover:bg-secondary'
         }`}
         onClick={handleClick}
       >
         <CardContent className="p-2.5">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
-              <p className="text-slate-100 font-semibold text-xs truncate">{display}</p>
+              <p className="text-foreground font-semibold text-xs truncate">{display}</p>
               <div className="flex items-center gap-0.5 ml-1 flex-shrink-0">
-                <Activity className="w-2.5 h-2.5 text-slate-400" />
-                <span className="text-slate-200 text-[10px] font-medium">{transactionCount}</span>
+                <Activity className="w-2.5 h-2.5 text-muted-foreground" />
+                <span className="text-foreground text-[10px] font-medium">{transactionCount}</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-[10px]">
-              <span className="text-slate-400">{formatCompact(volume)} л</span>
-              <span className="text-slate-200 font-semibold">{formatCompact(cost)} ₽</span>
+              <span className="text-muted-foreground">{formatCompact(volume)} л</span>
+              <span className="text-foreground font-semibold">{formatCompact(cost)} ₽</span>
             </div>
           </div>
         </CardContent>
@@ -60,23 +60,23 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
       key={paymentKey}
       className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
         isSelected
-          ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-          : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+          ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+          : 'bg-card border-border hover:bg-secondary'
       }`}
       onClick={handleClick}
     >
       <CardContent className="p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-slate-100 font-semibold text-sm truncate">{display}</p>
+            <p className="text-foreground font-semibold text-sm truncate">{display}</p>
             <div className="flex items-center gap-1 mt-0.5">
-              <Activity className="w-3 h-3 text-slate-400" />
-              <span className="text-slate-300 text-xs">{transactionCount}</span>
+              <Activity className="w-3 h-3 text-muted-foreground" />
+              <span className="text-foreground/80 text-xs">{transactionCount}</span>
             </div>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="text-slate-300 text-xs">{formatCompact(volume)} л</div>
-            <div className="text-slate-200 text-xs font-semibold">{formatCompact(cost)} ₽</div>
+            <div className="text-foreground/80 text-xs">{formatCompact(volume)} л</div>
+            <div className="text-foreground text-xs font-semibold">{formatCompact(cost)} ₽</div>
           </div>
         </div>
       </CardContent>

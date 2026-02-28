@@ -2,7 +2,7 @@
 
 /**
  * Supabase Table Creation Script
- * Creates all required tables for TradeFrame Builder
+ * Creates all required tables for TradeControl Builder
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -20,7 +20,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   }
 });
 
-console.log('🚀 Starting TradeFrame Database Setup...');
+console.log('🚀 Starting TradeControl Database Setup...');
 
 async function createTables() {
   try {

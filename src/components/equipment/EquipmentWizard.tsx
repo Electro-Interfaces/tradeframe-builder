@@ -213,7 +213,7 @@ export function EquipmentWizard({
                 ? "bg-blue-600 text-white"
                 : step === currentStep
                 ? "bg-blue-100 text-blue-600 border-2 border-blue-600"
-                : "bg-gray-100 text-gray-400"
+                : "bg-muted text-muted-foreground"
             )}
           >
             {step < currentStep ? <Check className="w-4 h-4" /> : step}
@@ -222,7 +222,7 @@ export function EquipmentWizard({
             <div
               className={cn(
                 "w-12 h-0.5 mx-2",
-                step < currentStep ? "bg-blue-600" : "bg-gray-200"
+                step < currentStep ? "bg-blue-600" : "bg-muted"
               )}
             />
           )}
@@ -245,31 +245,31 @@ export function EquipmentWizard({
           <Card
             key={template.id}
             className={cn(
-              "cursor-pointer transition-all hover:shadow-md bg-slate-800 border-slate-700",
+              "cursor-pointer transition-all hover:shadow-md bg-card border-border",
               selectedTemplate?.id === template.id
-                ? "ring-2 ring-blue-500 bg-slate-700 border-blue-500"
-                : "hover:bg-slate-700 hover:border-slate-600"
+                ? "ring-2 ring-blue-500 bg-secondary border-blue-500"
+                : "hover:bg-secondary hover:border-border"
             )}
             onClick={() => handleTemplateSelect(template)}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-slate-600 rounded-lg">
-                  <Settings className="w-5 h-5 text-slate-300" />
+                <div className="p-2 bg-secondary rounded-lg">
+                  <Settings className="w-5 h-5 text-foreground/80" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-medium text-white">{template.name}</h4>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <h4 className="font-medium text-foreground">{template.name}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
                         {template.description || "Описание не указано"}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="ml-2 bg-slate-600 text-slate-200">
+                    <Badge variant="secondary" className="ml-2 bg-secondary text-foreground">
                       {template.system_type}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
+                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                     <span>Код: {template.technical_code}</span>
                     {template.allow_component_template_ids && 
                      template.allow_component_template_ids.length > 0 && (
@@ -479,7 +479,7 @@ export function EquipmentWizard({
         <div className="space-y-6 max-h-96 overflow-y-auto">
           {/* Базовые характеристики */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-slate-200">Базовые характеристики</h4>
+            <h4 className="text-sm font-semibold text-foreground">Базовые характеристики</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fuelType">Тип топлива *</Label>
@@ -555,7 +555,7 @@ export function EquipmentWizard({
 
           {/* Физические параметры */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-slate-200">Физические параметры</h4>
+            <h4 className="text-sm font-semibold text-foreground">Физические параметры</h4>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="temperature">Температура (°C)</Label>
@@ -595,13 +595,13 @@ export function EquipmentWizard({
 
           {/* Статус и местоположение */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-slate-200">Статус и местоположение</h4>
+            <h4 className="text-sm font-semibold text-foreground">Статус и местоположение</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="status">Статус</Label>
                 <select
                   id="status"
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
+                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-foreground"
                   value={templateParams.status || "active"}
                   onChange={(e) => setTemplateParams({...templateParams, status: e.target.value})}
                 >
@@ -642,7 +642,7 @@ export function EquipmentWizard({
 
           {/* Пороговые значения */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-slate-200">Пороговые значения</h4>
+            <h4 className="text-sm font-semibold text-foreground">Пороговые значения</h4>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="criticalTempMin">Мин. температура (°C)</Label>
@@ -700,7 +700,7 @@ export function EquipmentWizard({
 
           {/* Уведомления */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-slate-200">Настройки уведомлений</h4>
+            <h4 className="text-sm font-semibold text-foreground">Настройки уведомлений</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <input

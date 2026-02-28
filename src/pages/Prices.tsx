@@ -241,10 +241,10 @@ export default function Prices() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "active": return "bg-emerald-500/20 text-green-400 border-green-500/30";
-      case "scheduled": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-      case "expired": return "bg-red-500/20 text-red-400 border-red-500/30";
-      default: return "bg-slate-500/20 text-slate-400 border-slate-500/30";
+      case "active": return "bg-emerald-100 dark:bg-emerald-500/20 text-green-600 dark:text-green-400 border-green-500/30";
+      case "scheduled": return "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30";
+      case "expired": return "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30";
+      default: return "bg-muted-foreground/20 text-muted-foreground border-border/30";
     }
   };
 
@@ -268,10 +268,10 @@ export default function Prices() {
 
   const getSourceColor = (source: string) => {
     switch (source) {
-      case "manual": return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-      case "import": return "bg-emerald-500/20 text-green-400 border-green-500/30";
-      case "api": return "bg-purple-500/20 text-purple-400 border-purple-500/30";
-      default: return "bg-slate-500/20 text-slate-400 border-slate-500/30";
+      case "manual": return "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30";
+      case "import": return "bg-emerald-100 dark:bg-emerald-500/20 text-green-600 dark:text-green-400 border-green-500/30";
+      case "api": return "bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30";
+      default: return "bg-muted-foreground/20 text-muted-foreground border-border/30";
     }
   };
 
@@ -901,7 +901,7 @@ export default function Prices() {
               opacity: Math.min(1, (pullDistance - 30) / 40)
             }}
           >
-            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+            <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
               {pullState === 'refreshing' ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
@@ -915,7 +915,7 @@ export default function Prices() {
               ) : (
                 <>
                   <div
-                    className="w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full"
+                    className="w-4 h-4 border-2 border-border border-t-blue-500 rounded-full"
                     style={{
                       transform: `rotate(${pullDistance * 3}deg)`
                     }}
@@ -931,7 +931,7 @@ export default function Prices() {
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Цены</h1>
+              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-foreground`}>Цены</h1>
               <LastDataTransfer />
             </div>
             <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-center`}>
@@ -941,7 +941,7 @@ export default function Prices() {
                   variant="outline"
                   size="sm"
                   disabled={loadingFromSTSAPI}
-                  className="border-slate-600 text-white hover:bg-slate-700"
+                  className="border-border text-foreground hover:bg-secondary"
                 >
                   <RefreshCw className={`w-4 h-4 ${loadingFromSTSAPI ? 'animate-spin' : ''}`} />
                 </Button>
@@ -969,47 +969,47 @@ export default function Prices() {
             <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'}`}>
               {/* Skeleton плитки для состояния загрузки */}
               {[1, 2, 3, 4].map((n) => (
-                <div key={n} className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+                <div key={n} className="bg-card border border-border rounded-lg p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-600 rounded-lg animate-pulse"></div>
+                      <div className="w-10 h-10 bg-secondary rounded-lg animate-pulse"></div>
                       <div>
-                        <div className="h-4 w-16 bg-slate-600 rounded animate-pulse mb-2"></div>
-                        <div className="h-3 w-12 bg-slate-700 rounded animate-pulse"></div>
+                        <div className="h-4 w-16 bg-secondary rounded animate-pulse mb-2"></div>
+                        <div className="h-3 w-12 bg-secondary rounded animate-pulse"></div>
                       </div>
                     </div>
-                    <div className="h-5 w-20 bg-slate-600 rounded animate-pulse"></div>
+                    <div className="h-5 w-20 bg-secondary rounded animate-pulse"></div>
                   </div>
                   
                   <div className="space-y-3 mb-4">
                     <div className="flex justify-between">
-                      <div className="h-3 w-24 bg-slate-700 rounded animate-pulse"></div>
-                      <div className="h-3 w-16 bg-slate-600 rounded animate-pulse"></div>
+                      <div className="h-3 w-24 bg-secondary rounded animate-pulse"></div>
+                      <div className="h-3 w-16 bg-secondary rounded animate-pulse"></div>
                     </div>
                     <div className="flex justify-between">
-                      <div className="h-3 w-20 bg-slate-700 rounded animate-pulse"></div>
-                      <div className="h-3 w-14 bg-slate-600 rounded animate-pulse"></div>
+                      <div className="h-3 w-20 bg-secondary rounded animate-pulse"></div>
+                      <div className="h-3 w-14 bg-secondary rounded animate-pulse"></div>
                     </div>
-                    <div className="flex justify-between border-t border-slate-600 pt-2">
-                      <div className="h-3 w-16 bg-slate-700 rounded animate-pulse"></div>
-                      <div className="h-5 w-20 bg-slate-600 rounded animate-pulse"></div>
+                    <div className="flex justify-between border-t border-border pt-2">
+                      <div className="h-3 w-16 bg-secondary rounded animate-pulse"></div>
+                      <div className="h-5 w-20 bg-secondary rounded animate-pulse"></div>
                     </div>
                   </div>
                   
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between">
-                      <div className="h-3 w-14 bg-slate-700 rounded animate-pulse"></div>
-                      <div className="h-3 w-8 bg-slate-600 rounded animate-pulse"></div>
+                      <div className="h-3 w-14 bg-secondary rounded animate-pulse"></div>
+                      <div className="h-3 w-8 bg-secondary rounded animate-pulse"></div>
                     </div>
                     <div className="flex justify-between">
-                      <div className="h-3 w-24 bg-slate-700 rounded animate-pulse"></div>
-                      <div className="h-3 w-20 bg-slate-600 rounded animate-pulse"></div>
+                      <div className="h-3 w-24 bg-secondary rounded animate-pulse"></div>
+                      <div className="h-3 w-20 bg-secondary rounded animate-pulse"></div>
                     </div>
                   </div>
                   
-                  <div className={`flex gap-2 pt-3 border-t border-slate-700 ${isMobile ? 'flex-col' : 'flex-row'}`}>
-                    <div className="h-8 flex-1 bg-slate-700 rounded animate-pulse"></div>
-                    <div className="h-8 w-8 bg-slate-700 rounded animate-pulse"></div>
+                  <div className={`flex gap-2 pt-3 border-t border-border ${isMobile ? 'flex-col' : 'flex-row'}`}>
+                    <div className="h-8 flex-1 bg-secondary rounded animate-pulse"></div>
+                    <div className="h-8 w-8 bg-secondary rounded animate-pulse"></div>
                   </div>
                 </div>
               ))}
@@ -1018,13 +1018,13 @@ export default function Prices() {
         ) : filteredPrices.length === 0 ? (
           <div>
             <div className={`text-center ${isMobile ? 'py-8' : 'py-16'}`}>
-              <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4`}>
-                <span className={`text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>💰</span>
+              <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} bg-secondary rounded-full flex items-center justify-center mx-auto mb-4`}>
+                <span className={`text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>💰</span>
               </div>
-              <h3 className={`font-semibold text-white mb-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+              <h3 className={`font-semibold text-foreground mb-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
                 Нет цен
               </h3>
-              <p className={`text-slate-400 mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
+              <p className={`text-muted-foreground mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
                 Создайте первую цену на топливо
               </p>
               <Button 
@@ -1205,11 +1205,11 @@ export default function Prices() {
         {/* Диалог журнала изменений */}
         <Dialog open={isJournalDialogOpen} onOpenChange={setIsJournalDialogOpen}>
           <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh] overflow-y-auto' : 'max-w-6xl max-h-[85vh]'}`}>
-            <DialogHeader className="pb-4 border-b border-slate-700">
-              <DialogTitle className="text-xl font-semibold text-white">
+            <DialogHeader className="pb-4 border-b border-border">
+              <DialogTitle className="text-xl font-semibold text-foreground">
                 Журнал изменения цен ({journalEntries.length} записей)
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-muted-foreground">
                 История всех изменений цен с указанием времени, источника и автора
               </DialogDescription>
             </DialogHeader>
@@ -1217,43 +1217,43 @@ export default function Prices() {
             {/* Таблица журнала */}
             <div className="overflow-auto max-h-[60vh]">
               {journalEntries.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-muted-foreground">
                   Журнал изменений пуст
                 </div>
               ) : (
                 <div className="w-full">
-                  <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+                  <div className="overflow-x-auto w-full rounded-lg border border-border">
                     <table className="w-full text-sm min-w-full table-fixed">
-                      <thead className="bg-slate-700">
+                      <thead className="bg-secondary">
                         <tr>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '12%'}}>ВРЕМЯ</th>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '15%'}}>ТОПЛИВО</th>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '24%'}}>ЦЕНА</th>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '10%'}}>ИСТОЧНИК</th>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '12%'}}>СТАТУС</th>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '15%'}}>АВТОР</th>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '12%'}}>ПАКЕТ ID</th>
+                          <th className="px-4 py-3 text-left text-foreground font-medium" style={{width: '12%'}}>ВРЕМЯ</th>
+                          <th className="px-4 py-3 text-left text-foreground font-medium" style={{width: '15%'}}>ТОПЛИВО</th>
+                          <th className="px-4 py-3 text-left text-foreground font-medium" style={{width: '24%'}}>ЦЕНА</th>
+                          <th className="px-4 py-3 text-left text-foreground font-medium" style={{width: '10%'}}>ИСТОЧНИК</th>
+                          <th className="px-4 py-3 text-left text-foreground font-medium" style={{width: '12%'}}>СТАТУС</th>
+                          <th className="px-4 py-3 text-left text-foreground font-medium" style={{width: '15%'}}>АВТОР</th>
+                          <th className="px-4 py-3 text-left text-foreground font-medium" style={{width: '12%'}}>ПАКЕТ ID</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-slate-800">
+                      <tbody className="bg-card">
                         {journalEntries.map((entry) => (
                           <tr
                             key={entry.id}
-                            className="border-b border-slate-600 hover:bg-slate-700 transition-colors"
+                            className="border-b border-border hover:bg-secondary transition-colors"
                           >
                             <td className="px-4 py-3">
-                              <div className="text-white font-mono text-xs">
+                              <div className="text-foreground font-mono text-xs">
                                 {entry.timestamp}
                               </div>
                             </td>
                             <td className="px-4 py-3">
                               <div>
-                                <div className="font-medium text-white text-sm">{entry.fuelType}</div>
-                                <div className="text-xs text-slate-400">{entry.fuelCode}</div>
+                                <div className="font-medium text-foreground text-sm">{entry.fuelType}</div>
+                                <div className="text-xs text-muted-foreground">{entry.fuelCode}</div>
                               </div>
                             </td>
                             <td className="px-4 py-3" colSpan={2}>
-                              <div className="text-white font-medium text-center">
+                              <div className="text-foreground font-medium text-center">
                                 {formatPrice(entry.priceGross, entry.source !== 'sts-api')}
                               </div>
                             </td>
@@ -1263,15 +1263,15 @@ export default function Prices() {
                               </Badge>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge variant="secondary" className={`text-xs ${entry.status === 'applied' ? 'bg-emerald-500/20 text-green-400' : entry.status === 'scheduled' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                              <Badge variant="secondary" className={`text-xs ${entry.status === 'applied' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-green-600 dark:text-green-400' : entry.status === 'scheduled' ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'}`}>
                                 {entry.status === 'applied' ? 'Применено' : entry.status === 'scheduled' ? 'Запланировано' : 'Отменено'}
                               </Badge>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="text-white text-sm">{entry.authorName}</div>
+                              <div className="text-foreground text-sm">{entry.authorName}</div>
                             </td>
                             <td className="px-4 py-3">
-                              <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs">
+                              <code className="bg-secondary text-foreground px-2 py-1 rounded text-xs">
                                 {entry.packageId}
                               </code>
                             </td>
@@ -1285,8 +1285,8 @@ export default function Prices() {
             </div>
 
             {/* Footer журнала */}
-            <div className="flex items-center justify-center pt-4 border-t border-slate-700">
-              <div className="text-sm text-slate-400">
+            <div className="flex items-center justify-center pt-4 border-t border-border">
+              <div className="text-sm text-muted-foreground">
                 Показано записей: {journalEntries.length}
               </div>
             </div>
@@ -1295,18 +1295,18 @@ export default function Prices() {
 
         {/* AlertDialog для установки цен через STS API */}
         <AlertDialog open={isSetPricesDialogOpen} onOpenChange={setIsSetPricesDialogOpen}>
-          <AlertDialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-4xl max-h-[90vh]'} bg-slate-900 border-slate-700 overflow-y-auto`}>
+          <AlertDialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-4xl max-h-[90vh]'} bg-background border-border overflow-y-auto`}>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
-                <Edit className="w-5 h-5 text-orange-400" />
+              <AlertDialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                <Edit className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 Установка цен
               </AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-300 text-base">
+              <AlertDialogDescription className="text-foreground/80 text-base">
                 <div className="space-y-3">
                   <p>
                     <strong>Внимание!</strong> Будут установлены новые цены для всех видов топлива на выбранной торговой точке.
                   </p>
-                  <div className="bg-slate-800 p-3 rounded-lg border border-slate-600">
+                  <div className="bg-card p-3 rounded-lg border border-border">
                     <p className="text-sm"><strong>Сеть:</strong> {selectedNetwork?.name} (ID: {selectedNetwork?.external_id})</p>
                     <p className="text-sm"><strong>Торговая точка:</strong> {
                       typeof selectedTradingPoint === 'string' ? selectedTradingPoint : selectedTradingPoint?.name
@@ -1320,18 +1320,18 @@ export default function Prices() {
             <div className="my-6 space-y-4">
               {/* Дата и время вступления в силу */}
               <div>
-                <Label className="text-white font-medium">Дата и время вступления в силу</Label>
+                <Label className="text-foreground font-medium">Дата и время вступления в силу</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal mt-2 bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                      className="w-full justify-start text-left font-normal mt-2 bg-card border-border text-foreground hover:bg-secondary"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {effectiveDateTime ? format(effectiveDateTime, "dd.MM.yyyy HH:mm", { locale: ru }) : "Выберите дату и время"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600" align="start">
+                  <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
                     <Calendar
                       mode="single"
                       selected={effectiveDateTime}
@@ -1345,9 +1345,9 @@ export default function Prices() {
                       }}
                       disabled={(date) => date < new Date("1900-01-01")}
                       initialFocus
-                      className="bg-slate-800"
+                      className="bg-card"
                     />
-                    <div className="p-3 border-t border-slate-600">
+                    <div className="p-3 border-t border-border">
                       <div className="flex gap-2">
                         <Input
                           type="time"
@@ -1358,7 +1358,7 @@ export default function Prices() {
                             newDateTime.setHours(parseInt(hours), parseInt(minutes));
                             setEffectiveDateTime(newDateTime);
                           }}
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                         />
                       </div>
                     </div>
@@ -1368,13 +1368,13 @@ export default function Prices() {
 
               {/* Список цен для изменения */}
               <div>
-                <Label className="text-white font-medium">Цены для установки</Label>
+                <Label className="text-foreground font-medium">Цены для установки</Label>
                 <div className="mt-2 space-y-2">
                   {pricesForUpdate.map((priceItem, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg border border-slate-600">
+                    <div key={index} className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border">
                       <div className="flex-1">
-                        <div className="text-white font-medium">{priceItem.fuel_type}</div>
-                        <div className="text-sm text-slate-400">
+                        <div className="text-foreground font-medium">{priceItem.fuel_type}</div>
+                        <div className="text-sm text-muted-foreground">
                           Текущая: {priceItem.currentPrice?.toFixed(2) || '—'} ₽
                         </div>
                       </div>
@@ -1389,9 +1389,9 @@ export default function Prices() {
                             newPrices[index].price = parseFloat(e.target.value) || 0;
                             setPricesForUpdate(newPrices);
                           }}
-                          className="w-40 bg-slate-700 border-slate-600 text-white text-right pr-6"
+                          className="w-40 bg-secondary border-border text-foreground text-right pr-6"
                         />
-                        <span className="text-slate-400 text-sm">₽</span>
+                        <span className="text-muted-foreground text-sm">₽</span>
                       </div>
                     </div>
                   ))}
@@ -1400,7 +1400,7 @@ export default function Prices() {
             </div>
 
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+              <AlertDialogCancel className="bg-secondary border-border text-foreground hover:bg-secondary">
                 Отмена
               </AlertDialogCancel>
               <AlertDialogAction

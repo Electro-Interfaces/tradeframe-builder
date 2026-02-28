@@ -128,43 +128,43 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stationNames = {} }: 
   const MobileCard = ({ item }: { item: ReceiptData }) => {
     const hasReceipts = item.cashSum !== 0 || item.bankSum !== 0;
     return (
-      <div className={`p-3 rounded-lg border ${hasReceipts ? 'bg-amber-900/20 border-amber-700/50' : 'bg-slate-700/30 border-slate-600'}`}>
+      <div className={`p-3 rounded-lg border ${hasReceipts ? 'bg-amber-100 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700/50' : 'bg-secondary/30 border-border'}`}>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-white font-medium text-sm">{item.stationName}</div>
+          <div className="text-foreground font-medium text-sm">{item.stationName}</div>
           {hasReceipts ? (
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           ) : (
             <CheckCircle className="w-4 h-4 text-green-500" />
           )}
         </div>
-        <div className="text-slate-500 text-xs mb-2">
+        <div className="text-muted-foreground text-xs mb-2">
           Обновлено: {formatDate(item.lastUpdate)}
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
-            <div className="text-slate-400 text-xs">Наличные</div>
+            <div className="text-muted-foreground text-xs">Наличные</div>
             {item.cashSum !== 0 ? (
-              <div className={item.cashSum > 0 ? 'text-green-400' : 'text-red-400'}>
+              <div className={item.cashSum > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                 {formatCurrency(item.cashSum)}
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-muted-foreground">
                   {item.cashSum > 0 ? 'продажа' : 'возврат'}
                 </div>
               </div>
             ) : (
-              <span className="text-slate-500">—</span>
+              <span className="text-muted-foreground">—</span>
             )}
           </div>
           <div>
-            <div className="text-slate-400 text-xs">Безнал</div>
+            <div className="text-muted-foreground text-xs">Безнал</div>
             {item.bankSum !== 0 ? (
-              <div className={item.bankSum > 0 ? 'text-green-400' : 'text-red-400'}>
+              <div className={item.bankSum > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                 {formatCurrency(item.bankSum)}
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-muted-foreground">
                   {item.bankSum > 0 ? 'продажа' : 'возврат'}
                 </div>
               </div>
             ) : (
-              <span className="text-slate-500">—</span>
+              <span className="text-muted-foreground">—</span>
             )}
           </div>
         </div>
@@ -174,13 +174,13 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stationNames = {} }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="bg-card border-border w-[95vw] max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-blue-400" />
+          <DialogTitle className="text-foreground flex items-center gap-2">
+            <Receipt className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             Чеки для пробития
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-sm">
+          <DialogDescription className="text-muted-foreground text-sm">
             Суммы для корректировки кассы
           </DialogDescription>
         </DialogHeader>
@@ -188,39 +188,39 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stationNames = {} }: 
         <div className="flex-1 overflow-auto -mx-2 px-2">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
-              <span className="ml-2 text-slate-400">Загрузка...</span>
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />
+              <span className="ml-2 text-muted-foreground">Загрузка...</span>
             </div>
           ) : error ? (
-            <div className="text-center py-8 text-red-400">
+            <div className="text-center py-8 text-red-600 dark:text-red-400">
               {error}
               <Button variant="ghost" size="sm" onClick={loadData} className="ml-2">
                 Повторить
               </Button>
             </div>
           ) : data.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               Нет данных
             </div>
           ) : (
             <>
               {/* Итоговая информация */}
               {(totalCash !== 0 || totalBank !== 0) && (
-                <div className="mb-4 p-3 bg-amber-900/30 border border-amber-700/50 rounded-lg">
-                  <div className="flex items-center gap-2 text-amber-400 mb-2">
+                <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700/50 rounded-lg">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2">
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                     <span className="font-medium text-sm">Требуется пробить чеки</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-slate-400 text-xs block">Наличные:</span>
-                      <span className={`font-medium ${totalCash > 0 ? 'text-green-400' : totalCash < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                      <span className="text-muted-foreground text-xs block">Наличные:</span>
+                      <span className={`font-medium ${totalCash > 0 ? 'text-green-600 dark:text-green-400' : totalCash < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                         {formatCurrency(totalCash)}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 text-xs block">Безнал:</span>
-                      <span className={`font-medium ${totalBank > 0 ? 'text-green-400' : totalBank < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                      <span className="text-muted-foreground text-xs block">Безнал:</span>
+                      <span className={`font-medium ${totalBank > 0 ? 'text-green-600 dark:text-green-400' : totalBank < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                         {formatCurrency(totalBank)}
                       </span>
                     </div>
@@ -238,63 +238,63 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stationNames = {} }: 
               {/* Desktop таблица */}
               <div className="hidden md:block">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-900/50 sticky top-0">
+                  <thead className="bg-background/50 sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase">
+                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                         Станция
                       </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-slate-400 uppercase">
+                      <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
                         Наличные
                       </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-slate-400 uppercase">
+                      <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
                         Безнал
                       </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-slate-400 uppercase">
+                      <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground uppercase">
                         Статус
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700">
+                  <tbody className="divide-y divide-border">
                     {data.map((item) => {
                       const hasReceipts = item.cashSum !== 0 || item.bankSum !== 0;
                       return (
                         <tr
                           key={item.station}
-                          className={hasReceipts ? 'bg-amber-900/20' : 'hover:bg-slate-700/30'}
+                          className={hasReceipts ? 'bg-amber-100 dark:bg-amber-900/20' : 'hover:bg-secondary/30'}
                         >
                           <td className="px-3 py-2">
-                            <div className="text-white font-medium">{item.stationName}</div>
-                            <div className="text-slate-500 text-xs">
+                            <div className="text-foreground font-medium">{item.stationName}</div>
+                            <div className="text-muted-foreground text-xs">
                               Обновлено: {formatDate(item.lastUpdate)}
                             </div>
                           </td>
                           <td className="px-3 py-2 text-right">
                             {item.cashSum !== 0 ? (
-                              <div className={item.cashSum > 0 ? 'text-green-400' : 'text-red-400'}>
+                              <div className={item.cashSum > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                                 {formatCurrency(item.cashSum)}
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs text-muted-foreground">
                                   {item.cashSum > 0 ? 'Чек продажи' : 'Чек возврата'}
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-slate-500">—</span>
+                              <span className="text-muted-foreground">—</span>
                             )}
                           </td>
                           <td className="px-3 py-2 text-right">
                             {item.bankSum !== 0 ? (
-                              <div className={item.bankSum > 0 ? 'text-green-400' : 'text-red-400'}>
+                              <div className={item.bankSum > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                                 {formatCurrency(item.bankSum)}
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs text-muted-foreground">
                                   {item.bankSum > 0 ? 'Чек продажи' : 'Чек возврата'}
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-slate-500">—</span>
+                              <span className="text-muted-foreground">—</span>
                             )}
                           </td>
                           <td className="px-3 py-2 text-center">
                             {hasReceipts ? (
-                              <AlertTriangle className="w-5 h-5 text-amber-400 mx-auto" />
+                              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mx-auto" />
                             ) : (
                               <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />
                             )}
@@ -307,13 +307,13 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stationNames = {} }: 
               </div>
 
               {/* Легенда и кнопка обновления */}
-              <div className="mt-4 p-2 md:p-3 bg-slate-900/50 rounded-lg text-xs text-slate-400">
+              <div className="mt-4 p-2 md:p-3 bg-background/50 rounded-lg text-xs text-muted-foreground">
                 <div className="flex flex-wrap items-center gap-2 md:gap-4">
                   <div className="flex items-center gap-1">
-                    <span className="text-green-400">+</span> Продажа
+                    <span className="text-green-600 dark:text-green-400">+</span> Продажа
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-red-400">−</span> Возврат
+                    <span className="text-red-600 dark:text-red-400">−</span> Возврат
                   </div>
                   <div className="flex items-center gap-1 ml-auto">
                     <Button variant="ghost" size="sm" onClick={loadData} className="h-6 px-2">

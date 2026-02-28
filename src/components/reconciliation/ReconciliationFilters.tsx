@@ -41,19 +41,19 @@ export function ReconciliationFilters({
   uniqueFuels
 }: ReconciliationFiltersProps) {
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <Collapsible open={filtersOpen} onOpenChange={onFiltersOpenChange}>
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-slate-700/50 transition-colors py-3">
+          <CardHeader className="cursor-pointer hover:bg-secondary/50 transition-colors py-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white text-sm flex items-center gap-2">
+              <CardTitle className="text-foreground text-sm flex items-center gap-2">
                 <Filter className="h-4 w-4" />
                 Фильтры
               </CardTitle>
               {filtersOpen ? (
-                <ChevronDown className="h-4 w-4 text-slate-400" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-slate-400" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
           </CardHeader>
@@ -62,12 +62,12 @@ export function ReconciliationFilters({
           <CardContent className="pt-0 pb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               <Select value={stationFilter} onValueChange={onStationFilterChange}>
-                <SelectTrigger className="bg-slate-900 border-slate-600">
+                <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Станция" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все станции</SelectItem>
-                  <SelectItem value="discrepancies" className="text-red-400">Расхождения</SelectItem>
+                  <SelectItem value="discrepancies" className="text-red-600 dark:text-red-400">Расхождения</SelectItem>
                   {uniqueStations.map(([id, name], idx) => (
                     <SelectItem key={`station_${id}_${idx}`} value={String(id)}>{name}</SelectItem>
                   ))}
@@ -75,7 +75,7 @@ export function ReconciliationFilters({
               </Select>
 
               <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-                <SelectTrigger className="bg-slate-900 border-slate-600">
+                <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Статус" />
                 </SelectTrigger>
                 <SelectContent>
@@ -88,7 +88,7 @@ export function ReconciliationFilters({
               </Select>
 
               <Select value={fuelFilter} onValueChange={onFuelFilterChange}>
-                <SelectTrigger className="bg-slate-900 border-slate-600">
+                <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Топливо" />
                 </SelectTrigger>
                 <SelectContent>
@@ -103,14 +103,14 @@ export function ReconciliationFilters({
                 placeholder="Номер карты..."
                 value={searchCard}
                 onChange={(e) => onSearchCardChange(e.target.value)}
-                className="bg-slate-900 border-slate-600"
+                className="bg-background border-border"
               />
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onClearFilters}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="border-border text-foreground/80 hover:bg-secondary"
               >
                 <X className="h-4 w-4 mr-2" />
                 Сброс

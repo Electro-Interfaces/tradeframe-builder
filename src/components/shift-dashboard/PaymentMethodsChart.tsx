@@ -71,7 +71,7 @@ const renderActiveShape = (props: any) => {
       <text x={cx} y={cy - 10} textAnchor="middle" fill="#fff" className="text-sm font-medium">
         {payload.name}
       </text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fill="#94a3b8" className="text-xs">
+      <text x={cx} y={cy + 10} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-xs">
         {formatCurrency(value)} ₽
       </text>
       <text x={cx} y={cy + 28} textAnchor="middle" fill="#64748b" className="text-xs">
@@ -88,12 +88,12 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-medium text-white mb-1">{data.name}</p>
-        <p className="text-sm text-slate-300">
-          Выручка: <span className="text-white font-medium">{formatCurrency(data.value)} ₽</span>
+      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+        <p className="text-sm font-medium text-foreground mb-1">{data.name}</p>
+        <p className="text-sm text-foreground/80">
+          Выручка: <span className="text-foreground font-medium">{formatCurrency(data.value)} ₽</span>
         </p>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           Доля: {(data.percent * 100).toFixed(1)}%
         </p>
       </div>
@@ -114,7 +114,7 @@ const CustomLegend = ({ payload }: any) => {
             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: entry.color }}
           />
-          <span className="text-[11px] text-slate-400 whitespace-nowrap">{entry.value}</span>
+          <span className="text-[11px] text-muted-foreground whitespace-nowrap">{entry.value}</span>
         </div>
       ))}
     </div>
@@ -163,8 +163,8 @@ export function PaymentMethodsChart({ data, isLoading, className }: PaymentMetho
   };
 
   return (
-    <div className={cn('bg-slate-800 rounded-xl p-4 border border-slate-700', className)}>
-      <h3 className="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wide">
+    <div className={cn('bg-card rounded-xl p-4 border border-border', className)}>
+      <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
         По способам оплаты
       </h3>
 
@@ -173,7 +173,7 @@ export function PaymentMethodsChart({ data, isLoading, className }: PaymentMetho
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : chartDataWithPercent.length === 0 ? (
-        <div className="h-64 flex items-center justify-center text-slate-500">
+        <div className="h-64 flex items-center justify-center text-muted-foreground">
           Нет данных
         </div>
       ) : (

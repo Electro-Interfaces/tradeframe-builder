@@ -38,7 +38,7 @@ export function CommandHistory({ history, equipmentId, equipmentName }: CommandH
       case "pending":
         return <AlertCircle className="h-4 w-4 text-yellow-600" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-600" />;
+        return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -51,7 +51,7 @@ export function CommandHistory({ history, equipmentId, equipmentName }: CommandH
       case "pending":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-muted text-foreground border-border";
     }
   };
 

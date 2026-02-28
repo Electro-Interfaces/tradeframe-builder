@@ -271,5 +271,5 @@ CREATE TRIGGER ...
 ## Версия
 
 - **Версия системы**: 1.0.0
-- **TradeFrame Builder**: v1.5.76+
+- **TradeControl Builder**: v1.5.76+
 - **Дата создания**: 2025-10-26

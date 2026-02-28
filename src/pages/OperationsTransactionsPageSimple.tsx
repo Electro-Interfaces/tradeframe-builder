@@ -751,15 +751,15 @@ export default function OperationsTransactionsPageSimple() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-slate-600 text-slate-200">Завершено</Badge>;
+        return <Badge className="bg-secondary text-foreground">Завершено</Badge>;
       case 'in_progress':
-        return <Badge className="bg-slate-600 text-slate-200">Выполняется</Badge>;
+        return <Badge className="bg-secondary text-foreground">Выполняется</Badge>;
       case 'failed':
         return <Badge className="bg-red-600 text-white">Ошибка</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-600 text-white">Ожидание</Badge>;
       case 'cancelled':
-        return <Badge className="bg-slate-600 text-slate-200">Отменено</Badge>;
+        return <Badge className="bg-secondary text-foreground">Отменено</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -768,7 +768,7 @@ export default function OperationsTransactionsPageSimple() {
   const getCompactStatusBadge = (status) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-slate-600 text-slate-200 text-xs px-1 py-0">ОК</Badge>;
+        return <Badge className="bg-secondary text-foreground text-xs px-1 py-0">ОК</Badge>;
       case 'in_progress':
         return <Badge className="bg-blue-600 text-white text-xs px-1 py-0">В работе</Badge>;
       case 'failed':
@@ -776,7 +776,7 @@ export default function OperationsTransactionsPageSimple() {
       case 'pending':
         return <Badge className="bg-yellow-600 text-white text-xs px-1 py-0">Ожидает</Badge>;
       case 'cancelled':
-        return <Badge className="bg-gray-600 text-slate-200 text-xs px-1 py-0">Отмена</Badge>;
+        return <Badge className="bg-secondary text-foreground text-xs px-1 py-0">Отмена</Badge>;
       default:
         return <Badge variant="secondary" className="text-xs px-1 py-0">{status}</Badge>;
     }
@@ -790,7 +790,7 @@ export default function OperationsTransactionsPageSimple() {
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-            <p className="text-slate-400">Инициализация данных...</p>
+            <p className="text-muted-foreground">Инициализация данных...</p>
           </div>
         </div>
       </MainLayout>
@@ -801,7 +801,7 @@ export default function OperationsTransactionsPageSimple() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${isMobileForced ? 'pt-4' : 'pt-6'} min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${isMobileForced ? 'pt-4' : 'pt-6'} min-h-screen bg-gradient-to-br from-background via-background to-background`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -819,7 +819,7 @@ export default function OperationsTransactionsPageSimple() {
               opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
             }}
           >
-            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+            <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
               {pullState === 'refreshing' ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
@@ -833,7 +833,7 @@ export default function OperationsTransactionsPageSimple() {
               ) : (
                 <>
                   <RefreshCw
-                    className="w-4 h-4 text-slate-500"
+                    className="w-4 h-4 text-muted-foreground"
                     style={{
                       transform: `rotate(${pullDistance * 2}deg)`
                     }}
@@ -849,7 +849,7 @@ export default function OperationsTransactionsPageSimple() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Операции</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Операции</h1>
             <div className="flex items-center gap-2">
               {filteredOperations.length > 0 && (
               <DropdownMenu>
@@ -863,13 +863,13 @@ export default function OperationsTransactionsPageSimple() {
                     Экспорт
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44 bg-slate-800 border-slate-600 shadow-xl rounded-lg">
-                  <DropdownMenuItem onClick={handleExportToExcel} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
-                    <FileSpreadsheet className="w-4 h-4 text-green-400" />
+                <DropdownMenuContent align="end" className="w-44 bg-card border-border shadow-xl rounded-lg">
+                  <DropdownMenuItem onClick={handleExportToExcel} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                    <FileSpreadsheet className="w-4 h-4 text-green-600 dark:text-green-400" />
                     <span className="text-sm font-medium">Экспорт в Excel</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleExportToPdf} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
-                    <FileText className="w-4 h-4 text-red-400" />
+                  <DropdownMenuItem onClick={handleExportToPdf} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                    <FileText className="w-4 h-4 text-red-600 dark:text-red-400" />
                     <span className="text-sm font-medium">Экспорт в PDF</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -880,13 +880,13 @@ export default function OperationsTransactionsPageSimple() {
         </div>
 
         {/* Компактные фильтры */}
-        <Card className="bg-slate-800 border-slate-700 mb-4">
+        <Card className="bg-card border-border mb-4">
           <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
             <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50 transition-colors">
+              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-slate-400" />
-                  <span className="font-medium text-white">Фильтры</span>
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-foreground">Фильтры</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -911,20 +911,20 @@ export default function OperationsTransactionsPageSimple() {
                       loadFromStsApi(true);
                     }}
                     disabled={loading || loadingFromSTS}
-                    className="border-slate-600 text-white hover:bg-slate-700"
+                    className="border-border text-foreground hover:bg-secondary"
                   >
                     <RefreshCw className={`w-4 h-4 ${(loading || loadingFromSTS) ? 'animate-spin' : ''}`} />
                   </Button>
-                  {filtersOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                  {filtersOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                 </div>
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="p-4 border-t border-slate-700">
+              <div className="p-4 border-t border-border">
                 <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
                   {/* Дата от */}
                   <div>
-                    <Label htmlFor="date-from" className="text-xs text-slate-400">Дата от</Label>
+                    <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
                     <Input
                       id="date-from"
                       type="date"
@@ -936,7 +936,7 @@ export default function OperationsTransactionsPageSimple() {
 
                   {/* Дата до */}
                   <div>
-                    <Label htmlFor="date-to" className="text-xs text-slate-400">Дата до</Label>
+                    <Label htmlFor="date-to" className="text-xs text-muted-foreground">Дата до</Label>
                     <Input
                       id="date-to"
                       type="date"
@@ -948,7 +948,7 @@ export default function OperationsTransactionsPageSimple() {
 
                   {/* Статус */}
                   <div>
-                    <Label htmlFor="status" className="text-xs text-slate-400">Статус</Label>
+                    <Label htmlFor="status" className="text-xs text-muted-foreground">Статус</Label>
                     <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                       <SelectTrigger id="status" className="mt-1">
                         <SelectValue placeholder="Все" />
@@ -972,7 +972,7 @@ export default function OperationsTransactionsPageSimple() {
                   {/* Пост (POS) — показывается только для многопостовых станций */}
                   {showPosFilter && (
                     <div>
-                      <Label htmlFor="pos-number" className="text-xs text-slate-400">Пост</Label>
+                      <Label htmlFor="pos-number" className="text-xs text-muted-foreground">Пост</Label>
                       <Select value={selectedPosNumber} onValueChange={setSelectedPosNumber}>
                         <SelectTrigger id="pos-number" className="mt-1">
                           <SelectValue placeholder="Все" />
@@ -989,7 +989,7 @@ export default function OperationsTransactionsPageSimple() {
 
                   {/* Поиск */}
                   <div>
-                    <Label htmlFor="search" className="text-xs text-slate-400">Поиск</Label>
+                    <Label htmlFor="search" className="text-xs text-muted-foreground">Поиск</Label>
                     <Input
                       id="search"
                       type="text"
@@ -1014,14 +1014,14 @@ export default function OperationsTransactionsPageSimple() {
               <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
                 {isMobileForced ? (
                   <>
-                    <Label htmlFor="status" className="text-slate-300 text-xs font-medium w-14 flex-shrink-0">Статус:</Label>
+                    <Label htmlFor="status" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">Статус:</Label>
                     <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0">
+                      <SelectTrigger className="bg-secondary border-border text-foreground h-8 text-sm flex-1 min-w-0">
                         <SelectValue placeholder="Все" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         {statusTypes.map((status) => (
-                          <SelectItem key={status} value={status} className="text-slate-200 focus:bg-slate-700">
+                          <SelectItem key={status} value={status} className="text-foreground focus:bg-secondary">
                             {status === "Все" ? status : ({
                               'completed': 'Завершено',
                               'in_progress': 'Выполняется',
@@ -1036,14 +1036,14 @@ export default function OperationsTransactionsPageSimple() {
                   </>
                 ) : (
                   <>
-                    <Label htmlFor="status" className="text-slate-300 text-sm font-medium mb-2 block">Статус №</Label>
+                    <Label htmlFor="status" className="text-foreground/80 text-sm font-medium mb-2 block">Статус №</Label>
                     <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base">
+                      <SelectTrigger className="bg-secondary border-border text-foreground h-10 text-base">
                         <SelectValue placeholder="Выберите статус" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         {statusTypes.map((status) => (
-                          <SelectItem key={status} value={status} className="text-slate-200 focus:bg-slate-700">
+                          <SelectItem key={status} value={status} className="text-foreground focus:bg-secondary">
                             {status === "Все" ? status : ({
                               'completed': 'Завершено',
                               'in_progress': 'Выполняется',
@@ -1063,26 +1063,26 @@ export default function OperationsTransactionsPageSimple() {
               <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
                 {isMobileForced ? (
                   <>
-                    <Label htmlFor="search" className="text-slate-300 text-xs font-medium w-14 flex-shrink-0">Поиск:</Label>
+                    <Label htmlFor="search" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">Поиск:</Label>
                     <Input
                       id="search"
                       type="text"
                       placeholder="ID, устройство..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400 h-8 text-sm flex-1 min-w-0"
+                      className="bg-secondary border-border text-foreground placeholder-muted-foreground h-8 text-sm flex-1 min-w-0"
                     />
                   </>
                 ) : (
                   <>
-                    <Label htmlFor="search" className="text-slate-300 text-sm font-medium mb-2 block">Поиск по операциям</Label>
+                    <Label htmlFor="search" className="text-foreground/80 text-sm font-medium mb-2 block">Поиск по операциям</Label>
                     <Input
                       id="search"
                       type="text"
                       placeholder="Поиск по ID операции, устройству, номеру ТО..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400 h-10 text-base"
+                      className="bg-secondary border-border text-foreground placeholder-muted-foreground h-10 text-base"
                     />
                   </>
                 )}
@@ -1095,28 +1095,28 @@ export default function OperationsTransactionsPageSimple() {
               <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
                 {isMobileForced ? (
                   <>
-                    <Label htmlFor="dateFrom" className="text-slate-300 text-xs font-medium w-14 flex-shrink-0">С:</Label>
+                    <Label htmlFor="dateFrom" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">С:</Label>
                     <Input
                       id="dateFrom"
                       type="date"
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0"
+                      className="bg-secondary border-border text-foreground h-8 text-sm flex-1 min-w-0"
                     />
                   </>
                 ) : (
                   <>
-                    <Label htmlFor="dateFrom" className="text-slate-300 text-sm font-medium mb-2 block">Дата начала</Label>
+                    <Label htmlFor="dateFrom" className="text-foreground/80 text-sm font-medium mb-2 block">Дата начала</Label>
                     <div className="relative">
                       <Input
                         id="dateFrom"
                         type="date"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        className="bg-secondary border-border text-foreground h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                       />
                       <Calendar
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-blue-400 transition-colors pointer-events-none"
                       />
                     </div>
                   </>
@@ -1127,28 +1127,28 @@ export default function OperationsTransactionsPageSimple() {
               <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
                 {isMobileForced ? (
                   <>
-                    <Label htmlFor="dateTo" className="text-slate-300 text-xs font-medium w-14 flex-shrink-0">По:</Label>
+                    <Label htmlFor="dateTo" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">По:</Label>
                     <Input
                       id="dateTo"
                       type="date"
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0"
+                      className="bg-secondary border-border text-foreground h-8 text-sm flex-1 min-w-0"
                     />
                   </>
                 ) : (
                   <>
-                    <Label htmlFor="dateTo" className="text-slate-300 text-sm font-medium mb-2 block">Дата окончания</Label>
+                    <Label htmlFor="dateTo" className="text-foreground/80 text-sm font-medium mb-2 block">Дата окончания</Label>
                     <div className="relative">
                       <Input
                         id="dateTo"
                         type="date"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        className="bg-secondary border-border text-foreground h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                       />
                       <Calendar
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-blue-400 transition-colors pointer-events-none"
                       />
                     </div>
                   </>
@@ -1166,8 +1166,8 @@ export default function OperationsTransactionsPageSimple() {
             {/* Карточки по видам топлива — одна строка */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-2">
-                <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
-                <span className="text-xs text-slate-500">выберите один или несколько элементов</span>
+                <h3 className={`text-foreground/80 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
+                <span className="text-xs text-muted-foreground">выберите один или несколько элементов</span>
               </div>
               <div className={`grid gap-3 ${isMobileForced ? 'grid-cols-2' : ''}`} style={isMobileForced ? undefined : { gridTemplateColumns: `repeat(${Math.min([...new Set(operations.map(op => op.fuelType).filter(Boolean))].length, 6)}, 1fr)` }}>
                 {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
@@ -1195,8 +1195,8 @@ export default function OperationsTransactionsPageSimple() {
             {/* Карточки по способам оплаты — топ-4 крупные + остальные мелкие */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-2">
-                <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
-                <span className="text-xs text-slate-500">выберите один или несколько элементов</span>
+                <h3 className={`text-foreground/80 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
+                <span className="text-xs text-muted-foreground">выберите один или несколько элементов</span>
               </div>
               {(() => {
                 const paymentGroups = new Map<string, Set<string>>();
@@ -1261,7 +1261,7 @@ export default function OperationsTransactionsPageSimple() {
                             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
                               isSelected
                                 ? 'bg-blue-600 text-white shadow-md'
-                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                : 'bg-secondary text-foreground/80 hover:bg-secondary'
                             }`}
                           >
                             {display}
@@ -1282,7 +1282,7 @@ export default function OperationsTransactionsPageSimple() {
             {/* Итоговая карточка */}
             <div className="space-y-2">
               <div className="flex items-center px-2">
-                <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'} mr-4`}>Итого</h3>
+                <h3 className={`text-foreground/80 font-medium ${isMobileForced ? 'text-sm' : 'text-base'} mr-4`}>Итого</h3>
                 {!isMobileForced && (
                   <span className="text-sm">
                     {(() => {
@@ -1293,12 +1293,12 @@ export default function OperationsTransactionsPageSimple() {
                       const allSelected = [...selectedFuels, ...selectedPayments];
 
                       if (allSelected.length === 0) {
-                        return <span className="text-slate-400">не выбрано</span>;
+                        return <span className="text-muted-foreground">не выбрано</span>;
                       } else {
                         return (
                           <span>
-                            <span className="text-slate-400">выбрано: </span>
-                            <span className="text-blue-400 font-bold">{allSelected.join(', ')}</span>
+                            <span className="text-muted-foreground">выбрано: </span>
+                            <span className="text-blue-600 dark:text-blue-400 font-bold">{allSelected.join(', ')}</span>
                           </span>
                         );
                       }
@@ -1317,8 +1317,8 @@ export default function OperationsTransactionsPageSimple() {
                       <Card
                         className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
                           hasActiveFilters
-                            ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-                            : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                            ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+                            : 'bg-card border-border hover:bg-secondary'
                         }`}
                         onClick={hasActiveFilters ? handleKpiResetAll : undefined}
                       >
@@ -1327,30 +1327,30 @@ export default function OperationsTransactionsPageSimple() {
                             <div className="relative">
                               <div className="flex items-start justify-between mb-1">
                                 <div className="flex-1">
-                                  <p className="text-slate-100 font-semibold text-xs truncate">Итого</p>
+                                  <p className="text-foreground font-semibold text-xs truncate">Итого</p>
                                   <div className="flex items-center gap-1">
-                                    <Activity className="w-3 h-3 text-slate-400" />
-                                    <span className="text-slate-200 text-xs font-medium">{totalOps.length}</span>
+                                    <Activity className="w-3 h-3 text-muted-foreground" />
+                                    <span className="text-foreground text-xs font-medium">{totalOps.length}</span>
                                   </div>
                                 </div>
                                 <div className="text-right flex-shrink-0 ml-2">
-                                  <div className="text-slate-200 text-xs font-semibold">{totalVolume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
-                                  <div className="text-slate-200 text-xs font-semibold">{totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
+                                  <div className="text-foreground text-xs font-semibold">{totalVolume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+                                  <div className="text-foreground text-xs font-semibold">{totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
                                 </div>
                               </div>
                             </div>
                           ) : (
                             <div className="flex items-start justify-between">
                               <div className="min-w-0 flex-1">
-                                <p className="text-slate-100 font-semibold text-base truncate pr-2">Итого</p>
+                                <p className="text-foreground font-semibold text-base truncate pr-2">Итого</p>
                                 <div className="flex items-center gap-1">
-                                  <Activity className="w-3 h-3 text-slate-400" />
-                                  <span className="text-slate-300 text-sm">{totalOps.length}</span>
+                                  <Activity className="w-3 h-3 text-muted-foreground" />
+                                  <span className="text-foreground/80 text-sm">{totalOps.length}</span>
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0">
-                                <div className="text-slate-200 text-sm font-semibold">{totalVolume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
-                                <div className="text-slate-200 text-sm font-semibold">{totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
+                                <div className="text-foreground text-sm font-semibold">{totalVolume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+                                <div className="text-foreground text-sm font-semibold">{totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
                               </div>
                             </div>
                           )}
@@ -1368,14 +1368,14 @@ export default function OperationsTransactionsPageSimple() {
           <Card className="bg-red-950/50 border border-red-800/50 rounded-lg">
             <CardContent className="p-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                <p className="text-red-300 text-sm">{stsError}</p>
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                <p className="text-red-600 dark:text-red-300 text-sm">{stsError}</p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => loadFromStsApi(true)}
-                className="border-red-700 text-red-300 hover:bg-red-900/50 flex-shrink-0"
+                className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 hover:bg-red-900/50 flex-shrink-0"
               >
                 <RefreshCw className="w-4 h-4 mr-1" />
                 Повторить
@@ -1386,15 +1386,15 @@ export default function OperationsTransactionsPageSimple() {
 
         {/* Таблица № */}
         {!loading && !loadingFromSTS && (
-          <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobileForced ? 'mx-0 mt-1' : ''}`}>
+          <Card className={`bg-card border border-border rounded-lg shadow-lg ${isMobileForced ? 'mx-0 mt-1' : ''}`}>
             <CardHeader className={`${isMobileForced ? 'px-3 py-1.5' : 'pb-4'}`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobileForced ? 'text-base' : 'text-xl'}`}>
+                  <CardTitle className={`text-foreground flex items-center gap-2 ${isMobileForced ? 'text-base' : 'text-xl'}`}>
                     <FileText className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
                     Операции
                   </CardTitle>
-                  <p className={`text-slate-400 ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
+                  <p className={`text-muted-foreground ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
                     {isMobileForced
                       ? <>Показано {paginatedOperations.length} из {filteredOperations.length}{totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}</>
                       : <>Всего операций: {filteredOperations.length}</>
@@ -1410,10 +1410,10 @@ export default function OperationsTransactionsPageSimple() {
             {isMobileForced ? (
               // Mobile compact table layout
               <div>
-                <div className="bg-slate-800 overflow-hidden">
+                <div className="bg-card overflow-hidden">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-slate-700 text-slate-300 border-b border-slate-600">
+                      <tr className="bg-secondary text-foreground/80 border-b border-border">
                         <th className="px-2 py-2 text-left font-medium">ID</th>
                         <th className="px-2 py-2 text-left font-medium">Топливо</th>
                         <th className="px-2 py-2 text-right font-medium">Кол-во</th>
@@ -1425,7 +1425,7 @@ export default function OperationsTransactionsPageSimple() {
                       {paginatedOperations.map((record, index) => (
                         <tr
                           key={record.id}
-                          className={`hover:bg-slate-600 cursor-pointer transition-colors border-b border-slate-700 ${index % 2 === 0 ? 'bg-slate-800' : 'bg-slate-750'}`}
+                          className={`hover:bg-secondary cursor-pointer transition-colors border-b border-border ${index % 2 === 0 ? 'bg-card' : 'bg-secondary'}`}
                           onClick={() => {
                             setSelectedOperation(record);
                             setIsDetailsOpen(true);
@@ -1433,7 +1433,7 @@ export default function OperationsTransactionsPageSimple() {
                         >
                           <td className="px-2 py-2">
                             <div className="flex flex-col">
-                              <span className="text-white font-mono text-xs truncate" title={record.id}>
+                              <span className="text-foreground font-mono text-xs truncate" title={record.id}>
                                 {record.id.slice(-8)}
                               </span>
                               <div className="mt-0.5">
@@ -1443,20 +1443,20 @@ export default function OperationsTransactionsPageSimple() {
                           </td>
                           <td className="px-2 py-2">
                             {record.fuelType ? (
-                              <Badge variant="outline" className="bg-slate-700 text-white border-slate-600">
+                              <Badge variant="outline" className="bg-secondary text-foreground border-border">
                                 {record.fuelType}
                               </Badge>
                             ) : '-'}
                           </td>
-                          <td className="px-2 py-2 text-white text-right font-mono">
+                          <td className="px-2 py-2 text-foreground text-right font-mono">
                             {record.actualQuantity ? `${record.actualQuantity.toFixed(2)}л` :
                              record.quantity ? `${record.quantity.toFixed(2)}л` : '-'}
                           </td>
-                          <td className="px-2 py-2 text-white text-right font-mono font-bold">
+                          <td className="px-2 py-2 text-foreground text-right font-mono font-bold">
                             {record.actualAmount ? `${record.actualAmount.toFixed(2)}₽` :
                              record.totalCost ? `${record.totalCost.toFixed(2)}₽` : '-'}
                           </td>
-                          <td className="px-2 py-2 text-center text-white text-xs">
+                          <td className="px-2 py-2 text-center text-foreground text-xs">
                             {(() => {
                               try {
                                 const dateStr = record.timestamp || record.createdAt || record.startTime || record.date;
@@ -1479,7 +1479,7 @@ export default function OperationsTransactionsPageSimple() {
                 </div>
 
                 {paginatedOperations.length === 0 && (
-                  <div className="text-center py-8 text-slate-400">
+                  <div className="text-center py-8 text-muted-foreground">
                     {loading ? (
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -1498,11 +1498,11 @@ export default function OperationsTransactionsPageSimple() {
                       size="sm"
                       onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      className="border-border text-foreground/80 hover:bg-secondary"
                     >
                       ←
                     </Button>
-                    <span className="text-sm text-slate-400 px-2">
+                    <span className="text-sm text-muted-foreground px-2">
                       {currentPage} / {totalPages}
                     </span>
                     <Button
@@ -1510,7 +1510,7 @@ export default function OperationsTransactionsPageSimple() {
                       size="sm"
                       onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage === totalPages}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      className="border-border text-foreground/80 hover:bg-secondary"
                     >
                       →
                     </Button>
@@ -1521,7 +1521,7 @@ export default function OperationsTransactionsPageSimple() {
             // Desktop: Виртуализированная таблица для оптимальной производительности
             <div className="space-y-4">
               {filteredOperations.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-muted-foreground">
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -1549,12 +1549,12 @@ export default function OperationsTransactionsPageSimple() {
 
       {/* Модальное окно с деталями операции */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-sm mx-auto bg-slate-800 border border-slate-600 text-white max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-sm mx-auto bg-card border border-border text-foreground max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-2">
-            <DialogTitle className="text-base font-semibold text-white">
+            <DialogTitle className="text-base font-semibold text-foreground">
               Операция #{selectedOperation?.id?.slice(-8)}
             </DialogTitle>
-            <DialogDescription className="text-slate-400 text-sm">
+            <DialogDescription className="text-muted-foreground text-sm">
               {selectedNetwork?.name || 'Сеть'}{selectedOperation?.stationNumber ? ` • АЗС ${selectedOperation.stationNumber}` : ''}
             </DialogDescription>
           </DialogHeader>
@@ -1562,125 +1562,125 @@ export default function OperationsTransactionsPageSimple() {
           {selectedOperation && (
             <div className="space-y-2">
               <div className="grid grid-cols-1 gap-1 text-sm">
-                <div className="flex justify-between py-2 border-b border-slate-700">
-                  <span className="text-slate-400">Статус:</span>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Статус:</span>
                   <div>{getStatusBadge(selectedOperation.status)}</div>
                 </div>
 
 
-                <div className="flex justify-between py-2 border-b border-slate-700">
-                  <span className="text-slate-400">Время начала:</span>
-                  <span className="text-white font-mono text-xs">
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Время начала:</span>
+                  <span className="text-foreground font-mono text-xs">
                     {new Date(selectedOperation.startTime).toLocaleString('ru-RU')}
                   </span>
                 </div>
 
 
-                <div className="flex justify-between py-2 border-b border-slate-700">
-                  <span className="text-slate-400">Вид топлива:</span>
-                  <span className="text-white font-medium">{selectedOperation.fuelType || '-'}</span>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Вид топлива:</span>
+                  <span className="text-foreground font-medium">{selectedOperation.fuelType || '-'}</span>
                 </div>
 
-                <div className="flex justify-between py-2 border-b border-slate-700">
-                  <span className="text-slate-400">Количество:</span>
-                  <span className="text-white font-mono font-bold">
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Количество:</span>
+                  <span className="text-foreground font-mono font-bold">
                     {selectedOperation.actualQuantity ? `${selectedOperation.actualQuantity.toFixed(2)} л` :
                      selectedOperation.quantity ? `${selectedOperation.quantity.toFixed(2)} л` : '-'}
                   </span>
                 </div>
 
-                <div className="flex justify-between py-2 border-b border-slate-700">
-                  <span className="text-slate-400">Цена за литр:</span>
-                  <span className="text-white font-mono">
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Цена за литр:</span>
+                  <span className="text-foreground font-mono">
                     {selectedOperation.price ? `${selectedOperation.price.toFixed(2)} ₽/л` : '-'}
                   </span>
                 </div>
 
-                <div className="flex justify-between py-2 border-b border-slate-700 bg-slate-750 px-2 -mx-2 rounded">
-                  <span className="text-slate-300 font-medium">Общая сумма:</span>
-                  <span className="text-white font-mono font-bold text-lg">
+                <div className="flex justify-between py-2 border-b border-border bg-secondary px-2 -mx-2 rounded">
+                  <span className="text-foreground/80 font-medium">Общая сумма:</span>
+                  <span className="text-foreground font-mono font-bold text-lg">
                     {selectedOperation.actualAmount ? `${selectedOperation.actualAmount.toFixed(2)} ₽` :
                      selectedOperation.totalCost ? `${selectedOperation.totalCost.toFixed(2)} ₽` : '-'}
                   </span>
                 </div>
 
-                <div className="flex justify-between py-2 border-b border-slate-700">
-                  <span className="text-slate-400">Способ оплаты:</span>
-                  <span className="text-white font-medium">
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Способ оплаты:</span>
+                  <span className="text-foreground font-medium">
                     {normalizePaymentMethod(selectedOperation.paymentMethod)}
                   </span>
                 </div>
 
                 {selectedOperation.posNumber && selectedOperation.posNumber !== '-' && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Номер POS:</span>
-                    <span className="text-white font-mono">{selectedOperation.posNumber}</span>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Номер POS:</span>
+                    <span className="text-foreground font-mono">{selectedOperation.posNumber}</span>
                   </div>
                 )}
 
 
                 {selectedOperation.nozzleNumber && selectedOperation.nozzleNumber !== '-' && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Номер пистолета:</span>
-                    <span className="text-white font-mono">{selectedOperation.nozzleNumber}</span>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Номер пистолета:</span>
+                    <span className="text-foreground font-mono">{selectedOperation.nozzleNumber}</span>
                   </div>
                 )}
 
                 {selectedOperation.tankNumber && selectedOperation.tankNumber !== '-' && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Номер резервуара:</span>
-                    <span className="text-white font-mono">{selectedOperation.tankNumber}</span>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Номер резервуара:</span>
+                    <span className="text-foreground font-mono">{selectedOperation.tankNumber}</span>
                   </div>
                 )}
 
                 {selectedOperation.shiftNumber && selectedOperation.shiftNumber !== '-' && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Номер смены:</span>
-                    <span className="text-white font-mono">{selectedOperation.shiftNumber}</span>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Номер смены:</span>
+                    <span className="text-foreground font-mono">{selectedOperation.shiftNumber}</span>
                   </div>
                 )}
 
                 {selectedOperation.receiptNumber && selectedOperation.receiptNumber !== '-' && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Номер чека:</span>
-                    <span className="text-white font-mono">{selectedOperation.receiptNumber}</span>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Номер чека:</span>
+                    <span className="text-foreground font-mono">{selectedOperation.receiptNumber}</span>
                   </div>
                 )}
 
                 {selectedOperation.orderedQuantity > 0 && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Заказ (литры):</span>
-                    <span className="text-white font-mono">{selectedOperation.orderedQuantity.toFixed(2)} л</span>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Заказ (литры):</span>
+                    <span className="text-foreground font-mono">{selectedOperation.orderedQuantity.toFixed(2)} л</span>
                   </div>
                 )}
 
                 {selectedOperation.orderedAmount > 0 && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Заказ (сумма):</span>
-                    <span className="text-white font-mono">{selectedOperation.orderedAmount.toFixed(2)} ₽</span>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Заказ (сумма):</span>
+                    <span className="text-foreground font-mono">{selectedOperation.orderedAmount.toFixed(2)} ₽</span>
                   </div>
                 )}
 
                 {selectedOperation.operationType && selectedOperation.operationType !== '-' && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Тип операции:</span>
-                    <span className="text-white font-medium">{selectedOperation.operationType}</span>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Тип операции:</span>
+                    <span className="text-foreground font-medium">{selectedOperation.operationType}</span>
                   </div>
                 )}
 
 
                 {selectedOperation.isFromStsApi && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Источник данных:</span>
-                    <Badge variant="outline" className="bg-blue-900 text-blue-300 border-blue-600">
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Источник данных:</span>
+                    <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 border-blue-600">
                       STS API
                     </Badge>
                   </div>
                 )}
 
                 <div className="flex justify-between py-2 text-xs">
-                  <span className="text-slate-500">ID операции:</span>
-                  <span className="text-slate-400 font-mono">{selectedOperation.id}</span>
+                  <span className="text-muted-foreground">ID операции:</span>
+                  <span className="text-muted-foreground font-mono">{selectedOperation.id}</span>
                 </div>
               </div>
             </div>

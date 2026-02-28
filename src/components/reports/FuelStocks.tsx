@@ -137,7 +137,7 @@ export function FuelStocks({ isNetworkOnly, isTradingPointSelected }: FuelStocks
   const getProgressColor = (percentage: number, criticalLevel: number) => {
     if (percentage <= criticalLevel) return "bg-red-500";
     if (percentage <= criticalLevel * 2) return "bg-yellow-500";
-    return "bg-emerald-500";
+    return "bg-emerald-600";
   };
 
   const getStatusIcon = (percentage: number, criticalLevel: number) => {

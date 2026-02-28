@@ -29,23 +29,23 @@ export function NetworksSection({
 }: NetworksSectionProps) {
   if (loading) {
     return (
-      <div className="bg-slate-800 mb-6 w-full rounded-lg">
+      <div className="bg-card mb-6 w-full rounded-lg">
         <div className="px-4 md:px-6 py-4">
-          <div className="text-white">Загрузка...</div>
+          <div className="text-foreground">Загрузка...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-800 mb-6 w-full rounded-lg">
+    <div className="bg-card mb-6 w-full rounded-lg">
       <div className="px-4 md:px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-sm">🏪</span>
+              <span className="text-foreground text-sm">🏪</span>
             </div>
-            <h2 className="text-lg font-semibold text-white">Торговые сети</h2>
+            <h2 className="text-lg font-semibold text-foreground">Торговые сети</h2>
           </div>
           <Button
             onClick={onCreateClick}

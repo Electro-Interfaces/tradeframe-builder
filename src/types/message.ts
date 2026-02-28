@@ -220,7 +220,7 @@ export const MESSAGE_PRIORITY_COLORS: Record<MessagePriority, string> = {
 
 // Цвета для статусов
 export const MESSAGE_STATUS_COLORS: Record<MessageStatus, string> = {
-  draft: 'text-gray-600',
+  draft: 'text-muted-foreground',
   scheduled: 'text-blue-600',
   sending: 'text-yellow-600',
   sent: 'text-green-600',

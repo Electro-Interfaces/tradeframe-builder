@@ -140,7 +140,7 @@ await login('user@example.com', 'password123', true);
 // 2. Сохранение в localStorage (текущая сессия)
 // 3. Если rememberMe=true:
 await saveRememberedCredentials(email, password, 30); // 30 дней
-// IndexedDB: TradeFrameSecureStorage → credentials → remembered_credentials
+// IndexedDB: TradeControlSecureStorage → credentials → remembered_credentials
 ```
 
 ### 2. **Автоматический вход при запуске PWA:**
@@ -189,7 +189,7 @@ npm run dev                  # Terminal 2
 
 # 2. Открыть http://127.0.0.1:3000
 # 3. Войти с галочкой "Запомнить меня"
-# 4. DevTools → Application → IndexedDB → TradeFrameSecureStorage
+# 4. DevTools → Application → IndexedDB → TradeControlSecureStorage
 # 5. Перезагрузить страницу → должен автоматически войти
 ```
 
@@ -215,7 +215,7 @@ https://electro-interfaces.github.io/tradeframe-builder/
 ### Проверка DevTools:
 
 **Chrome DevTools → Application:**
-- **IndexedDB** → TradeFrameSecureStorage → credentials
+- **IndexedDB** → TradeControlSecureStorage → credentials
 - Должна быть запись `remembered_credentials` с:
   - `email`: "user@example.com"
   - `encryptedPassword`: "base64_encrypted_string"

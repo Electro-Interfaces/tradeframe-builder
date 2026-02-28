@@ -79,7 +79,7 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className={cn(
-          "flex items-center justify-between w-full px-3 py-2 text-sm bg-slate-700 border border-slate-600 text-white rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]",
+          "flex items-center justify-between w-full px-3 py-2 text-sm bg-secondary border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]",
           className
         )}>
           <NetworkIcon className="inline h-4 w-4 mr-2 opacity-70" />
@@ -94,7 +94,7 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
           {networks.map((network) => (
             <li
               key={network.id}
-              className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded-md cursor-pointer"
+              className="flex items-center gap-2 px-2 py-1.5 hover:bg-card rounded-md cursor-pointer"
               onClick={() => handleSelect(network.id)}
             >
               <span

@@ -56,7 +56,7 @@ const getPaymentColor = (type: string): string => {
 const TrendIcon = ({ trend }: { trend?: 'up' | 'down' | 'stable' }) => {
   if (trend === 'up') return <TrendingUp className="w-4 h-4 text-green-500" />;
   if (trend === 'down') return <TrendingDown className="w-4 h-4 text-red-500" />;
-  return <Minus className="w-4 h-4 text-slate-400" />;
+  return <Minus className="w-4 h-4 text-muted-foreground" />;
 };
 
 export const PaymentDistributionChart = memo(function PaymentDistributionChart({
@@ -66,15 +66,15 @@ export const PaymentDistributionChart = memo(function PaymentDistributionChart({
 
   if (!data || data.length === 0) {
     return (
-      <Card className="bg-slate-800 border-slate-600">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-lg flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-blue-400" />
+          <CardTitle className="text-foreground text-lg flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Распределение способов оплаты
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-slate-400">
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
             <p>Нет данных</p>
           </div>
         </CardContent>
@@ -106,10 +106,10 @@ export const PaymentDistributionChart = memo(function PaymentDistributionChart({
   };
 
   return (
-    <Card className={`bg-slate-800 border-slate-600 ${isMobile ? '' : 'lg:h-full lg:flex lg:flex-col'}`}>
+    <Card className={`bg-card border-border ${isMobile ? '' : 'lg:h-full lg:flex lg:flex-col'}`}>
       <CardHeader className={`${isMobile ? 'pb-2' : 'pb-3'}`}>
-        <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-          <CreditCard className="h-5 w-5 text-blue-400" />
+        <CardTitle className={`text-foreground ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
+          <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           Способы оплаты
         </CardTitle>
       </CardHeader>
@@ -137,19 +137,19 @@ export const PaymentDistributionChart = memo(function PaymentDistributionChart({
                   if (!active || !payload || !payload.length) return null;
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl">
-                      <p className="text-white font-medium mb-2">{data.name}</p>
+                    <div className="bg-background/95 border border-border rounded-lg p-3 shadow-xl">
+                      <p className="text-foreground font-medium mb-2">{data.name}</p>
                       <div className="space-y-1 text-xs">
-                        <p className="text-slate-300">
+                        <p className="text-foreground/80">
                           Выручка: <span className="font-medium">{data.value.toLocaleString('ru-RU')}₽</span>
                         </p>
-                        <p className="text-slate-300">
+                        <p className="text-foreground/80">
                           Операций: <span className="font-medium">{data.count}</span>
                         </p>
-                        <p className="text-slate-300">
+                        <p className="text-foreground/80">
                           Объем: <span className="font-medium">{data.volume.toFixed(0)} л</span>
                         </p>
-                        <p className="text-blue-400">
+                        <p className="text-blue-600 dark:text-blue-400">
                           Доля: <span className="font-medium">{data.share.toFixed(1)}%</span>
                         </p>
                       </div>
@@ -170,11 +170,11 @@ export const PaymentDistributionChart = memo(function PaymentDistributionChart({
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: getPaymentColor(payment.type) }}
                 />
-                <span className="text-slate-300">{payment.displayName}</span>
+                <span className="text-foreground/80">{payment.displayName}</span>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <span className="text-slate-400">{payment.operations} оп.</span>
-                <span className="text-white font-medium">{payment.share.toFixed(1)}%</span>
+                <span className="text-muted-foreground">{payment.operations} оп.</span>
+                <span className="text-foreground font-medium">{payment.share.toFixed(1)}%</span>
               </div>
             </div>
           ))}

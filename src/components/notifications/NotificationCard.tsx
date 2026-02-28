@@ -19,7 +19,7 @@ export function NotificationCard({ notification, onMarkAsRead, showReadStatus = 
   const isRead = notification.status === 'read';
 
   return (
-    <Card className={`bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors ${!isRead ? 'border-l-4 border-l-blue-500' : ''} ${isMobile ? 'p-4' : 'p-6'}`}>
+    <Card className={`bg-card border-border hover:border-border transition-colors ${!isRead ? 'border-l-4 border-l-blue-500' : ''} ${isMobile ? 'p-4' : 'p-6'}`}>
       <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-start justify-between'} mb-4`}>
         <div className="flex-1">
           <div className={`flex items-center ${isMobile ? 'flex-wrap gap-2' : 'gap-3'} mb-2`}>
@@ -27,19 +27,19 @@ export function NotificationCard({ notification, onMarkAsRead, showReadStatus = 
               {getPriorityIcon(notification.priority, isMobile)}
             </div>
             <div className="flex-1">
-              <h3 className={`font-semibold text-white ${isMobile ? 'text-base' : 'text-lg'}`}>{notification.title}</h3>
-              <p className="text-xs text-slate-400">{getTypeLabel(notification.type)}</p>
+              <h3 className={`font-semibold text-foreground ${isMobile ? 'text-base' : 'text-lg'}`}>{notification.title}</h3>
+              <p className="text-xs text-muted-foreground">{getTypeLabel(notification.type)}</p>
             </div>
-            <Badge className={`${getPriorityColor(notification.priority)} text-white text-xs`}>
+            <Badge className={`${getPriorityColor(notification.priority)} text-foreground text-xs`}>
               {notification.priority}
             </Badge>
             {showReadStatus && isRead && (
-              <Badge variant="outline" className="text-slate-400 text-xs">
+              <Badge variant="outline" className="text-muted-foreground text-xs">
                 Прочитано
               </Badge>
             )}
           </div>
-          <p className={`text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'} mt-2`}>{notification.message}</p>
+          <p className={`text-foreground/80 ${isMobile ? 'text-xs' : 'text-sm'} mt-2`}>{notification.message}</p>
         </div>
         {!isRead && (
           <Button
@@ -57,27 +57,27 @@ export function NotificationCard({ notification, onMarkAsRead, showReadStatus = 
 
       <div className={`grid gap-4 text-xs ${isMobile ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 md:grid-cols-3'}`}>
         <div>
-          <div className="text-slate-400 mb-1">Создано</div>
-          <div className="text-slate-300">{formatDate(notification.created_at)}</div>
+          <div className="text-muted-foreground mb-1">Создано</div>
+          <div className="text-foreground/80">{formatDate(notification.created_at)}</div>
         </div>
         {notification.sent_at && (
           <div>
-            <div className="text-slate-400 mb-1">Отправлено</div>
-            <div className="text-slate-300">{formatDate(notification.sent_at)}</div>
+            <div className="text-muted-foreground mb-1">Отправлено</div>
+            <div className="text-foreground/80">{formatDate(notification.sent_at)}</div>
           </div>
         )}
         {notification.read_at && (
           <div>
-            <div className="text-slate-400 mb-1">Прочитано</div>
-            <div className="text-slate-300">{formatDate(notification.read_at)}</div>
+            <div className="text-muted-foreground mb-1">Прочитано</div>
+            <div className="text-foreground/80">{formatDate(notification.read_at)}</div>
           </div>
         )}
       </div>
 
       {notification.metadata && Object.keys(notification.metadata).length > 0 && (
-        <div className="mt-4 pt-4 border-t border-slate-700">
-          <div className="text-xs text-slate-400 mb-2">Детали:</div>
-          <div className="text-xs text-slate-300 font-mono bg-slate-900 p-2 rounded">
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="text-xs text-muted-foreground mb-2">Детали:</div>
+          <div className="text-xs text-foreground/80 font-mono bg-background p-2 rounded">
             {JSON.stringify(notification.metadata, null, 2)}
           </div>
         </div>
@@ -93,7 +93,7 @@ function getPriorityColor(priority: NotificationPriority): string {
     case 'high': return 'bg-orange-600';
     case 'medium': return 'bg-yellow-600';
     case 'low': return 'bg-blue-600';
-    default: return 'bg-gray-600';
+    default: return 'bg-secondary';
   }
 }
 

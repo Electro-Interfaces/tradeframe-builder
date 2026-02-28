@@ -173,29 +173,29 @@ export function CreateCouponModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm mx-auto bg-slate-800 border border-slate-600 text-white">
+      <DialogContent className="max-w-sm mx-auto bg-card border border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-base font-semibold text-white">
+          <DialogTitle className="text-base font-semibold text-foreground">
             Создать купон
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Сеть и станция */}
-          <div className="bg-slate-700/50 rounded-lg px-3 py-2 space-y-1">
+          <div className="bg-secondary/50 rounded-lg px-3 py-2 space-y-1">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-400">Сеть:</span>
-              <span className="text-white font-medium">{networkName || `#${systemId}`}</span>
+              <span className="text-muted-foreground">Сеть:</span>
+              <span className="text-foreground font-medium">{networkName || `#${systemId}`}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-slate-400">Станция:</span>
-              <span className="text-white font-medium">{stationName || `#${stationId}`}</span>
+              <span className="text-muted-foreground">Станция:</span>
+              <span className="text-foreground font-medium">{stationName || `#${stationId}`}</span>
             </div>
           </div>
 
           {/* Переключатель режима: Литры / Рубли */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Тип купона</Label>
+            <Label className="text-foreground/80">Тип купона</Label>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -204,7 +204,7 @@ export function CreateCouponModal({
                 onClick={() => handleModeChange('liters')}
                 className={mode === 'liters'
                   ? 'flex-1 bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'flex-1 border-slate-600 text-slate-300 hover:bg-slate-700'
+                  : 'flex-1 border-border text-foreground/80 hover:bg-secondary'
                 }
               >
                 ⛽ Литры
@@ -216,7 +216,7 @@ export function CreateCouponModal({
                 onClick={() => handleModeChange('rubles')}
                 className={mode === 'rubles'
                   ? 'flex-1 bg-emerald-600 hover:bg-emerald-700 text-white'
-                  : 'flex-1 border-slate-600 text-slate-300 hover:bg-slate-700'
+                  : 'flex-1 border-border text-foreground/80 hover:bg-secondary'
                 }
               >
                 ₽ Рубли
@@ -226,7 +226,7 @@ export function CreateCouponModal({
 
           {/* Вид топлива — активно только в режиме Литры */}
           <div className="space-y-2">
-            <Label className={mode === 'liters' ? 'text-slate-300' : 'text-slate-500'}>
+            <Label className={mode === 'liters' ? 'text-foreground/80' : 'text-muted-foreground'}>
               Вид топлива
             </Label>
             <Select
@@ -234,31 +234,31 @@ export function CreateCouponModal({
               onValueChange={setServiceCode}
               disabled={mode === 'rubles'}
             >
-              <SelectTrigger className={`bg-slate-700 border-slate-600 ${
-                mode === 'rubles' ? 'text-slate-500 opacity-50 cursor-not-allowed' : 'text-white'
+              <SelectTrigger className={`bg-secondary border-border ${
+                mode === 'rubles' ? 'text-muted-foreground opacity-50 cursor-not-allowed' : 'text-foreground'
               }`}>
                 <SelectValue placeholder={mode === 'rubles' ? 'Не требуется' : 'Выберите топливо'} />
               </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectContent className="bg-secondary border-border">
                 {fuelOptions.map((opt) => (
                   <SelectItem
                     key={opt.code}
                     value={String(opt.code)}
-                    className="text-white hover:bg-slate-600"
+                    className="text-foreground hover:bg-secondary"
                   >
                     {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-slate-400 h-4">
+            <p className="text-xs text-muted-foreground h-4">
               {mode === 'liters' && !isFuelSelected ? 'Выберите конкретный вид топлива' : '\u00A0'}
             </p>
           </div>
 
           {/* Количество / Сумма */}
           <div className="space-y-2">
-            <Label className="text-slate-300">
+            <Label className="text-foreground/80">
               {mode === 'liters' ? 'Объём (литры)' : 'Сумма (рубли)'}
             </Label>
             <Input
@@ -268,9 +268,9 @@ export function CreateCouponModal({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder={mode === 'liters' ? 'Введите объём в литрах' : 'Введите сумму в рублях'}
-              className="bg-slate-700 border-slate-600 text-white"
+              className="bg-secondary border-border text-foreground"
             />
-            <p className="text-xs text-red-400 h-4">
+            <p className="text-xs text-red-600 dark:text-red-400 h-4">
               {amount && !isAmountValid
                 ? (mode === 'liters' ? 'Объём должен быть больше 0' : 'Сумма должна быть больше 0')
                 : '\u00A0'}
@@ -279,23 +279,23 @@ export function CreateCouponModal({
 
           {/* Срок действия */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Срок действия (дней)</Label>
+            <Label className="text-foreground/80">Срок действия (дней)</Label>
             <Input
               type="number"
               min="1"
               value={lifetime}
               onChange={(e) => setLifetime(e.target.value)}
-              className="bg-slate-700 border-slate-600 text-white"
+              className="bg-secondary border-border text-foreground"
             />
             {lifetime && !isLifetimeValid && (
-              <p className="text-xs text-red-400">Минимум 1 день</p>
+              <p className="text-xs text-red-600 dark:text-red-400">Минимум 1 день</p>
             )}
           </div>
 
           {/* Комментарий (обязательное поле) */}
           <div className="space-y-2">
-            <Label className="text-slate-300">
-              Комментарий <span className="text-red-400">*</span>
+            <Label className="text-foreground/80">
+              Комментарий <span className="text-red-600 dark:text-red-400">*</span>
             </Label>
             <textarea
               value={comment}
@@ -303,14 +303,14 @@ export function CreateCouponModal({
               placeholder="Укажите причину выдачи купона"
               maxLength={200}
               rows={2}
-              className="w-full rounded-md bg-slate-700 border border-slate-600 text-white text-sm px-3 py-2 placeholder:text-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md bg-secondary border border-border text-foreground text-sm px-3 py-2 placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex justify-between">
               {!isCommentValid && comment.length === 0 && (
-                <p className="text-xs text-slate-400">Обязательное поле</p>
+                <p className="text-xs text-muted-foreground">Обязательное поле</p>
               )}
               {comment.length > 0 && (
-                <p className="text-xs text-slate-500 ml-auto">{comment.length}/200</p>
+                <p className="text-xs text-muted-foreground ml-auto">{comment.length}/200</p>
               )}
             </div>
           </div>
@@ -318,16 +318,16 @@ export function CreateCouponModal({
           {/* Фискальный чек */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-300">Фискальный чек</Label>
+              <Label className="text-foreground/80">Фискальный чек</Label>
               <Switch
                 checked={fiscal}
                 onCheckedChange={setFiscal}
-                className="data-[state=unchecked]:bg-slate-500 data-[state=checked]:bg-emerald-600"
+                className="data-[state=unchecked]:bg-muted-foreground data-[state=checked]:bg-emerald-600"
               />
             </div>
             {fiscal && (
-              <div className="bg-amber-900/30 border border-amber-600/50 rounded-md p-2">
-                <p className="text-xs text-amber-200">
+              <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-600/50 rounded-md p-2">
+                <p className="text-xs text-amber-700 dark:text-amber-200">
                   ⚠️ С фискальным чеком операция будет отражена в налоговой отчетности
                 </p>
               </div>
@@ -335,10 +335,10 @@ export function CreateCouponModal({
           </div>
 
           {/* Важное предупреждение */}
-          <div className="bg-red-900/20 border border-red-600/50 rounded-lg p-3 space-y-2">
+          <div className="bg-red-100 dark:bg-red-900/20 border border-red-600/50 rounded-lg p-3 space-y-2">
             <div className="flex items-start gap-2">
-              <div className="text-red-400 mt-0.5">⚠️</div>
-              <div className="text-xs text-red-200 space-y-1">
+              <div className="text-red-600 dark:text-red-400 mt-0.5">⚠️</div>
+              <div className="text-xs text-red-700 dark:text-red-200 space-y-1">
                 <p className="font-semibold">Ответственная операция!</p>
                 <p>Создание купона влияет на:</p>
                 <ul className="list-disc list-inside space-y-0.5 ml-2">
@@ -352,9 +352,9 @@ export function CreateCouponModal({
           </div>
 
           {/* Автор */}
-          <div className="flex items-center justify-between py-2 border-t border-slate-700">
-            <span className="text-xs text-slate-400">Автор:</span>
-            <span className="text-xs text-slate-300">{user?.name || user?.email || '—'}</span>
+          <div className="flex items-center justify-between py-2 border-t border-border">
+            <span className="text-xs text-muted-foreground">Автор:</span>
+            <span className="text-xs text-foreground/80">{user?.name || user?.email || '—'}</span>
           </div>
         </div>
 
@@ -362,7 +362,7 @@ export function CreateCouponModal({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="border-border text-foreground/80 hover:bg-secondary"
           >
             Отмена
           </Button>

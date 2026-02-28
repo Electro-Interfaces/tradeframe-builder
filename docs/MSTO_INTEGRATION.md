@@ -193,9 +193,9 @@ interface MSTOTransTotal {
 
 ---
 
-## Маппинг станций MSTO → TradeFrame
+## Маппинг станций MSTO → TradeControl
 
-Для сверки необходимо связать станции MSTO с торговыми точками TradeFrame.
+Для сверки необходимо связать станции MSTO с торговыми точками TradeControl.
 
 ### Таблица маппинга
 

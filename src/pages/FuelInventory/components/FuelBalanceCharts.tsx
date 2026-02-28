@@ -38,8 +38,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || payload.length === 0) return null;
 
   return (
-    <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
-      <p className="text-slate-300 text-sm mb-2">{label}</p>
+    <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+      <p className="text-foreground/80 text-sm mb-2">{label}</p>
       {payload.map((item: any, idx: number) => (
         <p key={idx} className="text-sm" style={{ color: item.color }}>
           {item.name}: {formatVolume(item.value)}
@@ -53,11 +53,11 @@ export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBa
   // Если данные не загружены - показываем кнопку
   if (!loaded && !loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-8">
           <div className="flex flex-col items-center justify-center gap-4">
-            <LineChart className="w-12 h-12 text-slate-500" />
-            <p className="text-slate-400 text-center">
+            <LineChart className="w-12 h-12 text-muted-foreground" />
+            <p className="text-muted-foreground text-center">
               Нажмите кнопку для построения графиков остатков по сменам
             </p>
             <Button onClick={onLoad} variant="outline" className="gap-2">
@@ -73,11 +73,11 @@ export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBa
   // Загрузка
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-8">
           <div className="flex items-center justify-center gap-3">
-            <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
-            <p className="text-blue-400">Загрузка данных для графиков...</p>
+            <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
+            <p className="text-blue-600 dark:text-blue-400">Загрузка данных для графиков...</p>
           </div>
         </CardContent>
       </Card>
@@ -87,8 +87,8 @@ export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBa
   // Нет данных
   if (chartData.length === 0) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="py-8 text-center text-slate-400">
+      <Card className="bg-card border-border">
+        <CardContent className="py-8 text-center text-muted-foreground">
           Нет данных для построения графиков
         </CardContent>
       </Card>
@@ -98,7 +98,7 @@ export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBa
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Динамика остатков по сменам</h3>
+        <h3 className="text-lg font-semibold text-foreground">Динамика остатков по сменам</h3>
         <Button onClick={onLoad} variant="outline" size="sm" className="gap-2">
           <RefreshCw className="w-4 h-4" />
           Обновить
@@ -114,11 +114,11 @@ export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBa
           const changePercent = firstValue > 0 ? ((change / firstValue) * 100).toFixed(1) : '0';
 
           return (
-            <Card key={fuel.fuelCode} className="bg-slate-800 border-slate-700">
+            <Card key={fuel.fuelCode} className="bg-card border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base text-white flex items-center justify-between">
+                <CardTitle className="text-base text-foreground flex items-center justify-between">
                   <span>{fuel.fuelName}</span>
-                  <span className={`text-sm font-normal ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <span className={`text-sm font-normal ${change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {change >= 0 ? '+' : ''}{changePercent}%
                   </span>
                 </CardTitle>
@@ -136,17 +136,17 @@ export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBa
                           <stop offset="95%" stopColor={color} stopOpacity={0.05} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis
                         dataKey="dateLabel"
-                        tick={{ fill: '#94a3b8', fontSize: 11 }}
-                        axisLine={{ stroke: '#475569' }}
-                        tickLine={{ stroke: '#475569' }}
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                        axisLine={{ stroke: 'hsl(var(--border))' }}
+                        tickLine={{ stroke: 'hsl(var(--border))' }}
                       />
                       <YAxis
-                        tick={{ fill: '#94a3b8', fontSize: 11 }}
-                        axisLine={{ stroke: '#475569' }}
-                        tickLine={{ stroke: '#475569' }}
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                        axisLine={{ stroke: 'hsl(var(--border))' }}
+                        tickLine={{ stroke: 'hsl(var(--border))' }}
                         tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                       />
                       <Tooltip content={<CustomTooltip />} />
@@ -163,16 +163,16 @@ export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBa
                 </div>
 
                 {/* Статистика */}
-                <div className="flex justify-between mt-3 pt-3 border-t border-slate-700">
+                <div className="flex justify-between mt-3 pt-3 border-t border-border">
                   <div>
-                    <div className="text-xs text-slate-400">Начало периода</div>
-                    <div className="text-sm font-mono text-slate-200">
+                    <div className="text-xs text-muted-foreground">Начало периода</div>
+                    <div className="text-sm font-mono text-foreground">
                       {formatVolume(firstValue)}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-slate-400">Конец периода</div>
-                    <div className="text-sm font-mono text-slate-200">
+                    <div className="text-xs text-muted-foreground">Конец периода</div>
+                    <div className="text-sm font-mono text-foreground">
                       {formatVolume(lastValue)}
                     </div>
                   </div>

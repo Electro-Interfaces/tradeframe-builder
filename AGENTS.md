@@ -1,7 +1,7 @@
 # Repository Guidelines for AI Agents
 
 ## Project Overview
-**TradeFrame Builder** — платформа управления торговыми сетями АЗС.
+**TradeControl Builder** — платформа управления торговыми сетями АЗС.
 - **Frontend:** Vite + React 18 + TypeScript
 - **Backend:** Express.js (server/)
 - **Database:** Supabase (PostgreSQL)
@@ -221,12 +221,12 @@ Frontend (порт 3000) →  npm run dev
 
 **1. Запуск backend (порт 3001):**
 ```powershell
-powershell -Command "Start-Process -NoNewWindow -FilePath 'node' -ArgumentList 'index.js' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeFrame\server'"
+powershell -Command "Start-Process -NoNewWindow -FilePath 'node' -ArgumentList 'index.js' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeControl\server'"
 ```
 
 **2. Запуск frontend (порт 3000):**
 ```powershell
-powershell -Command "Start-Process -NoNewWindow -FilePath 'cmd' -ArgumentList '/c','npm run dev' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeFrame'"
+powershell -Command "Start-Process -NoNewWindow -FilePath 'cmd' -ArgumentList '/c','npm run dev' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeControl'"
 ```
 
 **3. Проверка портов:**

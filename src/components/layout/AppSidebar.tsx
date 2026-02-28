@@ -149,7 +149,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
 
   const isActive = (path: string) => window.location.pathname === path;
   const getNavCls = (active: boolean) => 
-    active ? "bg-blue-600 text-white font-medium transition-colors duration-200" : "transition-colors duration-200 hover:bg-slate-700 text-gray-400 hover:text-white";
+    active ? "bg-blue-600 text-white font-medium transition-colors duration-200" : "transition-colors duration-200 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground";
 
 
   const networkMenuItems = [
@@ -195,7 +195,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         {/* ТОРГОВЫЕ СЕТИ */}
         {menuVisibility.networks && (
         <div className="px-4 py-3">
-          <div className="w-full text-slate-200 text-xs font-semibold tracking-wider flex items-center gap-2 mb-3 uppercase px-2 py-2">
+          <div className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider flex items-center gap-2 mb-3 uppercase px-2 py-2">
             <Network className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 text-left">ТОРГОВЫЕ СЕТИ</span>
           </div>
@@ -220,9 +220,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
 
         {/* ТОРГОВАЯ ТОЧКА */}
         {menuVisibility.tradingPoint && (
-        <div className="border-t border-slate-600 px-4 py-3">
+        <div className="border-t border-sidebar-border px-4 py-3">
           <button
-            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
+            className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider hover:text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -258,9 +258,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
 
         {/* АДМИНИСТРИРОВАНИЕ */}
         {menuVisibility.admin && (
-        <div className="border-t border-slate-600 px-4 py-3">
+        <div className="border-t border-sidebar-border px-4 py-3">
           <button
-            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
+            className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider hover:text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -306,9 +306,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
 
         {/* НАСТРОЙКИ */}
         {menuVisibility.settings && (
-        <div className="border-t border-slate-600 px-4 py-3">
+        <div className="border-t border-sidebar-border px-4 py-3">
           <button
-            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
+            className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider hover:text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -357,7 +357,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
       {isMobile ? (
         // Mobile version without Sidebar wrapper
         <div
-          className="scrollbar-hide h-full overflow-y-auto bg-slate-800 text-slate-100 overscroll-contain touch-auto pt-14 pb-6 mobile-safe-top mobile-safe-bottom"
+          className="scrollbar-hide h-full overflow-y-auto bg-sidebar text-sidebar-foreground overscroll-contain touch-auto pt-14 pb-6 mobile-safe-top mobile-safe-bottom"
           onScroll={handleScroll}
           ref={scrollContainerRef}
         >
@@ -365,9 +365,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         </div>
       ) : (
         // Desktop version with Sidebar wrapper
-        <Sidebar className="border-r border-slate-600 shadow-md bg-slate-800">
-          <SidebarContent 
-            className="pt-header scrollbar-hide bg-slate-800"
+        <Sidebar className="border-r border-sidebar-border shadow-md bg-sidebar">
+          <SidebarContent
+            className="pt-header scrollbar-hide bg-sidebar"
             onScroll={handleScroll}
             ref={scrollContainerRef}
           >

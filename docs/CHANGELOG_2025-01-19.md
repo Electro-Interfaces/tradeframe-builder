@@ -327,4 +327,4 @@ git push prod main
 
 **Версия:** 1.5.31
 **Дата:** 19 января 2025
-**Автор:** TradeFrame Development Team
+**Автор:** TradeControl Development Team

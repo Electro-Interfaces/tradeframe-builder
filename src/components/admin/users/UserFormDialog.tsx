@@ -326,15 +326,15 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-3xl max-h-[90vh]'} overflow-hidden flex flex-col bg-slate-900 border-slate-700 text-white`}>
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-3xl max-h-[90vh]'} overflow-hidden flex flex-col bg-background border-border text-foreground`}>
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
-              <UserIcon className="w-5 h-5 text-blue-400" />
+              <UserIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             {user ? 'Редактирование пользователя' : 'Новый пользователь'}
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-base">
+          <DialogDescription className="text-muted-foreground text-base">
             {user ? `Изменение данных пользователя ${user.name}` : 'Создание нового пользователя в системе'}
           </DialogDescription>
         </DialogHeader>
@@ -342,15 +342,15 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-6">
           {/* Основная информация */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground/80">
               <Mail className="w-4 h-4" />
               Основная информация
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-slate-200 text-sm font-medium">
-                  Имя пользователя <span className="text-red-400">*</span>
+                <Label htmlFor="name" className="text-foreground text-sm font-medium">
+                  Имя пользователя <span className="text-red-600 dark:text-red-400">*</span>
                 </Label>
                 <Input
                   id="name"
@@ -358,13 +358,13 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Иван Петров"
                   required
-                  className="h-11 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500"
+                  className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200 text-sm font-medium">
-                  Email <span className="text-red-400">*</span>
+                <Label htmlFor="email" className="text-foreground text-sm font-medium">
+                  Email <span className="text-red-600 dark:text-red-400">*</span>
                 </Label>
                 <Input
                   id="email"
@@ -373,13 +373,13 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="user@company.com"
                   required
-                  className="h-11 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500"
+                  className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-200 text-sm font-medium">Статус</Label>
+              <Label className="text-foreground text-sm font-medium">Статус</Label>
               <RadioGroup value={formData.status} onValueChange={(value: UserStatus) => setFormData(prev => ({ ...prev, status: value }))}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {STATUS_OPTIONS.map(option => (
@@ -388,7 +388,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                       className={`relative flex items-start space-x-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
                         formData.status === option.value
                           ? 'border-blue-500 bg-blue-500/10'
-                          : 'border-slate-700 bg-slate-800 hover:border-slate-600'
+                          : 'border-border bg-card hover:border-border'
                       }`}
                       onClick={() => setFormData(prev => ({ ...prev, status: option.value }))}
                     >
@@ -397,9 +397,9 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                         <Label htmlFor={option.value} className="cursor-pointer">
                           <div className="flex items-center gap-2 mb-1">
                             <div className={`w-2 h-2 rounded-full ${option.color}`} />
-                            <span className="font-medium text-white">{option.label}</span>
+                            <span className="font-medium text-foreground">{option.label}</span>
                           </div>
-                          <p className="text-xs text-slate-400">{option.description}</p>
+                          <p className="text-xs text-muted-foreground">{option.description}</p>
                         </Label>
                       </div>
                     </div>
@@ -409,18 +409,18 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
             </div>
           </div>
 
-          <Separator className="bg-slate-700" />
+          <Separator className="bg-secondary" />
 
           {/* Роль */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground/80">
               <Shield className="w-4 h-4" />
               Назначение роли
             </div>
 
             {activeRoles.length === 0 ? (
-              <div className="text-center py-8 bg-slate-800/50 rounded-lg border border-slate-700">
-                <p className="text-slate-400">Нет доступных ролей</p>
+              <div className="text-center py-8 bg-card/50 rounded-lg border border-border">
+                <p className="text-muted-foreground">Нет доступных ролей</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-2">
@@ -430,7 +430,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
                     selectedRole === ''
                       ? 'border-blue-500 bg-blue-500/10'
-                      : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+                      : 'border-border bg-card/50 hover:bg-card'
                   }`}
                 >
                   <input
@@ -439,11 +439,11 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     name="user-role"
                     checked={selectedRole === ''}
                     onChange={() => setSelectedRole('')}
-                    className="mt-1 h-4 w-4 text-blue-600 border-slate-600 bg-slate-800 focus:ring-blue-500"
+                    className="mt-1 h-4 w-4 text-blue-600 border-border bg-card focus:ring-blue-500"
                   />
                   <div className="flex-1">
-                    <span className="font-medium text-slate-200">Без роли</span>
-                    <p className="text-sm text-slate-400 mt-0.5">Базовые права доступа</p>
+                    <span className="font-medium text-foreground">Без роли</span>
+                    <p className="text-sm text-muted-foreground mt-0.5">Базовые права доступа</p>
                   </div>
                 </label>
 
@@ -455,7 +455,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
                       selectedRole === role.id
                         ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+                        : 'border-border bg-card/50 hover:bg-card'
                     }`}
                   >
                     <input
@@ -464,21 +464,21 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                       name="user-role"
                       checked={selectedRole === role.id}
                       onChange={() => setSelectedRole(role.id)}
-                      className="mt-1 h-4 w-4 text-blue-600 border-slate-600 bg-slate-800 focus:ring-blue-500"
+                      className="mt-1 h-4 w-4 text-blue-600 border-border bg-card focus:ring-blue-500"
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-white">{role.name}</span>
+                        <span className="font-medium text-foreground">{role.name}</span>
                         {role.is_system && (
-                          <Badge variant="secondary" className="text-xs bg-slate-600 text-slate-300">
+                          <Badge variant="secondary" className="text-xs bg-secondary text-foreground/80">
                             Системная
                           </Badge>
                         )}
                       </div>
                       {role.description && (
-                        <p className="text-sm text-slate-400 mb-2">{role.description}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{role.description}</p>
                       )}
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{role.permissions.length} разрешений</span>
                         <span>•</span>
                         <span>
@@ -495,12 +495,12 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
             {/* Ограничение доступа для выбранной роли */}
             {selectedRoleData && selectedRoleData.scope === 'network' && (
-              <div className="mt-4 p-4 bg-purple-900/20 border border-purple-700/50 rounded-lg space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-purple-300">
+              <div className="mt-4 p-4 bg-purple-100 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-700/50 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-purple-600 dark:text-purple-300">
                   <Network className="w-4 h-4" />
                   Доступ к торговым сетям
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Выберите сети, к которым пользователь будет иметь доступ.
                   {selectedRoleData.scope_values && selectedRoleData.scope_values.length > 0 &&
                     " По умолчанию используются значения из настроек роли."}
@@ -511,7 +511,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   placeholder="Выберите торговые сети"
                 />
                 {scopeNetworkIds.length > 0 && (
-                  <div className="text-xs text-purple-400">
+                  <div className="text-xs text-purple-600 dark:text-purple-400">
                     ✓ Выбрано сетей: {scopeNetworkIds.length}
                   </div>
                 )}
@@ -519,29 +519,29 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
             )}
 
             {selectedRoleData && (selectedRoleData.scope === 'trading_point' || selectedRoleData.scope === 'assigned') && (
-              <div className="mt-4 p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-blue-300">
+              <div className="mt-4 p-4 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700/50 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-300">
                   <MapPin className="w-4 h-4" />
                   Доступ к торговым точкам
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Выберите сеть, затем укажите торговые точки.
                   {selectedRoleData.scope_values && selectedRoleData.scope_values.length > 0 &&
                     " По умолчанию используются значения из настроек роли."}
                 </p>
                 <div className="space-y-2">
-                  <Label className="text-xs text-slate-300">Сеть</Label>
+                  <Label className="text-xs text-foreground/80">Сеть</Label>
                   <NetworkSelect
                     value={scopeNetworkId}
                     onValueChange={(value) => {
                       setScopeNetworkId(value)
                       setScopePointIds([]) // Сброс точек при смене сети
                     }}
-                    className="bg-slate-800 border-slate-700"
+                    className="bg-card border-border"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-slate-300">Торговые точки</Label>
+                  <Label className="text-xs text-foreground/80">Торговые точки</Label>
                   <MultiPointSelect
                     value={scopePointIds}
                     onValueChange={setScopePointIds}
@@ -551,7 +551,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   />
                 </div>
                 {scopePointIds.length > 0 && (
-                  <div className="text-xs text-blue-400">
+                  <div className="text-xs text-blue-600 dark:text-blue-400">
                     ✓ Выбрано точек: {scopePointIds.length}
                   </div>
                 )}
@@ -559,12 +559,12 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
             )}
           </div>
 
-          <Separator className="bg-slate-700" />
+          <Separator className="bg-secondary" />
 
           {/* Пароль */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground/80">
                 <KeyRound className="w-4 h-4" />
                 {user ? 'Изменить пароль' : 'Установить пароль'}
               </div>
@@ -573,7 +573,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                 variant="outline"
                 size="sm"
                 onClick={handleGeneratePassword}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                className="border-border text-foreground/80 hover:bg-secondary hover:text-foreground"
               >
                 <Sparkles className="w-3.5 h-3.5 mr-2" />
                 Сгенерировать
@@ -582,7 +582,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
             {user && (
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                <p className="text-sm text-blue-300">
+                <p className="text-sm text-blue-600 dark:text-blue-300">
                   💡 Оставьте поля пустыми, если не хотите изменять пароль
                 </p>
               </div>
@@ -590,8 +590,8 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-200 text-sm font-medium">
-                  {user ? 'Новый пароль' : 'Пароль'} {!user && <span className="text-red-400">*</span>}
+                <Label htmlFor="password" className="text-foreground text-sm font-medium">
+                  {user ? 'Новый пароль' : 'Пароль'} {!user && <span className="text-red-600 dark:text-red-400">*</span>}
                 </Label>
                 <div className="relative">
                   <Input
@@ -601,12 +601,12 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Минимум 6 символов"
                     required={!user}
-                    className="h-11 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 pr-10"
+                    className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500 pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -615,8 +615,8 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-slate-200 text-sm font-medium">
-                  Подтверждение {!user && <span className="text-red-400">*</span>}
+                <Label htmlFor="confirmPassword" className="text-foreground text-sm font-medium">
+                  Подтверждение {!user && <span className="text-red-600 dark:text-red-400">*</span>}
                 </Label>
                 <Input
                   id="confirmPassword"
@@ -625,26 +625,26 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   placeholder="Повторите пароль"
                   required={!user}
-                  className={`h-11 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 ${
+                  className={`h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500 ${
                     formData.confirmPassword && formData.password !== formData.confirmPassword
                       ? 'border-red-500 focus:ring-red-500' : ''
                   }`}
                 />
                 {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                  <p className="text-sm text-red-400">Пароли не совпадают</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">Пароли не совпадают</p>
                 )}
               </div>
             </div>
           </div>
         </form>
 
-        <DialogFooter className="flex-row gap-2 justify-end pt-6 border-t border-slate-700">
+        <DialogFooter className="flex-row gap-2 justify-end pt-6 border-t border-border">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+            className="border-border text-foreground/80 hover:bg-secondary hover:text-foreground"
           >
             Отмена
           </Button>

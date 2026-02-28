@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Тест исправления темного экрана TradeFrame</title>
+  <title>Тест исправления темного экрана TradeControl</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -116,7 +116,7 @@
   <div class="test-panel">
     <h2>Тестирование:</h2>
     <div class="controls">
-      <button onclick="openApp()" class="success">🚀 Открыть TradeFrame (localhost:3003)</button>
+      <button onclick="openApp()" class="success">🚀 Открыть TradeControl (localhost:3003)</button>
       <button onclick="openAppNewWindow()" class="info">🔗 Открыть в новом окне</button>
       <button onclick="clearStorage()" class="warning">🗑️ Очистить Storage</button>
       <button onclick="testLoginSequence()" class="info">⚡ Тест авторизации</button>
@@ -150,7 +150,7 @@
     }
 
     function openApp() {
-      log('🚀 Загружаем TradeFrame с исправлениями темного экрана...', 'info');
+      log('🚀 Загружаем TradeControl с исправлениями темного экрана...', 'info');
       const frame = document.getElementById('appFrame');
       frame.src = 'http://localhost:3003';
 
@@ -164,7 +164,7 @@
     }
 
     function openAppNewWindow() {
-      log('🔗 Открываем TradeFrame в новом окне для чистого тестирования...', 'info');
+      log('🔗 Открываем TradeControl в новом окне для чистого тестирования...', 'info');
       const newWindow = window.open('http://localhost:3003', '_blank');
       log('✅ Новое окно открыто. Тестируйте авторизацию и темный экран!', 'success');
     }

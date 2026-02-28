@@ -65,11 +65,11 @@ export function EquipmentHeader({
     <div className={`${isMobile ? 'mb-3' : 'mb-6 pt-4'}`}>
       {/* Баннер предупреждения о состоянии терминала */}
       {terminalInfo?.terminalState && terminalInfo.terminalState.code !== 0 && (
-        <div className={`flex items-center gap-2 bg-red-900/50 border border-red-600 rounded-lg mb-3 ${
+        <div className={`flex items-center gap-2 bg-red-100 dark:bg-red-900/50 border border-red-600 rounded-lg mb-3 ${
           isMobile ? 'px-3 py-2' : 'px-4 py-3'
         }`}>
-          <AlertTriangle className={`flex-shrink-0 text-red-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-          <span className={`text-red-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+          <AlertTriangle className={`flex-shrink-0 text-red-600 dark:text-red-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          <span className={`text-red-700 dark:text-red-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             {terminalInfo.terminalState.description}
           </span>
         </div>
@@ -77,11 +77,11 @@ export function EquipmentHeader({
 
       {/* Предупреждение о разных статусах постов */}
       {hasMixedPosStatuses && (
-        <div className={`flex items-center gap-2 bg-yellow-900/50 border border-yellow-600 rounded-lg mb-3 ${
+        <div className={`flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-600 rounded-lg mb-3 ${
           isMobile ? 'px-3 py-2' : 'px-4 py-3'
         }`}>
-          <AlertTriangle className={`flex-shrink-0 text-yellow-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-          <span className={`text-yellow-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+          <AlertTriangle className={`flex-shrink-0 text-yellow-600 dark:text-yellow-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          <span className={`text-yellow-700 dark:text-yellow-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             Статусы постов различаются: {terminalInfo!.pos.map(p => `Пост ${p.number} — ${p.status === 'online' ? 'онлайн' : 'офлайн'}`).join(', ')}
           </span>
         </div>
@@ -89,11 +89,11 @@ export function EquipmentHeader({
 
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          <h1 className={`font-semibold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+          <h1 className={`font-semibold text-foreground ${isMobile ? 'text-lg' : 'text-2xl'}`}>
             Оборудование
           </h1>
           {latestPosUpdate && (
-            <p className={`text-slate-400 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
+            <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
               {isMobile ? (
                 <>
                   Передача данных: {new Date(latestPosUpdate).toLocaleString('ru-RU', {
@@ -103,8 +103,8 @@ export function EquipmentHeader({
                   {(() => {
                     const diffMinutes = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000);
                     return diffMinutes < 11
-                      ? <span className="text-green-400 ml-1">(✓)</span>
-                      : <span className="text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
+                      ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span>
+                      : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
                   })()}
                 </>
               ) : (
@@ -113,15 +113,15 @@ export function EquipmentHeader({
                   {(() => {
                     const diffMinutes = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000);
                     return diffMinutes < 11
-                      ? <span className="text-green-400 ml-2">(✓ актуально)</span>
-                      : <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
+                      ? <span className="text-green-600 dark:text-green-400 ml-2">(✓ актуально)</span>
+                      : <span className="text-red-600 dark:text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
                   })()}
                 </>
               )}
             </p>
           )}
           {latestTankDt && (
-            <p className={`text-slate-400 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-0.5'}`}>
+            <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-0.5'}`}>
               {isMobile ? (
                 <>
                   Резервуары: {new Date(latestTankDt).toLocaleString('ru-RU', {
@@ -131,8 +131,8 @@ export function EquipmentHeader({
                   {(() => {
                     const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
                     return diffMinutes < 11
-                      ? <span className="text-green-400 ml-1">(✓)</span>
-                      : <span className="text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
+                      ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span>
+                      : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
                   })()}
                 </>
               ) : (
@@ -141,8 +141,8 @@ export function EquipmentHeader({
                   {(() => {
                     const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
                     return diffMinutes < 11
-                      ? <span className="text-green-400 ml-2">(✓ актуально)</span>
-                      : <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
+                      ? <span className="text-green-600 dark:text-green-400 ml-2">(✓ актуально)</span>
+                      : <span className="text-red-600 dark:text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
                   })()}
                 </>
               )}
@@ -157,7 +157,7 @@ export function EquipmentHeader({
             size="sm"
             onClick={onRefresh}
             disabled={loading}
-            className="border-slate-600 text-white hover:bg-slate-700"
+            className="border-border text-foreground hover:bg-secondary"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
@@ -180,17 +180,17 @@ export function EquipmentHeader({
                 )}
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className={`bg-slate-800 border border-slate-600 ${isMobile ? 'max-w-[95vw]' : ''}`}>
+            <AlertDialogContent className={`bg-card border border-border ${isMobile ? 'max-w-[95vw]' : ''}`}>
               <AlertDialogHeader>
-                <AlertDialogTitle className={`text-white flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
-                  <AlertTriangle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-400`} />
+                <AlertDialogTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+                  <AlertTriangle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 dark:text-red-400`} />
                   Подтверждение перезагрузки
                 </AlertDialogTitle>
-                <AlertDialogDescription className={`text-slate-300 ${isMobile ? 'text-sm' : ''}`}>
+                <AlertDialogDescription className={`text-foreground/80 ${isMobile ? 'text-sm' : ''}`}>
                   Вы уверены, что хотите перезагрузить терминал?
                   <br />
                   <br />
-                  <strong className="text-yellow-400">⚠️ ВНИМАНИЕ:</strong>
+                  <strong className="text-yellow-600 dark:text-yellow-400">⚠️ ВНИМАНИЕ:</strong>
                   <br />
                   • Терминал будет недоступен во время перезагрузки
                   <br />
@@ -199,7 +199,7 @@ export function EquipmentHeader({
                   • Процесс может занять до 2-3 минут
                   <br />
                   <br />
-                  <span className="text-white">
+                  <span className="text-foreground">
                     Сеть: <strong>{networkName}</strong>
                     <br />
                     Торговая точка: <strong>{tradingPointId}</strong>
@@ -207,7 +207,7 @@ export function EquipmentHeader({
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
-                <AlertDialogCancel className="bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white">
+                <AlertDialogCancel className="bg-secondary border-border text-foreground/80 hover:bg-secondary hover:text-foreground">
                   Отмена
                 </AlertDialogCancel>
                 <AlertDialogAction

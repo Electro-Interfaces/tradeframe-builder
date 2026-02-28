@@ -1,14 +1,14 @@
-# 📱 Анализ мобильной адаптации TradeFrame v1.5.30
+# 📱 Анализ мобильной адаптации TradeControl v1.5.30
 
 **Дата анализа:** 2025-10-14
-**Приложение:** TradeFrame - Управление торговыми сетями
+**Приложение:** TradeControl - Управление торговыми сетями
 **Версия:** 1.5.30
 
 ---
 
 ## 🎯 Резюме
 
-TradeFrame имеет **отличную мобильную адаптацию** с продвинутыми оптимизациями для различных мобильных браузеров, включая Safari iOS, Chrome Mobile, Samsung Internet и UC Browser.
+TradeControl имеет **отличную мобильную адаптацию** с продвинутыми оптимизациями для различных мобильных браузеров, включая Safari iOS, Chrome Mobile, Samsung Internet и UC Browser.
 
 ### Общая оценка: ✅ 9.5/10
 
@@ -240,8 +240,8 @@ className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
 
 ```json
 {
-  "name": "TradeFrame - Управление торговыми сетями",
-  "short_name": "TradeFrame",
+  "name": "TradeControl - Управление торговыми сетями",
+  "short_name": "TradeControl",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#1e293b",
@@ -472,7 +472,7 @@ start test-mobile-view.html
 
 ## 🏆 Заключение
 
-TradeFrame v1.5.30 имеет **профессиональную мобильную адаптацию** уровня production-ready приложения. Все критические аспекты реализованы корректно:
+TradeControl v1.5.30 имеет **профессиональную мобильную адаптацию** уровня production-ready приложения. Все критические аспекты реализованы корректно:
 
 - ✅ Viewport и meta tags
 - ✅ Touch optimization
@@ -491,4 +491,4 @@ TradeFrame v1.5.30 имеет **профессиональную мобильн�
 
 *Документ создан: 2025-10-14*
 *Анализ выполнен: Claude Code AI Assistant*
-*Версия приложения: TradeFrame v1.5.30*
+*Версия приложения: TradeControl v1.5.30*

@@ -73,8 +73,8 @@ export default defineConfig(({ mode }) => {
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'TradeFrame Builder',
-        short_name: 'TradeFrame',
+        name: 'TradeControl Builder',
+        short_name: 'TradeControl',
         description: 'Платформа управления торговыми сетями АЗС',
         theme_color: '#1e293b',
         background_color: '#0f172a',

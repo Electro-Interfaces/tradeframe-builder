@@ -90,14 +90,14 @@ export function ExternalCodesManager({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-white">Внешние коды</h3>
+        <h3 className="text-lg font-medium text-foreground">Внешние коды</h3>
         {!readonly && (
           <Button
             variant="outline"
             size="sm"
             onClick={handleStartAdd}
             disabled={isAdding || !!editingCode}
-            className="border-slate-600 text-slate-200 hover:bg-slate-700"
+            className="border-border text-foreground hover:bg-secondary"
           >
             <Plus className="h-4 w-4 mr-2" />
             Добавить код
@@ -107,40 +107,40 @@ export function ExternalCodesManager({
 
       {/* Add/Edit Form */}
       {(isAdding || editingCode) && (
-        <div className="bg-slate-700 rounded-lg p-4 space-y-4">
+        <div className="bg-secondary rounded-lg p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-200 block">
-                Система <span className="text-red-400">*</span>
+              <Label className="text-foreground block">
+                Система <span className="text-red-600 dark:text-red-400">*</span>
               </Label>
               <Input
                 value={editingCode?.system || ""}
                 onChange={(e) => setEditingCode(prev => prev ? { ...prev, system: e.target.value } : null)}
                 placeholder="ЕГАИС"
-                className="bg-slate-600 border-slate-500 text-white placeholder-slate-400"
+                className="bg-secondary border-border text-foreground placeholder-muted-foreground"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-200 block">
-                Код <span className="text-red-400">*</span>
+              <Label className="text-foreground block">
+                Код <span className="text-red-600 dark:text-red-400">*</span>
               </Label>
               <Input
                 value={editingCode?.code || ""}
                 onChange={(e) => setEditingCode(prev => prev ? { ...prev, code: e.target.value } : null)}
                 placeholder="KZ-001"
-                className="bg-slate-600 border-slate-500 text-white placeholder-slate-400"
+                className="bg-secondary border-border text-foreground placeholder-muted-foreground"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-200 block">Описание</Label>
+            <Label className="text-foreground block">Описание</Label>
             <Input
               value={editingCode?.description || ""}
               onChange={(e) => setEditingCode(prev => prev ? { ...prev, description: e.target.value } : null)}
               placeholder="Код в системе ЕГАИС"
-              className="bg-slate-600 border-slate-500 text-white placeholder-slate-400"
+              className="bg-secondary border-border text-foreground placeholder-muted-foreground"
             />
           </div>
 
@@ -150,7 +150,7 @@ export function ExternalCodesManager({
                 checked={editingCode.isActive}
                 onCheckedChange={(checked) => setEditingCode(prev => prev ? { ...prev, isActive: checked } : null)}
               />
-              <span className="text-slate-200">Активен</span>
+              <span className="text-foreground">Активен</span>
             </div>
           )}
 
@@ -159,7 +159,7 @@ export function ExternalCodesManager({
               variant="outline"
               size="sm"
               onClick={handleCancel}
-              className="border-slate-600 text-slate-200 hover:bg-slate-600"
+              className="border-border text-foreground hover:bg-secondary"
             >
               <X className="h-4 w-4 mr-2" />
               Отмена
@@ -180,34 +180,34 @@ export function ExternalCodesManager({
       {/* External Codes List */}
       <div className="space-y-3">
         {externalCodes.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground">
             Нет внешних кодов
           </div>
         ) : (
           externalCodes.map((externalCode) => (
             <div
               key={externalCode.id}
-              className="bg-slate-700 rounded-lg p-4 flex items-center justify-between"
+              className="bg-secondary rounded-lg p-4 flex items-center justify-between"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="font-medium text-white">{externalCode.system}</span>
+                  <span className="font-medium text-foreground">{externalCode.system}</span>
                   <Badge 
                     variant="secondary" 
-                    className="bg-slate-600 text-slate-200"
+                    className="bg-secondary text-foreground"
                   >
                     {externalCode.code}
                   </Badge>
                   <Badge 
-                    className={externalCode.isActive ? "bg-emerald-600 text-white" : "bg-gray-600 text-white"}
+                    className={externalCode.isActive ? "bg-emerald-600 text-white" : "bg-secondary text-white"}
                   >
                     {externalCode.isActive ? "Активен" : "Неактивен"}
                   </Badge>
                 </div>
                 {externalCode.description && (
-                  <p className="text-sm text-slate-400">{externalCode.description}</p>
+                  <p className="text-sm text-muted-foreground">{externalCode.description}</p>
                 )}
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Создан: {new Date(externalCode.createdAt).toLocaleDateString('ru-RU')}
                   {externalCode.updatedAt && (
                     <span> • Обновлен: {new Date(externalCode.updatedAt).toLocaleDateString('ru-RU')}</span>
@@ -222,7 +222,7 @@ export function ExternalCodesManager({
                     size="sm"
                     onClick={() => handleStartEdit(externalCode)}
                     disabled={isAdding || !!editingCode}
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -231,7 +231,7 @@ export function ExternalCodesManager({
                     size="sm"
                     onClick={() => handleRemove(externalCode.id)}
                     disabled={isAdding || !!editingCode}
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

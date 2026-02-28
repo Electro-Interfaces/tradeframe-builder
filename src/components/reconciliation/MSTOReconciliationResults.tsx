@@ -121,7 +121,7 @@ function getStatusColorClass(status: MSTOReconciliationTransactionStatus): strin
     case 'mismatch':
       return 'bg-red-600';
     default:
-      return 'bg-slate-600';
+      return 'bg-secondary';
   }
 }
 
@@ -146,7 +146,7 @@ function getStatusText(status: MSTOReconciliationTransactionStatus): string {
 
 function StatusBadge({ status }: { status: MSTOReconciliationTransactionStatus }) {
   return (
-    <Badge className={`${getStatusColorClass(status)} text-white text-xs`}>
+    <Badge className={`${getStatusColorClass(status)} text-foreground text-xs`}>
       {getStatusText(status)}
     </Badge>
   );
@@ -159,7 +159,7 @@ export function MSTOReconciliationResults({
   // Защита от null/undefined
   if (!result) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         Нет данных для отображения
       </div>
     );
@@ -170,7 +170,7 @@ export function MSTOReconciliationResults({
   // Защита от отсутствия summary
   if (!summary) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         Ошибка: отсутствуют данные сводки
       </div>
     );
@@ -318,11 +318,11 @@ export function MSTOReconciliationResults({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="p-1.5 sm:p-2 rounded-lg bg-cyan-500/20">
-            <Smartphone className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400" />
+            <Smartphone className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-600 dark:text-cyan-400" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-semibold text-white">Сверка онлайн-заказов</h2>
-            <p className="text-xs sm:text-sm text-slate-400">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground">Сверка онлайн-заказов</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               <span className="hidden sm:inline">{params.dateFrom} — {params.dateTo} • </span>
               <span className="sm:hidden">{params.dateFrom}—{params.dateTo} • </span>
               {formatDate(executedAt)} • {duration}мс
@@ -332,7 +332,7 @@ export function MSTOReconciliationResults({
         <Button
           variant="outline"
           onClick={onNewReconciliation}
-          className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200 text-sm"
+          className="bg-secondary border-border hover:bg-secondary text-foreground text-sm"
           size="sm"
         >
           <RefreshCw className="h-4 w-4 sm:mr-2" />
@@ -343,99 +343,99 @@ export function MSTOReconciliationResults({
       {/* KPI карточки */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         {/* MSTO */}
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card/50 border-border">
           <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-1.5 sm:gap-2">
-              <Smartphone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-400" />
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+              <Smartphone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-600 dark:text-cyan-400" />
               MSTO
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0">
-            <div className="text-base sm:text-xl font-bold text-white">
+            <div className="text-base sm:text-xl font-bold text-foreground">
               {formatVolume(summary.totalMstoVolume)}
             </div>
-            <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 truncate">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
               {formatMoney(summary.totalMstoSum)} • {summary.totalMstoCount || 0} тр.
             </div>
           </CardContent>
         </Card>
 
         {/* TF */}
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card/50 border-border">
           <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-1.5 sm:gap-2">
-              <Droplet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400" />
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+              <Droplet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
               TF
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0">
-            <div className="text-base sm:text-xl font-bold text-white">
+            <div className="text-base sm:text-xl font-bold text-foreground">
               {formatVolume(summary.totalTfVolume || 0)}
             </div>
-            <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 truncate">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
               {formatMoney(summary.totalTfSum || 0)} • {summary.totalTfCount || 0} тр.
             </div>
           </CardContent>
         </Card>
 
         {/* Смена */}
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card/50 border-border">
           <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-1.5 sm:gap-2">
-              <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-400" />
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+              <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
               Смена
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0">
-            <div className="text-base sm:text-xl font-bold text-white">
+            <div className="text-base sm:text-xl font-bold text-foreground">
               {formatVolume(summary.totalShiftNonCashVolume)}
             </div>
-            <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
               {formatMoney(summary.totalShiftSbpRevenue)}
             </div>
           </CardContent>
         </Card>
 
         {/* MSTO-TF */}
-        <Card className={`border ${hasDiff(summary.mstoVsTfVolumeDiff) ? 'bg-red-500/10 border-red-500/30' : 'bg-slate-800/50 border-slate-700'}`}>
+        <Card className={`border ${hasDiff(summary.mstoVsTfVolumeDiff) ? 'bg-red-500/10 border-red-500/30' : 'bg-card/50 border-border'}`}>
           <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-1.5 sm:gap-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
               {(summary.mstoVsTfVolumeDiff || 0) > 0 ? (
-                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" />
+                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400" />
               ) : (
-                <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-400" />
+                <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
               )}
               MSTO-TF
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0">
-            <div className={`text-base sm:text-xl font-bold ${hasDiff(summary.mstoVsTfVolumeDiff) ? 'text-red-400' : 'text-green-400'}`}>
+            <div className={`text-base sm:text-xl font-bold ${hasDiff(summary.mstoVsTfVolumeDiff) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
               {formatDiff(summary.mstoVsTfVolumeDiff)} л
             </div>
-            <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
               {formatMoney(summary.mstoVsTfSumDiff || 0)}
             </div>
           </CardContent>
         </Card>
 
         {/* TF-Смена */}
-        <Card className={`border ${hasDiff(summary.tfVsShiftVolumeDiff) ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-slate-800/50 border-slate-700'}`}>
+        <Card className={`border ${hasDiff(summary.tfVsShiftVolumeDiff) ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-card/50 border-border'}`}>
           <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-1.5 sm:gap-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
               {(summary.tfVsShiftVolumeDiff || 0) > 0 ? (
-                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" />
+                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400" />
               ) : (
-                <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400" />
+                <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 dark:text-yellow-400" />
               )}
               <span className="hidden sm:inline">TF-Смена</span>
               <span className="sm:hidden">TF-См</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0">
-            <div className={`text-base sm:text-xl font-bold ${hasDiff(summary.tfVsShiftVolumeDiff) ? 'text-yellow-400' : 'text-green-400'}`}>
+            <div className={`text-base sm:text-xl font-bold ${hasDiff(summary.tfVsShiftVolumeDiff) ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
               {formatDiff(summary.tfVsShiftVolumeDiff)} л
             </div>
-            <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
               (инфо)
             </div>
           </CardContent>
@@ -444,20 +444,20 @@ export function MSTOReconciliationResults({
         {/* Статус */}
         <Card className={`border col-span-2 sm:col-span-1 ${summary.hasErrors ? 'bg-red-500/10 border-red-500/30' : 'bg-emerald-500/10 border-green-500/30'}`}>
           <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-1.5 sm:gap-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
               {summary.hasErrors ? (
-                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" />
+                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400" />
               ) : (
-                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-400" />
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
               )}
               Статус
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0">
-            <div className={`text-base sm:text-lg font-bold ${summary.hasErrors ? 'text-amber-400' : 'text-green-400'}`}>
+            <div className={`text-base sm:text-lg font-bold ${summary.hasErrors ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>
               {summary.hasErrors ? 'Расхождения' : 'OK'}
             </div>
-            <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
               ✓{summary.matched} | W{summary.mstoWaitDone || 0} | M{summary.onlyMsto} | T{summary.onlyTf || 0} | S{summary.onlyShift}
             </div>
           </CardContent>
@@ -465,15 +465,15 @@ export function MSTOReconciliationResults({
       </div>
 
       {/* Фильтры */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card/50 border-border">
         <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
           <CollapsibleTrigger asChild>
-            <CardHeader className="py-2 sm:py-3 cursor-pointer hover:bg-slate-700/30">
-              <CardTitle className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-2">
+            <CardHeader className="py-2 sm:py-3 cursor-pointer hover:bg-secondary/30">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Фильтры
                 {(stationFilter !== 'all' || statusFilter !== 'all' || fuelFilter !== 'all' || searchOrder) && (
-                  <Badge className="bg-cyan-600 text-white text-[10px] sm:text-xs ml-2">активны</Badge>
+                  <Badge className="bg-cyan-600 text-foreground text-[10px] sm:text-xs ml-2">активны</Badge>
                 )}
                 {filtersOpen ? <ChevronDown className="h-4 w-4 ml-auto" /> : <ChevronRight className="h-4 w-4 ml-auto" />}
               </CardTitle>
@@ -483,7 +483,7 @@ export function MSTOReconciliationResults({
             <CardContent className="pt-0 px-3 sm:px-6">
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
                 <Select value={stationFilter} onValueChange={setStationFilter}>
-                  <SelectTrigger className="bg-slate-900 border-slate-600">
+                  <SelectTrigger className="bg-background border-border">
                     <SelectValue placeholder="Станция" />
                   </SelectTrigger>
                   <SelectContent>
@@ -495,7 +495,7 @@ export function MSTOReconciliationResults({
                 </Select>
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="bg-slate-900 border-slate-600">
+                  <SelectTrigger className="bg-background border-border">
                     <SelectValue placeholder="Статус" />
                   </SelectTrigger>
                   <SelectContent>
@@ -510,7 +510,7 @@ export function MSTOReconciliationResults({
                 </Select>
 
                 <Select value={fuelFilter} onValueChange={setFuelFilter}>
-                  <SelectTrigger className="bg-slate-900 border-slate-600">
+                  <SelectTrigger className="bg-background border-border">
                     <SelectValue placeholder="Топливо" />
                   </SelectTrigger>
                   <SelectContent>
@@ -522,19 +522,19 @@ export function MSTOReconciliationResults({
                 </Select>
 
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Заказ / агрегатор"
                     value={searchOrder}
                     onChange={e => setSearchOrder(e.target.value)}
-                    className="bg-slate-900 border-slate-600 pl-9"
+                    className="bg-background border-border pl-9"
                   />
                 </div>
 
                 <Button
                   variant="outline"
                   onClick={clearFilters}
-                  className="border-slate-600"
+                  className="border-border"
                 >
                   Сбросить
                 </Button>
@@ -545,9 +545,9 @@ export function MSTOReconciliationResults({
       </Card>
 
       {/* Таблица 1: По станциям и топливу */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="py-2 sm:py-3 px-3 sm:px-6">
-          <CardTitle className="text-white text-xs sm:text-sm flex items-center gap-2">
+          <CardTitle className="text-foreground text-xs sm:text-sm flex items-center gap-2">
             <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">По станциям и топливу</span>
             <span className="sm:hidden">Станции</span>
@@ -556,7 +556,7 @@ export function MSTOReconciliationResults({
         <CardContent className="pt-0">
           {/* Десктопная версия */}
           <div className="hidden md:block">
-            <div className="grid grid-cols-[auto_1fr_80px_80px_80px_80px_80px_60px] gap-2 px-3 py-2 text-xs text-slate-400 border-b border-slate-700">
+            <div className="grid grid-cols-[auto_1fr_80px_80px_80px_80px_80px_60px] gap-2 px-3 py-2 text-xs text-muted-foreground border-b border-border">
               <div className="w-4"></div>
               <div>Станция</div>
               <div className="text-right">MSTO (л)</div>
@@ -599,49 +599,49 @@ export function MSTOReconciliationResults({
       </Card>
 
       {/* Таблица 2: Детальные транзакции */}
-      <Card id="transactions-table" className="bg-slate-800 border-slate-700">
+      <Card id="transactions-table" className="bg-card border-border">
         <CardHeader className="py-2 sm:py-3 px-3 sm:px-6">
           <div className="flex items-center justify-between mb-2">
-            <CardTitle className="text-white text-xs sm:text-sm flex items-center gap-2">
+            <CardTitle className="text-foreground text-xs sm:text-sm flex items-center gap-2">
               <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Детальные транзакции</span>
               <span className="sm:hidden">Транзакции</span>
               {shiftFilter !== null && (
                 <Badge 
-                  className="bg-cyan-600 text-white text-[10px] cursor-pointer hover:bg-cyan-700"
+                  className="bg-cyan-600 text-foreground text-[10px] cursor-pointer hover:bg-cyan-700"
                   onClick={() => setShiftFilter(null)}
                 >
                   Смена #{shiftFilter} ✕
                 </Badge>
               )}
             </CardTitle>
-            <span className="text-slate-400 text-[10px] sm:text-xs">
+            <span className="text-muted-foreground text-[10px] sm:text-xs">
               {filteredTransactions.length} из {transactions.length}
             </span>
           </div>
           {/* Суммарные значения по фильтру */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 text-[10px] sm:text-xs bg-slate-900/50 rounded-lg p-2 sm:p-3">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 text-[10px] sm:text-xs bg-background/50 rounded-lg p-2 sm:p-3">
             <div>
-              <span className="text-slate-500">MSTO:</span>
-              <span className="text-cyan-400 font-medium ml-1">{formatVolume(filteredTotals.mstoVolume)}</span>
+              <span className="text-muted-foreground">MSTO:</span>
+              <span className="text-cyan-600 dark:text-cyan-400 font-medium ml-1">{formatVolume(filteredTotals.mstoVolume)}</span>
             </div>
             <div>
-              <span className="text-slate-500">TF:</span>
-              <span className="text-blue-400 font-medium ml-1">{formatVolume(filteredTotals.tfVolume)}</span>
+              <span className="text-muted-foreground">TF:</span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium ml-1">{formatVolume(filteredTotals.tfVolume)}</span>
             </div>
             <div>
-              <span className="text-slate-500">Δ:</span>
-              <span className={`font-medium ml-1 ${Math.abs(filteredTotals.diff) > 1 ? 'text-red-400' : 'text-green-400'}`}>
+              <span className="text-muted-foreground">Δ:</span>
+              <span className={`font-medium ml-1 ${Math.abs(filteredTotals.diff) > 1 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                 {filteredTotals.diff > 0 ? '+' : ''}{filteredTotals.diff} л
               </span>
             </div>
             <div className="hidden sm:block">
-              <span className="text-slate-500">MSTO ₽:</span>
-              <span className="text-cyan-400 font-medium ml-1">{formatMoney(filteredTotals.mstoSum)}</span>
+              <span className="text-muted-foreground">MSTO ₽:</span>
+              <span className="text-cyan-600 dark:text-cyan-400 font-medium ml-1">{formatMoney(filteredTotals.mstoSum)}</span>
             </div>
             <div className="hidden sm:block">
-              <span className="text-slate-500">TF ₽:</span>
-              <span className="text-blue-400 font-medium ml-1">{formatMoney(filteredTotals.tfSum)}</span>
+              <span className="text-muted-foreground">TF ₽:</span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium ml-1">{formatMoney(filteredTotals.tfSum)}</span>
             </div>
           </div>
         </CardHeader>
@@ -657,57 +657,57 @@ export function MSTOReconciliationResults({
           <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700">
-                  <TableHead className="text-slate-400">Дата/время</TableHead>
-                  <TableHead className="text-slate-400">Станция</TableHead>
-                  <TableHead className="text-slate-400">Топливо</TableHead>
-                  <TableHead className="text-slate-400 text-right">MSTO (л)</TableHead>
-                  <TableHead className="text-slate-400 text-right">MSTO (₽)</TableHead>
-                  <TableHead className="text-slate-400 text-right">TF (л)</TableHead>
-                  <TableHead className="text-slate-400 text-right">TF (₽)</TableHead>
-                  <TableHead className="text-slate-400 text-center">Статус</TableHead>
+                <TableRow className="border-border">
+                  <TableHead className="text-muted-foreground">Дата/время</TableHead>
+                  <TableHead className="text-muted-foreground">Станция</TableHead>
+                  <TableHead className="text-muted-foreground">Топливо</TableHead>
+                  <TableHead className="text-muted-foreground text-right">MSTO (л)</TableHead>
+                  <TableHead className="text-muted-foreground text-right">MSTO (₽)</TableHead>
+                  <TableHead className="text-muted-foreground text-right">TF (л)</TableHead>
+                  <TableHead className="text-muted-foreground text-right">TF (₽)</TableHead>
+                  <TableHead className="text-muted-foreground text-center">Статус</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedTransactions.map(tx => (
                   <TableRow
                     key={tx.id}
-                    className={`border-slate-700/50 ${
-                      tx.status === 'msto_wait_done' ? 'bg-amber-900/10' :
-                      tx.status !== 'matched' ? 'bg-red-900/10' : ''
+                    className={`border-border/50 ${
+                      tx.status === 'msto_wait_done' ? 'bg-amber-100 dark:bg-amber-900/10' :
+                      tx.status !== 'matched' ? 'bg-red-100 dark:bg-red-900/10' : ''
                     }`}
                   >
-                    <TableCell className="text-slate-300 text-sm">
+                    <TableCell className="text-foreground/80 text-sm">
                       {formatDateTime(tx.date)}
                     </TableCell>
-                    <TableCell className="text-white text-sm">{tx.stationName}</TableCell>
-                    <TableCell className="text-slate-300 text-sm">{tx.fuelType}</TableCell>
+                    <TableCell className="text-foreground text-sm">{tx.stationName}</TableCell>
+                    <TableCell className="text-foreground/80 text-sm">{tx.fuelType}</TableCell>
                     <TableCell className="text-right">
                       {tx.mstoVolume != null ? (
-                        <span className="text-cyan-400">{tx.mstoVolume}</span>
+                        <span className="text-cyan-600 dark:text-cyan-400">{tx.mstoVolume}</span>
                       ) : (
-                        <span className="text-slate-500">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       {tx.mstoSum != null ? (
-                        <span className="text-cyan-400 text-xs">{tx.mstoSum.toFixed(0)}</span>
+                        <span className="text-cyan-600 dark:text-cyan-400 text-xs">{tx.mstoSum.toFixed(0)}</span>
                       ) : (
-                        <span className="text-slate-500">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       {tx.tfVolume != null ? (
-                        <span className="text-blue-400">{tx.tfVolume}</span>
+                        <span className="text-blue-600 dark:text-blue-400">{tx.tfVolume}</span>
                       ) : (
-                        <span className="text-slate-500">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       {tx.tfSum != null ? (
-                        <span className="text-blue-400 text-xs">{tx.tfSum.toFixed(0)}</span>
+                        <span className="text-blue-600 dark:text-blue-400 text-xs">{tx.tfSum.toFixed(0)}</span>
                       ) : (
-                        <span className="text-slate-500">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
@@ -721,8 +721,8 @@ export function MSTOReconciliationResults({
 
           {/* Пагинация */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700">
-              <span className="text-slate-400 text-xs sm:text-sm">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+              <span className="text-muted-foreground text-xs sm:text-sm">
                 <span className="hidden sm:inline">Страница </span>{currentPage} из {totalPages}
               </span>
               <div className="flex gap-2">
@@ -731,7 +731,7 @@ export function MSTOReconciliationResults({
                   size="sm"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
-                  className="border-slate-600 text-slate-300 px-2 sm:px-3"
+                  className="border-border text-foreground/80 px-2 sm:px-3"
                 >
                   <ChevronLeft className="h-4 w-4 sm:mr-1" />
                   <span className="hidden sm:inline">Назад</span>
@@ -741,7 +741,7 @@ export function MSTOReconciliationResults({
                   size="sm"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(currentPage + 1)}
-                  className="border-slate-600 text-slate-300 px-2 sm:px-3"
+                  className="border-border text-foreground/80 px-2 sm:px-3"
                 >
                   <span className="hidden sm:inline">Вперёд</span>
                   <ChevronRight className="h-4 w-4 sm:ml-1" />
@@ -758,41 +758,41 @@ export function MSTOReconciliationResults({
 // Мобильная карточка транзакции
 function MobileTransactionCard({ tx }: { tx: MSTOReconciliationTransaction }) {
   return (
-    <div className={`p-2.5 sm:p-3 border border-slate-700 rounded-lg ${
-      tx.status === 'msto_wait_done' ? 'bg-amber-900/10' :
-      tx.status !== 'matched' ? 'bg-red-900/10' : 'bg-slate-700/20'
+    <div className={`p-2.5 sm:p-3 border border-border rounded-lg ${
+      tx.status === 'msto_wait_done' ? 'bg-amber-100 dark:bg-amber-900/10' :
+      tx.status !== 'matched' ? 'bg-red-100 dark:bg-red-900/10' : 'bg-secondary/20'
     }`}>
       <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-        <span className="text-slate-400 text-[10px] sm:text-xs">{formatDateTime(tx.date)}</span>
+        <span className="text-muted-foreground text-[10px] sm:text-xs">{formatDateTime(tx.date)}</span>
         <StatusBadge status={tx.status} />
       </div>
-      <div className="text-white text-xs sm:text-sm font-medium mb-1 truncate">{tx.stationName}</div>
+      <div className="text-foreground text-xs sm:text-sm font-medium mb-1 truncate">{tx.stationName}</div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] sm:text-xs">
         <div>
-          <span className="text-slate-500">Топливо:</span>
-          <span className="text-slate-300 ml-1">{tx.fuelType}</span>
+          <span className="text-muted-foreground">Топливо:</span>
+          <span className="text-foreground/80 ml-1">{tx.fuelType}</span>
         </div>
         <div>
-          <span className="text-slate-500">Смена:</span>
-          <span className={tx.shiftId ? 'text-slate-300 ml-1' : 'text-orange-400 ml-1'}>
+          <span className="text-muted-foreground">Смена:</span>
+          <span className={tx.shiftId ? 'text-foreground/80 ml-1' : 'text-orange-600 dark:text-orange-400 ml-1'}>
             {tx.shiftId ? `#${tx.shiftId}` : '—'}
           </span>
         </div>
         <div>
-          <span className="text-slate-500">MSTO:</span>
-          <span className="text-cyan-400 ml-1">{tx.mstoVolume ?? '—'} л</span>
-          {tx.mstoSum != null && <span className="text-cyan-400/70 ml-1">({tx.mstoSum.toFixed(0)}₽)</span>}
+          <span className="text-muted-foreground">MSTO:</span>
+          <span className="text-cyan-600 dark:text-cyan-400 ml-1">{tx.mstoVolume ?? '—'} л</span>
+          {tx.mstoSum != null && <span className="text-cyan-600 dark:text-cyan-400/70 ml-1">({tx.mstoSum.toFixed(0)}₽)</span>}
         </div>
         <div>
-          <span className="text-slate-500">TF:</span>
-          <span className="text-blue-400 ml-1">{tx.tfVolume ?? '—'} л</span>
-          {tx.tfSum != null && <span className="text-blue-400/70 ml-1">({tx.tfSum.toFixed(0)}₽)</span>}
+          <span className="text-muted-foreground">TF:</span>
+          <span className="text-blue-600 dark:text-blue-400 ml-1">{tx.tfVolume ?? '—'} л</span>
+          {tx.tfSum != null && <span className="text-blue-600 dark:text-blue-400/70 ml-1">({tx.tfSum.toFixed(0)}₽)</span>}
         </div>
       </div>
       {tx.aggregatorName && (
         <div className="mt-1.5 text-[10px] sm:text-xs truncate">
-          <span className="text-slate-500">Агрегатор:</span>
-          <span className="text-slate-400 ml-1">{tx.aggregatorName}</span>
+          <span className="text-muted-foreground">Агрегатор:</span>
+          <span className="text-muted-foreground ml-1">{tx.aggregatorName}</span>
         </div>
       )}
     </div>
@@ -819,82 +819,82 @@ function StationRowMobile({
   const hasShiftWarn = hasDiff(tfVsShift);
 
   return (
-    <div className="border border-slate-700 rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden">
       <div
         className={`p-2.5 sm:p-3 cursor-pointer transition-colors ${
-          hasError ? 'bg-red-900/20' : 'bg-slate-700/30'
+          hasError ? 'bg-red-100 dark:bg-red-900/20' : 'bg-secondary/30'
         }`}
         onClick={onToggle}
       >
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400 flex-shrink-0" />
+              <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400 flex-shrink-0" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
             )}
-            <span className="text-white font-medium text-xs sm:text-sm truncate">{station.stationName}</span>
+            <span className="text-foreground font-medium text-xs sm:text-sm truncate">{station.stationName}</span>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             {hasShiftWarn && !hasError && (
-              <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400" />
+              <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 dark:text-yellow-400" />
             )}
             {hasError ? (
-              <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-400" />
+              <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
             ) : (
-              <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-400" />
+              <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
             )}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-[10px] sm:text-xs">
           <div>
-            <span className="text-slate-500">MSTO:</span>
-            <span className="text-cyan-400 ml-0.5 sm:ml-1">{station.mstoVolumeTotal}</span>
+            <span className="text-muted-foreground">MSTO:</span>
+            <span className="text-cyan-600 dark:text-cyan-400 ml-0.5 sm:ml-1">{station.mstoVolumeTotal}</span>
           </div>
           <div>
-            <span className="text-slate-500">TF:</span>
-            <span className="text-blue-400 ml-0.5 sm:ml-1">{station.tfVolumeTotal}</span>
+            <span className="text-muted-foreground">TF:</span>
+            <span className="text-blue-600 dark:text-blue-400 ml-0.5 sm:ml-1">{station.tfVolumeTotal}</span>
           </div>
           <div>
-            <span className="text-slate-500">Смена:</span>
-            <span className="text-green-400 ml-0.5 sm:ml-1">{station.shiftNonCashVolumeTotal}</span>
+            <span className="text-muted-foreground">Смена:</span>
+            <span className="text-green-600 dark:text-green-400 ml-0.5 sm:ml-1">{station.shiftNonCashVolumeTotal}</span>
           </div>
         </div>
         {(hasDiff(mstoVsTf) || hasDiff(tfVsShift)) && (
           <div className="flex flex-wrap gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-[10px] sm:text-xs">
             {hasDiff(mstoVsTf) && (
-              <span className="text-red-400">MSTO-TF: {formatDiff(mstoVsTf)}</span>
+              <span className="text-red-600 dark:text-red-400">MSTO-TF: {formatDiff(mstoVsTf)}</span>
             )}
             {hasDiff(tfVsShift) && (
-              <span className="text-yellow-400">TF-См: {formatDiff(tfVsShift)}</span>
+              <span className="text-yellow-600 dark:text-yellow-400">TF-См: {formatDiff(tfVsShift)}</span>
             )}
           </div>
         )}
       </div>
 
       {isExpanded && station.byShift.length > 0 && (
-        <div className="border-t border-slate-700 bg-slate-900/30 p-1.5 sm:p-2 space-y-1.5 sm:space-y-2">
+        <div className="border-t border-border bg-background/30 p-1.5 sm:p-2 space-y-1.5 sm:space-y-2">
           {station.byShift.map((shift) => {
             const shiftKey = `${station.stationId}-shift-${shift.shiftId}`;
             const shiftMstoVsTf = (shift.mstoVolume ?? 0) - (shift.tfVolume ?? 0);
             const shiftHasError = hasDiff(shiftMstoVsTf);
 
             return (
-              <div key={shiftKey} className="border border-slate-700/50 rounded p-1.5 sm:p-2">
+              <div key={shiftKey} className="border border-border/50 rounded p-1.5 sm:p-2">
                 <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-                  <span className="text-slate-300 text-[10px] sm:text-xs">
+                  <span className="text-foreground/80 text-[10px] sm:text-xs">
                     #{shift.shiftId} • {shift.shiftDate}
                   </span>
                   {shiftHasError ? (
-                    <XCircle className="h-3 w-3 text-red-400" />
+                    <XCircle className="h-3 w-3 text-red-600 dark:text-red-400" />
                   ) : (
-                    <CheckCircle2 className="h-3 w-3 text-green-400" />
+                    <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400" />
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-1 text-[10px] sm:text-xs">
-                  <span className="text-cyan-400">{shift.mstoVolume ?? '—'}л</span>
-                  <span className="text-blue-400">{shift.tfVolume ?? '—'}л</span>
-                  <span className="text-green-400">{shift.shiftNonCashVolume ?? '—'}л</span>
+                  <span className="text-cyan-600 dark:text-cyan-400">{shift.mstoVolume ?? '—'}л</span>
+                  <span className="text-blue-600 dark:text-blue-400">{shift.tfVolume ?? '—'}л</span>
+                  <span className="text-green-600 dark:text-green-400">{shift.shiftNonCashVolume ?? '—'}л</span>
                 </div>
               </div>
             );
@@ -929,59 +929,59 @@ function StationRowDesktop({
   const hasShiftWarn = hasDiff(tfVsShift);
 
   return (
-    <div className="border border-slate-700 rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden">
       {/* Заголовок станции */}
       <div
         className={`grid grid-cols-[auto_1fr_80px_80px_80px_80px_80px_60px] gap-2 items-center px-3 py-2 cursor-pointer transition-colors ${
-          hasError ? 'bg-red-900/20 hover:bg-red-900/30' : 'bg-slate-700/30 hover:bg-slate-700/50'
+          hasError ? 'bg-red-100 dark:bg-red-900/20 hover:bg-red-900/30' : 'bg-secondary/30 hover:bg-secondary/50'
         }`}
         onClick={onToggle}
       >
         <div className="w-4">
           {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-slate-400" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-slate-400" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
         </div>
-        <div className="text-white font-medium text-sm">{station.stationName}</div>
-        <div className="text-cyan-400 text-sm text-right">{station.mstoVolumeTotal}</div>
-        <div className="text-blue-400 text-sm text-right">{station.tfVolumeTotal}</div>
-        <div className="text-green-400 text-sm text-right">{station.shiftNonCashVolumeTotal}</div>
-        <div className={`text-sm text-right ${hasDiff(mstoVsTf) ? 'text-red-400' : 'text-slate-500'}`}>
+        <div className="text-foreground font-medium text-sm">{station.stationName}</div>
+        <div className="text-cyan-600 dark:text-cyan-400 text-sm text-right">{station.mstoVolumeTotal}</div>
+        <div className="text-blue-600 dark:text-blue-400 text-sm text-right">{station.tfVolumeTotal}</div>
+        <div className="text-green-600 dark:text-green-400 text-sm text-right">{station.shiftNonCashVolumeTotal}</div>
+        <div className={`text-sm text-right ${hasDiff(mstoVsTf) ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
           {formatDiff(mstoVsTf)}
         </div>
-        <div className={`text-sm text-right ${hasDiff(tfVsShift) ? 'text-yellow-400' : 'text-slate-500'}`}>
+        <div className={`text-sm text-right ${hasDiff(tfVsShift) ? 'text-yellow-600 dark:text-yellow-400' : 'text-muted-foreground'}`}>
           {formatDiff(tfVsShift)}
         </div>
         <div className="text-center flex items-center justify-center gap-1">
           {hasShiftWarn && !hasError && (
-            <AlertCircle className="h-4 w-4 text-yellow-400 inline" />
+            <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 inline" />
           )}
           {hasError ? (
-            <XCircle className="h-4 w-4 text-red-400 inline" />
+            <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 inline" />
           ) : (
-            <CheckCircle2 className="h-4 w-4 text-green-400 inline" />
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 inline" />
           )}
         </div>
       </div>
 
       {/* Смены станции */}
       {isExpanded && (
-        <div className="border-t border-slate-700">
-          <div className="bg-slate-900/30 p-3 overflow-x-auto">
+        <div className="border-t border-border">
+          <div className="bg-background/30 p-3 overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700">
-                  <TableHead className="text-slate-400 text-xs py-1 w-8"></TableHead>
-                  <TableHead className="text-slate-400 text-xs py-1">Смена</TableHead>
-                  <TableHead className="text-slate-400 text-xs py-1">Дата</TableHead>
-                  <TableHead className="text-slate-400 text-xs py-1 text-right">MSTO (л)</TableHead>
-                  <TableHead className="text-slate-400 text-xs py-1 text-right">TF (л)</TableHead>
-                  <TableHead className="text-slate-400 text-xs py-1 text-right">Смена (л)</TableHead>
-                  <TableHead className="text-slate-400 text-xs py-1 text-right">MSTO-TF</TableHead>
-                  <TableHead className="text-slate-400 text-xs py-1 text-right">TF-Смена</TableHead>
-                  <TableHead className="text-slate-400 text-xs py-1 text-center">Статус</TableHead>
+                <TableRow className="border-border">
+                  <TableHead className="text-muted-foreground text-xs py-1 w-8"></TableHead>
+                  <TableHead className="text-muted-foreground text-xs py-1">Смена</TableHead>
+                  <TableHead className="text-muted-foreground text-xs py-1">Дата</TableHead>
+                  <TableHead className="text-muted-foreground text-xs py-1 text-right">MSTO (л)</TableHead>
+                  <TableHead className="text-muted-foreground text-xs py-1 text-right">TF (л)</TableHead>
+                  <TableHead className="text-muted-foreground text-xs py-1 text-right">Смена (л)</TableHead>
+                  <TableHead className="text-muted-foreground text-xs py-1 text-right">MSTO-TF</TableHead>
+                  <TableHead className="text-muted-foreground text-xs py-1 text-right">TF-Смена</TableHead>
+                  <TableHead className="text-muted-foreground text-xs py-1 text-center">Статус</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -997,37 +997,37 @@ function StationRowDesktop({
                     <>
                       <TableRow
                         key={shiftKey}
-                        className={`border-slate-700/50 cursor-pointer hover:bg-slate-800/50 ${
-                          shiftHasError ? 'bg-red-900/10' : ''
+                        className={`border-border/50 cursor-pointer hover:bg-card/50 ${
+                          shiftHasError ? 'bg-red-100 dark:bg-red-900/10' : ''
                         }`}
                         onClick={() => onToggleFuel(shiftKey)}
                       >
                         <TableCell className="py-1 w-8">
                           {isShiftExpanded ? (
-                            <ChevronDown className="h-3 w-3 text-slate-400" />
+                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
                           ) : (
-                            <ChevronRight className="h-3 w-3 text-slate-400" />
+                            <ChevronRight className="h-3 w-3 text-muted-foreground" />
                           )}
                         </TableCell>
-                        <TableCell className="text-white text-xs py-1 font-medium">
+                        <TableCell className="text-foreground text-xs py-1 font-medium">
                           #{shift.shiftId}
                         </TableCell>
-                        <TableCell className="text-slate-400 text-xs py-1">
+                        <TableCell className="text-muted-foreground text-xs py-1">
                           {shift.shiftDate}
                         </TableCell>
-                        <TableCell className="text-cyan-400 text-xs py-1 text-right">
+                        <TableCell className="text-cyan-600 dark:text-cyan-400 text-xs py-1 text-right">
                           {shift.mstoVolume ?? '—'}
                         </TableCell>
-                        <TableCell className="text-blue-400 text-xs py-1 text-right">
+                        <TableCell className="text-blue-600 dark:text-blue-400 text-xs py-1 text-right">
                           {shift.tfVolume ?? '—'}
                         </TableCell>
-                        <TableCell className="text-green-400 text-xs py-1 text-right">
+                        <TableCell className="text-green-600 dark:text-green-400 text-xs py-1 text-right">
                           {shift.shiftNonCashVolume ?? '—'}
                         </TableCell>
-                        <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftMstoVsTf) ? 'text-red-400' : 'text-slate-500'}`}>
+                        <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftMstoVsTf) ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                           {formatDiff(shiftMstoVsTf)}
                         </TableCell>
-                        <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftTfVsShift) ? 'text-yellow-400' : 'text-slate-500'}`}>
+                        <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftTfVsShift) ? 'text-yellow-600 dark:text-yellow-400' : 'text-muted-foreground'}`}>
                           {formatDiff(shiftTfVsShift)}
                         </TableCell>
                         <TableCell className="text-center py-1">
@@ -1035,7 +1035,7 @@ function StationRowDesktop({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-5 px-1.5 text-[10px] text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+                              className="h-5 px-1.5 text-[10px] text-cyan-600 dark:text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onShiftClick(shift.shiftId);
@@ -1044,12 +1044,12 @@ function StationRowDesktop({
                               Тр.
                             </Button>
                             {shiftHasWarn && !shiftHasError && (
-                              <AlertCircle className="h-3 w-3 text-yellow-400 inline" />
+                              <AlertCircle className="h-3 w-3 text-yellow-600 dark:text-yellow-400 inline" />
                             )}
                             {shiftHasError ? (
-                              <XCircle className="h-3 w-3 text-red-400 inline" />
+                              <XCircle className="h-3 w-3 text-red-600 dark:text-red-400 inline" />
                             ) : (
-                              <CheckCircle2 className="h-3 w-3 text-green-400 inline" />
+                              <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400 inline" />
                             )}
                           </div>
                         </TableCell>
@@ -1059,18 +1059,18 @@ function StationRowDesktop({
                       {isShiftExpanded && (
                         <TableRow key={`${shiftKey}_details`}>
                           <TableCell colSpan={9} className="p-0 border-0">
-                            <div className="bg-slate-950/50 pl-8 pr-2 py-2">
+                            <div className="bg-background/80 pl-8 pr-2 py-2">
                               {/* По агрегаторам */}
                               {shift.byAggregator?.length > 0 && (
                                 <div className="mb-2">
-                                  <div className="text-xs text-slate-500 mb-1">По агрегаторам:</div>
+                                  <div className="text-xs text-muted-foreground mb-1">По агрегаторам:</div>
                                   <div className="flex flex-wrap gap-2">
                                     {shift.byAggregator.map((agg) => (
                                       <Badge
                                         key={agg.aggregatorId}
                                         className={`${agg.status === 'ok'
-                                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                                          : 'bg-red-500/20 text-red-300 border-red-500/30'
+                                          ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 border-purple-500/30'
+                                          : 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-300 border-red-500/30'
                                         }`}
                                       >
                                         {agg.aggregatorName}: M{agg.mstoVolume}л / T{agg.tfVolume}л
@@ -1082,14 +1082,14 @@ function StationRowDesktop({
                               {/* По топливу */}
                               {shift.byFuel?.length > 0 && (
                                 <div>
-                                  <div className="text-xs text-slate-500 mb-1">По топливу:</div>
+                                  <div className="text-xs text-muted-foreground mb-1">По топливу:</div>
                                   <div className="flex flex-wrap gap-2">
                                     {shift.byFuel.map((fuel, idx) => (
                                       <Badge
                                         key={idx}
                                         className={`${fuel.status === 'ok'
-                                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                                          : 'bg-red-500/20 text-red-300 border-red-500/30'
+                                          ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/30'
+                                          : 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-300 border-red-500/30'
                                         }`}
                                       >
                                         <Fuel className="h-3 w-3 mr-1" />

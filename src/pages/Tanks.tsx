@@ -76,9 +76,9 @@ export default function Tanks() {
       <MainLayout fullWidth={true}>
         <div className="flex items-center justify-center h-96">
           <div className="text-center max-w-md">
-            <Gauge className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">Ошибка загрузки данных</h2>
-            <p className="text-slate-400 mb-4">{error.message}</p>
+            <Gauge className="h-16 w-16 text-red-600 dark:text-red-400 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">Ошибка загрузки данных</h2>
+            <p className="text-muted-foreground mb-4">{error.message}</p>
             <Button onClick={refreshTanks} disabled={loading}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Повторить попытку
@@ -107,7 +107,7 @@ export default function Tanks() {
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Резервуары</h1>
+              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-foreground`}>Резервуары</h1>
               <LastDataTransfer />
             </div>
             {!isMobile && (
@@ -116,7 +116,7 @@ export default function Tanks() {
                 size="sm"
                 onClick={refreshTanks}
                 disabled={loading}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>
@@ -129,7 +129,7 @@ export default function Tanks() {
           <div className="flex justify-center items-center h-64">
             <div className="text-center">
               <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-              <p className="text-slate-400">Загрузка данных резервуаров...</p>
+              <p className="text-muted-foreground">Загрузка данных резервуаров...</p>
             </div>
           </div>
         ) : (

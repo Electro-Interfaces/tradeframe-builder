@@ -110,7 +110,7 @@ export function getThresholdBgColor(level: ThresholdLevel): string {
     case 'critical':
       return 'bg-red-500/20';
     default:
-      return 'bg-slate-700';
+      return 'bg-secondary';
   }
 }
 
@@ -124,6 +124,6 @@ export function getThresholdBorderColor(level: ThresholdLevel): string {
     case 'critical':
       return 'border-red-500';
     default:
-      return 'border-slate-600';
+      return 'border-border';
   }
 }

@@ -493,41 +493,41 @@ export function AnalysisDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
-            <LineChart className="h-6 w-6 text-blue-400" />
+          <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <LineChart className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             Анализ Калибровки
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-base">
+          <DialogDescription className="text-muted-foreground text-base">
             Расчет таблицы на основе реальных отпусков ТРК с последующим сравнением с текущей калибровкой
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Выбор периода */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-400" />
+                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Период анализа данных
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="analysis_start_date" className="text-sm text-slate-300">📅 Начальная дата</Label>
+                  <Label htmlFor="analysis_start_date" className="text-sm text-foreground/80">📅 Начальная дата</Label>
                   <Input
                     id="analysis_start_date"
                     type="date"
                     value={analysisStartDate}
                     onChange={(e) => setAnalysisStartDate(e.target.value)}
                     max={analysisEndDate || undefined}
-                    className="mt-1.5 bg-slate-900 border-slate-600 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="mt-1.5 bg-background border-border [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="analysis_end_date" className="text-sm text-slate-300">📅 Конечная дата</Label>
+                  <Label htmlFor="analysis_end_date" className="text-sm text-foreground/80">📅 Конечная дата</Label>
                   <Input
                     id="analysis_end_date"
                     type="date"
@@ -535,13 +535,13 @@ export function AnalysisDialog({
                     onChange={(e) => setAnalysisEndDate(e.target.value)}
                     min={analysisStartDate || undefined}
                     max={new Date().toISOString().split('T')[0]}
-                    className="mt-1.5 bg-slate-900 border-slate-600 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="mt-1.5 bg-background border-border [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
               </div>
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-2.5">
-                <p className="text-xs text-blue-300 flex items-center gap-2">
-                  <span className="text-blue-400">ℹ️</span>
+                <p className="text-xs text-blue-600 dark:text-blue-300 flex items-center gap-2">
+                  <span className="text-blue-600 dark:text-blue-400">ℹ️</span>
                   Данные из /v1/tank_history (обновление каждые 10 минут)
                 </p>
               </div>
@@ -549,23 +549,23 @@ export function AnalysisDialog({
           </Card>
 
           {/* Параметры расчета */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Settings className="h-4 w-4 text-green-400" />
+                <Settings className="h-4 w-4 text-green-600 dark:text-green-400" />
                 Параметры расчета
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="analysis_calibration_method" className="text-sm font-medium text-slate-200">
+                <Label htmlFor="analysis_calibration_method" className="text-sm font-medium text-foreground">
                   🧮 Алгоритм расчета
                 </Label>
                 <Select
                   value={settings.calibration_method}
                   onValueChange={(value) => updateSetting('calibration_method', value as CalibrationMethod)}
                 >
-                  <SelectTrigger id="analysis_calibration_method" className="bg-slate-900 border-slate-600">
+                  <SelectTrigger id="analysis_calibration_method" className="bg-background border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -574,23 +574,23 @@ export function AnalysisDialog({
                     <SelectItem value="moving_average">Скользящее среднее</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="bg-slate-800/50 border border-slate-700 rounded-md p-2.5">
-                  <p className="text-xs text-slate-300">
+                <div className="bg-card/50 border border-border rounded-md p-2.5">
+                  <p className="text-xs text-foreground/80">
                     {settings.calibration_method === 'linear_regression' && (
                       <>
-                        <span className="font-semibold text-blue-400">Линейная регрессия:</span> Строит линейную зависимость между уровнем и объемом.
+                        <span className="font-semibold text-blue-600 dark:text-blue-400">Линейная регрессия:</span> Строит линейную зависимость между уровнем и объемом.
                         Быстрый и простой метод, подходит для резервуаров с простой геометрией.
                       </>
                     )}
                     {settings.calibration_method === 'least_squares' && (
                       <>
-                        <span className="font-semibold text-green-400">МНК:</span> Минимизирует сумму квадратов отклонений.
+                        <span className="font-semibold text-green-600 dark:text-green-400">МНК:</span> Минимизирует сумму квадратов отклонений.
                         Наиболее точный метод, учитывает все точки данных. Рекомендуется для коммерческого учета.
                       </>
                     )}
                     {settings.calibration_method === 'moving_average' && (
                       <>
-                        <span className="font-semibold text-orange-400">Скользящее среднее:</span> Сглаживает колебания данных усреднением.
+                        <span className="font-semibold text-orange-600 dark:text-orange-400">Скользящее среднее:</span> Сглаживает колебания данных усреднением.
                         Устойчив к выбросам, хорош для данных с шумом и частыми колебаниями.
                       </>
                     )}
@@ -601,12 +601,12 @@ export function AnalysisDialog({
               <Separator className="my-3" />
 
               <div className="space-y-3">
-                <h5 className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-orange-400" />
+                <h5 className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                   Фильтрация данных
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
+                  <div className="flex items-center justify-between p-3 bg-background rounded-md border border-border">
                     <Label htmlFor="analysis_outlier_filter" className="text-sm cursor-pointer">
                       🎯 Фильтр выбросов
                     </Label>
@@ -619,16 +619,16 @@ export function AnalysisDialog({
 
                   {settings.outlier_filter_enabled && (
                     <div className="space-y-2">
-                      <Label htmlFor="analysis_outlier_sigma" className="text-sm text-slate-300">σ Сигма</Label>
+                      <Label htmlFor="analysis_outlier_sigma" className="text-sm text-foreground/80">σ Сигма</Label>
                       <Input
                         id="analysis_outlier_sigma"
                         type="number"
                         step="0.1"
                         value={settings.outlier_filter_sigma || ''}
                         onChange={(e) => handleNumberInput('outlier_filter_sigma', e.target.value)}
-                        className="bg-slate-900 border-slate-600"
+                        className="bg-background border-border"
                       />
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-muted-foreground">
                         3σ = 99.7% данных
                       </p>
                     </div>
@@ -639,7 +639,7 @@ export function AnalysisDialog({
               <Separator className="my-3" />
 
               <div className="space-y-2 mb-6">
-                <Label htmlFor="analysis_calibration_step" className="text-sm font-semibold text-slate-200">
+                <Label htmlFor="analysis_calibration_step" className="text-sm font-semibold text-foreground">
                   📏 Шаг построения таблицы (мм)
                 </Label>
                 <Input
@@ -650,9 +650,9 @@ export function AnalysisDialog({
                   max="1000"
                   value={settings.calibration_step_mm || ''}
                   onChange={(e) => handleNumberInput('calibration_step_mm', e.target.value)}
-                  className="bg-slate-900 border-slate-600"
+                  className="bg-background border-border"
                 />
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Шаг между точками калибровочной таблицы. Рекомендуется 50-100 мм для коммерческого учёта.
                 </p>
               </div>
@@ -660,10 +660,10 @@ export function AnalysisDialog({
           </Card>
 
           {/* Примечания */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <FileSpreadsheet className="h-4 w-4 text-purple-400" />
+                <FileSpreadsheet className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 Примечания к анализу
               </CardTitle>
             </CardHeader>
@@ -674,7 +674,7 @@ export function AnalysisDialog({
                 value={analysisNotes}
                 onChange={(e) => setAnalysisNotes(e.target.value)}
                 rows={3}
-                className="bg-slate-900 border-slate-600 resize-none"
+                className="bg-background border-border resize-none"
               />
             </CardContent>
           </Card>
@@ -700,18 +700,18 @@ export function AnalysisDialog({
 
           {/* Результаты анализа */}
           {analysisResult && (
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-card/50 border-border">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   {analysisResult.success ? (
                     <>
-                      <CheckCircle2 className="h-5 w-5 text-green-400" />
-                      <span className="text-green-400">Анализ выполнен успешно</span>
+                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <span className="text-green-600 dark:text-green-400">Анализ выполнен успешно</span>
                     </>
                   ) : (
                     <>
-                      <XCircle className="h-5 w-5 text-red-400" />
-                      <span className="text-red-400">Ошибка анализа</span>
+                      <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                      <span className="text-red-600 dark:text-red-400">Ошибка анализа</span>
                     </>
                   )}
                 </CardTitle>
@@ -722,27 +722,27 @@ export function AnalysisDialog({
                     {/* Статистика сравнения */}
                     {analysisResult.statistics && (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-3">
-                          <p className="text-xs text-slate-400 mb-1">Макс. отклонение</p>
-                          <p className="text-lg font-semibold text-white">
+                        <div className="bg-background border border-border rounded-md p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Макс. отклонение</p>
+                          <p className="text-lg font-semibold text-foreground">
                             {analysisResult.statistics.max_difference.toFixed(2)} л
                           </p>
                         </div>
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-3">
-                          <p className="text-xs text-slate-400 mb-1">Средн. отклонение</p>
-                          <p className="text-lg font-semibold text-white">
+                        <div className="bg-background border border-border rounded-md p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Средн. отклонение</p>
+                          <p className="text-lg font-semibold text-foreground">
                             {analysisResult.statistics.avg_difference.toFixed(2)} л
                           </p>
                         </div>
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-3">
-                          <p className="text-xs text-slate-400 mb-1">Макс. отклонение %</p>
-                          <p className="text-lg font-semibold text-white">
+                        <div className="bg-background border border-border rounded-md p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Макс. отклонение %</p>
+                          <p className="text-lg font-semibold text-foreground">
                             {analysisResult.statistics.max_difference_percent.toFixed(3)}%
                           </p>
                         </div>
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-3">
-                          <p className="text-xs text-slate-400 mb-1">Средн. отклонение %</p>
-                          <p className="text-lg font-semibold text-white">
+                        <div className="bg-background border border-border rounded-md p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Средн. отклонение %</p>
+                          <p className="text-lg font-semibold text-foreground">
                             {analysisResult.statistics.avg_difference_percent.toFixed(3)}%
                           </p>
                         </div>
@@ -752,8 +752,8 @@ export function AnalysisDialog({
                     {/* Отладочная информация */}
                     {analysisResult.debug && (
                       <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-3">
-                        <p className="text-sm font-semibold text-yellow-300 mb-2">🔍 Отладочная информация:</p>
-                        <div className="grid grid-cols-2 gap-2 text-xs text-yellow-200">
+                        <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-300 mb-2">🔍 Отладочная информация:</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-yellow-700 dark:text-yellow-200">
                           <div>История резервуара: <strong>{analysisResult.debug.tankHistoryCount}</strong> записей</div>
                           <div>Транзакции ТРК: <strong>{analysisResult.debug.transactionsCount}</strong></div>
                           <div>Текущая таблица - точек данных: <strong>{analysisResult.debug.currentTablePoints}</strong></div>
@@ -780,10 +780,10 @@ export function AnalysisDialog({
                           )}
                           {analysisResult.debug.rawComparison && analysisResult.debug.rawComparison.length > 0 && (
                             <div className="col-span-2 border-t border-yellow-500/20 pt-2 mt-2">
-                              <strong className="text-yellow-300">📊 Сравнение объёмов (Датчик vs ТРК):</strong>
+                              <strong className="text-yellow-600 dark:text-yellow-300">📊 Сравнение объёмов (Датчик vs ТРК):</strong>
                               <table className="w-full mt-2 text-xs">
                                 <thead>
-                                  <tr className="text-yellow-400">
+                                  <tr className="text-yellow-600 dark:text-yellow-400">
                                     <th className="text-left">Уровень</th>
                                     <th className="text-right">Датчик</th>
                                     <th className="text-right">ТРК</th>
@@ -793,14 +793,14 @@ export function AnalysisDialog({
                                 </thead>
                                 <tbody>
                                   {analysisResult.debug.rawComparison.map((row: { level: number, sensor: number, trk: number, diff: number, diffPercent: string }, i: number) => (
-                                    <tr key={i} className="text-yellow-200">
+                                    <tr key={i} className="text-yellow-700 dark:text-yellow-200">
                                       <td>{row.level} мм</td>
                                       <td className="text-right">{row.sensor} л</td>
                                       <td className="text-right">{row.trk} л</td>
-                                      <td className={`text-right ${row.diff > 0 ? 'text-green-400' : row.diff < 0 ? 'text-red-400' : ''}`}>
+                                      <td className={`text-right ${row.diff > 0 ? 'text-green-600 dark:text-green-400' : row.diff < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
                                         {row.diff > 0 ? '+' : ''}{row.diff} л
                                       </td>
-                                      <td className={`text-right ${parseFloat(row.diffPercent) > 0 ? 'text-green-400' : parseFloat(row.diffPercent) < 0 ? 'text-red-400' : ''}`}>
+                                      <td className={`text-right ${parseFloat(row.diffPercent) > 0 ? 'text-green-600 dark:text-green-400' : parseFloat(row.diffPercent) < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
                                         {row.diffPercent}%
                                       </td>
                                     </tr>
@@ -816,8 +816,8 @@ export function AnalysisDialog({
                     {/* Диагностика алгоритма калибровки */}
                     {analysisResult.diagnostics && (
                       <div className="bg-purple-500/10 border border-purple-500/20 rounded-md p-3 mb-3">
-                        <p className="text-sm font-semibold text-purple-300 mb-2">🔬 Диагностика алгоритма калибровки:</p>
-                        <div className="grid grid-cols-2 gap-2 text-xs text-purple-200">
+                        <p className="text-sm font-semibold text-purple-600 dark:text-purple-300 mb-2">🔬 Диагностика алгоритма калибровки:</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-purple-700 dark:text-purple-200">
                           <div>Сегментов обработано: <strong>{analysisResult.diagnostics.segmentsCount}</strong></div>
                           <div>Поступлений учтено: <strong>{analysisResult.diagnostics.receiptsProcessed}</strong></div>
                           <div>Точек до фильтрации: <strong>{analysisResult.diagnostics.totalPointsBeforeFilter}</strong></div>
@@ -831,11 +831,11 @@ export function AnalysisDialog({
 
                         {analysisResult.diagnostics.warnings && analysisResult.diagnostics.warnings.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-purple-500/20">
-                            <p className="text-sm font-semibold text-amber-300 mb-2">⚠️ Предупреждения ({analysisResult.diagnostics.warnings.length}):</p>
-                            <ul className="space-y-1 text-xs text-amber-200">
+                            <p className="text-sm font-semibold text-amber-600 dark:text-amber-300 mb-2">⚠️ Предупреждения ({analysisResult.diagnostics.warnings.length}):</p>
+                            <ul className="space-y-1 text-xs text-amber-700 dark:text-amber-200">
                               {analysisResult.diagnostics.warnings.map((warning, index) => (
                                 <li key={index} className="flex items-start gap-2">
-                                  <span className="text-amber-400">•</span>
+                                  <span className="text-amber-600 dark:text-amber-400">•</span>
                                   <span>{warning}</span>
                                 </li>
                               ))}
@@ -847,7 +847,7 @@ export function AnalysisDialog({
 
                     {/* Информация о версии текущей таблицы */}
                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-3">
-                      <p className="text-sm text-blue-300">
+                      <p className="text-sm text-blue-600 dark:text-blue-300">
                         ℹ️ Сравнение рассчитанной калибровочной таблицы с реальными показаниями датчика уровня за выбранный период
                       </p>
                     </div>
@@ -855,8 +855,8 @@ export function AnalysisDialog({
                     {/* График разницы по уровням */}
                     {analysisResult.comparison && analysisResult.comparison.length > 0 && (() => {
                       return (
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
-                          <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <div className="bg-background border border-border rounded-md p-4 mb-4">
+                          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                             📊 График зависимости объема от уровня
                           </h4>
                           <ResponsiveContainer width="100%" height={400}>
@@ -864,24 +864,24 @@ export function AnalysisDialog({
                               data={analysisResult.comparison}
                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                             >
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis
                                 dataKey="level_mm"
                                 type="number"
                                 domain={['dataMin', 'dataMax']}
-                                stroke="#94a3b8"
-                                label={{ value: 'Уровень (мм)', position: 'insideBottom', offset: -5, fill: '#94a3b8' }}
+                                stroke="hsl(var(--muted-foreground))"
+                                label={{ value: 'Уровень (мм)', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))' }}
                               />
                               <YAxis
-                                stroke="#94a3b8"
-                                label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                                stroke="hsl(var(--muted-foreground))"
+                                label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
                               />
                               <Tooltip
                                 contentStyle={{
-                                  backgroundColor: '#1e293b',
-                                  border: '1px solid #475569',
+                                  backgroundColor: 'hsl(var(--card))',
+                                  border: '1px solid hsl(var(--border))',
                                   borderRadius: '6px',
-                                  color: '#e2e8f0'
+                                  color: 'hsl(var(--foreground))'
                                 }}
                                 formatter={(value: number, name: string) => [
                                   `${value.toFixed(0)} л`,
@@ -890,7 +890,7 @@ export function AnalysisDialog({
                                 labelFormatter={(label) => `Уровень: ${label} мм`}
                               />
                               <Legend
-                                wrapperStyle={{ color: '#94a3b8' }}
+                                wrapperStyle={{ color: 'hsl(var(--muted-foreground))' }}
                               />
                               <Line
                                 type="monotone"
@@ -949,7 +949,7 @@ export function AnalysisDialog({
                                 )}
                             </RechartsLineChart>
                           </ResponsiveContainer>
-                          <p className="text-xs text-slate-400 mt-2 text-center">
+                          <p className="text-xs text-muted-foreground mt-2 text-center">
                             🟢 <strong>Зеленая</strong> — геометрия (эталон),
                             🟠 <strong>Оранжевая</strong> — датчик (текущая калибровка),
                             🔵 <strong>Синяя</strong> — калибровка ТРК,
@@ -976,26 +976,26 @@ export function AnalysisDialog({
                       const maxDiff = Math.max(...deviationData.map((d: { diff_liters: number }) => d.diff_liters));
 
                       return (
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
-                          <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <div className="bg-background border border-border rounded-md p-4 mb-4">
+                          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                             📉 Отклонение: ТРК минус Датчик (литры)
                           </h4>
                           <div className="grid grid-cols-3 gap-3 mb-3">
-                            <div className="bg-slate-800 rounded p-2 text-center">
-                              <p className="text-xs text-slate-400">Мин. отклонение</p>
-                              <p className={`text-lg font-bold ${minDiff < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            <div className="bg-card rounded p-2 text-center">
+                              <p className="text-xs text-muted-foreground">Мин. отклонение</p>
+                              <p className={`text-lg font-bold ${minDiff < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                 {minDiff > 0 ? '+' : ''}{minDiff} л
                               </p>
                             </div>
-                            <div className="bg-slate-800 rounded p-2 text-center">
-                              <p className="text-xs text-slate-400">Макс. отклонение</p>
-                              <p className={`text-lg font-bold ${maxDiff < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            <div className="bg-card rounded p-2 text-center">
+                              <p className="text-xs text-muted-foreground">Макс. отклонение</p>
+                              <p className={`text-lg font-bold ${maxDiff < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                 {maxDiff > 0 ? '+' : ''}{maxDiff} л
                               </p>
                             </div>
-                            <div className="bg-slate-800 rounded p-2 text-center">
-                              <p className="text-xs text-slate-400">Макс. |отклонение|</p>
-                              <p className="text-lg font-bold text-yellow-400">{maxAbsDiff} л</p>
+                            <div className="bg-card rounded p-2 text-center">
+                              <p className="text-xs text-muted-foreground">Макс. |отклонение|</p>
+                              <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{maxAbsDiff} л</p>
                             </div>
                           </div>
                           <ResponsiveContainer width="100%" height={250}>
@@ -1003,26 +1003,26 @@ export function AnalysisDialog({
                               data={deviationData}
                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                             >
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis
                                 dataKey="level_mm"
-                                stroke="#94a3b8"
-                                tick={{ fill: '#94a3b8', fontSize: 11 }}
-                                label={{ value: 'Уровень (мм)', position: 'bottom', fill: '#94a3b8', fontSize: 12, offset: -5 }}
+                                stroke="hsl(var(--muted-foreground))"
+                                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                                label={{ value: 'Уровень (мм)', position: 'bottom', fill: 'hsl(var(--muted-foreground))', fontSize: 12, offset: -5 }}
                               />
                               <YAxis
-                                stroke="#94a3b8"
-                                tick={{ fill: '#94a3b8', fontSize: 11 }}
-                                label={{ value: 'Отклонение (л)', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 12 }}
+                                stroke="hsl(var(--muted-foreground))"
+                                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                                label={{ value: 'Отклонение (л)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                                 domain={[-maxAbsDiff * 1.1, maxAbsDiff * 1.1]}
                               />
                               <ReferenceLine y={0} stroke="#64748b" strokeWidth={2} />
                               <Tooltip
                                 contentStyle={{
-                                  backgroundColor: '#1e293b',
-                                  border: '1px solid #475569',
+                                  backgroundColor: 'hsl(var(--card))',
+                                  border: '1px solid hsl(var(--border))',
                                   borderRadius: '8px',
-                                  color: '#e2e8f0'
+                                  color: 'hsl(var(--foreground))'
                                 }}
                                 formatter={(value: number, name: string) => {
                                   if (name === 'diff_liters') {
@@ -1043,7 +1043,7 @@ export function AnalysisDialog({
                               />
                             </RechartsLineChart>
                           </ResponsiveContainer>
-                          <p className="text-xs text-slate-400 mt-2 text-center">
+                          <p className="text-xs text-muted-foreground mt-2 text-center">
                             📊 Если линия <strong>ниже нуля</strong> — датчик завышает объём относительно ТРК.
                             Если <strong>выше нуля</strong> — датчик занижает.
                           </p>
@@ -1072,29 +1072,29 @@ export function AnalysisDialog({
                       );
 
                       return (
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
-                          <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <div className="bg-background border border-border rounded-md p-4 mb-4">
+                          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                             🎯 Валидация калибровки через ТРК (независимый эталон)
                           </h4>
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                            <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
-                              <p className="text-xs text-slate-400 mb-1">Всего проверок</p>
-                              <p className="text-lg font-semibold text-white">{trkData.length}</p>
+                            <div className="bg-card border border-border rounded-md p-3">
+                              <p className="text-xs text-muted-foreground mb-1">Всего проверок</p>
+                              <p className="text-lg font-semibold text-foreground">{trkData.length}</p>
                             </div>
-                            <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
-                              <p className="text-xs text-slate-400 mb-1">Средн. отклонение</p>
-                              <p className="text-lg font-semibold text-white">{avgDeviation.toFixed(2)} л</p>
-                              <p className="text-xs text-slate-400">({avgDeviationPercent.toFixed(2)}%)</p>
+                            <div className="bg-card border border-border rounded-md p-3">
+                              <p className="text-xs text-muted-foreground mb-1">Средн. отклонение</p>
+                              <p className="text-lg font-semibold text-foreground">{avgDeviation.toFixed(2)} л</p>
+                              <p className="text-xs text-muted-foreground">({avgDeviationPercent.toFixed(2)}%)</p>
                             </div>
-                            <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
-                              <p className="text-xs text-slate-400 mb-1">Макс. отклонение</p>
-                              <p className="text-lg font-semibold text-white">{maxDeviation.toFixed(2)} л</p>
+                            <div className="bg-card border border-border rounded-md p-3">
+                              <p className="text-xs text-muted-foreground mb-1">Макс. отклонение</p>
+                              <p className="text-lg font-semibold text-foreground">{maxDeviation.toFixed(2)} л</p>
                             </div>
-                            <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
-                              <p className="text-xs text-slate-400 mb-1">Пистолетов</p>
-                              <p className="text-lg font-semibold text-white">{Object.keys(nozzleGroups).filter(n => n !== '-1').length}</p>
-                              <p className="text-xs text-slate-400">
+                            <div className="bg-card border border-border rounded-md p-3">
+                              <p className="text-xs text-muted-foreground mb-1">Пистолетов</p>
+                              <p className="text-lg font-semibold text-foreground">{Object.keys(nozzleGroups).filter(n => n !== '-1').length}</p>
+                              <p className="text-xs text-muted-foreground">
                                 {Object.keys(nozzleGroups)
                                   .filter(n => n !== '-1')
                                   .map(n => `№${n}`)
@@ -1122,22 +1122,22 @@ export function AnalysisDialog({
                               }))}
                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                             >
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis
                                 dataKey="index"
-                                stroke="#94a3b8"
-                                label={{ value: 'Номер отпуска', position: 'insideBottom', offset: -5, fill: '#94a3b8' }}
+                                stroke="hsl(var(--muted-foreground))"
+                                label={{ value: 'Номер отпуска', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))' }}
                               />
                               <YAxis
-                                stroke="#94a3b8"
-                                label={{ value: 'Отклонение (%)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                                stroke="hsl(var(--muted-foreground))"
+                                label={{ value: 'Отклонение (%)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
                               />
                               <Tooltip
                                 contentStyle={{
-                                  backgroundColor: '#1e293b',
-                                  border: '1px solid #475569',
+                                  backgroundColor: 'hsl(var(--card))',
+                                  border: '1px solid hsl(var(--border))',
                                   borderRadius: '6px',
-                                  color: '#e2e8f0'
+                                  color: 'hsl(var(--foreground))'
                                 }}
                                 formatter={(value: number, name: string) => {
                                   if (name === 'deviation_percent') return [`${value.toFixed(2)}%`, 'Отклонение'];
@@ -1147,7 +1147,7 @@ export function AnalysisDialog({
                                 }}
                                 labelFormatter={(label) => `Отпуск №${label}`}
                               />
-                              <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                              <Legend wrapperStyle={{ color: 'hsl(var(--muted-foreground))' }} />
                               <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
                               <ReferenceLine y={2} stroke="#f59e0b" strokeDasharray="2 2" label={{ value: '+2%', fill: '#f59e0b' }} />
                               <ReferenceLine y={-2} stroke="#f59e0b" strokeDasharray="2 2" label={{ value: '-2%', fill: '#f59e0b' }} />
@@ -1163,14 +1163,14 @@ export function AnalysisDialog({
                             </RechartsLineChart>
                           </ResponsiveContainer>
 
-                          <p className="text-xs text-slate-400 mt-2 text-center">
+                          <p className="text-xs text-muted-foreground mt-2 text-center">
                             🎯 Сравнение показаний датчика уровня (через калибровочную таблицу) с фактическими отпусками через ТРК.
                             ТРК — метрологически поверенные приборы (±0.25% ГОСТ), служат независимым эталоном для проверки калибровки.
                           </p>
 
                           {avgDeviationPercent > 2 && (
                             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-3 mt-3">
-                              <p className="text-sm text-yellow-300 flex items-center gap-2">
+                              <p className="text-sm text-yellow-600 dark:text-yellow-300 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
                                 <strong>Внимание:</strong> Среднее отклонение {avgDeviationPercent.toFixed(2)}% превышает допустимые 2%.
                                 Рекомендуется повторная калибровка резервуара.
@@ -1183,43 +1183,43 @@ export function AnalysisDialog({
 
                     {/* Таблица сравнения */}
                     {analysisResult.comparison && analysisResult.comparison.length > 0 && (
-                      <div className="border border-slate-700 rounded-md overflow-hidden">
+                      <div className="border border-border rounded-md overflow-hidden">
                         <div className="max-h-96 overflow-y-auto">
                           <table className="w-full text-sm">
-                            <thead className="bg-slate-800 sticky top-0">
+                            <thead className="bg-card sticky top-0">
                               <tr>
-                                <th className="px-3 py-2 text-left text-slate-300 font-medium">Уровень (мм)</th>
-                                <th className="px-3 py-2 text-right text-slate-300 font-medium">Датчик (л)</th>
-                                <th className="px-3 py-2 text-right text-slate-300 font-medium">Калибровка (л)</th>
-                                <th className="px-3 py-2 text-right text-slate-300 font-medium">Разница (л)</th>
-                                <th className="px-3 py-2 text-right text-slate-300 font-medium">Разница (%)</th>
+                                <th className="px-3 py-2 text-left text-foreground/80 font-medium">Уровень (мм)</th>
+                                <th className="px-3 py-2 text-right text-foreground/80 font-medium">Датчик (л)</th>
+                                <th className="px-3 py-2 text-right text-foreground/80 font-medium">Калибровка (л)</th>
+                                <th className="px-3 py-2 text-right text-foreground/80 font-medium">Разница (л)</th>
+                                <th className="px-3 py-2 text-right text-foreground/80 font-medium">Разница (%)</th>
                               </tr>
                             </thead>
-                            <tbody className="bg-slate-900">
+                            <tbody className="bg-background">
                               {analysisResult.comparison.map((row, idx) => (
                                 <tr
                                   key={idx}
-                                  className={`border-t border-slate-800 ${Math.abs(row.difference_percent) > 1 ? 'bg-red-500/10' :
+                                  className={`border-t border-border ${Math.abs(row.difference_percent) > 1 ? 'bg-red-500/10' :
                                       Math.abs(row.difference_percent) > 0.5 ? 'bg-yellow-500/10' :
                                         ''
                                     }`}
                                 >
-                                  <td className="px-3 py-2 text-slate-200">{row.level_mm}</td>
-                                  <td className="px-3 py-2 text-right text-slate-200">
+                                  <td className="px-3 py-2 text-foreground">{row.level_mm}</td>
+                                  <td className="px-3 py-2 text-right text-foreground">
                                     {row.current_volume?.toFixed(2) ?? '—'}
                                   </td>
-                                  <td className="px-3 py-2 text-right text-slate-200">
+                                  <td className="px-3 py-2 text-right text-foreground">
                                     {row.calculated_volume.toFixed(2)}
                                   </td>
-                                  <td className={`px-3 py-2 text-right font-medium ${Math.abs(row.difference) > 50 ? 'text-red-400' :
-                                      Math.abs(row.difference) > 20 ? 'text-yellow-400' :
-                                        'text-green-400'
+                                  <td className={`px-3 py-2 text-right font-medium ${Math.abs(row.difference) > 50 ? 'text-red-600 dark:text-red-400' :
+                                      Math.abs(row.difference) > 20 ? 'text-yellow-600 dark:text-yellow-400' :
+                                        'text-green-600 dark:text-green-400'
                                     }`}>
                                     {row.difference > 0 ? '+' : ''}{row.difference.toFixed(2)}
                                   </td>
-                                  <td className={`px-3 py-2 text-right font-medium ${Math.abs(row.difference_percent) > 1 ? 'text-red-400' :
-                                      Math.abs(row.difference_percent) > 0.5 ? 'text-yellow-400' :
-                                        'text-green-400'
+                                  <td className={`px-3 py-2 text-right font-medium ${Math.abs(row.difference_percent) > 1 ? 'text-red-600 dark:text-red-400' :
+                                      Math.abs(row.difference_percent) > 0.5 ? 'text-yellow-600 dark:text-yellow-400' :
+                                        'text-green-600 dark:text-green-400'
                                     }`}>
                                     {row.difference_percent > 0 ? '+' : ''}{row.difference_percent.toFixed(3)}%
                                   </td>
@@ -1234,14 +1234,14 @@ export function AnalysisDialog({
                     {/* Нет текущей таблицы для сравнения */}
                     {!analysisResult.comparison && (
                       <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-4">
-                        <p className="text-sm text-blue-300">
+                        <p className="text-sm text-blue-600 dark:text-blue-300">
                           ℹ️ Показаны результаты расчета калибровочной таблицы без сравнения с реальными показаниями датчика.
                         </p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-red-400">
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                     <XCircle className="w-4 h-4" />
                     <span>Ошибка: {analysisResult.error}</span>
                   </div>

@@ -15,7 +15,8 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { stsApiService, Transaction } from "@/services/stsApi";
 // tradingPointsService больше не нужен — используем selectedStation из контекста
 import { useToast } from "@/hooks/use-toast";
-import { SalesForecast } from "@/components/charts/SalesForecast";
+import { PeriodComparison } from "@/components/charts/PeriodComparison";
+import { AverageCheckTrend } from "@/components/charts/AverageCheckTrend";
 import { ChartSkeleton, HeatmapSkeleton } from "@/components/ui/chart-skeleton";
 import { DailySalesChart } from "@/components/charts/DailySalesChart";
 import { FuelPerformanceChart } from "@/components/charts/FuelPerformanceChart";
@@ -24,6 +25,8 @@ import { HourlyActivityChart } from "@/components/charts/HourlyActivityChart";
 import { StationRevenueChart } from "@/components/charts/StationRevenueChart";
 import { StationFuelSalesChart } from "@/components/charts/StationFuelSalesChart";
 import { StationRevenueTrendChart } from "@/components/charts/StationRevenueTrendChart";
+import { WeekdayPattern } from "@/components/charts/WeekdayPattern";
+import { CashlessShareTrend } from "@/components/charts/CashlessShareTrend";
 // XLSX и html2canvas — dynamic import (тяжёлые, нужны только при экспорте)
 import { loadPdfMake } from "@/utils/pdfMake";
 import { getPaymentTypeDisplayName } from "@/utils/paymentUtils";
@@ -43,6 +46,7 @@ export default function NetworkOverview() {
 
   // Состояния данных
   const [transactions, setTransactions] = useState([]);
+  const [prevPeriodTransactions, setPrevPeriodTransactions] = useState([]);
   const [tanks, setTanks] = useState([]);
   const [terminalInfo, setTerminalInfo] = useState(null);
   const [prices, setPrices] = useState([]);
@@ -60,7 +64,7 @@ export default function NetworkOverview() {
   const dailySalesCardRef = useRef<HTMLDivElement | null>(null);
   const heatmapCardRef = useRef<HTMLDivElement | null>(null);
   const activityCardRef = useRef<HTMLDivElement | null>(null);
-  const forecastCardRef = useRef<HTMLDivElement | null>(null);
+  const comparisonCardRef = useRef<HTMLDivElement | null>(null);
 
   const PULL_THRESHOLD = 80; // Порог для активации обновления
   const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
@@ -111,6 +115,7 @@ export default function NetworkOverview() {
     try {
       // Очищаем предыдущие данные
       setTransactions([]);
+      setPrevPeriodTransactions([]);
       setTanks([]);
       setTerminalInfo(null);
       setPrices([]);
@@ -134,6 +139,26 @@ export default function NetworkOverview() {
       );
 
       setTransactions(stsTransactions);
+
+      // Загружаем транзакции предыдущего периода (той же длины, сразу перед dateFrom)
+      try {
+        const fromDate = new Date(dateFrom);
+        const toDate = new Date(dateTo);
+        const periodMs = toDate.getTime() - fromDate.getTime();
+        const prevTo = new Date(fromDate.getTime() - 86400000); // день до dateFrom
+        const prevFrom = new Date(prevTo.getTime() - periodMs);
+        const prevFromStr = prevFrom.toISOString().split('T')[0];
+        const prevToStr = prevTo.toISOString().split('T')[0];
+        const prevTransactions = await stsApiService.getTransactions(
+          prevFromStr,
+          prevToStr,
+          0,
+          contextParams
+        );
+        setPrevPeriodTransactions(prevTransactions);
+      } catch {
+        setPrevPeriodTransactions([]);
+      }
 
       // Загружаем дополнительные данные для более полного обзора
       let additionalDataLoaded = [];
@@ -794,7 +819,7 @@ export default function NetworkOverview() {
 
         const { default: html2canvas } = await import('html2canvas');
         const canvas = await html2canvas(element, {
-          backgroundColor: '#0f172a',
+          backgroundColor: 'hsl(var(--background))',
           scale: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2,
           useCORS: true,
         });
@@ -806,7 +831,7 @@ export default function NetworkOverview() {
         captureElement(dailySalesCardRef.current),
         captureElement(heatmapCardRef.current),
         captureElement(activityCardRef.current),
-        captureElement(forecastCardRef.current),
+        captureElement(comparisonCardRef.current),
       ]);
 
       const pointDisplay = (() => {
@@ -905,7 +930,7 @@ export default function NetworkOverview() {
       }
 
       if (forecastImage) {
-        content.push({ text: 'Прогноз продаж', style: 'sectionLabel', margin: [0, 0, 0, 8] });
+        content.push({ text: 'Сравнение периодов', style: 'sectionLabel', margin: [0, 0, 0, 8] });
         content.push({ image: forecastImage, width: 520, margin: [0, 0, 0, 16] });
       }
 
@@ -917,7 +942,7 @@ export default function NetworkOverview() {
       const docDefinition = {
         info: {
           title: 'Обзор сети',
-          author: 'TradeFrame Builder',
+          author: 'TradeControl Builder',
           subject: 'Экспорт дашборда',
         },
         pageOrientation: 'landscape',
@@ -1563,7 +1588,7 @@ export default function NetworkOverview() {
               opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
             }}
           >
-            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+            <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
               {pullState === 'refreshing' ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
@@ -1577,7 +1602,7 @@ export default function NetworkOverview() {
               ) : (
                 <>
                   <RefreshCw
-                    className="w-4 h-4 text-slate-500"
+                    className="w-4 h-4 text-muted-foreground"
                     style={{
                       transform: `rotate(${pullDistance * 2}deg)`
                     }}
@@ -1591,7 +1616,7 @@ export default function NetworkOverview() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Обзор сети</h1>
             <div className="flex items-center gap-2">
               {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
                 <DropdownMenu>
@@ -1605,13 +1630,13 @@ export default function NetworkOverview() {
                       Экспорт
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44 bg-slate-800 border-slate-600 shadow-xl rounded-lg">
-                    <DropdownMenuItem onClick={exportToExcel} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
-                      <FileSpreadsheet className="w-4 h-4 text-green-400" />
+                  <DropdownMenuContent align="end" className="w-44 bg-card border-border shadow-xl rounded-lg">
+                    <DropdownMenuItem onClick={exportToExcel} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                      <FileSpreadsheet className="w-4 h-4 text-green-600 dark:text-green-400" />
                       <span className="text-sm font-medium">Экспорт в Excel</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={exportDashboardToPdf} disabled={loading || exportingPdf} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
-                      <FileText className="w-4 h-4 text-red-400" />
+                    <DropdownMenuItem onClick={exportDashboardToPdf} disabled={loading || exportingPdf} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                      <FileText className="w-4 h-4 text-red-600 dark:text-red-400" />
                       <span className="text-sm font-medium">{exportingPdf ? 'PDF…' : 'Экспорт в PDF'}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -1625,13 +1650,13 @@ export default function NetworkOverview() {
 
         {/* Фильтры - только если выбрана сеть */}
         {!initializing && selectedNetwork && (
-          <Card className="bg-slate-800 border-slate-700 mb-6">
+          <Card className="bg-card border-border mb-6">
             <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
               <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50 transition-colors">
+                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-slate-400" />
-                    <span className="font-medium text-white">Фильтры</span>
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-foreground">Фильтры</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1653,20 +1678,20 @@ export default function NetworkOverview() {
                         handleManualRefresh();
                       }}
                       disabled={loading}
-                      className="border-slate-600 text-white hover:bg-slate-700"
+                      className="border-border text-foreground hover:bg-secondary"
                     >
                       <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
-                    {filtersOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                    {filtersOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="p-4 border-t border-slate-700">
+                <div className="p-4 border-t border-border">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Дата начала */}
                     <div>
-                      <Label htmlFor="dateFrom" className="text-xs text-slate-400">Дата от</Label>
+                      <Label htmlFor="dateFrom" className="text-xs text-muted-foreground">Дата от</Label>
                       <Input
                         id="dateFrom"
                         type="date"
@@ -1678,7 +1703,7 @@ export default function NetworkOverview() {
 
                     {/* Дата окончания */}
                     <div>
-                      <Label htmlFor="dateTo" className="text-xs text-slate-400">Дата до</Label>
+                      <Label htmlFor="dateTo" className="text-xs text-muted-foreground">Дата до</Label>
                       <Input
                         id="dateTo"
                         type="date"
@@ -1700,34 +1725,34 @@ export default function NetworkOverview() {
             {/* Первая строка - основные средние значения */}
             <div className="space-y-2">
               <div className="flex justify-between items-center px-2">
-                <h3 className={`text-slate-300 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Средние значения</h3>
+                <h3 className={`text-foreground/80 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Средние значения</h3>
               </div>
               <div className={`grid gap-4 ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-6'}`}>
                 {/* Средний чек */}
-                <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
+                <Card className="bg-card border-border transition-all duration-300 hover:shadow-lg hover:bg-secondary">
                   <CardContent className="p-4 text-center">
-                    <p className="text-slate-400 text-sm mb-2">Средний чек</p>
-                    <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm mb-2">Средний чек</p>
+                    <p className="font-bold text-foreground text-2xl min-h-[2.5rem] flex items-center justify-center">
                       {Math.round(averageCheck).toLocaleString('ru-RU')} ₽
                     </p>
                   </CardContent>
                 </Card>
 
                 {/* Средний объем общий */}
-                <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
+                <Card className="bg-card border-border transition-all duration-300 hover:shadow-lg hover:bg-secondary">
                   <CardContent className="p-4 text-center">
-                    <p className="text-slate-400 text-sm mb-2">Средний объем</p>
-                    <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm mb-2">Средний объем</p>
+                    <p className="font-bold text-foreground text-2xl min-h-[2.5rem] flex items-center justify-center">
                       {filteredTransactions.length > 0 ? Math.round(totalVolume / filteredTransactions.length) : 0} л
                     </p>
                   </CardContent>
                 </Card>
 
                 {/* Операций в день */}
-                <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
+                <Card className="bg-card border-border transition-all duration-300 hover:shadow-lg hover:bg-secondary">
                   <CardContent className="p-4 text-center">
-                    <p className="text-slate-400 text-sm mb-2">Операций/день</p>
-                    <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm mb-2">Операций/день</p>
+                    <p className="font-bold text-foreground text-2xl min-h-[2.5rem] flex items-center justify-center">
                       {(() => {
                         const startDate = new Date(dateFrom);
                         const endDate = new Date(dateTo);
@@ -1740,10 +1765,10 @@ export default function NetworkOverview() {
 
                 {/* Средний объем АИ-92 */}
                 {fuelTypeStats.find(f => f.type.includes('АИ-92')) ? (
-                  <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
+                  <Card className="bg-card border-border transition-all duration-300 hover:shadow-lg hover:bg-secondary">
                     <CardContent className="p-4 text-center">
-                      <p className="text-slate-400 text-sm mb-2">АИ-92 сред.</p>
-                      <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                      <p className="text-muted-foreground text-sm mb-2">АИ-92 сред.</p>
+                      <p className="font-bold text-foreground text-2xl min-h-[2.5rem] flex items-center justify-center">
                         {(() => {
                           const fuel92 = fuelTypeStats.find(f => f.type.includes('АИ-92'));
                           return fuel92 && fuel92.operations > 0 ? Math.round(fuel92.volume / fuel92.operations) : 0;
@@ -1757,10 +1782,10 @@ export default function NetworkOverview() {
 
                 {/* Средний объем АИ-95 */}
                 {fuelTypeStats.find(f => f.type.includes('АИ-95')) ? (
-                  <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
+                  <Card className="bg-card border-border transition-all duration-300 hover:shadow-lg hover:bg-secondary">
                     <CardContent className="p-4 text-center">
-                      <p className="text-slate-400 text-sm mb-2">АИ-95 сред.</p>
-                      <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                      <p className="text-muted-foreground text-sm mb-2">АИ-95 сред.</p>
+                      <p className="font-bold text-foreground text-2xl min-h-[2.5rem] flex items-center justify-center">
                         {(() => {
                           const fuel95 = fuelTypeStats.find(f => f.type.includes('АИ-95'));
                           return fuel95 && fuel95.operations > 0 ? Math.round(fuel95.volume / fuel95.operations) : 0;
@@ -1774,10 +1799,10 @@ export default function NetworkOverview() {
 
                 {/* Средний объем ДТ */}
                 {fuelTypeStats.find(f => f.type.includes('ДТ') || f.type.includes('Дизель')) ? (
-                  <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
+                  <Card className="bg-card border-border transition-all duration-300 hover:shadow-lg hover:bg-secondary">
                     <CardContent className="p-4 text-center">
-                      <p className="text-slate-400 text-sm mb-2">ДТ средний</p>
-                      <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                      <p className="text-muted-foreground text-sm mb-2">ДТ средний</p>
+                      <p className="font-bold text-foreground text-2xl min-h-[2.5rem] flex items-center justify-center">
                         {(() => {
                           const fuelDT = fuelTypeStats.find(f => f.type.includes('ДТ') || f.type.includes('Дизель'));
                           return fuelDT && fuelDT.operations > 0 ? Math.round(fuelDT.volume / fuelDT.operations) : 0;
@@ -1798,49 +1823,49 @@ export default function NetworkOverview() {
         {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
           <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-6'}`}>
             {/* Таблица по видам топлива */}
-            <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+            <Card className="bg-card border border-border rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
               <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
-                <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
-                  <Fuel className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-purple-400`} />
+                <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
+                  <Fuel className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-purple-600 dark:text-purple-400`} />
                   Виды топлива
                 </CardTitle>
               </CardHeader>
-              <CardContent className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
+              <CardContent className={`${isMobile ? 'px-0 py-2' : 'px-0 py-2'}`}>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-slate-600">
-                        <th className={`text-left py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Топливо</th>
-                        <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
-                        <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
-                        <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}><Activity className="w-4 h-4 mx-auto" /></th>
+                      <tr className="border-b border-border">
+                        <th className={`text-left py-3 text-foreground font-medium ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>Топливо</th>
+                        <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
+                        <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
+                        <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}><Activity className="w-4 h-4 ml-auto" /></th>
                       </tr>
                     </thead>
                     <tbody>
                       {fuelTypeStats.map((fuel) => (
-                        <tr key={fuel.type} className="border-b border-slate-700 hover:bg-slate-700 transition-colors duration-200">
-                          <td className={`py-3 text-white font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{fuel.type}</td>
-                          <td className={`py-3 text-right text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <tr key={fuel.type} className="border-b border-border hover:bg-secondary transition-colors duration-200">
+                          <td className={`py-3 text-foreground font-medium ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>{fuel.type}</td>
+                          <td className={`py-3 text-right text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {fuel.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                           </td>
-                          <td className={`py-3 text-right text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          <td className={`py-3 text-right text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {fuel.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л
                           </td>
-                          <td className={`py-3 text-right text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          <td className={`py-3 text-right text-foreground/80 ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
                             {fuel.operations}
                           </td>
                         </tr>
                       ))}
                       {/* Итоговая строка для топлива */}
-                      <tr className="border-t-2 border-blue-400 bg-blue-900/30">
-                        <td className={`py-3 text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>Итого</td>
-                        <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      <tr className="border-t-2 border-primary/30 bg-primary/10">
+                        <td className={`py-3 text-primary font-bold ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>Итого</td>
+                        <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
                         </td>
-                        <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {Math.round(totalVolume).toLocaleString('ru-RU')} л
                         </td>
-                        <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
                           {filteredTransactions.length}
                         </td>
                       </tr>
@@ -1852,22 +1877,22 @@ export default function NetworkOverview() {
 
             {/* Таблица по способам оплаты */}
             {paymentTypeStats.length > 0 && (
-              <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+              <Card className="bg-card border border-border rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
                 <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
-                  <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
-                    <CreditCard className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400`} />
+                  <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
+                    <CreditCard className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-600 dark:text-green-400`} />
                     Способы оплаты
                   </CardTitle>
                 </CardHeader>
-                <CardContent className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
+                <CardContent className={`${isMobile ? 'px-0 py-2' : 'px-0 py-2'}`}>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-slate-600">
-                          <th className={`text-left py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Вид</th>
-                          <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
-                          <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
-                          <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}><Activity className="w-4 h-4 mx-auto" /></th>
+                        <tr className="border-b border-border">
+                          <th className={`text-left py-3 text-foreground font-medium ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>Вид</th>
+                          <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
+                          <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
+                          <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}><Activity className="w-4 h-4 ml-auto" /></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1880,30 +1905,30 @@ export default function NetworkOverview() {
                             .replace('Онлайн заказ', 'Онлайн');
 
                           return (
-                          <tr key={payment.type} className="border-b border-slate-700 hover:bg-slate-700 transition-colors duration-200">
-                            <td className={`py-3 text-white font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{shortName}</td>
-                            <td className={`py-3 text-right text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          <tr key={payment.type} className="border-b border-border hover:bg-secondary transition-colors duration-200">
+                            <td className={`py-3 text-foreground font-medium ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>{shortName}</td>
+                            <td className={`py-3 text-right text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                               {payment.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                             </td>
-                            <td className={`py-3 text-right text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                            <td className={`py-3 text-right text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                               {payment.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л
                             </td>
-                            <td className={`py-3 text-right text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                            <td className={`py-3 text-right text-foreground/80 font-medium ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
                               {payment.operations}
                             </td>
                           </tr>
                           );
                         })}
                         {/* Итоговая строка для способов оплаты */}
-                        <tr className="border-t-2 border-blue-400 bg-blue-900/30">
-                          <td className={`py-3 text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>Итого</td>
-                          <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <tr className="border-t-2 border-primary/30 bg-primary/10">
+                          <td className={`py-3 text-primary font-bold ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>Итого</td>
+                          <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
                           </td>
-                          <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {Math.round(totalVolume).toLocaleString('ru-RU')} л
                           </td>
-                          <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
                             {filteredTransactions.length}
                           </td>
                         </tr>
@@ -1920,7 +1945,7 @@ export default function NetworkOverview() {
 
 
         {/* График реализации по дням с разбивкой по топливу - Оптимизированный */}
-        {!initializing && selectedNetwork && transactions.length > 0 && (
+        {!initializing && !loading && selectedNetwork && transactions.length > 0 && (
           <div ref={dailySalesCardRef} className="w-full">
             <DailySalesChart
               data={dailySalesData.data}
@@ -1931,7 +1956,7 @@ export default function NetworkOverview() {
         )}
 
         {/* Производительность по топливу, Распределение оплат и Суточная активность */}
-        {!initializing && selectedNetwork && transactions.length > 0 && (
+        {!initializing && !loading && selectedNetwork && transactions.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full">
               {/* График производительности по видам топлива */}
               <div className="w-full lg:col-span-1 lg:h-full">
@@ -1985,15 +2010,15 @@ export default function NetworkOverview() {
         )}
 
         {/* Сравнение станций - только если данные по ВСЕЙ сети */}
-        {!initializing && selectedNetwork && stsApiConfigured && transactions.length > 0 && isAllTradingPoints && (
+        {!initializing && !loading && selectedNetwork && stsApiConfigured && transactions.length > 0 && isAllTradingPoints && (
           <>
             {/* Заголовок секции */}
             <div className="w-full">
-              <h2 className={`font-bold text-white flex items-center ${isMobile ? 'text-lg mb-1 gap-1.5' : 'text-2xl mb-2 gap-2'}`}>
+              <h2 className={`font-bold text-foreground flex items-center ${isMobile ? 'text-lg mb-1 gap-1.5' : 'text-2xl mb-2 gap-2'}`}>
                 <span className={isMobile ? 'text-lg' : 'text-2xl'}>📊</span>
                 {isMobile ? 'Сравнение станций' : 'Сравнение работы станций'}
               </h2>
-              <p className={`text-slate-400 ${isMobile ? 'text-xs mb-4' : 'text-sm mb-6'}`}>
+              <p className={`text-muted-foreground ${isMobile ? 'text-xs mb-4' : 'text-sm mb-6'}`}>
                 Аналитика и сравнительные показатели по всем АЗС сети
               </p>
             </div>
@@ -2021,40 +2046,50 @@ export default function NetworkOverview() {
                 isMobile={isMobile}
               />
             </div>
+
           </>
         )}
 
-        {/* Прогнозирование продаж */}
-        {!initializing && selectedNetwork && stsApiConfigured && transactions.length > 0 && (() => {
-          return (
-            <div ref={forecastCardRef} className="w-full">
-              <SalesForecast
-                transactions={completedTransactions}
-                className="w-full"
-              />
+        {/* Сравнение периодов + Динамика среднего чека */}
+        {!initializing && !loading && selectedNetwork && stsApiConfigured && transactions.length > 0 && (
+          <div ref={comparisonCardRef} className="w-full space-y-6">
+            <PeriodComparison
+              currentTransactions={completedTransactions}
+              previousTransactions={prevPeriodTransactions}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              className="w-full"
+            />
+            <AverageCheckTrend
+              transactions={completedTransactions}
+              className="w-full"
+            />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <WeekdayPattern transactions={filteredTransactions} />
+              <CashlessShareTrend transactions={filteredTransactions} />
             </div>
-          );
-        })()}
+          </div>
+        )}
 
         {/* Экран инициализации */}
         {initializing && (
-          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
-            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="bg-card border border-border rounded-lg p-8 text-center">
+            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Инициализация</h3>
-            <p className="text-slate-400">Загружаем конфигурацию и данные...</p>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Инициализация</h3>
+            <p className="text-muted-foreground">Загружаем конфигурацию и данные...</p>
           </div>
         )}
 
         {/* Сообщение о выборе сети */}
         {!initializing && !selectedNetwork && (
-          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
-            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-slate-400 text-2xl">📊</span>
+          <div className="bg-card border border-border rounded-lg p-8 text-center">
+            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-muted-foreground text-2xl">📊</span>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Выберите сеть для просмотра отчетов</h3>
-            <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Выберите сеть для просмотра отчетов</h3>
+            <p className="text-muted-foreground">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
           </div>
         )}
 
@@ -2072,12 +2107,12 @@ export default function NetworkOverview() {
 
         {/* Сообщение об отсутствии транзакций */}
         {!initializing && selectedNetwork && stsApiConfigured && !loading && transactions.length === 0 && (
-          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
-            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Activity className="w-8 h-8 text-slate-400" />
+          <div className="bg-card border border-border rounded-lg p-8 text-center">
+            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+              <Activity className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Нет данных за выбранный период</h3>
-            <p className="text-slate-400 mb-4">Измените диапазон дат или нажмите кнопку "Обновить данные" для загрузки актуальной информации.</p>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Нет данных за выбранный период</h3>
+            <p className="text-muted-foreground mb-4">Измените диапазон дат или нажмите кнопку "Обновить данные" для загрузки актуальной информации.</p>
             <Button 
               onClick={loadTransactions}
               className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -2090,12 +2125,12 @@ export default function NetworkOverview() {
 
         {/* Сообщение о необходимости настройки STS API */}
         {!initializing && selectedNetwork && !stsApiConfigured && (
-          <div className="bg-slate-800 border border-orange-600 rounded-lg p-8 text-center">
+          <div className="bg-card border border-orange-600 rounded-lg p-8 text-center">
             <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-white text-2xl">⚙️</span>
+              <span className="text-foreground text-2xl">⚙️</span>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Требуется настройка STS API</h3>
-            <p className="text-slate-400 mb-4">Эта страница работает только с данными из STS API. Для отображения аналитики необходимо настроить подключение к API.</p>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Требуется настройка STS API</h3>
+            <p className="text-muted-foreground mb-4">Эта страница работает только с данными из STS API. Для отображения аналитики необходимо настроить подключение к API.</p>
             <div className="flex gap-3 justify-center">
               <Button 
                 onClick={() => window.location.href = '/settings/sts-api'}
@@ -2125,7 +2160,7 @@ export default function NetworkOverview() {
                   }, 1000);
                 }}
                 variant="outline"
-                className="border-blue-600 text-blue-400 hover:bg-blue-700/20"
+                className="border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-700/20"
               >
                 🔄 Перепроверить настройки
               </Button>

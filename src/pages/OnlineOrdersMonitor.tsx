@@ -90,9 +90,9 @@ function getAllMstoServicePointIds(tradingPoints: TradingPoint[]): number[] {
 // Цвета для статусов (палитра как на странице оборудования)
 const STATUS_COLORS: Record<string, string> = {
   completed: 'bg-emerald-600 text-white',
-  pending: 'bg-amber-600 text-white',
+  pending: 'bg-amber-600 text-foreground',
   failed: 'bg-red-600 text-white',
-  cancelled: 'bg-slate-600 text-white'
+  cancelled: 'bg-secondary text-foreground'
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -428,13 +428,13 @@ export default function OnlineOrdersMonitor() {
         {/* Заголовок */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Smartphone className="w-6 h-6 text-blue-400" />
+            <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+              <Smartphone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Онлайн заказы</h1>
+              <h1 className="text-xl font-bold text-foreground">Онлайн заказы</h1>
               {!isAllTradingPoints && globalSelectedStation && (
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-foreground/80">
                   {globalSelectedStation.name}
                 </p>
               )}
@@ -443,12 +443,12 @@ export default function OnlineOrdersMonitor() {
 
           <div className="flex items-center gap-2">
             {/* Статус мониторинга */}
-            <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-800 rounded-lg">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isMonitoring ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500'}`} />
-              <span className="text-xs sm:text-sm text-gray-300 hidden sm:inline">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-card rounded-lg">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isMonitoring ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
+              <span className="text-xs sm:text-sm text-foreground/80 hidden sm:inline">
                 {isMonitoring ? 'Активен' : 'Остановлен'}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground">
                 {formatLastUpdate()}
               </span>
             </div>
@@ -477,89 +477,89 @@ export default function OnlineOrdersMonitor() {
 
         {/* KPI карточки */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
-          <Card className="bg-slate-800 border-slate-600">
+          <Card className="bg-card border-border">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
-                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-xl sm:text-2xl font-bold text-white">
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">
                     {loading ? <Skeleton className="h-6 sm:h-8 w-12 sm:w-16" /> : filteredStats.totalOrders}
                   </p>
-                  <p className="text-xs text-gray-400">Всего</p>
+                  <p className="text-xs text-muted-foreground">Всего</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-600">
+          <Card className="bg-card border-border">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
-                  <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                  <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-xl sm:text-2xl font-bold text-yellow-400">
+                  <p className="text-xl sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                     {loading ? <Skeleton className="h-6 sm:h-8 w-10 sm:w-12" /> : filteredStats.pendingOrders}
                   </p>
-                  <p className="text-xs text-gray-400">Ожидание</p>
+                  <p className="text-xs text-muted-foreground">Ожидание</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-600">
+          <Card className="bg-card border-border">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-xl sm:text-2xl font-bold text-green-400">
+                  <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
                     {loading ? <Skeleton className="h-6 sm:h-8 w-10 sm:w-12" /> : filteredStats.completedOrders}
                   </p>
-                  <p className="text-xs text-gray-400">Выполнено</p>
+                  <p className="text-xs text-muted-foreground">Выполнено</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-600">
+          <Card className="bg-card border-border">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-base sm:text-xl font-bold text-white">
+                  <p className="text-base sm:text-xl font-bold text-foreground">
                     {loading ? (
                       <Skeleton className="h-6 sm:h-8 w-16 sm:w-24" />
                     ) : (
                       onlineOrdersService.formatCurrency(filteredStats.totalRevenue)
                     )}
                   </p>
-                  <p className="text-xs text-gray-400">Выручка</p>
+                  <p className="text-xs text-muted-foreground">Выручка</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-600 col-span-2 sm:col-span-1">
+          <Card className="bg-card border-border col-span-2 sm:col-span-1">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
-                  <Fuel className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                  <Fuel className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-base sm:text-xl font-bold text-white">
+                  <p className="text-base sm:text-xl font-bold text-foreground">
                     {loading ? (
                       <Skeleton className="h-6 sm:h-8 w-16 sm:w-20" />
                     ) : (
                       `${filteredStats.totalVolume.toFixed(1)} л`
                     )}
                   </p>
-                  <p className="text-xs text-gray-400">Объём</p>
+                  <p className="text-xs text-muted-foreground">Объём</p>
                 </div>
               </div>
             </CardContent>
@@ -567,31 +567,31 @@ export default function OnlineOrdersMonitor() {
         </div>
 
         {/* Фильтры */}
-        <Card className="bg-slate-800 border-slate-600">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <Label className="text-xs text-gray-400">Дата от</Label>
+                <Label className="text-xs text-muted-foreground">Дата от</Label>
                 <Input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-sm"
+                  className="bg-secondary border-border text-sm"
                 />
               </div>
               <div>
-                <Label className="text-xs text-gray-400">Дата до</Label>
+                <Label className="text-xs text-muted-foreground">Дата до</Label>
                 <Input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-sm"
+                  className="bg-secondary border-border text-sm"
                 />
               </div>
               <div>
-                <Label className="text-xs text-gray-400">Топливо</Label>
+                <Label className="text-xs text-muted-foreground">Топливо</Label>
                 <Select value={selectedFuel} onValueChange={setSelectedFuel}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                  <SelectTrigger className="bg-secondary border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -605,9 +605,9 @@ export default function OnlineOrdersMonitor() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs text-gray-400">Статус</Label>
+                <Label className="text-xs text-muted-foreground">Статус</Label>
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                  <SelectTrigger className="bg-secondary border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -624,13 +624,13 @@ export default function OnlineOrdersMonitor() {
         </Card>
 
         {/* Таблица заказов */}
-        <Card className="bg-slate-800 border-slate-600">
+        <Card className="bg-card border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-foreground/80 flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Заказы
               {filteredOrders.length > 0 && (
-                <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
+                <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300">
                   {filteredOrders.length}
                 </Badge>
               )}
@@ -640,8 +640,8 @@ export default function OnlineOrdersMonitor() {
             {loading && orders.length === 0 ? (
               <div className="p-8 text-center">
                 <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
-                <p className="text-lg font-medium text-gray-300 mb-2">Загрузка онлайн-заказов...</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-lg font-medium text-foreground/80 mb-2">Загрузка онлайн-заказов...</p>
+                <p className="text-sm text-muted-foreground">
                   Первая загрузка может занять несколько секунд.<br />
                   Последующие обновления будут мгновенными.
                 </p>
@@ -649,7 +649,7 @@ export default function OnlineOrdersMonitor() {
             ) : error ? (
               <div className="p-8 text-center">
                 <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
-                <p className="text-red-400">{error}</p>
+                <p className="text-red-600 dark:text-red-400">{error}</p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -661,17 +661,17 @@ export default function OnlineOrdersMonitor() {
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="p-8 text-center">
-                <Smartphone className="w-12 h-12 text-gray-600 mx-auto mb-2" />
-                <p className="text-gray-400">Нет заказов за выбранный период</p>
+                <Smartphone className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">Нет заказов за выбранный период</p>
               </div>
             ) : isMobile ? (
               // Мобильное представление - карточки
-              <div className="divide-y divide-slate-700">
+              <div className="divide-y divide-border">
                 {filteredOrders.slice(0, 50).map(order => (
                   <div
                     key={order.id}
                     onClick={() => setSelectedOrderId(order.id)}
-                    className={`p-4 transition-colors cursor-pointer active:bg-slate-700 ${
+                    className={`p-4 transition-colors cursor-pointer active:bg-secondary ${
                       newOrderIds.has(order.id)
                         ? 'bg-blue-500/10 animate-pulse'
                         : ''
@@ -679,7 +679,7 @@ export default function OnlineOrdersMonitor() {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-white truncate max-w-[180px]">
+                        <span className="text-sm font-medium text-foreground truncate max-w-[180px]">
                           {order.stationName}
                         </span>
                         <Badge className={`${STATUS_COLORS[order.status]} flex items-center gap-1`}>
@@ -687,7 +687,7 @@ export default function OnlineOrdersMonitor() {
                           {STATUS_LABELS[order.status]}
                         </Badge>
                       </div>
-                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatDate(order.date)}
                       </span>
                     </div>
@@ -695,29 +695,29 @@ export default function OnlineOrdersMonitor() {
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-2 h-2 rounded-full ${
-                            FUEL_COLORS[order.fuelType] || 'bg-gray-500'
+                            FUEL_COLORS[order.fuelType] || 'bg-muted-foreground'
                           }`}
                         />
-                        <span className="text-sm text-gray-300">{order.fuelType}</span>
+                        <span className="text-sm text-foreground/80">{order.fuelType}</span>
                         {order.columnNumber && (
-                          <span className="text-xs text-gray-500">ТРК {order.columnNumber}</span>
+                          <span className="text-xs text-muted-foreground">ТРК {order.columnNumber}</span>
                         )}
                       </div>
-                      <span className="text-sm text-gray-400">
+                      <span className="text-sm text-muted-foreground">
                         {order.price.toFixed(2)} ₽/л
                       </span>
                     </div>
                     <div className="text-sm space-y-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-400">Заказ: {order.orderVolume.toFixed(2)} л</span>
-                        <span className="font-medium text-amber-400">
+                        <span className="text-muted-foreground">Заказ: {order.orderVolume.toFixed(2)} л</span>
+                        <span className="font-medium text-amber-600 dark:text-amber-400">
                           {onlineOrdersService.formatCurrency(order.orderTotal)}
                         </span>
                       </div>
                       {order.volume > 0 && (
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-400">Факт: {order.volume.toFixed(2)} л</span>
-                          <span className="font-medium text-green-400">
+                          <span className="text-muted-foreground">Факт: {order.volume.toFixed(2)} л</span>
+                          <span className="font-medium text-green-600 dark:text-green-400">
                             {onlineOrdersService.formatCurrency(order.total)}
                           </span>
                         </div>
@@ -726,7 +726,7 @@ export default function OnlineOrdersMonitor() {
                   </div>
                 ))}
                 {filteredOrders.length > 50 && (
-                  <div className="p-3 text-center text-xs text-gray-500">
+                  <div className="p-3 text-center text-xs text-muted-foreground">
                     Показано 50 из {filteredOrders.length}
                   </div>
                 )}
@@ -736,17 +736,17 @@ export default function OnlineOrdersMonitor() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-700">
-                      <TableHead className="text-gray-400">Дата/время</TableHead>
-                      <TableHead className="text-gray-400">Станция</TableHead>
-                      <TableHead className="text-gray-400">Топливо</TableHead>
-                      <TableHead className="text-gray-400 text-right">Заказано</TableHead>
-                      <TableHead className="text-gray-400 text-right">Отпущено</TableHead>
-                      <TableHead className="text-gray-400 text-right">Цена</TableHead>
-                      <TableHead className="text-gray-400 text-right">Сумма заказа</TableHead>
-                      <TableHead className="text-gray-400 text-right">Сумма отпуска</TableHead>
-                      <TableHead className="text-gray-400">Статус</TableHead>
-                      <TableHead className="text-gray-400 text-center">Колонка</TableHead>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">Дата/время</TableHead>
+                      <TableHead className="text-muted-foreground">Станция</TableHead>
+                      <TableHead className="text-muted-foreground">Топливо</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Заказано</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Отпущено</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Цена</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Сумма заказа</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Сумма отпуска</TableHead>
+                      <TableHead className="text-muted-foreground">Статус</TableHead>
+                      <TableHead className="text-muted-foreground text-center">Колонка</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -754,19 +754,19 @@ export default function OnlineOrdersMonitor() {
                       <TableRow
                         key={order.id}
                         onClick={() => setSelectedOrderId(order.id)}
-                        className={`border-slate-700 transition-colors cursor-pointer ${
+                        className={`border-border transition-colors cursor-pointer ${
                           newOrderIds.has(order.id)
                             ? 'bg-blue-500/10 animate-pulse'
-                            : 'hover:bg-slate-700'
+                            : 'hover:bg-secondary'
                         }`}
                       >
-                        <TableCell className="text-gray-300 text-sm whitespace-nowrap">
+                        <TableCell className="text-foreground/80 text-sm whitespace-nowrap">
                           {formatDate(order.date)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <MapPin className="w-3 h-3 text-gray-500" />
-                            <span className="text-white font-medium truncate max-w-[180px]">
+                            <MapPin className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-foreground font-medium truncate max-w-[180px]">
                               {order.stationName}
                             </span>
                           </div>
@@ -775,25 +775,25 @@ export default function OnlineOrdersMonitor() {
                           <div className="flex items-center gap-2">
                             <div
                               className={`w-2 h-2 rounded-full ${
-                                FUEL_COLORS[order.fuelType] || 'bg-gray-500'
+                                FUEL_COLORS[order.fuelType] || 'bg-muted-foreground'
                               }`}
                             />
-                            <span className="text-gray-300">{order.fuelType}</span>
+                            <span className="text-foreground/80">{order.fuelType}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right text-gray-300">
+                        <TableCell className="text-right text-foreground/80">
                           {order.orderVolume.toFixed(2)} л
                         </TableCell>
-                        <TableCell className="text-right text-gray-300">
+                        <TableCell className="text-right text-foreground/80">
                           {order.volume > 0 ? `${order.volume.toFixed(2)} л` : '—'}
                         </TableCell>
-                        <TableCell className="text-right text-gray-300">
+                        <TableCell className="text-right text-foreground/80">
                           {order.price.toFixed(2)} ₽
                         </TableCell>
-                        <TableCell className="text-right font-medium text-amber-400">
+                        <TableCell className="text-right font-medium text-amber-600 dark:text-amber-400">
                           {onlineOrdersService.formatCurrency(order.orderTotal)}
                         </TableCell>
-                        <TableCell className="text-right font-medium text-green-400">
+                        <TableCell className="text-right font-medium text-green-600 dark:text-green-400">
                           {order.total > 0 ? onlineOrdersService.formatCurrency(order.total) : '—'}
                         </TableCell>
                         <TableCell>
@@ -802,7 +802,7 @@ export default function OnlineOrdersMonitor() {
                             {STATUS_LABELS[order.status]}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-center text-gray-300 font-medium">
+                        <TableCell className="text-center text-foreground/80 font-medium">
                           {order.columnNumber || '—'}
                         </TableCell>
                       </TableRow>

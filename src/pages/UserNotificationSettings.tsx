@@ -180,7 +180,7 @@ export default function UserNotificationSettingsPage() {
       <MainLayout>
         <div className="container mx-auto p-6">
           <div className="flex items-center justify-center h-64">
-            <div className="text-slate-400">Загрузка настроек...</div>
+            <div className="text-muted-foreground">Загрузка настроек...</div>
           </div>
         </div>
       </MainLayout>
@@ -193,33 +193,33 @@ export default function UserNotificationSettingsPage() {
         {/* Заголовок */}
         <div>
           <div className="flex items-center gap-3">
-            <Bell className="w-8 h-8 text-blue-400" />
-            <h1 className="text-3xl font-bold text-white">
+            <Bell className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-3xl font-bold text-foreground">
               Настройки уведомлений
             </h1>
           </div>
-          <p className="text-slate-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             Управляйте способами получения уведомлений и выберите интересующие события
           </p>
         </div>
 
         {/* Telegram настройки */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="flex items-center gap-3 mb-4">
-            <MessageCircle className="w-6 h-6 text-blue-400" />
-            <h2 className="text-xl font-semibold text-white">Telegram уведомления</h2>
+            <MessageCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-xl font-semibold text-foreground">Telegram уведомления</h2>
           </div>
 
           <div className="space-y-4">
             {telegramVerified ? (
               <>
-                <div className="p-4 bg-emerald-900/20 border border-green-700 rounded-lg">
+                <div className="p-4 bg-emerald-100 dark:bg-emerald-900/20 border border-green-300 dark:border-green-700 rounded-lg">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-green-400 font-medium">Telegram привязан</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">Telegram привязан</span>
                   </div>
                   {telegramUsername && (
-                    <p className="text-slate-300 text-sm mt-2">
+                    <p className="text-foreground/80 text-sm mt-2">
                       Аккаунт: @{telegramUsername}
                     </p>
                   )}
@@ -229,7 +229,7 @@ export default function UserNotificationSettingsPage() {
                   onClick={handleSendTestNotification}
                   disabled={sendingTest}
                   variant="outline"
-                  className="w-full border-blue-700 text-blue-400 hover:bg-blue-900/20"
+                  className="w-full border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-900/20"
                 >
                   <Send className="w-4 h-4 mr-2" />
                   {sendingTest ? 'Отправка...' : 'Отправить тестовое уведомление'}
@@ -237,8 +237,8 @@ export default function UserNotificationSettingsPage() {
               </>
             ) : (
               <div className="space-y-3">
-                <div className="p-4 bg-slate-900 rounded-lg">
-                  <p className="text-slate-300 text-sm">
+                <div className="p-4 bg-background rounded-lg">
+                  <p className="text-foreground/80 text-sm">
                     Привяжите ваш Telegram аккаунт, чтобы получать мгновенные уведомления
                   </p>
                 </div>
@@ -253,19 +253,19 @@ export default function UserNotificationSettingsPage() {
                 </Button>
 
                 {telegramLink && (
-                  <div className="p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
-                    <p className="text-blue-400 text-sm mb-2">
+                  <div className="p-4 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
+                    <p className="text-blue-600 dark:text-blue-400 text-sm mb-2">
                       Перейдите по ссылке и нажмите "Start" в боте:
                     </p>
                     <a
                       href={telegramLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-300 hover:text-blue-200 underline break-all"
+                      className="text-blue-600 dark:text-blue-300 hover:text-blue-200 underline break-all"
                     >
                       {telegramLink}
                     </a>
-                    <p className="text-slate-500 text-xs mt-2">
+                    <p className="text-muted-foreground text-xs mt-2">
                       Ссылка действительна 24 часа
                     </p>
                   </div>
@@ -276,17 +276,17 @@ export default function UserNotificationSettingsPage() {
         </Card>
 
         {/* Режим "Не беспокоить" */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="flex items-center gap-3 mb-4">
-            <MoonStar className="w-6 h-6 text-blue-400" />
-            <h2 className="text-xl font-semibold text-white">Режим "Не беспокоить"</h2>
+            <MoonStar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-xl font-semibold text-foreground">Режим "Не беспокоить"</h2>
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-background rounded-lg">
               <div>
-                <Label className="text-slate-300">Включить режим</Label>
-                <p className="text-xs text-slate-500">
+                <Label className="text-foreground/80">Включить режим</Label>
+                <p className="text-xs text-muted-foreground">
                   Не получать уведомления в указанное время
                 </p>
               </div>
@@ -299,23 +299,23 @@ export default function UserNotificationSettingsPage() {
             {dndEnabled && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="dnd-start" className="text-slate-300">Начало</Label>
+                  <Label htmlFor="dnd-start" className="text-foreground/80">Начало</Label>
                   <Input
                     id="dnd-start"
                     type="time"
                     value={dndStart}
                     onChange={(e) => setDndStart(e.target.value)}
-                    className="mt-2 bg-slate-900 border-slate-700 text-white"
+                    className="mt-2 bg-background border-border text-foreground"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="dnd-end" className="text-slate-300">Окончание</Label>
+                  <Label htmlFor="dnd-end" className="text-foreground/80">Окончание</Label>
                   <Input
                     id="dnd-end"
                     type="time"
                     value={dndEnd}
                     onChange={(e) => setDndEnd(e.target.value)}
-                    className="mt-2 bg-slate-900 border-slate-700 text-white"
+                    className="mt-2 bg-background border-border text-foreground"
                   />
                 </div>
               </div>
@@ -324,21 +324,21 @@ export default function UserNotificationSettingsPage() {
         </Card>
 
         {/* Подписки на типы событий */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
+        <Card className="p-6 bg-card border-border">
           <div className="mb-4">
-            <h2 className="text-xl font-semibold text-white mb-2">Типы событий</h2>
-            <p className="text-slate-400 text-sm">
+            <h2 className="text-xl font-semibold text-foreground mb-2">Типы событий</h2>
+            <p className="text-muted-foreground text-sm">
               Выберите, о каких событиях вы хотите получать уведомления
             </p>
           </div>
 
-          <Separator className="my-4 bg-slate-700" />
+          <Separator className="my-4 bg-secondary" />
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg hover:bg-slate-900/70">
+            <div className="flex items-center justify-between p-4 bg-background rounded-lg hover:bg-background/70">
               <div>
-                <Label className="text-slate-300">Пороги купюроприемника</Label>
-                <p className="text-xs text-slate-500">
+                <Label className="text-foreground/80">Пороги купюроприемника</Label>
+                <p className="text-xs text-muted-foreground">
                   Когда купюроприемник заполнен или близок к заполнению
                 </p>
               </div>
@@ -350,10 +350,10 @@ export default function UserNotificationSettingsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg hover:bg-slate-900/70">
+            <div className="flex items-center justify-between p-4 bg-background rounded-lg hover:bg-background/70">
               <div>
-                <Label className="text-slate-300">Проблемы с терминалом</Label>
-                <p className="text-xs text-slate-500">
+                <Label className="text-foreground/80">Проблемы с терминалом</Label>
+                <p className="text-xs text-muted-foreground">
                   Когда терминал не передает данные или задержка передачи превышает порог
                 </p>
               </div>
@@ -365,10 +365,10 @@ export default function UserNotificationSettingsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg hover:bg-slate-900/70">
+            <div className="flex items-center justify-between p-4 bg-background rounded-lg hover:bg-background/70">
               <div>
-                <Label className="text-slate-300">Низкий уровень топлива</Label>
-                <p className="text-xs text-slate-500">
+                <Label className="text-foreground/80">Низкий уровень топлива</Label>
+                <p className="text-xs text-muted-foreground">
                   Когда уровень топлива в резервуаре критически низкий
                 </p>
               </div>
@@ -380,10 +380,10 @@ export default function UserNotificationSettingsPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg hover:bg-slate-900/70">
+            <div className="flex items-center justify-between p-4 bg-background rounded-lg hover:bg-background/70">
               <div>
-                <Label className="text-slate-300">Непробитые чеки</Label>
-                <p className="text-xs text-slate-500">
+                <Label className="text-foreground/80">Непробитые чеки</Label>
+                <p className="text-xs text-muted-foreground">
                   Сводка по непробитым чекам, требующим пробития для корректировки кассы
                 </p>
               </div>

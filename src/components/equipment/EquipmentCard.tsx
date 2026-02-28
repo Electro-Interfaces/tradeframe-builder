@@ -23,7 +23,7 @@ function getStatusIcon(status: string, className: string = 'w-4 h-4') {
     case 'error':
       return <AlertCircle className={`${className} text-red-500`} />;
     default:
-      return <Settings className={`${className} text-gray-500`} />;
+      return <Settings className={`${className} text-muted-foreground`} />;
   }
 }
 
@@ -36,12 +36,12 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
   // Определяем стиль карточки
   const getCardStyle = () => {
     if (isKKT && isEmergencyMode) {
-      return 'bg-red-900/40 border-red-600 hover:border-red-500';
+      return 'bg-red-100 dark:bg-red-900/40 border-red-600 hover:border-red-500';
     }
     if (isKKT && hasUnpunchedReceipts) {
-      return 'bg-amber-900/40 border-amber-600 hover:border-amber-500';
+      return 'bg-amber-100 dark:bg-amber-900/40 border-amber-600 hover:border-amber-500';
     }
-    return 'bg-slate-700 border-slate-600 hover:border-slate-500';
+    return 'bg-secondary border-border hover:border-border';
   };
 
   return (
@@ -54,8 +54,8 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
       <div className={`flex items-center justify-between ${isMobile ? 'mb-1 gap-1' : 'mb-1.5 gap-2'}`}>
         <span className={`font-medium truncate flex-1 min-w-0 ${isMobile ? 'text-[11px] leading-tight' : 'text-xs'} ${
           isPOS && equipment.posType
-            ? equipment.posType.id === 1 ? 'text-blue-300' : 'text-amber-300'
-            : 'text-white'
+            ? equipment.posType.id === 1 ? 'text-blue-600 dark:text-blue-300' : 'text-amber-600 dark:text-amber-300'
+            : 'text-foreground'
         }`}>
           {isPOS && equipment.posType
             ? (equipment.posType.id === 1 ? 'Автомат' : 'Оператор')
@@ -64,20 +64,20 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
         <div className="flex-shrink-0 flex items-center gap-1">
           {/* Индикатор не пробитых чеков для ККТ */}
           {isKKT && hasUnpunchedReceipts && (
-            <AlertTriangle className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-amber-400`} />
+            <AlertTriangle className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-amber-600 dark:text-amber-400`} />
           )}
           {getStatusIcon(equipment.status, isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5')}
         </div>
       </div>
 
       {/* Код/версия */}
-      <div className={`text-slate-300 truncate ${isMobile ? 'text-[9px] leading-tight' : 'text-[10px]'}`}>
+      <div className={`text-foreground/80 truncate ${isMobile ? 'text-[9px] leading-tight' : 'text-[10px]'}`}>
         {equipment.code}
       </div>
 
       {/* Локация (если есть) */}
       {equipment.location && (
-        <div className={`text-slate-400 truncate ${isMobile ? 'text-[9px] leading-tight' : 'text-[10px]'}`}>
+        <div className={`text-muted-foreground truncate ${isMobile ? 'text-[9px] leading-tight' : 'text-[10px]'}`}>
           {equipment.location}
         </div>
       )}

@@ -9,12 +9,12 @@ interface ChartSkeletonProps {
 
 export function ChartSkeleton({ height = "h-80", isMobile = false, showLegend = false }: ChartSkeletonProps) {
   return (
-    <Card className="bg-slate-800 border-slate-600">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-5 w-5 rounded-md bg-slate-700" />
-            <Skeleton className={`h-5 ${isMobile ? 'w-32' : 'w-48'} bg-slate-700`} />
+            <Skeleton className="h-5 w-5 rounded-md bg-secondary" />
+            <Skeleton className={`h-5 ${isMobile ? 'w-32' : 'w-48'} bg-secondary`} />
           </div>
         </div>
       </CardHeader>
@@ -25,7 +25,7 @@ export function ChartSkeleton({ height = "h-80", isMobile = false, showLegend = 
             {Array.from({ length: isMobile ? 7 : 14 }).map((_, i) => (
               <div key={i} className="flex-1 flex flex-col justify-end">
                 <Skeleton
-                  className="w-full bg-slate-700"
+                  className="w-full bg-secondary"
                   style={{ height: `${Math.random() * 60 + 40}%` }}
                 />
               </div>
@@ -34,14 +34,14 @@ export function ChartSkeleton({ height = "h-80", isMobile = false, showLegend = 
           {/* Имитация оси X */}
           <div className="flex gap-1">
             {Array.from({ length: isMobile ? 7 : 14 }).map((_, i) => (
-              <Skeleton key={i} className="flex-1 h-3 bg-slate-700" />
+              <Skeleton key={i} className="flex-1 h-3 bg-secondary" />
             ))}
           </div>
           {showLegend && (
             <div className="flex gap-4 justify-center mt-2">
-              <Skeleton className="h-4 w-20 bg-slate-700" />
-              <Skeleton className="h-4 w-20 bg-slate-700" />
-              <Skeleton className="h-4 w-20 bg-slate-700" />
+              <Skeleton className="h-4 w-20 bg-secondary" />
+              <Skeleton className="h-4 w-20 bg-secondary" />
+              <Skeleton className="h-4 w-20 bg-secondary" />
             </div>
           )}
         </div>
@@ -52,14 +52,14 @@ export function ChartSkeleton({ height = "h-80", isMobile = false, showLegend = 
 
 export function HeatmapSkeleton({ isMobile = false }: { isMobile?: boolean }) {
   return (
-    <Card className="bg-slate-800 border-slate-600">
+    <Card className="bg-card border-border">
       <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-5 w-5 rounded-md bg-slate-700" />
-            <Skeleton className={`h-5 ${isMobile ? 'w-32' : 'w-48'} bg-slate-700`} />
+            <Skeleton className="h-5 w-5 rounded-md bg-secondary" />
+            <Skeleton className={`h-5 ${isMobile ? 'w-32' : 'w-48'} bg-secondary`} />
           </div>
-          <Skeleton className={`h-4 ${isMobile ? 'w-12' : 'w-24'} bg-slate-700`} />
+          <Skeleton className={`h-4 ${isMobile ? 'w-12' : 'w-24'} bg-secondary`} />
         </div>
       </CardHeader>
       <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
@@ -69,17 +69,17 @@ export function HeatmapSkeleton({ isMobile = false }: { isMobile?: boolean }) {
             <div className={`${isMobile ? 'w-8' : 'w-12'} shrink-0`}></div>
             <div className="flex-1 flex gap-0.5">
               {Array.from({ length: 24 }).map((_, i) => (
-                <Skeleton key={i} className="flex-1 h-3 bg-slate-700" />
+                <Skeleton key={i} className="flex-1 h-3 bg-secondary" />
               ))}
             </div>
           </div>
           {/* Строки тепловой карты */}
           {Array.from({ length: 7 }).map((_, i) => (
             <div key={i} className="flex items-center">
-              <Skeleton className={`${isMobile ? 'w-8 h-4' : 'w-12 h-5'} shrink-0 bg-slate-700 mr-2`} />
+              <Skeleton className={`${isMobile ? 'w-8 h-4' : 'w-12 h-5'} shrink-0 bg-secondary mr-2`} />
               <div className="flex-1 flex gap-0.5">
                 {Array.from({ length: 24 }).map((_, j) => (
-                  <Skeleton key={j} className="flex-1 h-6 bg-slate-700" />
+                  <Skeleton key={j} className="flex-1 h-6 bg-secondary" />
                 ))}
               </div>
             </div>

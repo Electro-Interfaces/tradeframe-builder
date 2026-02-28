@@ -26,12 +26,12 @@ export const FuelInventoryFilters = ({
   loading = false
 }: FuelInventoryFiltersProps) => {
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardContent className="py-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Дата от */}
           <div>
-            <Label htmlFor="date-from" className="text-xs text-slate-400">Дата от</Label>
+            <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
             <Input
               id="date-from"
               type="date"
@@ -43,7 +43,7 @@ export const FuelInventoryFilters = ({
 
           {/* Дата до */}
           <div>
-            <Label htmlFor="date-to" className="text-xs text-slate-400">Дата до</Label>
+            <Label htmlFor="date-to" className="text-xs text-muted-foreground">Дата до</Label>
             <Input
               id="date-to"
               type="date"

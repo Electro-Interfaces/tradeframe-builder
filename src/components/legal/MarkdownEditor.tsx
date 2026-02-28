@@ -170,7 +170,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               onClick={handleDownload}
               variant="outline"
               size="sm"
-              className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+              className="bg-secondary border-border text-foreground hover:bg-secondary"
             >
               <Download className="w-4 h-4 mr-2" />
               {!isMobile && "Скачать"}
@@ -191,9 +191,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         </div>
 
         <TabsContent value="edit" className="mt-0">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Edit3 className="w-5 h-5" />
                 Редактирование документа
                 <Badge variant="outline" className="ml-auto text-xs">
@@ -206,12 +206,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 value={localContent}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder={placeholder}
-                className="min-h-[500px] bg-slate-700 border-slate-600 text-white font-mono text-sm resize-none focus:ring-blue-500"
+                className="min-h-[500px] bg-secondary border-border text-foreground font-mono text-sm resize-none focus:ring-blue-500"
                 readOnly={readOnly}
               />
               
               {/* Краткая статистика под редактором */}
-              <div className="flex items-center justify-between mt-3 text-sm text-slate-400">
+              <div className="flex items-center justify-between mt-3 text-sm text-muted-foreground">
                 <div className="flex items-center gap-4">
                   <span>Слов: {textStats.words}</span>
                   <span>Символов: {textStats.characters}</span>
@@ -229,9 +229,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         </TabsContent>
 
         <TabsContent value="preview" className="mt-0">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Eye className="w-5 h-5" />
                 Предпросмотр документа
                 <Badge variant="outline" className="ml-auto text-xs">
@@ -246,7 +246,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 style={{
                   fontFamily: 'system-ui, -apple-system, sans-serif',
                   lineHeight: '1.6',
-                  color: '#1e293b'
+                  color: 'hsl(var(--foreground))'
                 }}
               />
             </CardContent>
@@ -254,9 +254,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         </TabsContent>
 
         <TabsContent value="stats" className="mt-0">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Info className="w-5 h-5" />
                 Статистика документа
                 <Badge variant="outline" className="ml-auto text-xs">
@@ -266,61 +266,61 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">{textStats.words}</div>
-                  <div className="text-sm text-slate-400">Слов</div>
+                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">{textStats.words}</div>
+                  <div className="text-sm text-muted-foreground">Слов</div>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">{textStats.characters}</div>
-                  <div className="text-sm text-slate-400">Символов</div>
+                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">{textStats.characters}</div>
+                  <div className="text-sm text-muted-foreground">Символов</div>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">{textStats.charactersWithoutSpaces}</div>
-                  <div className="text-sm text-slate-400">Без пробелов</div>
+                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">{textStats.charactersWithoutSpaces}</div>
+                  <div className="text-sm text-muted-foreground">Без пробелов</div>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">{textStats.paragraphs}</div>
-                  <div className="text-sm text-slate-400">Абзацев</div>
+                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">{textStats.paragraphs}</div>
+                  <div className="text-sm text-muted-foreground">Абзацев</div>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">{textStats.lines}</div>
-                  <div className="text-sm text-slate-400">Строк</div>
+                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">{textStats.lines}</div>
+                  <div className="text-sm text-muted-foreground">Строк</div>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">
+                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">
                     {textStats.words > 0 ? Math.round(textStats.characters / textStats.words * 10) / 10 : 0}
                   </div>
-                  <div className="text-sm text-slate-400">Символов/слово</div>
+                  <div className="text-sm text-muted-foreground">Символов/слово</div>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">
+                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">
                     {Math.round((textStats.words / 200) * 10) / 10}
                   </div>
-                  <div className="text-sm text-slate-400">Минут чтения</div>
+                  <div className="text-sm text-muted-foreground">Минут чтения</div>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">
+                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-foreground">
                     {textStats.paragraphs > 0 ? Math.round(textStats.words / textStats.paragraphs * 10) / 10 : 0}
                   </div>
-                  <div className="text-sm text-slate-400">Слов/абзац</div>
+                  <div className="text-sm text-muted-foreground">Слов/абзац</div>
                 </div>
               </div>
               
               {/* Дополнительная информация */}
               <div className="mt-6 space-y-3">
-                <div className="bg-slate-700/30 rounded-lg p-4">
-                  <h4 className="text-white font-medium mb-2 flex items-center gap-2">
+                <div className="bg-secondary/30 rounded-lg p-4">
+                  <h4 className="text-foreground font-medium mb-2 flex items-center gap-2">
                     <Hash className="w-4 h-4" />
                     Рекомендации по тексту
                   </h4>
-                  <ul className="text-sm text-slate-300 space-y-1">
+                  <ul className="text-sm text-foreground/80 space-y-1">
                     {textStats.words < 100 && (
                       <li>• Документ довольно короткий - рассмотрите добавление деталей</li>
                     )}

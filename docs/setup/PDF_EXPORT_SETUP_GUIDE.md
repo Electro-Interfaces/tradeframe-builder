@@ -1,8 +1,8 @@
-# 📋 Инструкция по настройке PDF экспорта в TradeFrame Builder
+# 📋 Инструкция по настройке PDF экспорта в TradeControl Builder
 
 ## 📊 Общая информация
 
-**Система**: TradeFrame Builder v1.5.16
+**Система**: TradeControl Builder v1.5.16
 **Компонент**: PDF экспорт операций и отчетов
 **Библиотека**: pdfmake v0.2.10
 **Окружение**: Production (prod.dataworker.ru)

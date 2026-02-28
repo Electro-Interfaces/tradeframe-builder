@@ -31,7 +31,7 @@ export function TradingPointsCards({
 }: TradingPointsCardsProps) {
   if (loading) {
     return (
-      <div className="text-center text-slate-400 py-8">
+      <div className="text-center text-muted-foreground py-8">
         Загрузка торговых точек...
       </div>
     );
@@ -39,7 +39,7 @@ export function TradingPointsCards({
 
   if (tradingPoints.length === 0) {
     return (
-      <div className="text-center text-slate-400 py-8">
+      <div className="text-center text-muted-foreground py-8">
         Нет торговых точек в этой сети
       </div>
     );
@@ -52,36 +52,36 @@ export function TradingPointsCards({
         return (
           <div
             key={point.id}
-            className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
+            className="bg-secondary rounded-lg p-4 hover:bg-secondary transition-colors"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-white text-base mb-1">{point.name}</div>
-                <div className="text-sm text-slate-400 mb-1">
+                <div className="font-medium text-foreground text-base mb-1">{point.name}</div>
+                <div className="text-sm text-muted-foreground mb-1">
                   {point.geolocation?.address || point.geolocation?.city || '—'}
                 </div>
                 {point.phone && (
-                  <div className="text-sm text-slate-400 mb-2">{point.phone}</div>
+                  <div className="text-sm text-muted-foreground mb-2">{point.phone}</div>
                 )}
                 <div className="flex items-center gap-3 text-xs mb-2">
                   <Badge className={point.isBlocked ? "bg-red-600 text-white" : "bg-emerald-600 text-white"}>
                     {point.isBlocked ? "Заблокирован" : "Активный"}
                   </Badge>
-                  <span className="text-slate-400">
+                  <span className="text-muted-foreground">
                     {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') :
                      point.createdAt ? new Date(point.createdAt).toLocaleDateString('ru-RU') : '—'}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   {point.external_id && (
-                    <span className="bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded font-mono">
+                    <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-0.5 rounded font-mono">
                       API: {point.external_id}
                     </span>
                   )}
                   {significantCodes.map(code => (
                     <span 
                       key={code.id}
-                      className="bg-emerald-900/50 text-emerald-300 px-2 py-0.5 rounded font-mono"
+                      className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded font-mono"
                     >
                       {code.system.toUpperCase()}: {code.code}
                     </span>
@@ -92,7 +92,7 @@ export function TradingPointsCards({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                   onClick={() => onEdit(point)}
                   disabled={actionLoading === `edit-${point.id}` || actionLoading === `delete-${point.id}`}
                 >
@@ -101,7 +101,7 @@ export function TradingPointsCards({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
                   onClick={() => onDelete(point)}
                   disabled={actionLoading === `edit-${point.id}` || actionLoading === `delete-${point.id}`}
                 >

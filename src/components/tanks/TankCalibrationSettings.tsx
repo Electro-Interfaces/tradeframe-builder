@@ -401,10 +401,10 @@ export function TankCalibrationSettingsComponent({
                 {/* Автоматически рассчитанный объем */}
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                   <div className="flex items-center gap-3">
-                    <Calculator className="h-6 w-6 text-blue-400" />
+                    <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-300">Расчетный объем резервуара</p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-300">Расчетный объем резервуара</p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {settings.tank_shape_type === 'horizontal_cylinder' && 'Формула: V = π × (D/2)² × L'}
                         {settings.tank_shape_type === 'vertical_cylinder' && 'Формула: V = π × (D/2)² × H'}
                         {settings.tank_shape_type === 'spherical' && 'Формула: V = (4/3) × π × (D/2)³'}
@@ -412,15 +412,15 @@ export function TankCalibrationSettingsComponent({
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-white">{calculatedVolume.toFixed(0)}</p>
-                      <p className="text-sm text-slate-400">литров</p>
+                      <p className="text-2xl font-bold text-foreground">{calculatedVolume.toFixed(0)}</p>
+                      <p className="text-sm text-muted-foreground">литров</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Источник опорной точки */}
-                <div className="space-y-4 pt-4 border-t border-slate-700">
-                  <h4 className="text-sm font-medium text-slate-300">Алгоритм калибровки</h4>
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <h4 className="text-sm font-medium text-foreground/80">Алгоритм калибровки</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="reference_source">Источник опорной точки</Label>
@@ -500,8 +500,8 @@ export function TankCalibrationSettingsComponent({
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Информационный badge с текущими настройками */}
-                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex items-center justify-between gap-4">
-                  <p className="text-sm text-slate-300">
+                <div className="bg-card/50 border border-border rounded-lg p-3 flex items-center justify-between gap-4">
+                  <p className="text-sm text-foreground/80">
                     <span className="font-semibold">Текущий датчик:</span> {getSensorAccuracyHint()}
                   </p>
                   <Button
@@ -648,7 +648,7 @@ export function TankCalibrationSettingsComponent({
                       type="text"
                       value={calculatedGradient}
                       readOnly
-                      className="bg-slate-800 cursor-not-allowed"
+                      className="bg-card cursor-not-allowed"
                     />
                     <p className="text-xs text-muted-foreground">
                       Автоматический расчет: {tankCapacity} л × {settings.thermal_expansion_coefficient}
@@ -677,7 +677,7 @@ export function TankCalibrationSettingsComponent({
                 </div>
 
                 {/* Теплоизоляция */}
-                <div className="flex items-center justify-between p-4 border border-slate-700 rounded-lg bg-slate-800/30">
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-card/30">
                   <div className="space-y-1">
                     <Label htmlFor="has_thermal_insulation" className="text-base font-medium">
                       Наличие теплоизоляции

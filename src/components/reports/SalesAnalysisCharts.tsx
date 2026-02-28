@@ -26,8 +26,8 @@ const mockTrendData = [
 
 // Компонент загрузки
 const ChartSkeleton = () => (
-  <div className="w-full h-64 bg-slate-700 rounded-lg flex items-center justify-center">
-    <div className="text-slate-400">Загрузка графика...</div>
+  <div className="w-full h-64 bg-secondary rounded-lg flex items-center justify-center">
+    <div className="text-muted-foreground">Загрузка графика...</div>
   </div>
 );
 
@@ -61,10 +61,10 @@ const FuelChart = () => {
           </Pie>
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: '#1e293b', 
-              border: '1px solid #475569',
+              backgroundColor: 'hsl(var(--card))', 
+              border: '1px solid hsl(var(--border))',
               borderRadius: '6px',
-              color: '#f1f5f9'
+              color: 'hsl(var(--foreground))'
             }}
           />
         </PieChart>
@@ -89,15 +89,15 @@ const TrendChart = () => {
     <React.Suspense fallback={<ChartSkeleton />}>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={mockTrendData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis dataKey="period" stroke="#9ca3af" />
-          <YAxis stroke="#9ca3af" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" />
+          <YAxis stroke="hsl(var(--muted-foreground))" />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: '#1e293b', 
-              border: '1px solid #475569',
+              backgroundColor: 'hsl(var(--card))', 
+              border: '1px solid hsl(var(--border))',
               borderRadius: '6px',
-              color: '#f1f5f9'
+              color: 'hsl(var(--foreground))'
             }}
           />
           <Legend />
@@ -131,18 +131,18 @@ export function SalesAnalysisCharts({ selectedNetwork, selectedTradingPoint }: S
     <div className="space-y-6">
       {/* Распределение по видам топлива */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Продажи по видам топлива</CardTitle>
+            <CardTitle className="text-foreground">Продажи по видам топлива</CardTitle>
           </CardHeader>
           <CardContent>
             <FuelChart />
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Тренд продаж</CardTitle>
+            <CardTitle className="text-foreground">Тренд продаж</CardTitle>
           </CardHeader>
           <CardContent>
             <TrendChart />
@@ -151,22 +151,22 @@ export function SalesAnalysisCharts({ selectedNetwork, selectedTradingPoint }: S
       </div>
 
       {/* Дополнительная аналитика */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Дополнительные метрики</CardTitle>
+          <CardTitle className="text-foreground">Дополнительные метрики</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-white">
-            <div className="text-center p-4 bg-slate-700 rounded-lg">
-              <h4 className="text-sm text-slate-400 mb-2">Топ продукт</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-foreground">
+            <div className="text-center p-4 bg-secondary rounded-lg">
+              <h4 className="text-sm text-muted-foreground mb-2">Топ продукт</h4>
               <p className="text-lg font-semibold">АИ-95 (45%)</p>
             </div>
-            <div className="text-center p-4 bg-slate-700 rounded-lg">
-              <h4 className="text-sm text-slate-400 mb-2">Пик продаж</h4>
+            <div className="text-center p-4 bg-secondary rounded-lg">
+              <h4 className="text-sm text-muted-foreground mb-2">Пик продаж</h4>
               <p className="text-lg font-semibold">14:00 - 18:00</p>
             </div>
-            <div className="text-center p-4 bg-slate-700 rounded-lg">
-              <h4 className="text-sm text-slate-400 mb-2">Конверсия</h4>
+            <div className="text-center p-4 bg-secondary rounded-lg">
+              <h4 className="text-sm text-muted-foreground mb-2">Конверсия</h4>
               <p className="text-lg font-semibold">78.5%</p>
             </div>
           </div>

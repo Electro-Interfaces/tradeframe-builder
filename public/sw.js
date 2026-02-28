@@ -1,4 +1,4 @@
-// Service Worker для TradeFrame PWA - Full PWA Version
+// Service Worker для TradeControl PWA - Full PWA Version
 
 // Детекция iOS для специальной обработки
 const isIOS = /iPad|iPhone|iPod/.test(self.navigator.userAgent);
@@ -123,7 +123,7 @@ self.addEventListener('fetch', event => {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>TradeFrame - Офлайн</title>
+  <title>TradeControl - Офлайн</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
@@ -137,7 +137,7 @@ self.addEventListener('fetch', event => {
 </head>
 <body>
   <div class="offline">
-    <h1>🌐 TradeFrame</h1>
+    <h1>🌐 TradeControl</h1>
     <p>Нет подключения к интернету</p>
     <button class="retry" onclick="window.location.reload()">Повторить</button>
   </div>

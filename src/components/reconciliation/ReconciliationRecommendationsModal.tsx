@@ -93,10 +93,10 @@ export function ReconciliationRecommendationsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-slate-900 border-slate-700 p-4 sm:p-6">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-background border-border p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white text-base sm:text-lg">
-            <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+          <DialogTitle className="flex items-center gap-2 text-foreground text-base sm:text-lg">
+            <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 dark:text-yellow-400" />
             Анализ и рекомендации
           </DialogTitle>
         </DialogHeader>
@@ -108,39 +108,39 @@ export function ReconciliationRecommendationsModal({
             {/* СЕКЦИЯ 1: СВЕРКА ТРАНЗАКЦИЙ (Corp ↔ TF) — ОСНОВНАЯ              */}
             {/* ═══════════════════════════════════════════════════════════════ */}
 
-            <section className="bg-slate-800 rounded-lg p-3 sm:p-4 border-l-4 border-purple-500">
-              <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                <ArrowRightLeft className="h-4 w-4 text-purple-400" />
+            <section className="bg-card rounded-lg p-3 sm:p-4 border-l-4 border-purple-500">
+              <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <ArrowRightLeft className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 Сверка транзакций (Corp ↔ TF)
-                <span className="text-xs text-slate-500 ml-auto">основная</span>
+                <span className="text-xs text-muted-foreground ml-auto">основная</span>
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-400" />
-                  <span className="text-slate-300">{summary.matched} транзакций совпало</span>
+                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <span className="text-foreground/80">{summary.matched} транзакций совпало</span>
                 </div>
 
                 {(summary.onlyCorp + summary.onlyTf + summary.mismatch) > 0 ? (
                   <div className="flex items-center gap-2">
-                    <XCircle className="h-4 w-4 text-red-400" />
-                    <span className="text-red-300">
+                    <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <span className="text-red-600 dark:text-red-300">
                       {summary.onlyCorp + summary.onlyTf + summary.mismatch} расхождений
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-400" />
-                    <span className="text-green-300">Нет расхождений</span>
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <span className="text-green-600 dark:text-green-300">Нет расхождений</span>
                   </div>
                 )}
               </div>
 
               {/* Итог по литрам Corp-TF */}
-              <div className="mt-3 pt-3 border-t border-slate-700 text-xs">
+              <div className="mt-3 pt-3 border-t border-border text-xs">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Разница Corp - TF:</span>
-                  <span className={totalCorpTfDiff > SIGNIFICANT_DIFF_LITERS ? 'text-red-400 font-medium' : 'text-green-400'}>
+                  <span className="text-muted-foreground">Разница Corp - TF:</span>
+                  <span className={totalCorpTfDiff > SIGNIFICANT_DIFF_LITERS ? 'text-red-600 dark:text-red-400 font-medium' : 'text-green-600 dark:text-green-400'}>
                     {totalCorpTfDiff > DIFF_TOLERANCE ? `Δ ${totalCorpTfDiff.toFixed(1)} л` : '✓ Совпадает'}
                   </span>
                 </div>
@@ -149,33 +149,33 @@ export function ReconciliationRecommendationsModal({
 
             {/* Детальный анализ - Только в Corp */}
             {summary.onlyCorp > 0 && (
-              <section className="bg-slate-800 rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm font-medium text-red-400 mb-3 flex items-center gap-2">
+              <section className="bg-card rounded-lg p-3 sm:p-4">
+                <h3 className="text-sm font-medium text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   Только в Corp: {summary.onlyCorp} транзакций
                 </h3>
 
                 <div className="space-y-2 text-sm">
                   {onlyCorpTx.slice(0, 5).map((tx, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-slate-300 bg-slate-900/50 rounded px-2 py-1">
+                    <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-foreground/80 bg-background/50 rounded px-2 py-1">
                       <span className="truncate">{tx.fuelType}: {(tx.corpLiters || 0).toFixed(1)} л</span>
-                      <span className="text-slate-500 text-xs sm:text-sm">карта ...{String(tx.cardNumber || '').slice(-4)}</span>
+                      <span className="text-muted-foreground text-xs sm:text-sm">карта ...{String(tx.cardNumber || '').slice(-4)}</span>
                     </div>
                   ))}
                   {onlyCorpTx.length > 5 && (
-                    <div className="text-slate-500 text-xs">
+                    <div className="text-muted-foreground text-xs">
                       ... и ещё {onlyCorpTx.length - 5} транзакций
                     </div>
                   )}
                 </div>
 
-                <div className="mt-3 p-2 bg-purple-900/30 rounded text-xs text-purple-300 flex items-start gap-2">
+                <div className="mt-3 p-2 bg-purple-100 dark:bg-purple-900/30 rounded text-xs text-purple-600 dark:text-purple-300 flex items-start gap-2">
                   <HelpCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
                     <strong>Вероятные причины:</strong>
                     <ul className="mt-1 list-disc list-inside space-y-0.5">
                       <li>Операция на другой АЗС (не в вашей сети)</li>
-                      <li>Задержка синхронизации станции с TradeFrame</li>
+                      <li>Задержка синхронизации станции с TradeControl</li>
                       <li>Карта другой сети/компании</li>
                     </ul>
                   </div>
@@ -185,27 +185,27 @@ export function ReconciliationRecommendationsModal({
 
             {/* Детальный анализ - Только в TF */}
             {summary.onlyTf > 0 && (
-              <section className="bg-slate-800 rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm font-medium text-blue-400 mb-3 flex items-center gap-2">
+              <section className="bg-card rounded-lg p-3 sm:p-4">
+                <h3 className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   Только в TF: {summary.onlyTf} транзакций
                 </h3>
 
                 <div className="space-y-2 text-sm">
                   {onlyTfTx.slice(0, 5).map((tx, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-slate-300 bg-slate-900/50 rounded px-2 py-1">
+                    <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-foreground/80 bg-background/50 rounded px-2 py-1">
                       <span className="truncate">{tx.fuelType}: {(tx.tfLiters || 0).toFixed(1)} л</span>
-                      <span className="text-slate-500 text-xs sm:text-sm">карта ...{String(tx.cardNumber || '').slice(-4)}</span>
+                      <span className="text-muted-foreground text-xs sm:text-sm">карта ...{String(tx.cardNumber || '').slice(-4)}</span>
                     </div>
                   ))}
                   {onlyTfTx.length > 5 && (
-                    <div className="text-slate-500 text-xs">
+                    <div className="text-muted-foreground text-xs">
                       ... и ещё {onlyTfTx.length - 5} транзакций
                     </div>
                   )}
                 </div>
 
-                <div className="mt-3 p-2 bg-blue-900/30 rounded text-xs text-blue-300 flex items-start gap-2">
+                <div className="mt-3 p-2 bg-blue-100 dark:bg-blue-900/30 rounded text-xs text-blue-600 dark:text-blue-300 flex items-start gap-2">
                   <HelpCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
                     <strong>Вероятные причины:</strong>
@@ -221,8 +221,8 @@ export function ReconciliationRecommendationsModal({
 
             {/* Детальный анализ - Расхождение литров */}
             {summary.mismatch > 0 && (
-              <section className="bg-slate-800 rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm font-medium text-yellow-400 mb-3 flex items-center gap-2">
+              <section className="bg-card rounded-lg p-3 sm:p-4">
+                <h3 className="text-sm font-medium text-yellow-600 dark:text-yellow-400 mb-3 flex items-center gap-2">
                   <ArrowRightLeft className="h-4 w-4" />
                   Расхождение литров: {summary.mismatch} транзакций
                 </h3>
@@ -232,24 +232,24 @@ export function ReconciliationRecommendationsModal({
                     const diff = (tx.corpLiters || 0) - (tx.tfLiters || 0);
                     const isSignificant = Math.abs(diff) >= SIGNIFICANT_DIFF_LITERS;
                     return (
-                      <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-slate-300 bg-slate-900/50 rounded px-2 py-1.5">
+                      <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-foreground/80 bg-background/50 rounded px-2 py-1.5">
                         <span className="text-xs sm:text-sm">
                           {tx.fuelType}: Corp {(tx.corpLiters || 0).toFixed(1)} vs TF {(tx.tfLiters || 0).toFixed(1)} л
                         </span>
-                        <span className={`text-xs sm:text-sm font-medium ${isSignificant ? 'text-red-400' : 'text-yellow-400'}`}>
+                        <span className={`text-xs sm:text-sm font-medium ${isSignificant ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                           Δ {diff.toFixed(1)} л
                         </span>
                       </div>
                     );
                   })}
                   {mismatchTx.length > 5 && (
-                    <div className="text-slate-500 text-xs">
+                    <div className="text-muted-foreground text-xs">
                       ... и ещё {mismatchTx.length - 5} транзакций
                     </div>
                   )}
                 </div>
 
-                <div className="mt-3 p-2 bg-yellow-900/30 rounded text-xs text-yellow-300 flex items-start gap-2">
+                <div className="mt-3 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded text-xs text-yellow-600 dark:text-yellow-300 flex items-start gap-2">
                   <HelpCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
                     <strong>Вероятные причины:</strong>
@@ -265,8 +265,8 @@ export function ReconciliationRecommendationsModal({
 
             {/* Станции с расхождениями Corp-TF */}
             {stationsWithCorpTfErrors.length > 0 && (
-              <section className="bg-slate-800 rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm font-medium text-orange-400 mb-3 flex items-center gap-2">
+              <section className="bg-card rounded-lg p-3 sm:p-4">
+                <h3 className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-3 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />
                   Станции с расхождениями транзакций: {stationsWithCorpTfErrors.length}
                 </h3>
@@ -275,9 +275,9 @@ export function ReconciliationRecommendationsModal({
                   {stationsWithCorpTfErrors.map((station, idx) => {
                     const corpTfDiff = (station.corpLitersTotal || 0) - (station.tfLitersTotal || 0);
                     return (
-                      <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-slate-300 bg-slate-900/50 rounded px-2 py-1.5">
+                      <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-foreground/80 bg-background/50 rounded px-2 py-1.5">
                         <span className="truncate text-xs sm:text-sm">{station.stationName}</span>
-                        <span className="text-red-400 text-xs sm:text-sm font-medium">
+                        <span className="text-red-600 dark:text-red-400 text-xs sm:text-sm font-medium">
                           Corp-TF: {corpTfDiff > 0 ? '+' : ''}{corpTfDiff.toFixed(1)} л
                         </span>
                       </div>
@@ -289,21 +289,21 @@ export function ReconciliationRecommendationsModal({
 
             {/* Рекомендации по транзакциям */}
             {hasTransactionErrors && (
-              <section className="bg-emerald-900/20 border border-green-800 rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm font-medium text-green-400 mb-3 flex items-center gap-2">
+              <section className="bg-emerald-100 dark:bg-emerald-900/20 border border-green-800 rounded-lg p-3 sm:p-4">
+                <h3 className="text-sm font-medium text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
                   <Lightbulb className="h-4 w-4" />
                   Рекомендации по транзакциям
                 </h3>
 
-                <div className="space-y-3 text-sm text-slate-300">
+                <div className="space-y-3 text-sm text-foreground/80">
                   {/* Есть только в Corp */}
                   {summary.onlyCorp > 0 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-purple-400 font-bold">1.</span>
+                      <span className="text-purple-600 dark:text-purple-400 font-bold">1.</span>
                       <div>
-                        <span className="text-purple-300">Проверьте принадлежность карт</span>
+                        <span className="text-purple-600 dark:text-purple-300">Проверьте принадлежность карт</span>
                         {problemCards.size > 0 && problemCards.size <= 5 && (
-                          <span className="text-slate-500">
+                          <span className="text-muted-foreground">
                             {' '}(...{Array.from(problemCards).slice(0, 3).map(c => String(c || '').slice(-4)).join(', ...')})
                           </span>
                         )}
@@ -315,7 +315,7 @@ export function ReconciliationRecommendationsModal({
                   {/* Есть только в TF */}
                   {summary.onlyTf > 0 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-blue-400 font-bold">{summary.onlyCorp > 0 ? '2' : '1'}.</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">{summary.onlyCorp > 0 ? '2' : '1'}.</span>
                       <span>
                         Проверьте статус карт в TradeCorp. Возможно, карты деактивированы
                         или операции дублируются в TF.
@@ -326,7 +326,7 @@ export function ReconciliationRecommendationsModal({
                   {/* Расхождение литров */}
                   {summary.mismatch > 0 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-yellow-400 font-bold">
+                      <span className="text-yellow-600 dark:text-yellow-400 font-bold">
                         {(summary.onlyCorp > 0 ? 1 : 0) + (summary.onlyTf > 0 ? 1 : 0) + 1}.
                       </span>
                       <span>
@@ -341,7 +341,7 @@ export function ReconciliationRecommendationsModal({
 
                   {/* Общая рекомендация при критических проблемах */}
                   {hasCriticalIssues && (
-                    <div className="mt-3 p-2 sm:p-3 bg-red-900/30 border border-red-800 rounded text-red-300 text-xs leading-relaxed">
+                    <div className="mt-3 p-2 sm:p-3 bg-red-100 dark:bg-red-900/30 border border-red-800 rounded text-red-600 dark:text-red-300 text-xs leading-relaxed">
                       <strong>Внимание:</strong> Обнаружено значительное количество расхождений.
                       Рекомендуется связаться с технической поддержкой TradeCorp для выяснения причин.
                     </div>
@@ -352,12 +352,12 @@ export function ReconciliationRecommendationsModal({
 
             {/* Нет расхождений транзакций */}
             {!hasTransactionErrors && (
-              <section className="bg-emerald-900/20 border border-green-800 rounded-lg p-3 sm:p-4">
-                <div className="flex items-center gap-2 text-green-400">
+              <section className="bg-emerald-100 dark:bg-emerald-900/20 border border-green-800 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                   <CheckCircle2 className="h-5 w-5" />
                   <span className="font-medium">Все транзакции сходятся!</span>
                 </div>
-                <p className="text-sm text-slate-400 mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                   Данные Corp и TF полностью совпадают. Дополнительных действий не требуется.
                 </p>
               </section>
@@ -368,17 +368,17 @@ export function ReconciliationRecommendationsModal({
             {/* ═══════════════════════════════════════════════════════════════ */}
 
             {hasShiftDiscrepancy && (
-              <section className="bg-slate-800/50 rounded-lg p-3 sm:p-4 border-l-4 border-yellow-500">
-                <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-yellow-400" />
+              <section className="bg-card/50 rounded-lg p-3 sm:p-4 border-l-4 border-yellow-500">
+                <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                   Сверка со сменным отчётом (TF ↔ Смена)
                   <span className="text-xs text-yellow-500 ml-auto">справочно</span>
                 </h3>
 
                 {/* Общее расхождение */}
                 <div className="flex justify-between items-center text-sm mb-3">
-                  <span className="text-slate-400">Разница TF - Смена:</span>
-                  <span className="text-yellow-400 font-medium">
+                  <span className="text-muted-foreground">Разница TF - Смена:</span>
+                  <span className="text-yellow-600 dark:text-yellow-400 font-medium">
                     Δ {totalTfShiftDiff.toFixed(1)} л
                   </span>
                 </div>
@@ -386,24 +386,24 @@ export function ReconciliationRecommendationsModal({
                 {/* Станции с расхождением */}
                 {stationsWithShiftDiff.length > 0 && (
                   <div className="space-y-2 text-sm mb-4">
-                    <div className="text-xs text-slate-500 uppercase tracking-wide">Станции:</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Станции:</div>
                     {stationsWithShiftDiff.slice(0, 5).map((station, idx) => {
                       const tfShiftDiff = (station.tfLitersTotal || 0) - (station.shiftLitersTotal || 0);
                       return (
-                        <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-slate-300 bg-slate-900/50 rounded px-2 py-1.5">
+                        <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-foreground/80 bg-background/50 rounded px-2 py-1.5">
                           <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-3 w-3 text-green-400" />
+                            <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400" />
                             <span className="truncate text-xs sm:text-sm">{station.stationName}</span>
                             <span className="text-xs text-green-500">(транзакции ✓)</span>
                           </div>
-                          <span className="text-yellow-400 text-xs sm:text-sm">
+                          <span className="text-yellow-600 dark:text-yellow-400 text-xs sm:text-sm">
                             Смена: {tfShiftDiff > 0 ? '+' : ''}{tfShiftDiff.toFixed(1)} л
                           </span>
                         </div>
                       );
                     })}
                     {stationsWithShiftDiff.length > 5 && (
-                      <div className="text-slate-500 text-xs">
+                      <div className="text-muted-foreground text-xs">
                         ... и ещё {stationsWithShiftDiff.length - 5} станций
                       </div>
                     )}
@@ -411,18 +411,18 @@ export function ReconciliationRecommendationsModal({
                 )}
 
                 {/* Объяснение почему может отличаться */}
-                <div className="p-3 bg-yellow-900/20 border border-yellow-800/50 rounded text-xs text-yellow-200">
+                <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-800/50 rounded text-xs text-yellow-700 dark:text-yellow-200">
                   <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 flex-shrink-0 mt-0.5 text-yellow-400" />
+                    <Info className="h-4 w-4 flex-shrink-0 mt-0.5 text-yellow-600 dark:text-yellow-400" />
                     <div>
-                      <strong className="text-yellow-300">Почему сменный отчёт может отличаться:</strong>
-                      <ul className="mt-2 space-y-1 text-yellow-200/80">
+                      <strong className="text-yellow-600 dark:text-yellow-300">Почему сменный отчёт может отличаться:</strong>
+                      <ul className="mt-2 space-y-1 text-yellow-700 dark:text-yellow-200/80">
                         <li>• Сменный отчёт (ПСМ) <strong>не содержит</strong> детализацию по корпоративным картам</li>
                         <li>• Операции по картам учитываются отдельно от кассовых продаж</li>
                         <li>• Данные смены получены из другого источника</li>
                         <li>• Смена ещё не закрыта или данные не загрузились</li>
                       </ul>
-                      <div className="mt-3 pt-2 border-t border-yellow-800/50 text-yellow-300">
+                      <div className="mt-3 pt-2 border-t border-yellow-800/50 text-yellow-600 dark:text-yellow-300">
                         <CheckCircle2 className="h-3 w-3 inline mr-1" />
                         Это <strong>информационное</strong> расхождение — не требует действий,
                         если сверка транзакций (Corp-TF) показывает OK.
@@ -435,12 +435,12 @@ export function ReconciliationRecommendationsModal({
 
             {/* Если нет расхождения со сменой */}
             {!hasShiftDiscrepancy && (
-              <section className="bg-slate-800/30 rounded-lg p-3 sm:p-4 border-l-4 border-slate-600">
-                <h3 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+              <section className="bg-card/30 rounded-lg p-3 sm:p-4 border-l-4 border-border">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Сверка со сменным отчётом
                 </h3>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                   <span>Данные TF и сменного отчёта совпадают</span>
                 </div>
@@ -450,11 +450,11 @@ export function ReconciliationRecommendationsModal({
           </div>
         </ScrollArea>
 
-        <div className="flex justify-end pt-4 border-t border-slate-700">
+        <div className="flex justify-end pt-4 border-t border-border">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto bg-slate-800 border-slate-600 hover:bg-slate-700"
+            className="w-full sm:w-auto bg-card border-border hover:bg-secondary"
           >
             Закрыть
           </Button>

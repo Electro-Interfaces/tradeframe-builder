@@ -51,25 +51,25 @@ export function CouponKpiCards({
               key={state}
               className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
                 isSelected
-                  ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-                  : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                  ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+                  : 'bg-card border-border hover:bg-secondary'
               }`}
               onClick={() => onStateClick(state)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-slate-100 font-semibold text-base truncate pr-2">
+                    <p className="text-foreground font-semibold text-base truncate pr-2">
                       {state}
                     </p>
                     <div className="flex items-center gap-1">
-                      <span className="text-slate-300 text-sm">
+                      <span className="text-foreground/80 text-sm">
                         {filteredStateCoupons.length}
                       </span>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-slate-200 text-sm font-semibold">
+                    <div className="text-foreground text-sm font-semibold">
                       {filteredAmount.toFixed(0)} ₽
                     </div>
                   </div>
@@ -90,28 +90,28 @@ export function CouponKpiCards({
                   key={stat.fuelType}
                   className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
                     isSelected
-                      ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-                      : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                      ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+                      : 'bg-card border-border hover:bg-secondary'
                   }`}
                   onClick={() => onFuelTypeClick(stat.fuelType)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
-                        <p className="text-slate-100 font-semibold text-base truncate pr-2">
+                        <p className="text-foreground font-semibold text-base truncate pr-2">
                           {stat.fuelType}
                         </p>
                         <div className="flex items-center gap-1">
-                          <span className="text-slate-300 text-sm">
+                          <span className="text-foreground/80 text-sm">
                             {stat.filteredCoupons}
                           </span>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-slate-200 text-sm font-semibold">
+                        <div className="text-foreground text-sm font-semibold">
                           {stat.filteredLiters.toFixed(1)} л
                         </div>
-                        <div className="text-slate-200 text-sm font-semibold">
+                        <div className="text-foreground text-sm font-semibold">
                           {stat.filteredAmount.toFixed(0)} ₽
                         </div>
                       </div>
@@ -132,25 +132,25 @@ export function CouponKpiCards({
             <Card
               className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
                 hasActiveFilters
-                  ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-                  : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                  ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+                  : 'bg-card border-border hover:bg-secondary'
               }`}
               onClick={onResetAll}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-slate-100 font-semibold text-base truncate pr-2">
+                    <p className="text-foreground font-semibold text-base truncate pr-2">
                       Итого
                     </p>
                     <div className="flex items-center gap-1">
-                      <span className="text-slate-300 text-sm">
+                      <span className="text-foreground/80 text-sm">
                         {filteredCoupons.length}
                       </span>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-slate-200 text-sm font-semibold">
+                    <div className="text-foreground text-sm font-semibold">
                       {totalAmount.toFixed(0)} ₽
                     </div>
                   </div>

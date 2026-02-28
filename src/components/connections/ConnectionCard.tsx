@@ -62,7 +62,7 @@ export function ConnectionCard({
         : <XCircle className="h-4 w-4 text-red-500" />;
     }
     
-    return <Clock className="h-4 w-4 text-slate-400" />;
+    return <Clock className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getStatusText = () => {
@@ -99,7 +99,7 @@ export function ConnectionCard({
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-600 hover:border-slate-500 transition-colors">
+    <Card className="bg-card border-border hover:border-border transition-colors">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -108,32 +108,32 @@ export function ConnectionCard({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-white">{connection.name}</h3>
+                <h3 className="text-lg font-semibold text-foreground">{connection.name}</h3>
                 {connection.isSystem && (
-                  <Badge variant="outline" className="border-orange-500 text-orange-400 text-xs">
+                  <Badge variant="outline" className="border-orange-500 text-orange-600 dark:text-orange-400 text-xs">
                     СИСТЕМНОЕ
                   </Badge>
                 )}
                 {!connection.isEnabled && (
-                  <Badge variant="outline" className="border-red-500 text-red-400 text-xs">
+                  <Badge variant="outline" className="border-red-500 text-red-600 dark:text-red-400 text-xs">
                     ВЫКЛЮЧЕНО
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-slate-400">{connection.purpose}</p>
+              <p className="text-sm text-muted-foreground">{connection.purpose}</p>
             </div>
           </div>
           
           <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-slate-800 border-slate-600">
+            <DropdownMenuContent align="end" className="bg-card border-border">
               <DropdownMenuItem 
                 onClick={() => onEdit(connection)}
-                className="text-white hover:bg-slate-700"
+                className="text-foreground hover:bg-secondary"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Редактировать
@@ -142,7 +142,7 @@ export function ConnectionCard({
               <DropdownMenuItem 
                 onClick={handleTest}
                 disabled={testLoading}
-                className="text-white hover:bg-slate-700"
+                className="text-foreground hover:bg-secondary"
               >
                 <TestTube className="h-4 w-4 mr-2" />
                 Проверить соединение
@@ -150,7 +150,7 @@ export function ConnectionCard({
               
               <DropdownMenuItem 
                 onClick={() => onRotateSecret(connection)}
-                className="text-white hover:bg-slate-700"
+                className="text-foreground hover:bg-secondary"
               >
                 <RotateCw className="h-4 w-4 mr-2" />
                 Обновить секрет
@@ -158,11 +158,11 @@ export function ConnectionCard({
               
               {!connection.isSystem && (
                 <>
-                  <DropdownMenuSeparator className="bg-slate-600" />
+                  <DropdownMenuSeparator className="bg-secondary" />
                   
                   <DropdownMenuItem 
                     onClick={() => onClone(connection)}
-                    className="text-white hover:bg-slate-700"
+                    className="text-foreground hover:bg-secondary"
                   >
                     <Copy className="h-4 w-4 mr-2" />
                     Клонировать
@@ -170,7 +170,7 @@ export function ConnectionCard({
                   
                   <DropdownMenuItem 
                     onClick={() => onDelete(connection)}
-                    className="text-red-400 hover:bg-red-900/20"
+                    className="text-red-600 dark:text-red-400 hover:bg-red-900/20"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Удалить
@@ -187,27 +187,27 @@ export function ConnectionCard({
           {/* Connection Details */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-slate-400 mb-1">Тип</p>
-              <Badge variant="secondary" className="bg-slate-700 text-slate-300">
+              <p className="text-xs text-muted-foreground mb-1">Тип</p>
+              <Badge variant="secondary" className="bg-secondary text-foreground/80">
                 {connection.connectionType}
               </Badge>
             </div>
             <div>
-              <p className="text-xs text-slate-400 mb-1">Транспорт</p>
-              <Badge variant="secondary" className="bg-slate-700 text-slate-300">
+              <p className="text-xs text-muted-foreground mb-1">Транспорт</p>
+              <Badge variant="secondary" className="bg-secondary text-foreground/80">
                 {connection.transport}
               </Badge>
             </div>
           </div>
 
           <div>
-            <p className="text-xs text-slate-400 mb-1">URL</p>
-            <p className="text-sm text-white font-mono truncate">{connection.baseUrl}</p>
+            <p className="text-xs text-muted-foreground mb-1">URL</p>
+            <p className="text-sm text-foreground font-mono truncate">{connection.baseUrl}</p>
           </div>
 
           <div>
-            <p className="text-xs text-slate-400 mb-1">Аутентификация</p>
-            <Badge variant="secondary" className="bg-slate-700 text-slate-300">
+            <p className="text-xs text-muted-foreground mb-1">Аутентификация</p>
+            <Badge variant="secondary" className="bg-secondary text-foreground/80">
               {connection.auth.type}
             </Badge>
           </div>
@@ -215,13 +215,13 @@ export function ConnectionCard({
           {/* Tags */}
           {connection.tags.length > 0 && (
             <div>
-              <p className="text-xs text-slate-400 mb-2">Теги</p>
+              <p className="text-xs text-muted-foreground mb-2">Теги</p>
               <div className="flex flex-wrap gap-1">
                 {connection.tags.map((tag) => (
                   <Badge 
                     key={tag} 
                     variant="outline" 
-                    className="border-slate-600 text-slate-300 text-xs"
+                    className="border-border text-foreground/80 text-xs"
                   >
                     {tag}
                   </Badge>
@@ -231,15 +231,15 @@ export function ConnectionCard({
           )}
 
           {/* Status */}
-          <div className="pt-2 border-t border-slate-700">
+          <div className="pt-2 border-t border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
                 {getStatusIcon()}
-                <span className={testResult?.success ? 'text-green-400' : testResult ? 'text-red-400' : 'text-slate-400'}>
+                <span className={testResult?.success ? 'text-green-600 dark:text-green-400' : testResult ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}>
                   {getStatusText()}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Обновлено: {formatLastUpdated(connection.updatedAt)}
               </p>
             </div>
@@ -248,13 +248,13 @@ export function ConnectionCard({
           {/* Responsible */}
           {connection.responsible && (
             <div>
-              <p className="text-xs text-slate-400 mb-1">Ответственный</p>
-              <p className="text-sm text-slate-300">{connection.responsible}</p>
+              <p className="text-xs text-muted-foreground mb-1">Ответственный</p>
+              <p className="text-sm text-foreground/80">{connection.responsible}</p>
             </div>
           )}
 
           {/* Exchange Parameters Summary */}
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-muted-foreground">
             <div className="flex justify-between">
               <span>Endpoints: {connection.exchangeParams.endpoints.length}</span>
               <span>Rate Limit: {connection.exchangeParams.rateLimit}/мин</span>

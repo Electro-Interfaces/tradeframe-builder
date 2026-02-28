@@ -23,7 +23,7 @@ export function ConnectionButton({ className = '' }: ConnectionButtonProps) {
         variant="outline"
         size="sm"
         onClick={() => setIsConnectionDialogOpen(true)}
-        className={`border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white ${
+        className={`border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white ${
           isMobile ? 'h-8 px-2' : ''
         } ${className}`}
         title="Проверить связь со станциями"

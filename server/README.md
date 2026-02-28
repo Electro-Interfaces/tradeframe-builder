@@ -1,4 +1,4 @@
-# TradeFrame Backend Proxy Server
+# TradeControl Backend Proxy Server
 
 Backend proxy сервер для безопасной работы с STS API. Учетные данные хранятся на сервере и не попадают в frontend bundle.
 

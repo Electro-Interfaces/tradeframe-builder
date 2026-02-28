@@ -7,7 +7,7 @@
 
 ## 📋 Общая информация
 
-Telegram Bot используется для отправки уведомлений пользователям системы TradeFrame Builder.
+Telegram Bot используется для отправки уведомлений пользователям системы TradeControl Builder.
 
 **Архитектура:** Один бот для всего проекта (все сети используют единый бот)
 
@@ -24,7 +24,7 @@ Telegram Bot используется для отправки уведомлен
 2. Отправьте команду `/newbot`
 3. Введите **имя бота** (отображается в списке контактов):
    ```
-   TradeFrame Notifications
+   TradeControl Notifications
    ```
 4. Введите **username бота** (уникальный, должен заканчиваться на `bot`):
    ```
@@ -43,7 +43,7 @@ Telegram Bot используется для отправки уведомлен
 # Установить описание бота
 /setdescription
 # Введите:
-Бот для получения уведомлений о событиях в системе TradeFrame Builder
+Бот для получения уведомлений о событиях в системе TradeControl Builder
 
 # Установить краткое описание
 /setabouttext
@@ -84,7 +84,7 @@ psql -h <your-supabase-host> -U postgres -d postgres -f supabase/migrations/2025
 ```env
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_FROM_BOTFATHER
-TELEGRAM_BOT_NAME=TradeFrame Notifications
+TELEGRAM_BOT_NAME=TradeControl Notifications
 ```
 
 **Замените** `YOUR_BOT_TOKEN_FROM_BOTFATHER` на реальный токен из Шага 1.
@@ -96,7 +96,7 @@ TELEGRAM_BOT_NAME=TradeFrame Notifications
 ```env
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_FROM_BOTFATHER
-TELEGRAM_BOT_NAME=TradeFrame Notifications
+TELEGRAM_BOT_NAME=TradeControl Notifications
 ```
 
 ---
@@ -202,7 +202,7 @@ curl https://api.telegram.org/bot<YOUR_TOKEN>/getMe
   "result": {
     "id": 1234567890,
     "is_bot": true,
-    "first_name": "TradeFrame Notifications",
+    "first_name": "TradeControl Notifications",
     "username": "tradeframe_notify_bot"
   }
 }
@@ -225,7 +225,7 @@ curl -X POST http://localhost:3001/api/notifications/test-send \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "your-user-uuid",
-    "message": "Тестовое уведомление от TradeFrame"
+    "message": "Тестовое уведомление от TradeControl"
   }'
 ```
 

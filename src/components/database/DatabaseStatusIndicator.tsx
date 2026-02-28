@@ -83,7 +83,7 @@ export const DatabaseStatusIndicator: React.FC = () => {
           <p><strong>Статус:</strong> Подключено</p>
           <p><strong>URL:</strong> {status.url}</p>
           <p><strong>Тип:</strong> Supabase PostgreSQL</p>
-          <p className="text-green-400 mt-1">✓ Используется внешняя база данных</p>
+          <p className="text-green-600 dark:text-green-400 mt-1">✓ Используется внешняя база данных</p>
         </div>
       );
     } else {
@@ -92,11 +92,11 @@ export const DatabaseStatusIndicator: React.FC = () => {
           <p><strong>Статус:</strong> Не подключено</p>
           <p><strong>URL:</strong> {status.url}</p>
           {status.error && (
-            <p className="text-red-400 mt-1">
+            <p className="text-red-600 dark:text-red-400 mt-1">
               <strong>Ошибка:</strong> {status.error}
             </p>
           )}
-          <p className="text-yellow-400 mt-1">⚠ Настройте подключение к внешней БД</p>
+          <p className="text-yellow-600 dark:text-yellow-400 mt-1">⚠ Настройте подключение к внешней БД</p>
         </div>
       );
     }

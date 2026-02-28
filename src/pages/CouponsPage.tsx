@@ -112,12 +112,12 @@ export default function CouponsPage() {
       <div
         className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${
           isMobile ? 'pt-4' : 'pt-6'
-        } min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
+        } min-h-screen bg-gradient-to-br from-background via-background to-background`}
       >
         {/* Заголовок */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Купоны</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Купоны</h1>
             <div className="flex items-center gap-2">
               {selectedNetwork?.external_id && selectedStation?.external_id && (
                 <Button
@@ -176,17 +176,17 @@ export default function CouponsPage() {
         />
 
         {/* Таблица купонов */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 md:p-6">
+        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-foreground">
               Журнал купонов
-              <span className="text-slate-400 ml-2 font-normal text-sm">
+              <span className="text-muted-foreground ml-2 font-normal text-sm">
                 ({filteredCoupons.length})
               </span>
             </h2>
           </div>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-background border-border">
             {isMobile ? (
               <CouponTableMobile
                 coupons={paginatedItems}

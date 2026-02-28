@@ -187,8 +187,8 @@ export default function CouponsStatsCards({
         value={stats.redeemedCoupons}
         subtitle={`${formatPercentage(stats.redeemedCoupons, stats.totalCoupons)} от общего`}
         icon={Target}
-        color="text-gray-600"
-        bgColor="bg-gray-100"
+        color="text-muted-foreground"
+        bgColor="bg-muted"
         progress={showProgress ? redeemedPercentage : undefined}
         compact={compact}
       />

@@ -10,7 +10,7 @@ export const SkeletonTable = ({ rows = 4, columns = 5 }: SkeletonTableProps) => 
     <div className="panel table-condensed overflow-auto scroll-thin">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-slate-800">
+          <tr className="border-b border-border">
             {Array.from({ length: columns }).map((_, i) => (
               <th key={i} className="h-11 px-3 text-left">
                 <Skeleton className="h-4 w-20" />
@@ -20,7 +20,7 @@ export const SkeletonTable = ({ rows = 4, columns = 5 }: SkeletonTableProps) => 
         </thead>
         <tbody>
           {Array.from({ length: rows }).map((_, i) => (
-            <tr key={i} className="border-b border-slate-800 h-[44px]">
+            <tr key={i} className="border-b border-border h-[44px]">
               {Array.from({ length: columns }).map((_, j) => (
                 <td key={j} className="px-3">
                   <Skeleton className="h-4 w-full max-w-[120px]" />

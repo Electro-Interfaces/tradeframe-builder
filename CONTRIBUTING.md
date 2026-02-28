@@ -1,6 +1,6 @@
-# Contributing to TradeFrame Builder
+# Contributing to TradeControl Builder
 
-Спасибо за ваш интерес к улучшению TradeFrame Builder! Этот гайд поможет вам быстро начать работу с проектом.
+Спасибо за ваш интерес к улучшению TradeControl Builder! Этот гайд поможет вам быстро начать работу с проектом.
 
 ## 🚀 Быстрый старт
 

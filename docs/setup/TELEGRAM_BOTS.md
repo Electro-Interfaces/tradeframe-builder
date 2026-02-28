@@ -7,7 +7,7 @@
 
 ## 📋 Обзор
 
-TradeFrame использует **ДВА ОТДЕЛЬНЫХ** Telegram бота для разных окружений.
+TradeControl использует **ДВА ОТДЕЛЬНЫХ** Telegram бота для разных окружений.
 
 **⚠️ КРИТИЧНО:** Никогда не используйте один и тот же бот для PROD и TEST одновременно!
 
@@ -16,9 +16,9 @@ TradeFrame использует **ДВА ОТДЕЛЬНЫХ** Telegram бота 
 ## 🟢 PRODUCTION Bot
 
 ### Основная информация
-- **Username:** @TradeFrameDW_Bot
+- **Username:** @TradeControlDW_Bot
 - **Bot ID:** 8049816280
-- **Full Name:** TradeFrameDW
+- **Full Name:** TradeControlDW
 - **Назначение:** Боевая среда prod.dataworker.ru
 
 ### Токен
@@ -45,16 +45,16 @@ curl "https://api.telegram.org/bot8049816280:AAEHimSlNiuyRIRA_sjrG9f78lvc9aprwa8
 ```
 
 ### Telegram ссылка
-https://t.me/TradeFrameDW_Bot
+https://t.me/TradeControlDW_Bot
 
 ---
 
 ## 🔵 TEST Bot
 
 ### Основная информация
-- **Username:** @TradeFrameTest_Bot
+- **Username:** @TradeControlTest_Bot
 - **Bot ID:** 8136366785
-- **Full Name:** TradeFrameTest_Bot
+- **Full Name:** TradeControlTest_Bot
 - **Назначение:** Тестовая среда testtf.dataworker.ru
 
 ### Токен
@@ -81,7 +81,7 @@ curl "https://api.telegram.org/bot8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0
 ```
 
 ### Telegram ссылка
-https://t.me/TradeFrameTest_Bot
+https://t.me/TradeControlTest_Bot
 
 ---
 
@@ -97,15 +97,15 @@ https://t.me/TradeFrameTest_Bot
 ```env
 # В локальном server/.env
 TELEGRAM_BOT_TOKEN=8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0
-TELEGRAM_BOT_NAME=TradeFrame Test Notifications
-TELEGRAM_BOT_USERNAME=TradeFrameTest_Bot
+TELEGRAM_BOT_NAME=TradeControl Test Notifications
+TELEGRAM_BOT_USERNAME=TradeControlTest_Bot
 ```
 
 **Вариант 2: Создать отдельный DEV бот**
 1. Откройте @BotFather в Telegram
 2. Команда: `/newbot`
-3. Имя: `TradeFrame Dev Bot`
-4. Username: `@TradeFrameDev_Bot` (или любой доступный)
+3. Имя: `TradeControl Dev Bot`
+4. Username: `@TradeControlDev_Bot` (или любой доступный)
 5. Скопируйте токен в локальный `server/.env`
 
 **Вариант 3: Отключить Telegram бот локально**

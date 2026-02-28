@@ -162,9 +162,9 @@ export function MobileBrowserTester() {
 
   const getStatusColor = (status: TestResult['status']) => {
     switch (status) {
-      case 'pass': return 'bg-emerald-500/10 text-green-400 border-green-500/20';
-      case 'fail': return 'bg-red-500/10 text-red-400 border-red-500/20';
-      case 'warning': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+      case 'pass': return 'bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500/20';
+      case 'fail': return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20';
+      case 'warning': return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20';
     }
   };
 
@@ -177,7 +177,7 @@ export function MobileBrowserTester() {
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Smartphone className="h-6 w-6 text-blue-400" />
+          <Smartphone className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           <h1 className="text-2xl font-bold">Тестирование мобильных браузеров</h1>
         </div>
         <Button 
@@ -201,28 +201,28 @@ export function MobileBrowserTester() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <h4 className="font-semibold mb-2">Браузер</h4>
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-foreground/80">
                 {browserInfo.name} {browserInfo.version}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Движок: {browserInfo.engine}
               </p>
             </div>
             <div>
               <h4 className="font-semibold mb-2">Платформа</h4>
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-foreground/80">
                 {browserInfo.platform.toUpperCase()}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 {browserInfo.isWebView ? 'WebView' : 'Нативный браузер'}
               </p>
             </div>
             <div>
               <h4 className="font-semibold mb-2">Экран</h4>
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-foreground/80">
                 {diagnostics.viewport.width}×{diagnostics.viewport.height}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 DPR: {diagnostics.device.screenSize.pixelRatio}x
               </p>
             </div>
@@ -237,13 +237,13 @@ export function MobileBrowserTester() {
             <CardTitle className="flex items-center justify-between">
               <span>Результаты тестов</span>
               <div className="flex gap-2">
-                <Badge className="bg-emerald-500/10 text-green-400 border-green-500/20">
+                <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500/20">
                   ✓ {passCount}
                 </Badge>
-                <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+                <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20">
                   ⚠ {warningCount}
                 </Badge>
-                <Badge className="bg-red-500/10 text-red-400 border-red-500/20">
+                <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
                   ✗ {failCount}
                 </Badge>
               </div>
@@ -261,7 +261,7 @@ export function MobileBrowserTester() {
                   </div>
                   <p className="text-sm mt-1 ml-6">{result.message}</p>
                   {result.details && (
-                    <p className="text-xs text-slate-400 mt-1 ml-6">{result.details}</p>
+                    <p className="text-xs text-muted-foreground mt-1 ml-6">{result.details}</p>
                   )}
                 </div>
               ))}
@@ -315,7 +315,7 @@ export function MobileBrowserTester() {
               <CardTitle>Полная диагностика</CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="text-xs bg-slate-800 p-4 rounded-lg overflow-auto max-h-96">
+              <pre className="text-xs bg-card p-4 rounded-lg overflow-auto max-h-96">
                 {JSON.stringify(diagnostics, null, 2)}
               </pre>
             </CardContent>
@@ -337,19 +337,19 @@ export function MobileBrowserTester() {
                     <h4 className="font-semibold mb-2">Сетевое соединение</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <span className="text-xs text-slate-400">Тип</span>
+                        <span className="text-xs text-muted-foreground">Тип</span>
                         <p className="font-mono">{diagnostics.network.effectiveType}</p>
                       </div>
                       <div>
-                        <span className="text-xs text-slate-400">Скорость</span>
+                        <span className="text-xs text-muted-foreground">Скорость</span>
                         <p className="font-mono">{diagnostics.network.downlink} Мбит/с</p>
                       </div>
                       <div>
-                        <span className="text-xs text-slate-400">RTT</span>
+                        <span className="text-xs text-muted-foreground">RTT</span>
                         <p className="font-mono">{diagnostics.network.rtt} мс</p>
                       </div>
                       <div>
-                        <span className="text-xs text-slate-400">Экономия</span>
+                        <span className="text-xs text-muted-foreground">Экономия</span>
                         <p className="font-mono">{diagnostics.network.saveData ? 'Вкл' : 'Выкл'}</p>
                       </div>
                     </div>
@@ -360,15 +360,15 @@ export function MobileBrowserTester() {
                   <h4 className="font-semibold mb-2">Устройство</h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div>
-                      <span className="text-xs text-slate-400">CPU ядра</span>
+                      <span className="text-xs text-muted-foreground">CPU ядра</span>
                       <p className="font-mono">{diagnostics.performance.hardwareConcurrency}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-slate-400">RAM</span>
+                      <span className="text-xs text-muted-foreground">RAM</span>
                       <p className="font-mono">{diagnostics.performance.deviceMemory || '?'} ГБ</p>
                     </div>
                     <div>
-                      <span className="text-xs text-slate-400">Соединение</span>
+                      <span className="text-xs text-muted-foreground">Соединение</span>
                       <p className="font-mono">{diagnostics.performance.connection || 'N/A'}</p>
                     </div>
                   </div>

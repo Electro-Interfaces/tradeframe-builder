@@ -152,7 +152,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                 placeholder={placeholder}
                 value={showSecrets[name] ? field.value || '' : maskValue(field.value || '')}
                 onChange={showSecrets[name] ? field.onChange : undefined}
-                className="bg-slate-700 border-slate-600 text-white pr-10"
+                className="bg-secondary border-border text-foreground pr-10"
               />
               <Button
                 type="button"
@@ -174,11 +174,11 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">
+        <h2 className="text-xl font-semibold text-foreground">
           {connection ? 'Редактировать подключение' : 'Новое подключение'}
         </h2>
         {connection?.isSystem && (
-          <Badge variant="outline" className="border-orange-500 text-orange-400">
+          <Badge variant="outline" className="border-orange-500 text-orange-600 dark:text-orange-400">
             СИСТЕМНОЕ
           </Badge>
         )}
@@ -188,7 +188,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Основная информация</h3>
+            <h3 className="text-lg font-medium text-foreground">Основная информация</h3>
             
             <FormField
               control={form.control}
@@ -197,7 +197,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                 <FormItem>
                   <FormLabel>Название</FormLabel>
                   <FormControl>
-                    <Input {...field} className="bg-slate-700 border-slate-600 text-white" />
+                    <Input {...field} className="bg-secondary border-border text-foreground" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -212,7 +212,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                   <FormLabel>Тип</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-secondary border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
@@ -235,7 +235,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                 <FormItem>
                   <FormLabel>Назначение</FormLabel>
                   <FormControl>
-                    <Textarea {...field} className="bg-slate-700 border-slate-600 text-white" />
+                    <Textarea {...field} className="bg-secondary border-border text-foreground" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -249,7 +249,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                 <FormItem>
                   <FormLabel>Base URL</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="https://api.example.com" className="bg-slate-700 border-slate-600 text-white" />
+                    <Input {...field} placeholder="https://api.example.com" className="bg-secondary border-border text-foreground" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -259,7 +259,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
 
           {/* Transport and Format */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Транспорт и формат</h3>
+            <h3 className="text-lg font-medium text-foreground">Транспорт и формат</h3>
             
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -270,7 +270,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                     <FormLabel>Транспорт</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-secondary border-border text-foreground">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -293,7 +293,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                     <FormLabel>Формат</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-secondary border-border text-foreground">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -312,7 +312,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
 
           {/* Authentication */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Аутентификация</h3>
+            <h3 className="text-lg font-medium text-foreground">Аутентификация</h3>
             
             <FormField
               control={form.control}
@@ -322,7 +322,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                   <FormLabel>Тип аутентификации</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-secondary border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
@@ -350,7 +350,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                     <FormItem>
                       <FormLabel>Username</FormLabel>
                       <FormControl>
-                        <Input {...field} className="bg-slate-700 border-slate-600 text-white" />
+                        <Input {...field} className="bg-secondary border-border text-foreground" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -370,7 +370,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                       <FormItem>
                         <FormLabel>Client ID</FormLabel>
                         <FormControl>
-                          <Input {...field} className="bg-slate-700 border-slate-600 text-white" />
+                          <Input {...field} className="bg-secondary border-border text-foreground" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -385,7 +385,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                     <FormItem>
                       <FormLabel>Token URL</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="https://auth.example.com/token" className="bg-slate-700 border-slate-600 text-white" />
+                        <Input {...field} placeholder="https://auth.example.com/token" className="bg-secondary border-border text-foreground" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -397,7 +397,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
 
           {/* Exchange Parameters */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Параметры обмена</h3>
+            <h3 className="text-lg font-medium text-foreground">Параметры обмена</h3>
             
             <FormField
               control={form.control}
@@ -409,7 +409,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                     <Textarea 
                       {...field} 
                       placeholder={"/api/v1/users\n/api/v1/orders"} 
-                      className="bg-slate-700 border-slate-600 text-white" 
+                      className="bg-secondary border-border text-foreground" 
                     />
                   </FormControl>
                   <FormMessage />
@@ -427,7 +427,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                     <Textarea 
                       {...field} 
                       placeholder='{"Accept": "application/json", "Content-Type": "application/json"}'
-                      className="bg-slate-700 border-slate-600 text-white font-mono text-sm" 
+                      className="bg-secondary border-border text-foreground font-mono text-sm" 
                     />
                   </FormControl>
                   <FormMessage />
@@ -442,7 +442,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                 <FormItem>
                   <FormLabel>Расписание (CRON)</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="0 */30 * * * *" className="bg-slate-700 border-slate-600 text-white" />
+                    <Input {...field} placeholder="0 */30 * * * *" className="bg-secondary border-border text-foreground" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -463,7 +463,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                         min="0" 
                         max="10" 
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        className="bg-slate-700 border-slate-600 text-white" 
+                        className="bg-secondary border-border text-foreground" 
                       />
                     </FormControl>
                     <FormMessage />
@@ -483,7 +483,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                         type="number" 
                         min="1" 
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                        className="bg-slate-700 border-slate-600 text-white" 
+                        className="bg-secondary border-border text-foreground" 
                       />
                     </FormControl>
                     <FormMessage />
@@ -495,7 +495,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
 
           {/* Security */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Безопасность</h3>
+            <h3 className="text-lg font-medium text-foreground">Безопасность</h3>
             
             {renderSecretField('signingSecret', 'Signing Secret (для Webhook)')}
 
@@ -509,7 +509,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                     <Textarea 
                       {...field} 
                       placeholder={"192.168.1.0/24\n10.0.0.100"} 
-                      className="bg-slate-700 border-slate-600 text-white" 
+                      className="bg-secondary border-border text-foreground" 
                     />
                   </FormControl>
                   <FormMessage />
@@ -520,7 +520,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
 
           {/* Service Settings */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Служебные настройки</h3>
+            <h3 className="text-lg font-medium text-foreground">Служебные настройки</h3>
             
             <FormField
               control={form.control}
@@ -542,7 +542,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                 <FormItem>
                   <FormLabel>Теги (через запятую)</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="production, external-api" className="bg-slate-700 border-slate-600 text-white" />
+                    <Input {...field} placeholder="production, external-api" className="bg-secondary border-border text-foreground" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -556,7 +556,7 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
                 <FormItem>
                   <FormLabel>Ответственный</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="admin@company.com" className="bg-slate-700 border-slate-600 text-white" />
+                    <Input {...field} placeholder="admin@company.com" className="bg-secondary border-border text-foreground" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -565,11 +565,11 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
           </div>
 
           {/* Form Actions */}
-          <div className="flex gap-2 pt-6 border-t border-slate-600">
+          <div className="flex gap-2 pt-6 border-t border-border">
             <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
               {loading ? 'Сохранение...' : 'Сохранить'}
             </Button>
-            <Button type="button" variant="outline" onClick={onCancel} className="border-slate-600 text-white hover:bg-slate-700">
+            <Button type="button" variant="outline" onClick={onCancel} className="border-border text-foreground hover:bg-secondary">
               Отмена
             </Button>
           </div>

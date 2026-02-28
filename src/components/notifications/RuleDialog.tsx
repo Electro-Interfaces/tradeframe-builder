@@ -160,12 +160,12 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">
+          <DialogTitle className="text-foreground">
             {isEditing ? 'Редактирование правила' : 'Создание правила'}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             {isEditing
               ? 'Измените параметры правила уведомления'
               : 'Настройте новое правило для автоматических уведомлений'}
@@ -176,19 +176,19 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Основная информация */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-white">Основная информация</h3>
+              <h3 className="text-sm font-semibold text-foreground">Основная информация</h3>
 
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-300">Название правила</FormLabel>
+                    <FormLabel className="text-foreground/80">Название правила</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         placeholder="Например: Контроль купюроприемников"
-                        className="bg-slate-800 border-slate-700 text-white"
+                        className="bg-card border-border text-foreground"
                       />
                     </FormControl>
                     <FormMessage />
@@ -201,12 +201,12 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-300">Описание</FormLabel>
+                    <FormLabel className="text-foreground/80">Описание</FormLabel>
                     <FormControl>
                       <Textarea
                         {...field}
                         placeholder="Краткое описание правила"
-                        className="bg-slate-800 border-slate-700 text-white"
+                        className="bg-card border-border text-foreground"
                         rows={2}
                       />
                     </FormControl>
@@ -220,14 +220,14 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-300">Тип события</FormLabel>
+                    <FormLabel className="text-foreground/80">Тип события</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectTrigger className="bg-card border-border text-foreground">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="bill_acceptor_threshold">Пороги купюроприемника</SelectItem>
                         <SelectItem value="terminal_offline">Проблемы с терминалом</SelectItem>
                         <SelectItem value="low_fuel_level">Низкий уровень топлива</SelectItem>
@@ -245,10 +245,10 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
                 control={form.control}
                 name="is_active"
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border border-slate-700 p-4 bg-slate-800">
+                  <FormItem className="flex items-center justify-between rounded-lg border border-border p-4 bg-card">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-slate-300">Активно</FormLabel>
-                      <FormDescription className="text-slate-500">
+                      <FormLabel className="text-foreground/80">Активно</FormLabel>
+                      <FormDescription className="text-muted-foreground">
                         Правило будет проверяться автоматически
                       </FormDescription>
                     </div>
@@ -262,22 +262,22 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
 
             {/* Конфигурация для порогов купюроприемника */}
             {form.watch('type') === 'bill_acceptor_threshold' && (
-              <div className="space-y-4 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
-                <h3 className="text-sm font-semibold text-white">Настройки проверки</h3>
+              <div className="space-y-4 p-4 rounded-lg bg-card/50 border border-border">
+                <h3 className="text-sm font-semibold text-foreground">Настройки проверки</h3>
 
                 <FormField
                   control={form.control}
                   name="warningLevel"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-slate-300">Уровень предупреждения</FormLabel>
+                      <FormLabel className="text-foreground/80">Уровень предупреждения</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                          <SelectTrigger className="bg-card border-border text-foreground">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectContent className="bg-card border-border">
                           <SelectItem value="warning">Только предупреждение</SelectItem>
                           <SelectItem value="critical">Только критичные</SelectItem>
                           <SelectItem value="both">Оба уровня</SelectItem>
@@ -292,10 +292,10 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
                   control={form.control}
                   name="applyToAllStations"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border border-slate-700 p-4 bg-slate-800">
+                    <FormItem className="flex items-center justify-between rounded-lg border border-border p-4 bg-card">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-slate-300">Применять ко всем ТТ</FormLabel>
-                        <FormDescription className="text-slate-500">
+                        <FormLabel className="text-foreground/80">Применять ко всем ТТ</FormLabel>
+                        <FormDescription className="text-muted-foreground">
                           Проверять все торговые точки сети
                         </FormDescription>
                       </div>
@@ -310,21 +310,21 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
 
             {/* Расписание */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-white">Расписание проверки</h3>
+              <h3 className="text-sm font-semibold text-foreground">Расписание проверки</h3>
 
               <FormField
                 control={form.control}
                 name="scheduleType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-300">Тип расписания</FormLabel>
+                    <FormLabel className="text-foreground/80">Тип расписания</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectTrigger className="bg-card border-border text-foreground">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="cron">По расписанию (cron)</SelectItem>
                         <SelectItem value="interval">Через интервал</SelectItem>
                         <SelectItem value="realtime">Реальное время</SelectItem>
@@ -348,14 +348,14 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
 
             {/* Уведомления */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-white">Настройки уведомлений</h3>
+              <h3 className="text-sm font-semibold text-foreground">Настройки уведомлений</h3>
 
               <FormField
                 control={form.control}
                 name="channels"
                 render={() => (
                   <FormItem>
-                    <FormLabel className="text-slate-300">Каналы доставки</FormLabel>
+                    <FormLabel className="text-foreground/80">Каналы доставки</FormLabel>
                     <div className="space-y-2">
                       <FormField
                         control={form.control}
@@ -375,7 +375,7 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
                                 }}
                               />
                             </FormControl>
-                            <FormLabel className="text-slate-300 font-normal cursor-pointer">
+                            <FormLabel className="text-foreground/80 font-normal cursor-pointer">
                               Email
                             </FormLabel>
                           </FormItem>
@@ -399,7 +399,7 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
                                 }}
                               />
                             </FormControl>
-                            <FormLabel className="text-slate-300 font-normal cursor-pointer">
+                            <FormLabel className="text-foreground/80 font-normal cursor-pointer">
                               Telegram
                             </FormLabel>
                           </FormItem>
@@ -416,14 +416,14 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-300">Приоритет</FormLabel>
+                    <FormLabel className="text-foreground/80">Приоритет</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectTrigger className="bg-card border-border text-foreground">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="low">Низкий</SelectItem>
                         <SelectItem value="medium">Средний</SelectItem>
                         <SelectItem value="high">Высокий</SelectItem>

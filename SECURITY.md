@@ -1,6 +1,6 @@
 # 🔒 Security Guide
 
-## Политика безопасности TradeFrame Builder v1.5.16
+## Политика безопасности TradeControl Builder v1.5.16
 
 ### 🔐 Аутентификация
 

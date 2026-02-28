@@ -159,10 +159,10 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
   };
 
   return (
-    <Card className="p-6 bg-slate-800 border-slate-700 space-y-6">
+    <Card className="p-6 bg-card border-border space-y-6">
       {/* Готовые шаблоны */}
       <div className="space-y-3">
-        <Label className="text-white flex items-center gap-2">
+        <Label className="text-foreground flex items-center gap-2">
           <RefreshCw className="w-4 h-4" />
           Готовые шаблоны
         </Label>
@@ -185,15 +185,15 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
 
       {/* Тип расписания */}
       <div className="space-y-3">
-        <Label className="text-white">Тип расписания</Label>
+        <Label className="text-foreground">Тип расписания</Label>
         <Select
           value={config.type}
           onValueChange={(value) => handleConfigChange({ type: value as ScheduleType })}
         >
-          <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+          <SelectTrigger className="bg-background border-border text-foreground">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-slate-900 border-slate-700">
+          <SelectContent className="bg-background border-border">
             <SelectItem value="hourly">Каждые N часов</SelectItem>
             <SelectItem value="daily">Ежедневно в заданное время</SelectItem>
             <SelectItem value="weekly">Еженедельно в заданный день</SelectItem>
@@ -205,7 +205,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
       {/* Настройки для hourly */}
       {config.type === 'hourly' && (
         <div className="space-y-3">
-          <Label className="text-white flex items-center gap-2">
+          <Label className="text-foreground flex items-center gap-2">
             <Clock className="w-4 h-4" />
             Интервал в часах
           </Label>
@@ -213,10 +213,10 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
             value={String(config.everyNHours || 6)}
             onValueChange={(value) => handleConfigChange({ everyNHours: parseInt(value) })}
           >
-            <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+            <SelectTrigger className="bg-background border-border text-foreground">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-slate-900 border-slate-700">
+            <SelectContent className="bg-background border-border">
               {[1, 2, 3, 4, 6, 8, 12, 24].map((hours) => (
                 <SelectItem key={hours} value={String(hours)}>
                   {hours === 1 ? 'Каждый час' : `Каждые ${hours} часов`}
@@ -230,7 +230,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
       {/* Настройки для daily */}
       {config.type === 'daily' && (
         <div className="space-y-3">
-          <Label className="text-white flex items-center gap-2">
+          <Label className="text-foreground flex items-center gap-2">
             <Clock className="w-4 h-4" />
             Время запуска
           </Label>
@@ -238,7 +238,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
             type="time"
             value={config.dailyTime || '09:00'}
             onChange={(e) => handleConfigChange({ dailyTime: e.target.value })}
-            className="bg-slate-900 border-slate-700 text-white"
+            className="bg-background border-border text-foreground"
           />
         </div>
       )}
@@ -247,7 +247,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
       {config.type === 'weekly' && (
         <div className="space-y-4">
           <div className="space-y-3">
-            <Label className="text-white flex items-center gap-2">
+            <Label className="text-foreground flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               День недели
             </Label>
@@ -255,10 +255,10 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
               value={String(config.weekday || 1)}
               onValueChange={(value) => handleConfigChange({ weekday: parseInt(value) })}
             >
-              <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+              <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-slate-700">
+              <SelectContent className="bg-background border-border">
                 {WEEKDAYS.map((day) => (
                   <SelectItem key={day.value} value={String(day.value)}>
                     {day.label}
@@ -268,7 +268,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
             </Select>
           </div>
           <div className="space-y-3">
-            <Label className="text-white flex items-center gap-2">
+            <Label className="text-foreground flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Время запуска
             </Label>
@@ -276,7 +276,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
               type="time"
               value={config.weeklyTime || '09:00'}
               onChange={(e) => handleConfigChange({ weeklyTime: e.target.value })}
-              className="bg-slate-900 border-slate-700 text-white"
+              className="bg-background border-border text-foreground"
             />
           </div>
         </div>
@@ -285,7 +285,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
       {/* Настройки для custom_time */}
       {config.type === 'custom_time' && (
         <div className="space-y-3">
-          <Label className="text-white flex items-center gap-2">
+          <Label className="text-foreground flex items-center gap-2">
             <Clock className="w-4 h-4" />
             Время запусков
           </Label>
@@ -294,7 +294,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
               type="time"
               value={customTimeInput}
               onChange={(e) => setCustomTimeInput(e.target.value)}
-              className="bg-slate-900 border-slate-700 text-white"
+              className="bg-background border-border text-foreground"
               placeholder="09:00"
             />
             <Button
@@ -320,14 +320,14 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
       )}
 
       {/* Предпросмотр */}
-      <div className="pt-4 border-t border-slate-700 space-y-2">
+      <div className="pt-4 border-t border-border space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">Расписание:</span>
-          <span className="text-sm text-white font-medium">{generateHumanReadable(config)}</span>
+          <span className="text-sm text-muted-foreground">Расписание:</span>
+          <span className="text-sm text-foreground font-medium">{generateHumanReadable(config)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">Cron выражение:</span>
-          <code className="text-xs text-blue-400 bg-slate-900 px-2 py-1 rounded">
+          <span className="text-sm text-muted-foreground">Cron выражение:</span>
+          <code className="text-xs text-blue-600 dark:text-blue-400 bg-background px-2 py-1 rounded">
             {generateCronExpression(config)}
           </code>
         </div>

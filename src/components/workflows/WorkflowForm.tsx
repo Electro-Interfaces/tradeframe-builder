@@ -217,7 +217,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                   </SelectContent>
                 </Select>
                 {formData.type !== 'custom' && (
-                  <p className="text-slate-400 text-sm mt-1">
+                  <p className="text-muted-foreground text-sm mt-1">
                     {WORKFLOW_TYPE_CONFIGS[formData.type]?.description}
                   </p>
                 )}
@@ -288,7 +288,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                 </div>
               </div>
 
-              <div className="text-sm text-slate-400">
+              <div className="text-sm text-muted-foreground">
                 Выполнение: каждые {formData.schedule.interval} {
                   formData.schedule.frequency === 'minutes' ? 'минут' :
                   formData.schedule.frequency === 'hours' ? 'часов' :
@@ -500,7 +500,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
             <CardContent>
               {formData.endpoints.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-slate-400">Endpoints не добавлены</p>
+                  <p className="text-muted-foreground">Endpoints не добавлены</p>
                   <Button
                     variant="outline"
                     onClick={addEndpoint}
@@ -516,7 +516,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                   {formData.endpoints.map((endpoint, index) => {
                     const template = mockNewCommandTemplates.find(t => t.id === endpoint.template_id);
                     return (
-                      <Card key={index} className="border-slate-600">
+                      <Card key={index} className="border-border">
                         <CardContent className="pt-4">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
@@ -537,7 +537,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => removeEndpoint(index)}
-                                className="text-red-400 hover:text-red-300"
+                                className="text-red-600 dark:text-red-400 hover:text-red-300"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -582,8 +582,8 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
 
                           {template && (
                             <div className="mt-4">
-                              <p className="text-sm text-slate-400">{template.description}</p>
-                              <div className="text-xs text-slate-500 mt-1">
+                              <p className="text-sm text-muted-foreground">{template.description}</p>
+                              <div className="text-xs text-muted-foreground mt-1">
                                 Scope: {template.scope} | Метод: {template.http_method} {template.endpoint}
                               </div>
                             </div>
@@ -644,7 +644,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
               </div>
 
               {!formData.targets.include_all && (
-                <div className="text-sm text-slate-400 p-3 bg-slate-700 rounded">
+                <div className="text-sm text-muted-foreground p-3 bg-secondary rounded">
                   При снятии галочки появятся поля для выбора конкретных объектов.
                   В текущей версии поддерживается только режим "все объекты".
                 </div>
@@ -783,10 +783,10 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
         <Card className="mt-6 border-yellow-500">
           <CardContent className="pt-4">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
               <div>
-                <h4 className="font-medium text-yellow-400">Предупреждения</h4>
-                <ul className="text-sm text-slate-400 mt-1 space-y-1">
+                <h4 className="font-medium text-yellow-600 dark:text-yellow-400">Предупреждения</h4>
+                <ul className="text-sm text-muted-foreground mt-1 space-y-1">
                   {warnings.map((warning, index) => (
                     <li key={index}>• {warning}</li>
                   ))}
@@ -798,7 +798,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
       )}
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-600">
+      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
         <Button variant="outline" onClick={onCancel}>
           Отмена
         </Button>

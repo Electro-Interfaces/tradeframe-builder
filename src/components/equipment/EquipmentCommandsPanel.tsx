@@ -256,12 +256,12 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
 
 
   return (
-    <div className="bg-slate-800 border border-slate-600 rounded-lg p-3">
+    <div className="bg-card border border-border rounded-lg p-3">
       {/* Компактный заголовок */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Settings className="w-4 h-4 text-slate-400" />
-          <span className="text-sm font-medium text-slate-200">Управление оборудованием</span>
+          <Settings className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Управление оборудованием</span>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-xs">
@@ -279,12 +279,12 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
       {/* Компактные команды */}
       <div className="flex items-center gap-2 flex-wrap">
         {commandsLoading ? (
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="w-3 h-3 animate-spin" />
             Загрузка команд...
           </div>
         ) : availableCommands.length === 0 ? (
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-muted-foreground">
             Команды не настроены
           </div>
         ) : (
@@ -297,7 +297,7 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 text-xs border-slate-600 hover:bg-slate-700 hover:text-slate-200"
+                  className="h-8 px-2 text-xs border-border hover:bg-secondary hover:text-foreground"
                   onClick={() => hasParams ? editCommand(command) : executeCommandDirect(command)}
                   disabled={loading}
                   title={command.description + (hasParams ? ' (с параметрами)' : ' (без параметров)')}
@@ -312,7 +312,7 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 ml-1 text-slate-400 hover:text-slate-200"
+                    className="h-8 w-8 p-0 ml-1 text-muted-foreground hover:text-foreground"
                     onClick={() => executeCommandDirect(command)}
                     disabled={loading}
                     title="Выполнить с параметрами по умолчанию"
@@ -329,7 +329,7 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 px-2 text-xs text-slate-400 hover:text-blue-400"
+          className="h-8 px-2 text-xs text-muted-foreground hover:text-blue-400"
           onClick={() => onEditCommands?.(equipment.id)}
           title="Редактировать привязку команд"
         >
@@ -340,7 +340,7 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 px-2 text-xs text-slate-400 hover:text-slate-200"
+          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
           onClick={loadCommandHistory}
           disabled={historyLoading}
           title="Показать историю команд"
@@ -355,12 +355,12 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
 
       {/* Компактная история команд */}
       {commandHistory.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-slate-600">
-          <div className="text-xs text-slate-400 mb-2">Последние команды:</div>
+        <div className="mt-3 pt-3 border-t border-border">
+          <div className="text-xs text-muted-foreground mb-2">Последние команды:</div>
           <div className="space-y-1">
             {commandHistory.slice(0, 3).map((instance) => (
               <div key={instance.id} className="flex items-center justify-between text-xs">
-                <span className="text-slate-300 truncate">
+                <span className="text-foreground/80 truncate">
                   {instance.template_name || instance.templateId}
                 </span>
                 <Badge 

@@ -64,12 +64,12 @@ export default function NetworkNotifications() {
         <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'}`}>
           <div>
             <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
-              <Bell className={`text-yellow-400 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
-              <h1 className={`font-bold text-white ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+              <Bell className={`text-blue-600 dark:text-blue-400 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
+              <h1 className={`font-bold text-foreground ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
                 Оповещения сети
               </h1>
             </div>
-            <p className={`text-slate-400 ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
               Управление правилами уведомлений и автоматическими оповещениями
             </p>
           </div>
@@ -106,7 +106,7 @@ export default function NetworkNotifications() {
 
         {/* Табы */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-3 bg-card">
             <TabsTrigger value="rules" className="data-[state=active]:bg-blue-600">
               <Settings2 className="w-4 h-4 mr-2" />
               Правила ({rules.length})
@@ -124,19 +124,19 @@ export default function NetworkNotifications() {
           {/* Вкладка: Правила */}
           <TabsContent value="rules" className="space-y-4">
             {loading ? (
-              <Card className="p-12 text-center bg-slate-800 border-slate-700">
+              <Card className="p-12 text-center bg-card border-border">
                 <RefreshCw className="w-16 h-16 mx-auto mb-4 text-blue-500 animate-spin" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   Загрузка правил...
                 </h3>
               </Card>
             ) : rules.length === 0 ? (
-              <Card className="p-12 text-center bg-slate-800 border-slate-700">
-                <Bell className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+              <Card className="p-12 text-center bg-card border-border">
+                <Bell className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   Нет настроенных правил
                 </h3>
-                <p className="text-slate-400 mb-6">
+                <p className="text-muted-foreground mb-6">
                   Создайте первое правило для автоматических оповещений
                 </p>
                 <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleCreateRule}>
@@ -161,12 +161,12 @@ export default function NetworkNotifications() {
           {/* Вкладка: Активные уведомления */}
           <TabsContent value="active" className="space-y-4">
             {activeNotifications.length === 0 ? (
-              <Card className="p-12 text-center bg-slate-800 border-slate-700">
+              <Card className="p-12 text-center bg-card border-border">
                 <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   Нет активных оповещений
                 </h3>
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   Все системы работают нормально
                 </p>
               </Card>
@@ -185,12 +185,12 @@ export default function NetworkNotifications() {
           {/* Вкладка: История */}
           <TabsContent value="history" className="space-y-4">
             {historyNotifications.length === 0 ? (
-              <Card className="p-12 text-center bg-slate-800 border-slate-700">
-                <Clock className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+              <Card className="p-12 text-center bg-card border-border">
+                <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   История пуста
                 </h3>
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   История отправленных уведомлений появится здесь
                 </p>
               </Card>

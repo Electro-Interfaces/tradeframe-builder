@@ -1,4 +1,4 @@
-# 🧪 План развертывания ТЕСТОВОЙ среды TradeFrame Builder
+# 🧪 План развертывания ТЕСТОВОЙ среды TradeControl Builder
 
 **Дата:** 2025-10-17
 **Версия:** 1.0
@@ -100,7 +100,7 @@
 
 1. **Создать новый проект в Supabase**
    - Открыть: https://supabase.com/dashboard
-   - New Project → "TradeFrame Testing"
+   - New Project → "TradeControl Testing"
    - Region: тот же что у production
    - Password: сохранить в безопасном месте
    - Дождаться создания (3-5 минут)

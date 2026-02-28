@@ -29,7 +29,7 @@ export function TankProgressIndicator({
   return (
     <div
       style={{ height: `${height}px`, width: `${width}px` }}
-      className="relative bg-slate-700 rounded-lg border border-slate-600 overflow-hidden"
+      className="relative bg-secondary rounded-lg border border-border overflow-hidden"
     >
       {/* Background gradient */}
       <div
@@ -54,7 +54,7 @@ export function TankProgressIndicator({
 
       {/* Percentage text overlay */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-white text-xs font-bold drop-shadow-lg">
+        <span className="text-foreground text-xs font-bold drop-shadow-lg">
           {percentage}%
         </span>
       </div>

@@ -33,7 +33,7 @@ const authLimiter = rateLimit({
 
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 минута
-  max: 120, // 120 запросов в минуту на IP
+  max: 300, // 300 запросов в минуту на IP
   message: { error: 'Превышен лимит запросов. Подождите.' },
   standardHeaders: true,
   legacyHeaders: false,

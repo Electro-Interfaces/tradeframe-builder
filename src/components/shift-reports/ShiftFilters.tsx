@@ -85,13 +85,13 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
         <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50 transition-colors">
+          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-slate-400" />
-              <span className="font-medium text-white">Фильтры</span>
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">Фильтры</span>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -113,21 +113,21 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
                     onRefresh();
                   }}
                   disabled={loading}
-                  className="border-slate-600 text-white hover:bg-slate-700"
+                  className="border-border text-foreground hover:bg-secondary"
                 >
                   <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
               )}
-              {filtersOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+              {filtersOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             </div>
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="p-4 border-t border-slate-700">
+          <div className="p-4 border-t border-border">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Дата начала */}
               <div>
-                <Label className="text-xs text-slate-400">
+                <Label className="text-xs text-muted-foreground">
                   Дата от
                 </Label>
                 <Input
@@ -140,7 +140,7 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
 
               {/* Дата до */}
               <div>
-                <Label className="text-xs text-slate-400">
+                <Label className="text-xs text-muted-foreground">
                   Дата до
                 </Label>
                 <Input
@@ -153,7 +153,7 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
 
               {/* Статус смены */}
               <div>
-                <Label htmlFor="status" className="text-xs text-slate-400">
+                <Label htmlFor="status" className="text-xs text-muted-foreground">
                   Статус
                 </Label>
                 <Select value={filters.status} onValueChange={handleStatusChange}>
@@ -171,7 +171,7 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
 
               {/* Номер смены */}
               <div>
-                <Label htmlFor="shiftNumber" className="text-xs text-slate-400">
+                <Label htmlFor="shiftNumber" className="text-xs text-muted-foreground">
                   Номер смены
                 </Label>
                 <Input

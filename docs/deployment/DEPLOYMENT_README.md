@@ -1,4 +1,4 @@
-# 🚀 TradeFrame - Автоматический деплой через GitHub Actions
+# 🚀 TradeControl - Автоматический деплой через GitHub Actions
 
 ## ✅ Что было создано
 

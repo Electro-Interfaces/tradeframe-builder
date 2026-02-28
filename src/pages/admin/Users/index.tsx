@@ -131,21 +131,21 @@ export default function Users() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Пользователи</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Пользователи</h1>
             <HelpButton route="/admin/users-and-roles" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 
         {/* Панель управления */}
-        <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700">
+        <div className="bg-card mb-6 rounded-lg border border-border">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <UsersIcon className="w-4 h-4 text-white" />
+                  <UsersIcon className="w-4 h-4 text-foreground" />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Пользователи</h2>
-                <div className="text-sm text-slate-400">
+                <h2 className="text-lg font-semibold text-foreground">Пользователи</h2>
+                <div className="text-sm text-muted-foreground">
                   Всего: {filteredUsers.length} из {users.length}
                 </div>
               </div>
@@ -161,7 +161,7 @@ export default function Users() {
                   <Button
                     onClick={handleCleanupDeletedUsers}
                     variant="outline"
-                    className="bg-red-600/10 border-red-500 text-red-400 hover:bg-red-600/20 hover:text-red-300"
+                    className="bg-red-600/10 border-red-500 text-red-600 dark:text-red-400 hover:bg-red-600/20 hover:text-red-300"
                     title="Физически удалить всех помеченных к удалению пользователей"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -174,19 +174,19 @@ export default function Users() {
             {/* Фильтры */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Поиск пользователей..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  className="pl-10 bg-secondary border-border text-foreground placeholder-muted-foreground"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px] bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="w-full sm:w-[180px] bg-secondary border-border text-foreground">
                   <SelectValue placeholder="Статус" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
+                <SelectContent className="bg-secondary border-border">
                   <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="active">Активные</SelectItem>
                   <SelectItem value="inactive">Неактивные</SelectItem>
@@ -199,13 +199,13 @@ export default function Users() {
         {/* Таблица/Карточки пользователей */}
         {filteredUsers.length === 0 && !isLoading ? (
           <div className="text-center py-16">
-            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <UsersIcon className="w-8 h-8 text-slate-400" />
+            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+              <UsersIcon className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               {searchTerm || statusFilter !== "all" ? 'Пользователи не найдены' : 'Нет пользователей'}
             </h3>
-            <p className="text-slate-400">
+            <p className="text-muted-foreground">
               {searchTerm || statusFilter !== "all"
                 ? 'Попробуйте изменить критерии поиска'
                 : 'Создайте первого пользователя системы'
@@ -227,7 +227,7 @@ export default function Users() {
             {/* Mobile карточки */}
             <div className="md:hidden">
               {isLoading ? (
-                <div className="text-center py-8 text-slate-400">Загрузка...</div>
+                <div className="text-center py-8 text-muted-foreground">Загрузка...</div>
               ) : (
                 <UsersCards
                   users={filteredUsers}

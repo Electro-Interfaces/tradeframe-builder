@@ -59,11 +59,11 @@ const getOperationTypeName = (type: string): string => {
  */
 const getOperationTypeColor = (type: string): string => {
   switch (type) {
-    case 'opening': return 'text-blue-400';
-    case 'closing': return 'text-purple-400';
-    case 'income': return 'text-green-400';
-    case 'expense': return 'text-red-400';
-    default: return 'text-slate-400';
+    case 'opening': return 'text-blue-600 dark:text-blue-400';
+    case 'closing': return 'text-purple-600 dark:text-purple-400';
+    case 'income': return 'text-green-600 dark:text-green-400';
+    case 'expense': return 'text-red-600 dark:text-red-400';
+    default: return 'text-muted-foreground';
   }
 };
 
@@ -90,7 +90,7 @@ function KPICard({
   iconBg,
   isLoading,
   onClick,
-  valueColor = 'text-white',
+  valueColor = 'text-foreground',
   subtitle,
 }: {
   title: string;
@@ -105,8 +105,8 @@ function KPICard({
   return (
     <div
       className={cn(
-        'bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700 transition-colors',
-        onClick && 'cursor-pointer hover:border-slate-500'
+        'bg-card rounded-xl p-3 sm:p-4 border border-border transition-colors',
+        onClick && 'cursor-pointer hover:border-border'
       )}
       onClick={onClick}
     >
@@ -114,19 +114,19 @@ function KPICard({
         <div className={cn('p-1 sm:p-1.5 rounded-lg', iconBg)}>
           {icon}
         </div>
-        <span className="text-xs sm:text-sm font-medium text-white truncate">{title}</span>
+        <span className="text-xs sm:text-sm font-medium text-foreground truncate">{title}</span>
       </div>
 
       {isLoading ? (
-        <div className="h-6 sm:h-7 w-20 sm:w-28 bg-slate-700 rounded animate-pulse" />
+        <div className="h-6 sm:h-7 w-20 sm:w-28 bg-secondary rounded animate-pulse" />
       ) : (
         <div>
           <div className="flex items-baseline gap-1 sm:gap-2">
             <span className={cn('text-base sm:text-xl font-bold', valueColor)}>{value}</span>
-            <span className="text-[10px] sm:text-xs text-slate-400">₽</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">₽</span>
           </div>
           {subtitle && (
-            <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">{subtitle}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 hidden sm:block">{subtitle}</p>
           )}
         </div>
       )}
@@ -163,14 +163,14 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
     <div className={cn('space-y-3 sm:space-y-4', className)}>
       {/* Заголовок секции */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-wide">
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wide">
           <span className="hidden sm:inline">Движение наличных (сверка кассы)</span>
           <span className="sm:hidden">Сверка кассы</span>
         </h3>
         {safeCashFlow.details.length > 0 && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
           >
             <span className="hidden sm:inline">{isExpanded ? 'Скрыть детали' : 'Показать детали'}</span>
             <span className="sm:hidden">{isExpanded ? 'Скрыть' : 'Детали'}</span>
@@ -185,9 +185,9 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
         <KPICard
           title="Приход"
           value={formatCurrency(safeCashFlow.totalIncome)}
-          icon={<ArrowUpCircle className="w-4 h-4 text-white" />}
+          icon={<ArrowUpCircle className="w-4 h-4 text-foreground" />}
           iconBg="bg-emerald-600"
-          valueColor="text-green-400"
+          valueColor="text-green-600 dark:text-green-400"
           isLoading={isLoading}
           onClick={() => safeCashFlow.details.length > 0 && setIsExpanded(!isExpanded)}
         />
@@ -196,9 +196,9 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
         <KPICard
           title="Расход"
           value={formatCurrency(safeCashFlow.totalExpense)}
-          icon={<ArrowDownCircle className="w-4 h-4 text-white" />}
+          icon={<ArrowDownCircle className="w-4 h-4 text-foreground" />}
           iconBg="bg-red-600"
-          valueColor="text-red-400"
+          valueColor="text-red-600 dark:text-red-400"
           isLoading={isLoading}
           onClick={() => safeCashFlow.details.length > 0 && setIsExpanded(!isExpanded)}
         />
@@ -207,7 +207,7 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
         <KPICard
           title="Расчетный остаток"
           value={formatCurrency(safeCashFlow.calculatedBalance)}
-          icon={<Calculator className="w-4 h-4 text-white" />}
+          icon={<Calculator className="w-4 h-4 text-foreground" />}
           iconBg="bg-blue-600"
           isLoading={isLoading}
           subtitle="Приход − Расход"
@@ -218,7 +218,7 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
         <KPICard
           title="Факт. остаток"
           value={formatCurrency(safeCashFlow.closingBalance)}
-          icon={<Wallet className="w-4 h-4 text-white" />}
+          icon={<Wallet className="w-4 h-4 text-foreground" />}
           iconBg="bg-purple-600"
           isLoading={isLoading}
           onClick={() => safeCashFlow.details.length > 0 && setIsExpanded(!isExpanded)}
@@ -229,33 +229,33 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
           className={cn(
             'rounded-xl p-3 sm:p-4 border transition-colors',
             hasDifference
-              ? 'bg-gradient-to-br from-amber-900/50 to-slate-800 border-amber-700/50'
-              : 'bg-slate-800 border-slate-700',
-            safeCashFlow.details.length > 0 && 'cursor-pointer hover:border-slate-500'
+              ? 'bg-gradient-to-br from-amber-900/50 to-card border-amber-300 dark:border-amber-700/50'
+              : 'bg-card border-border',
+            safeCashFlow.details.length > 0 && 'cursor-pointer hover:border-border'
           )}
           onClick={() => safeCashFlow.details.length > 0 && setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-            <div className={cn('p-1 sm:p-1.5 rounded-lg', hasDifference ? 'bg-amber-600' : 'bg-slate-600')}>
-              <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+            <div className={cn('p-1 sm:p-1.5 rounded-lg', hasDifference ? 'bg-amber-600' : 'bg-secondary')}>
+              <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-foreground" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-white">Разница</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground">Разница</span>
           </div>
 
           {isLoading ? (
-            <div className="h-5 sm:h-7 w-16 sm:w-20 bg-slate-700 rounded animate-pulse" />
+            <div className="h-5 sm:h-7 w-16 sm:w-20 bg-secondary rounded animate-pulse" />
           ) : (
             <div>
               <div className="flex items-baseline gap-1 sm:gap-2">
                 <span className={cn(
                   'text-base sm:text-xl font-bold',
-                  hasDifference ? 'text-amber-400' : 'text-green-400'
+                  hasDifference ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'
                 )}>
                   {safeCashFlow.difference > 0 && '+'}{formatCurrency(safeCashFlow.difference)}
                 </span>
-                <span className="text-[10px] sm:text-xs text-slate-400">₽</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground">₽</span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 hidden sm:block">
                 {hasDifference ? 'Требует проверки' : 'Сходится'}
               </p>
             </div>
@@ -265,32 +265,32 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
 
       {/* Таблица детализации */}
       {isExpanded && safeCashFlow.details.length > 0 && (
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm">
-              <thead className="bg-slate-900/50">
+              <thead className="bg-background/50">
                 <tr>
-                  <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Дата/время
                   </th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Тип
                   </th>
-                  <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Описание
                   </th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Смена
                   </th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">
                     Сумма
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-border">
                 {safeCashFlow.details.map((item, idx) => (
-                  <tr key={`${item.id}-${idx}`} className="hover:bg-slate-700/30">
-                    <td className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-slate-300 whitespace-nowrap text-xs">
+                  <tr key={`${item.id}-${idx}`} className="hover:bg-secondary/30">
+                    <td className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-foreground/80 whitespace-nowrap text-xs">
                       {formatDate(item.datetime)}
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3">
@@ -299,18 +299,18 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
                         <span className="truncate max-w-[80px] sm:max-w-none">{getOperationTypeName(item.operationType)}</span>
                       </div>
                     </td>
-                    <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-slate-300 max-w-[200px] truncate" title={item.description}>
+                    <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-foreground/80 max-w-[200px] truncate" title={item.description}>
                       {item.description}
                     </td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-slate-400">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-muted-foreground">
                       {item.shiftNumber ? `№${item.shiftNumber}` : '-'}
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
                       <span className={cn(
                         'font-medium text-xs sm:text-sm',
-                        item.operationType === 'income' && 'text-green-400',
-                        item.operationType === 'expense' && 'text-red-400',
-                        (item.operationType === 'opening' || item.operationType === 'closing') && 'text-white'
+                        item.operationType === 'income' && 'text-green-600 dark:text-green-400',
+                        item.operationType === 'expense' && 'text-red-600 dark:text-red-400',
+                        (item.operationType === 'opening' || item.operationType === 'closing') && 'text-foreground'
                       )}>
                         {item.operationType === 'income' && '+'}
                         {item.operationType === 'expense' && '−'}
@@ -320,15 +320,15 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-900/50 border-t border-slate-600">
+              <tfoot className="bg-background/50 border-t border-border">
                 <tr>
                   <td className="hidden sm:table-cell"></td>
-                  <td colSpan={2} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white">
+                  <td colSpan={2} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold text-foreground">
                     <span className="hidden sm:inline">ИТОГО ({safeCashFlow.operationsCount} операций)</span>
                     <span className="sm:hidden">Σ {safeCashFlow.operationsCount}</span>
                   </td>
                   <td className="hidden md:table-cell"></td>
-                  <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white">
+                  <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-foreground">
                     {formatCurrency(safeCashFlow.closingBalance)}
                   </td>
                 </tr>

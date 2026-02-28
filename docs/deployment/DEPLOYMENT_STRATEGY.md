@@ -1,4 +1,4 @@
-# 🚀 Стратегия развертывания TradeFrame Builder
+# 🚀 Стратегия развертывания TradeControl Builder
 
 > Документация по работе с тремя окружениями: Development, Test, Production
 
@@ -15,7 +15,7 @@
 
 ## 🏗️ Обзор архитектуры
 
-TradeFrame Builder использует **трехуровневую архитектуру развертывания**:
+TradeControl Builder использует **трехуровневую архитектуру развертывания**:
 
 ```
 DEVELOPMENT (localhost) → TEST (GitHub Pages) → PRODUCTION (prod.dataworker.ru)
@@ -506,4 +506,4 @@ ls -la public/pwa-*.png
 
 **Версия документа:** 1.0
 **Последнее обновление:** 2025-01-19
-**Автор:** TradeFrame Development Team
+**Автор:** TradeControl Development Team

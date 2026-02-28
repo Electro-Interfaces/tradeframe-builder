@@ -64,7 +64,7 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
           size="sm"
           variant="outline"
           disabled={loading}
-          className={`border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white transition-colors ${
+          className={`border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors ${
             isMobile ? 'flex-1' : ''
           }`}
         >
@@ -82,10 +82,10 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
         </Button>
       </DialogTrigger>
 
-      <DialogContent className={`${isMobile ? 'max-w-[95vw] h-[90vh]' : 'max-w-3xl max-h-[80vh]'} bg-slate-800 border-slate-700`}>
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] h-[90vh]' : 'max-w-3xl max-h-[80vh]'} bg-card border-border`}>
         <DialogHeader>
-          <DialogTitle className="text-slate-200 flex items-center gap-2">
-            <History className="w-5 h-5 text-purple-400" />
+          <DialogTitle className="text-foreground flex items-center gap-2">
+            <History className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             Журнал инкассации купюроприемника
           </DialogTitle>
         </DialogHeader>
@@ -94,21 +94,21 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
         {sortedRecords.length > 0 && (
           <div className="mb-4 space-y-3">
             <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-4 gap-4'}`}>
-              <div className="bg-slate-700/30 p-3 rounded-lg">
-                <div className="text-xs text-slate-400 mb-1">Всего инкассаций</div>
-                <div className="text-lg font-bold text-blue-400">{sortedRecords.length}</div>
+              <div className="bg-secondary/30 p-3 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">Всего инкассаций</div>
+                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{sortedRecords.length}</div>
               </div>
-              <div className="bg-slate-700/30 p-3 rounded-lg">
-                <div className="text-xs text-slate-400 mb-1">Касса</div>
-                <div className="text-lg font-bold text-green-400">{formatRubles(totalAmount)} ₽</div>
+              <div className="bg-secondary/30 p-3 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">Касса</div>
+                <div className="text-lg font-bold text-green-600 dark:text-green-400">{formatRubles(totalAmount)} ₽</div>
               </div>
-              <div className="bg-slate-700/30 p-3 rounded-lg">
-                <div className="text-xs text-slate-400 mb-1">Купюры</div>
-                <div className="text-lg font-bold text-purple-400">{formatRubles(totalBills)} ₽</div>
+              <div className="bg-secondary/30 p-3 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">Купюры</div>
+                <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{formatRubles(totalBills)} ₽</div>
               </div>
-              <div className="bg-slate-700/30 p-3 rounded-lg">
-                <div className="text-xs text-slate-400 mb-1">Разница</div>
-                <div className="text-lg font-bold text-orange-400">{formatRubles(totalCoins)} ₽</div>
+              <div className="bg-secondary/30 p-3 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">Разница</div>
+                <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{formatRubles(totalCoins)} ₽</div>
               </div>
             </div>
           </div>
@@ -118,10 +118,10 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
         <div className="overflow-auto flex-1">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-purple-600 dark:text-purple-400" />
             </div>
           ) : sortedRecords.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-8 text-muted-foreground">
               <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>Нет данных об инкассации</p>
             </div>
@@ -133,38 +133,38 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
                 return (
                   <div
                     key={`${record.shift}-${record.cashoutno}-${index}`}
-                    className="bg-slate-700/30 p-3 rounded-lg border border-slate-600"
+                    className="bg-secondary/30 p-3 rounded-lg border border-border"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-muted-foreground">
                         {formatDateTime(record.dt)}
                       </div>
-                      <div className="text-sm font-bold text-green-400">
+                      <div className="text-sm font-bold text-green-600 dark:text-green-400">
                         {formatRubles(record.value)} ₽
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs mb-2">
                       <div>
-                        <div className="text-slate-500">Смена</div>
-                        <div className="text-white font-medium">{record.shift}</div>
+                        <div className="text-muted-foreground">Смена</div>
+                        <div className="text-foreground font-medium">{record.shift}</div>
                       </div>
                       <div>
-                        <div className="text-slate-500">POS</div>
-                        <div className="text-white font-medium">{record.pos}</div>
+                        <div className="text-muted-foreground">POS</div>
+                        <div className="text-foreground font-medium">{record.pos}</div>
                       </div>
                       <div>
-                        <div className="text-slate-500">№ в смене</div>
-                        <div className="text-white font-medium">{record.cashoutno}</div>
+                        <div className="text-muted-foreground">№ в смене</div>
+                        <div className="text-foreground font-medium">{record.cashoutno}</div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-600">
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border">
                       <div>
-                        <div className="text-slate-500">Купюры</div>
-                        <div className="text-purple-400 font-medium">{formatRubles(record.billsum)} ₽</div>
+                        <div className="text-muted-foreground">Купюры</div>
+                        <div className="text-purple-600 dark:text-purple-400 font-medium">{formatRubles(record.billsum)} ₽</div>
                       </div>
                       <div>
-                        <div className="text-slate-500">Разница</div>
-                        <div className="text-orange-400 font-medium">{formatRubles(coins)} ₽</div>
+                        <div className="text-muted-foreground">Разница</div>
+                        <div className="text-orange-600 dark:text-orange-400 font-medium">{formatRubles(coins)} ₽</div>
                       </div>
                     </div>
                   </div>
@@ -174,15 +174,15 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
           ) : (
             // Desktop вид - таблица
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-slate-800 z-10">
-                <tr className="border-b border-slate-600">
-                  <th className="text-left pb-2 px-2 text-slate-300 font-medium">Дата и время</th>
-                  <th className="text-center pb-2 px-2 text-slate-300 font-medium">Смена</th>
-                  <th className="text-center pb-2 px-2 text-slate-300 font-medium">POS</th>
-                  <th className="text-center pb-2 px-2 text-slate-300 font-medium">№</th>
-                  <th className="text-right pb-2 px-2 text-slate-300 font-medium">Касса</th>
-                  <th className="text-right pb-2 px-2 text-slate-300 font-medium">Купюры</th>
-                  <th className="text-right pb-2 px-2 text-slate-300 font-medium">Разница</th>
+              <thead className="sticky top-0 bg-card z-10">
+                <tr className="border-b border-border">
+                  <th className="text-left pb-2 px-2 text-foreground/80 font-medium">Дата и время</th>
+                  <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Смена</th>
+                  <th className="text-center pb-2 px-2 text-foreground/80 font-medium">POS</th>
+                  <th className="text-center pb-2 px-2 text-foreground/80 font-medium">№</th>
+                  <th className="text-right pb-2 px-2 text-foreground/80 font-medium">Касса</th>
+                  <th className="text-right pb-2 px-2 text-foreground/80 font-medium">Купюры</th>
+                  <th className="text-right pb-2 px-2 text-foreground/80 font-medium">Разница</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,28 +191,28 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
                   return (
                     <tr
                       key={`${record.shift}-${record.cashoutno}-${index}`}
-                      className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors"
+                      className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
                     >
                       <td className="py-2 px-2">
-                        <span className="text-slate-300">{formatDateTime(record.dt)}</span>
+                        <span className="text-foreground/80">{formatDateTime(record.dt)}</span>
                       </td>
                       <td className="py-2 px-2 text-center">
-                        <span className="text-white font-medium">{record.shift}</span>
+                        <span className="text-foreground font-medium">{record.shift}</span>
                       </td>
                       <td className="py-2 px-2 text-center">
-                        <span className="text-white font-medium">{record.pos}</span>
+                        <span className="text-foreground font-medium">{record.pos}</span>
                       </td>
                       <td className="py-2 px-2 text-center">
-                        <span className="text-white font-medium">{record.cashoutno}</span>
+                        <span className="text-foreground font-medium">{record.cashoutno}</span>
                       </td>
                       <td className="py-2 px-2 text-right">
-                        <span className="text-green-400 font-bold">{formatRubles(record.value)} ₽</span>
+                        <span className="text-green-600 dark:text-green-400 font-bold">{formatRubles(record.value)} ₽</span>
                       </td>
                       <td className="py-2 px-2 text-right">
-                        <span className="text-purple-400 font-semibold">{formatRubles(record.billsum)} ₽</span>
+                        <span className="text-purple-600 dark:text-purple-400 font-semibold">{formatRubles(record.billsum)} ₽</span>
                       </td>
                       <td className="py-2 px-2 text-right">
-                        <span className="text-orange-400 font-semibold">{formatRubles(coins)} ₽</span>
+                        <span className="text-orange-600 dark:text-orange-400 font-semibold">{formatRubles(coins)} ₽</span>
                       </td>
                     </tr>
                   );

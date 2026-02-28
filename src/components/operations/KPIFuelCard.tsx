@@ -23,8 +23,8 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
         key={fuel}
         className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
           isSelected
-            ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-            : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+            ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+            : 'bg-card border-border hover:bg-secondary'
         }`}
         onClick={handleClick}
       >
@@ -32,15 +32,15 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
           <div className="relative">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-slate-100 font-semibold text-sm truncate mb-1">{fuel}</p>
+                <p className="text-foreground font-semibold text-sm truncate mb-1">{fuel}</p>
                 <div className="flex items-center gap-1">
-                  <Activity className="w-4 h-4 text-slate-400" />
-                  <span className="text-slate-200 text-sm font-medium">{transactionCount}</span>
+                  <Activity className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-foreground text-sm font-medium">{transactionCount}</span>
                 </div>
               </div>
               <div className="text-right flex-shrink-0 ml-3">
-                <div className="text-slate-200 text-sm font-semibold">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
-                <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
+                <div className="text-foreground text-sm font-semibold">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+                <div className="text-foreground text-sm font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
               </div>
             </div>
           </div>
@@ -55,23 +55,23 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
       key={fuel}
       className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
         isSelected
-          ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-          : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+          ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+          : 'bg-card border-border hover:bg-secondary'
       }`}
       onClick={handleClick}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-slate-100 font-semibold text-base truncate pr-2">{fuel}</p>
+            <p className="text-foreground font-semibold text-base truncate pr-2">{fuel}</p>
             <div className="flex items-center gap-1">
-              <Activity className="w-3 h-3 text-slate-400" />
-              <span className="text-slate-300 text-sm">{transactionCount}</span>
+              <Activity className="w-3 h-3 text-muted-foreground" />
+              <span className="text-foreground/80 text-sm">{transactionCount}</span>
             </div>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="text-slate-200 text-sm font-semibold">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
-            <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
+            <div className="text-foreground text-sm font-semibold">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+            <div className="text-foreground text-sm font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
           </div>
         </div>
       </CardContent>

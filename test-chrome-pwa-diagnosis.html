@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chrome PWA Диагностика - TradeFrame</title>
+  <title>Chrome PWA Диагностика - TradeControl</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -89,7 +89,7 @@
   </style>
 </head>
 <body>
-  <h1>🌐 Chrome PWA Диагностика - TradeFrame v1.5.8</h1>
+  <h1>🌐 Chrome PWA Диагностика - TradeControl v1.5.8</h1>
 
   <div class="test-panel">
     <h2>🎯 Проблема: Chrome не показывает beforeinstallprompt</h2>
@@ -118,7 +118,7 @@
     <div class="chrome-tips">
       <ul>
         <li><strong>Способ 1:</strong> Кликните на иконку "Установить" в адресной строке (если появится)</li>
-        <li><strong>Способ 2:</strong> Меню Chrome (⋮) → "Установить TradeFrame..."</li>
+        <li><strong>Способ 2:</strong> Меню Chrome (⋮) → "Установить TradeControl..."</li>
         <li><strong>Способ 3:</strong> Меню Chrome (⋮) → "Сохранить и поделиться" → "Установить приложение"</li>
         <li><strong>Способ 4:</strong> Меню Chrome (⋮) → "Дополнительные инструменты" → "Создать ярлык" → ☑️ "Открыть как окно"</li>
       </ul>
@@ -188,7 +188,7 @@
     function checkChromeApps() {
       log('📱 Открываем chrome://apps для проверки установленных PWA...', 'info');
       window.open('chrome://apps', '_blank');
-      log('🔍 Проверьте: есть ли TradeFrame в списке установленных приложений?', 'warning');
+      log('🔍 Проверьте: есть ли TradeControl в списке установленных приложений?', 'warning');
       log('💡 Если есть - удалите его и попробуйте снова', 'info');
     }
 

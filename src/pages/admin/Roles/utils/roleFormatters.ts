@@ -34,7 +34,7 @@ export function getScopeBadgeColor(scope: string): string {
     'assigned': 'text-orange-400 border-orange-500 bg-orange-500/10'
   };
 
-  return colorMap[scope] || 'text-slate-400 border-slate-500 bg-slate-500/10';
+  return colorMap[scope] || 'text-muted-foreground border-border bg-muted-foreground/10';
 }
 
 /**
@@ -43,5 +43,5 @@ export function getScopeBadgeColor(scope: string): string {
 export function getStatusBadgeColor(isActive: boolean): string {
   return isActive
     ? 'text-green-400 border-green-500 bg-emerald-500/10'
-    : 'text-slate-400 border-slate-500 bg-slate-500/10';
+    : 'text-muted-foreground border-border bg-muted-foreground/10';
 }

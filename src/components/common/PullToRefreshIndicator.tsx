@@ -26,7 +26,7 @@ export function PullToRefreshIndicator({ pullState, pullDistance }: PullToRefres
         opacity: Math.min(1, (pullDistance - PULL_TO_REFRESH_CONFIG.INDICATOR_APPEAR_THRESHOLD) / 40)
       }}
     >
-      <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+      <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
         {pullState === 'refreshing' ? (
           <>
             <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
@@ -40,7 +40,7 @@ export function PullToRefreshIndicator({ pullState, pullDistance }: PullToRefres
         ) : (
           <>
             <RefreshCw
-              className="w-4 h-4 text-slate-500"
+              className="w-4 h-4 text-muted-foreground"
               style={{ transform: `rotate(${pullDistance * 2}deg)` }}
             />
             <span className="text-sm font-medium">Потяните для обновления</span>

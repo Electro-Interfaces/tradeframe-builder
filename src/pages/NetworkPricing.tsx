@@ -84,10 +84,10 @@ export default function NetworkPricing() {
         <div className={`${isMobile ? 'mb-3' : 'mb-6 pt-4'}`}>
           <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between gap-4'}`}>
             <div className="flex-1 min-w-0">
-              <h1 className={`font-semibold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+              <h1 className={`font-semibold text-foreground ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 Ценообразование
               </h1>
-              <p className={`text-slate-400 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
+              <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
                 Сеть: {selectedNetwork.name}
               </p>
             </div>
@@ -97,20 +97,20 @@ export default function NetworkPricing() {
               {/* Селектор периода */}
               <div className={`${isMobile ? 'w-32' : 'w-48'}`}>
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
                     <SelectValue placeholder="Период" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="7" className="text-white hover:bg-slate-700">
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="7" className="text-foreground hover:bg-secondary">
                       {isMobile ? '7 дней' : 'Последние 7 дней'}
                     </SelectItem>
-                    <SelectItem value="30" className="text-white hover:bg-slate-700">
+                    <SelectItem value="30" className="text-foreground hover:bg-secondary">
                       {isMobile ? '30 дней' : 'Последние 30 дней'}
                     </SelectItem>
-                    <SelectItem value="90" className="text-white hover:bg-slate-700">
+                    <SelectItem value="90" className="text-foreground hover:bg-secondary">
                       {isMobile ? '3 месяца' : 'Последние 3 месяца'}
                     </SelectItem>
-                    <SelectItem value="all" className="text-white hover:bg-slate-700">
+                    <SelectItem value="all" className="text-foreground hover:bg-secondary">
                       Всё время
                     </SelectItem>
                   </SelectContent>
@@ -119,7 +119,7 @@ export default function NetworkPricing() {
 
               {/* Индикатор фоновой загрузки продаж */}
               {loadingSales && (
-                <span className="text-xs text-slate-400 flex items-center gap-1.5 flex-shrink-0">
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5 flex-shrink-0">
                   <RefreshCw className="w-3 h-3 animate-spin" />
                   {!isMobile && 'Продажи...'}
                 </span>
@@ -131,7 +131,7 @@ export default function NetworkPricing() {
                 size="sm"
                 onClick={refresh}
                 disabled={loading}
-                className="border-slate-600 text-white hover:bg-slate-700 flex-shrink-0"
+                className="border-border text-foreground hover:bg-secondary flex-shrink-0"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 {!isMobile && <span className="ml-2">Обновить</span>}
@@ -148,27 +148,27 @@ export default function NetworkPricing() {
             <PriceKPI statistics={statistics} isMobile={isMobile} />
 
             {/* Вкладки с данными */}
-            <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+            <Card className="bg-card border border-border rounded-lg shadow-lg">
               <CardHeader className={`${isMobile ? 'px-3 py-2.5' : 'px-6 py-4'}`}>
-                <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-base' : 'text-xl'}`}>
-                  <DollarSign className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-green-400`} />
+                <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : 'text-xl'}`}>
+                  <DollarSign className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-green-600 dark:text-green-400`} />
                   Цены по торговым точкам
                 </CardTitle>
               </CardHeader>
               <CardContent className={`${isMobile ? 'px-3 pb-3' : ''}`}>
                 <Tabs defaultValue="table" className="w-full">
-                  <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-4'} bg-slate-900`}>
-                    <TabsTrigger value="table" className="data-[state=active]:bg-slate-700">
+                  <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-4'} bg-background`}>
+                    <TabsTrigger value="table" className="data-[state=active]:bg-secondary">
                       {isMobile ? 'Таблица' : 'Таблица цен'}
                     </TabsTrigger>
-                    <TabsTrigger value="dynamics" className="data-[state=active]:bg-slate-700">
+                    <TabsTrigger value="dynamics" className="data-[state=active]:bg-secondary">
                       {isMobile ? 'График' : 'Динамика'}
                     </TabsTrigger>
-                    <TabsTrigger value="statistics" className="data-[state=active]:bg-slate-700">
+                    <TabsTrigger value="statistics" className="data-[state=active]:bg-secondary">
                       {isMobile ? 'Статистика' : 'Статистика'}
                     </TabsTrigger>
                     {!isMobile && (
-                      <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">
+                      <TabsTrigger value="analytics" className="data-[state=active]:bg-secondary">
                         Аналитика
                       </TabsTrigger>
                     )}
@@ -199,58 +199,58 @@ export default function NetworkPricing() {
                     <div className={`space-y-6 ${isMobile ? 'text-sm' : ''}`}>
 
                       {/* Таблица статистики цен */}
-                      <div className="bg-slate-700/30 rounded-lg border border-slate-600 overflow-hidden">
+                      <div className="bg-secondary/30 rounded-lg border border-border overflow-hidden">
                         <div className="overflow-x-auto">
                           <table className="w-full">
                             <thead>
-                              <tr className="border-b border-slate-600 bg-slate-800/50">
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                              <tr className="border-b border-border bg-card/50">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-foreground/80 uppercase tracking-wider">
                                   Вид топлива
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-right text-xs font-medium text-foreground/80 uppercase tracking-wider">
                                   Средняя цена
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-right text-xs font-medium text-foreground/80 uppercase tracking-wider">
                                   Минимальная
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-right text-xs font-medium text-foreground/80 uppercase tracking-wider">
                                   Максимальная
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-right text-xs font-medium text-foreground/80 uppercase tracking-wider">
                                   Разброс
                                 </th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-700">
+                            <tbody className="divide-y divide-border">
                               {statistics.map(stat => (
-                                <tr key={stat.fuelType} className="hover:bg-slate-700/20">
-                                  <td className="px-4 py-3 text-white font-medium">
+                                <tr key={stat.fuelType} className="hover:bg-secondary/20">
+                                  <td className="px-4 py-3 text-foreground font-medium">
                                     {stat.fuelType}
                                   </td>
-                                  <td className="px-4 py-3 text-right text-white font-bold">
+                                  <td className="px-4 py-3 text-right text-foreground font-bold">
                                     {stat.averagePrice.toFixed(2)} ₽
                                   </td>
                                   <td className="px-4 py-3 text-right">
-                                    <div className="text-green-400 font-medium">
+                                    <div className="text-green-600 dark:text-green-400 font-medium">
                                       {stat.minPrice.toFixed(2)} ₽
                                     </div>
-                                    <div className="text-xs text-slate-500">
+                                    <div className="text-xs text-muted-foreground">
                                       ({stat.minStation})
                                     </div>
                                   </td>
                                   <td className="px-4 py-3 text-right">
-                                    <div className="text-red-400 font-medium">
+                                    <div className="text-red-600 dark:text-red-400 font-medium">
                                       {stat.maxPrice.toFixed(2)} ₽
                                     </div>
-                                    <div className="text-xs text-slate-500">
+                                    <div className="text-xs text-muted-foreground">
                                       ({stat.maxStation})
                                     </div>
                                   </td>
                                   <td className="px-4 py-3 text-right">
-                                    <div className={`font-medium ${stat.priceRangePercent > 5 ? 'text-yellow-500' : 'text-slate-300'}`}>
+                                    <div className={`font-medium ${stat.priceRangePercent > 5 ? 'text-yellow-500' : 'text-foreground/80'}`}>
                                       {stat.priceRange.toFixed(2)} ₽
                                     </div>
-                                    <div className="text-xs text-slate-500">
+                                    <div className="text-xs text-muted-foreground">
                                       ({stat.priceRangePercent.toFixed(1)}%)
                                     </div>
                                   </td>
@@ -277,29 +277,29 @@ export default function NetworkPricing() {
                         const fuelTypes = Object.keys(groupedByFuel).sort();
 
                         return (
-                          <div className="bg-slate-700/30 rounded-lg border border-slate-600 overflow-hidden">
-                            <div className="px-4 py-3 border-b border-slate-600 bg-slate-800/50">
-                              <h4 className="text-white font-medium flex items-center gap-2">
-                                <DollarSign className="w-4 h-4 text-green-400" />
+                          <div className="bg-secondary/30 rounded-lg border border-border overflow-hidden">
+                            <div className="px-4 py-3 border-b border-border bg-card/50">
+                              <h4 className="text-foreground font-medium flex items-center gap-2">
+                                <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
                                 Продажи по ценам (литры)
                               </h4>
-                              <p className="text-xs text-slate-400 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 Объемы продаж по каждой цене, действовавшей в период закрытых смен
                               </p>
                             </div>
                             <div className="overflow-x-auto">
                               <table className="w-full">
                                 <thead>
-                                  <tr className="border-b border-slate-600 bg-slate-800/30">
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                  <tr className="border-b border-border bg-card/30">
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-foreground/80 uppercase tracking-wider">
                                       Вид топлива
                                     </th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-foreground/80 uppercase tracking-wider">
                                       Общий объем (л)
                                     </th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-700">
+                                <tbody className="divide-y divide-border">
                                   {fuelTypes.map(fuelType => {
                                     const sales = groupedByFuel[fuelType];
                                     const totalVolume = sales.reduce((sum, sale) => sum + sale.volume, 0);
@@ -307,21 +307,21 @@ export default function NetworkPricing() {
                                     return (
                                       <React.Fragment key={fuelType}>
                                         {/* Главная строка с видом топлива и общим объемом */}
-                                        <tr className="hover:bg-slate-700/20 bg-slate-800/30">
-                                          <td className="px-4 py-3 text-white font-bold">
+                                        <tr className="hover:bg-secondary/20 bg-card/30">
+                                          <td className="px-4 py-3 text-foreground font-bold">
                                             {fuelType}
                                           </td>
-                                          <td className="px-4 py-3 text-right text-white font-bold">
+                                          <td className="px-4 py-3 text-right text-foreground font-bold">
                                             {totalVolume.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}
                                           </td>
                                         </tr>
                                         {/* Детализация по ценам */}
                                         {sales.sort((a, b) => a.price - b.price).map((sale, index) => (
-                                          <tr key={`${fuelType}-${sale.price}-${index}`} className="hover:bg-slate-700/10">
-                                            <td className="px-4 py-2 text-slate-400 text-sm pl-8">
+                                          <tr key={`${fuelType}-${sale.price}-${index}`} className="hover:bg-secondary/10">
+                                            <td className="px-4 py-2 text-muted-foreground text-sm pl-8">
                                               по цене {sale.price.toFixed(2)} ₽/л
                                             </td>
-                                            <td className="px-4 py-2 text-right text-slate-300 text-sm">
+                                            <td className="px-4 py-2 text-right text-foreground/80 text-sm">
                                               {sale.volume.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}
                                             </td>
                                           </tr>
@@ -341,7 +341,7 @@ export default function NetworkPricing() {
                   {/* Вкладка: Аналитика (заглушка для будущего) */}
                   {!isMobile && (
                     <TabsContent value="analytics" className="mt-4">
-                      <div className="text-center py-12 text-slate-400">
+                      <div className="text-center py-12 text-muted-foreground">
                         <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p className="text-lg mb-2">Аналитика в разработке</p>
                         <p className="text-sm">

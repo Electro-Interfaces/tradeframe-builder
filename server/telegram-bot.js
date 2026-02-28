@@ -1,5 +1,5 @@
 /**
- * Telegram Bot для TradeFrame Builder
+ * Telegram Bot для TradeControl Builder
  * Использует polling для получения обновлений
  */
 
@@ -26,7 +26,7 @@ let bot = null;
  */
 function initTelegramBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const botName = process.env.TELEGRAM_BOT_NAME || 'TradeFrame Notifications';
+  const botName = process.env.TELEGRAM_BOT_NAME || 'TradeControl Notifications';
 
   if (!token || token === 'YOUR_BOT_TOKEN_HERE') {
     console.warn('[Telegram Bot] Bot token not configured. Set TELEGRAM_BOT_TOKEN in .env');
@@ -74,10 +74,10 @@ function setupBotHandlers() {
       // Без кода - просто приветствие
       await bot.sendMessage(
         chatId,
-        `👋 Добро пожаловать в *${process.env.TELEGRAM_BOT_NAME || 'TradeFrame Notifications'}*!\n\n` +
-        `Этот бот предназначен для отправки уведомлений о событиях в системе TradeFrame Builder.\n\n` +
+        `👋 Добро пожаловать в *${process.env.TELEGRAM_BOT_NAME || 'TradeControl Notifications'}*!\n\n` +
+        `Этот бот предназначен для отправки уведомлений о событиях в системе TradeControl Builder.\n\n` +
         `Чтобы привязать свой аккаунт:\n` +
-        `1. Войдите в TradeFrame Builder\n` +
+        `1. Войдите в TradeControl Builder\n` +
         `2. Перейдите в Настройки → Уведомления\n` +
         `3. Нажмите "Привязать Telegram"\n` +
         `4. Откройте полученную ссылку`,
@@ -151,7 +151,7 @@ async function handleAccountLinking(chatId, code, fromUser) {
         '• Код истёк (срок действия 24 часа)\n' +
         '• Код уже был использован\n' +
         '• Неверный код\n\n' +
-        'Создайте новый код в настройках TradeFrame Builder.',
+        'Создайте новый код в настройках TradeControl Builder.',
         { parse_mode: 'Markdown' }
       );
       return;
@@ -164,7 +164,7 @@ async function handleAccountLinking(chatId, code, fromUser) {
       await bot.sendMessage(
         chatId,
         '❌ *Код привязки истёк*\n\n' +
-        'Создайте новый код в настройках TradeFrame Builder.',
+        'Создайте новый код в настройках TradeControl Builder.',
         { parse_mode: 'Markdown' }
       );
 
@@ -220,7 +220,7 @@ async function handleAccountLinking(chatId, code, fromUser) {
       `✅ *Аккаунт успешно привязан!*\n\n` +
       `👤 Пользователь: ${userName}\n` +
       (user?.email ? `📧 Email: ${user.email}\n\n` : '') +
-      `Теперь вы будете получать уведомления о событиях в системе TradeFrame Builder.\n\n` +
+      `Теперь вы будете получать уведомления о событиях в системе TradeControl Builder.\n\n` +
       `Управляйте подписками в настройках: /help`,
       { parse_mode: 'Markdown' }
     );
@@ -260,7 +260,7 @@ async function handleStatusCheck(chatId) {
       await bot.sendMessage(
         chatId,
         '❌ *Аккаунт не привязан*\n\n' +
-        'Привяжите аккаунт через настройки TradeFrame Builder.',
+        'Привяжите аккаунт через настройки TradeControl Builder.',
         { parse_mode: 'Markdown' }
       );
       return;
@@ -322,7 +322,7 @@ async function handleUnlink(chatId) {
       chatId,
       `✅ *Аккаунт успешно отвязан*\n\n` +
       `Вы больше не будете получать уведомления.\n\n` +
-      `Чтобы снова привязать аккаунт, зайдите в настройки TradeFrame Builder.`,
+      `Чтобы снова привязать аккаунт, зайдите в настройки TradeControl Builder.`,
       { parse_mode: 'Markdown' }
     );
 

@@ -265,8 +265,8 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
           <CardContent className={`${isMobile ? 'p-3' : 'p-4'}`}>
             <div className={`flex ${isMobile ? 'flex-col text-center space-y-2' : 'items-center justify-between'}`}>
               <div>
-                <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>Прогноз на завтра</p>
-                <p className={`font-bold text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Прогноз на завтра</p>
+                <p className={`font-bold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
                   {Math.round(summary.tomorrowRevenue).toLocaleString('ru-RU')} ₽
                 </p>
               </div>
@@ -284,12 +284,12 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
           <CardContent className={`${isMobile ? 'p-3' : 'p-4'}`}>
             <div className={`flex ${isMobile ? 'flex-col text-center space-y-2' : 'items-center justify-between'}`}>
               <div>
-                <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>Недельный прогноз</p>
-                <p className={`font-bold text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Недельный прогноз</p>
+                <p className={`font-bold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
                   {Math.round(summary.weeklyRevenue).toLocaleString('ru-RU')} ₽
                 </p>
               </div>
-              <Target className={`text-blue-400 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
+              <Target className={`text-blue-600 dark:text-blue-400 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
             </div>
           </CardContent>
         </Card>
@@ -298,13 +298,13 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
           <CardContent className={`${isMobile ? 'p-3' : 'p-4'}`}>
             <div className={`flex ${isMobile ? 'flex-col text-center space-y-2' : 'items-center justify-between'}`}>
               <div>
-                <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>Точность прогноза</p>
-                <p className={`font-bold text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>{summary.confidence}%</p>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Точность прогноза</p>
+                <p className={`font-bold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>{summary.confidence}%</p>
                 <Badge variant={summary.confidence > 75 ? "default" : "secondary"} className={`${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                   {summary.confidence > 75 ? "Высокая" : summary.confidence > 50 ? "Средняя" : "Низкая"}
                 </Badge>
               </div>
-              <AlertTriangle className={`${summary.confidence > 75 ? 'text-green-400' : summary.confidence > 50 ? 'text-yellow-400' : 'text-red-400'} ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
+              <AlertTriangle className={`${summary.confidence > 75 ? 'text-green-600 dark:text-green-400' : summary.confidence > 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'} ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
             </div>
           </CardContent>
         </Card>
@@ -324,7 +324,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
               data={chartData} 
               margin={isMobile ? { top: 10, right: 10, left: 10, bottom: 10 } : { top: 20, right: 30, left: 20, bottom: 20 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
                 dataKey="displayDate" 
                 stroke="#9CA3AF"
@@ -341,9 +341,9 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
               />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  color: '#F9FAFB',
+                  backgroundColor: 'hsl(var(--card))', 
+                  border: '1px solid hsl(var(--border))',
+                  color: 'hsl(var(--foreground))',
                   fontSize: isMobile ? '12px' : '14px'
                 }}
                 formatter={(value: number, name: string) => {
@@ -417,11 +417,11 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
         <CardContent>
           <div className={`space-y-${isMobile ? '2' : '3'}`}>
             {summary.recommendations.map((recommendation, index) => (
-              <div key={index} className={`flex items-start space-x-${isMobile ? '2' : '3'} ${isMobile ? 'p-2' : 'p-3'} bg-slate-700/50 rounded-lg`}>
+              <div key={index} className={`flex items-start space-x-${isMobile ? '2' : '3'} ${isMobile ? 'p-2' : 'p-3'} bg-secondary/50 rounded-lg`}>
                 <div className={`bg-blue-600 rounded-full flex items-center justify-center text-white font-bold ${isMobile ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'} flex-shrink-0`}>
                   {index + 1}
                 </div>
-                <p className={`text-slate-200 leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>{recommendation}</p>
+                <p className={`text-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>{recommendation}</p>
               </div>
             ))}
           </div>

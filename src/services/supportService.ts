@@ -1,6 +1,6 @@
 /**
  * API-клиент для TSupport SDK (заявки + чат)
- * Все запросы идут через TradeFrame backend → TSupport SDK API
+ * Все запросы идут через TradeControl backend → TSupport SDK API
  */
 
 import type {

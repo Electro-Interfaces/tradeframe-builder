@@ -87,8 +87,8 @@ export function MultiPointSelect({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "flex items-center justify-between w-full px-3 py-2 text-sm bg-slate-800 border border-slate-700 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[42px]",
-            disabled && "opacity-50 cursor-not-allowed hover:bg-slate-800",
+            "flex items-center justify-between w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[42px]",
+            disabled && "opacity-50 cursor-not-allowed hover:bg-card",
             className
           )}
           disabled={disabled}
@@ -97,14 +97,14 @@ export function MultiPointSelect({
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <MapPin className="h-4 w-4 opacity-70 shrink-0" />
             {selectedPoints.length === 0 ? (
-              <span className="text-slate-400 truncate">{placeholder}</span>
+              <span className="text-muted-foreground truncate">{placeholder}</span>
             ) : selectedPoints.length <= 2 ? (
               <div className="flex flex-wrap gap-1">
                 {selectedPoints.map(point => (
                   <Badge
                     key={point.id}
                     variant="secondary"
-                    className="text-xs bg-blue-600/30 text-blue-300 border border-blue-500/30"
+                    className="text-xs bg-blue-600/30 text-blue-600 dark:text-blue-300 border border-blue-500/30"
                   >
                     {point.name}
                     <X
@@ -115,7 +115,7 @@ export function MultiPointSelect({
                 ))}
               </div>
             ) : (
-              <span className="text-blue-300">
+              <span className="text-blue-600 dark:text-blue-300">
                 Выбрано: {selectedPoints.length} из {tradingPoints.length}
               </span>
             )}
@@ -124,12 +124,12 @@ export function MultiPointSelect({
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-auto min-w-[320px] max-w-md p-0 bg-slate-800 border-slate-700"
+        className="w-auto min-w-[320px] max-w-md p-0 bg-card border-border"
         align="start"
       >
         {/* Header с кнопками */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700">
-          <span className="text-sm text-slate-300">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+          <span className="text-sm text-foreground/80">
             {isLoading ? "Загрузка..." : `Торговые точки (${tradingPoints.length})`}
           </span>
           <div className="flex gap-2">
@@ -146,7 +146,7 @@ export function MultiPointSelect({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-xs text-red-400 hover:text-red-300"
+                className="h-7 px-2 text-xs text-red-600 dark:text-red-400 hover:text-red-300"
                 onClick={handleClear}
                 type="button"
               >
@@ -159,7 +159,7 @@ export function MultiPointSelect({
         {/* Список точек */}
         <div className="max-h-[300px] overflow-y-auto p-2">
           {tradingPoints.length === 0 ? (
-            <div className="text-center py-4 text-slate-400 text-sm">
+            <div className="text-center py-4 text-muted-foreground text-sm">
               {networkId ? "Нет торговых точек в выбранной сети" : "Сначала выберите сеть"}
             </div>
           ) : (
@@ -173,7 +173,7 @@ export function MultiPointSelect({
                       "flex items-center gap-2 px-2 py-2 rounded-md cursor-pointer transition-colors",
                       isSelected
                         ? "bg-blue-600/20 border border-blue-500/30"
-                        : "hover:bg-slate-700 border border-transparent"
+                        : "hover:bg-secondary border border-transparent"
                     )}
                     onClick={() => handleToggle(point.id)}
                   >
@@ -184,31 +184,31 @@ export function MultiPointSelect({
                     <span
                       className={cn(
                         "h-2 w-2 rounded-full shrink-0",
-                        !point.isBlocked ? "bg-emerald-400" : "bg-slate-500"
+                        !point.isBlocked ? "bg-emerald-400" : "bg-muted-foreground"
                       )}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           "truncate",
-                          isSelected ? "text-blue-200 font-medium" : "text-white"
+                          isSelected ? "text-blue-700 dark:text-blue-200 font-medium" : "text-foreground"
                         )}>
                           {point.name}
                         </span>
                         {point.external_id && (
-                          <span className="text-xs text-blue-400 font-mono shrink-0">
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-mono shrink-0">
                             ({point.external_id})
                           </span>
                         )}
                       </div>
                       {point.description && (
-                        <div className="text-xs text-slate-400 truncate">
+                        <div className="text-xs text-muted-foreground truncate">
                           {point.description}
                         </div>
                       )}
                     </div>
                     {isSelected && (
-                      <Check className="h-4 w-4 text-blue-400 shrink-0" />
+                      <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
                     )}
                   </li>
                 );
@@ -219,7 +219,7 @@ export function MultiPointSelect({
 
         {/* Footer со статистикой */}
         {value.length > 0 && (
-          <div className="px-3 py-2 border-t border-slate-700 bg-slate-900/50">
+          <div className="px-3 py-2 border-t border-border bg-background/50">
             <div className="flex flex-wrap gap-1">
               {selectedPoints.slice(0, 5).map(point => (
                 <Badge

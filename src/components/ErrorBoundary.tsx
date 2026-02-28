@@ -44,23 +44,23 @@ class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-          <div className="bg-slate-800 border border-red-600 rounded-lg p-8 max-w-2xl w-full">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="bg-card border border-red-600 rounded-lg p-8 max-w-2xl w-full">
             <h1 className="text-2xl font-bold text-red-500 mb-4">⚠️ Ошибка приложения</h1>
-            <div className="text-white space-y-4">
+            <div className="text-foreground space-y-4">
               <p className="text-lg">Произошла непредвиденная ошибка:</p>
 
               {this.state.error && (
-                <div className="bg-slate-700 p-4 rounded border-l-4 border-red-500">
-                  <p className="font-mono text-sm text-red-300">
+                <div className="bg-secondary p-4 rounded border-l-4 border-red-500">
+                  <p className="font-mono text-sm text-red-600 dark:text-red-300">
                     {this.state.error.name}: {this.state.error.message}
                   </p>
                   {this.state.error.stack && (
                     <details className="mt-2">
-                      <summary className="text-slate-400 cursor-pointer hover:text-slate-300">
+                      <summary className="text-muted-foreground cursor-pointer hover:text-foreground/80">
                         Показать технические детали
                       </summary>
-                      <pre className="mt-2 text-xs text-slate-400 overflow-auto max-h-40">
+                      <pre className="mt-2 text-xs text-muted-foreground overflow-auto max-h-40">
                         {this.state.error.stack}
                       </pre>
                     </details>
@@ -70,8 +70,8 @@ class ErrorBoundary extends Component<Props, State> {
 
               {/* Показываем информацию о попытках восстановления */}
               {this.state.retryCount > 0 && (
-                <div className="bg-amber-900/50 border border-amber-600 p-3 rounded">
-                  <p className="text-amber-200 text-sm">
+                <div className="bg-amber-100 dark:bg-amber-900/50 border border-amber-600 p-3 rounded">
+                  <p className="text-amber-700 dark:text-amber-200 text-sm">
                     Попытка восстановления #{this.state.retryCount} из 2
                   </p>
                 </div>
@@ -105,14 +105,14 @@ class ErrorBoundary extends Component<Props, State> {
                     sessionStorage.clear();
                     window.location.reload();
                   }}
-                  className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded"
+                  className="bg-secondary hover:bg-secondary text-foreground px-4 py-2 rounded"
                 >
                   Очистить данные
                 </button>
               </div>
 
               {/* Инструкции для пользователя */}
-              <div className="text-sm text-slate-400 border-t border-slate-600 pt-4">
+              <div className="text-sm text-muted-foreground border-t border-border pt-4">
                 <p><strong>Что делать:</strong></p>
                 <ul className="list-disc ml-4 space-y-1">
                   <li>Попробуйте <strong>"Повторить попытку"</strong> - часто помогает</li>

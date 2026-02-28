@@ -78,7 +78,7 @@ export function PriceDynamicsChart({ statistics, networkPrices, priceHistoryMap,
 
   if (statsWithHistory.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-400">
+      <div className="text-center py-12 text-muted-foreground">
         <p className="text-lg mb-2">Нет данных по истории цен</p>
         <p className="text-sm">История цен станет доступна после накопления данных</p>
       </div>
@@ -186,18 +186,18 @@ export function PriceDynamicsChart({ statistics, networkPrices, priceHistoryMap,
     <div className="space-y-4">
       {/* Фильтр: торговая точка */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-slate-300">Торговая точка</label>
+        <label className="text-sm font-medium text-foreground/80">Торговая точка</label>
         <Select value={selectedStation} onValueChange={setSelectedStation}>
-          <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+          <SelectTrigger className="bg-secondary border-border text-foreground">
             <SelectValue placeholder="Выберите точку" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-600">
-            <SelectItem value="all" className="text-white hover:bg-slate-700">Среднее по сети</SelectItem>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="all" className="text-foreground hover:bg-secondary">Среднее по сети</SelectItem>
             {networkPrices.map(station => (
               <SelectItem
                 key={station.stationId}
                 value={station.stationId}
-                className="text-white hover:bg-slate-700"
+                className="text-foreground hover:bg-secondary"
               >
                 {station.stationName}
               </SelectItem>
@@ -226,7 +226,7 @@ export function PriceDynamicsChart({ statistics, networkPrices, priceHistoryMap,
       </div>
 
       {/* График */}
-      <Card className="bg-slate-800 border-slate-700 p-4">
+      <Card className="bg-card border-border p-4">
         <ResponsiveContainer width="100%" height={isMobile ? 300 : 400}>
           <LineChart
             data={chartData}
@@ -237,25 +237,25 @@ export function PriceDynamicsChart({ statistics, networkPrices, priceHistoryMap,
               bottom: 5,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
-              stroke="#94a3b8"
-              tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
+              stroke="hsl(var(--muted-foreground))"
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 10 : 12 }}
             />
             <YAxis
-              stroke="#94a3b8"
-              tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
+              stroke="hsl(var(--muted-foreground))"
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 10 : 12 }}
               tickFormatter={(value) => value.toFixed(2)}
               domain={[priceRange.min, priceRange.max]}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#1e293b',
-                border: '1px solid #475569',
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
-                color: '#f1f5f9'
+                color: 'hsl(var(--foreground))'
               }}
               labelFormatter={(label) => `Дата: ${formatDate(label as string)}`}
               formatter={(value: number) => [formatPrice(value), '']}

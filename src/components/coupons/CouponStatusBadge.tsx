@@ -22,7 +22,7 @@ export function CouponStatusBadge({ stateName, variant = 'default' }: CouponStat
       );
     case 'Погашен':
       return (
-        <Badge className={`bg-slate-600 text-slate-200 ${compactClass}`}>
+        <Badge className={`bg-secondary text-foreground ${compactClass}`}>
           Погашен
         </Badge>
       );

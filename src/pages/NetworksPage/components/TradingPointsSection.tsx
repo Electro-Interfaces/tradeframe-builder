@@ -36,14 +36,14 @@ export function TradingPointsSection({
   onCreateClick
 }: TradingPointsSectionProps) {
   return (
-    <div className="bg-slate-800 w-full rounded-lg">
+    <div className="bg-card w-full rounded-lg">
       <div className="px-4 md:px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
               <MapPin className="w-6 h-6 text-green-500" />
             </div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-foreground">
               Торговые точки сети: {selectedNetwork?.name || 'Выберите сеть'}
             </h2>
           </div>
@@ -65,7 +65,7 @@ export function TradingPointsSection({
               placeholder="Поиск торговых точек..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+              className="bg-secondary border-border text-foreground placeholder-muted-foreground"
             />
           </div>
         )}

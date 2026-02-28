@@ -58,23 +58,20 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
             </Sheet>
 
             <div className="flex flex-col flex-1 min-h-0">
-              {/* Mobile Trading Point Selector */}
-              {selectedNetwork && (
-                <div className="shrink-0 bg-gray-900">
-                  <div className="mx-4 pt-3 pb-4 px-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg mt-3 mobile-safe-left mobile-safe-right">
-                    <PointSelect
-                      value={selectedTradingPoint}
-                      onValueChange={handleTradingPointChange}
-                      disabled={!selectedNetwork}
-                      networkId={selectedNetwork.id}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              )}
-
               <main className="flex-1 min-h-0 min-w-0 w-full max-w-none overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-                <div className={fullWidth ? "w-full max-w-none min-h-full" : "px-0 md:px-6 lg:px-8 w-full max-w-none pt-4"}>
+                <div className={fullWidth ? "w-full max-w-none min-h-full" : "w-full max-w-none"}>
+                  {/* Mobile Trading Point Selector */}
+                  {selectedNetwork && (
+                    <div className="mx-3 mt-3 mb-0 px-3 py-3 bg-card border border-border rounded-xl shadow-sm">
+                      <PointSelect
+                        value={selectedTradingPoint}
+                        onValueChange={handleTradingPointChange}
+                        disabled={!selectedNetwork}
+                        networkId={selectedNetwork.id}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
                   {children}
                 </div>
               </main>
@@ -103,9 +100,9 @@ export const MainLayout = memo(MainLayoutComponent);
 export function SimpleLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <header className="h-16 bg-slate-900 border-b border-slate-700 flex items-center px-4">
+      <header className="h-16 bg-background border-b border-border flex items-center px-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white">TradeFrame</h1>
+          <h1 className="text-lg font-semibold text-foreground">TradeControl</h1>
         </div>
       </header>
       <main className="w-full px-4 md:px-6 lg:px-8">

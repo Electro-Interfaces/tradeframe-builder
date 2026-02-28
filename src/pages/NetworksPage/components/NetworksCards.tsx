@@ -26,24 +26,24 @@ export function NetworksCards({
         <div
           key={network.id}
           onClick={() => onSelect(network.id)}
-          className={`bg-slate-700 rounded-lg p-4 cursor-pointer hover:bg-slate-600 transition-colors border-2 ${
+          className={`bg-secondary rounded-lg p-4 cursor-pointer hover:bg-secondary transition-colors border-2 ${
             selectedNetworkId === network.id ? 'border-blue-500 bg-blue-600/20' : 'border-transparent'
           }`}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-white text-base mb-1">{network.name}</div>
-              <div className="text-sm text-slate-400 mb-2">{network.description}</div>
+              <div className="font-medium text-foreground text-base mb-1">{network.name}</div>
+              <div className="text-sm text-muted-foreground mb-2">{network.description}</div>
               <div className="flex items-center gap-3 text-xs mb-2">
-                <Badge variant="secondary" className="bg-slate-600 text-slate-200">
+                <Badge variant="secondary" className="bg-secondary text-foreground">
                   {network.type}
                 </Badge>
-                <span className="text-slate-400">Точек: {network.pointsCount}</span>
-                <span className="text-slate-400">Сегодня</span>
+                <span className="text-muted-foreground">Точек: {network.pointsCount}</span>
+                <span className="text-muted-foreground">Сегодня</span>
               </div>
               {network.external_id && (
-                <div className="text-xs text-slate-500">
-                  API ID: <span className="bg-blue-900/50 text-blue-300 px-1 py-0.5 rounded font-mono">{network.external_id}</span>
+                <div className="text-xs text-muted-foreground">
+                  API ID: <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-1 py-0.5 rounded font-mono">{network.external_id}</span>
                 </div>
               )}
             </div>
@@ -51,7 +51,7 @@ export function NetworksCards({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit(network);
@@ -63,7 +63,7 @@ export function NetworksCards({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(network);

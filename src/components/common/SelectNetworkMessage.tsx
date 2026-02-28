@@ -11,11 +11,11 @@ interface SelectNetworkMessageProps {
 
 export function SelectNetworkMessage({ message = "Выберите торговую сеть для просмотра данных" }: SelectNetworkMessageProps) {
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardContent className="flex flex-col items-center justify-center py-12">
-        <Network className="w-16 h-16 text-slate-600 mb-4" />
-        <p className="text-slate-400 text-center">{message}</p>
-        <p className="text-slate-500 text-sm mt-2 text-center">
+        <Network className="w-16 h-16 text-muted-foreground mb-4" />
+        <p className="text-muted-foreground text-center">{message}</p>
+        <p className="text-muted-foreground text-sm mt-2 text-center">
           Используйте селектор сети в верхней части страницы
         </p>
       </CardContent>

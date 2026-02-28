@@ -39,7 +39,7 @@ function checkPriceDeviation(price: number, avgPrice: number): {
 export function StationPricesTable({ networkPrices, statistics, isMobile }: StationPricesTableProps) {
   if (networkPrices.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         <p>Нет данных о ценах</p>
       </div>
     );
@@ -65,15 +65,15 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
           return (
             <div
               key={stationData.stationId}
-              className="bg-slate-700/30 rounded-lg border border-slate-600 p-3"
+              className="bg-secondary/30 rounded-lg border border-border p-3"
             >
               {/* Название станции */}
-              <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-600">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
                 <div>
-                  <div className="font-medium text-white text-sm">{stationData.stationName}</div>
-                  <div className="text-xs text-slate-400">{stationData.stationDescription || `АЗС №${stationData.stationNumber}`}</div>
+                  <div className="font-medium text-foreground text-sm">{stationData.stationName}</div>
+                  <div className="text-xs text-muted-foreground">{stationData.stationDescription || `АЗС №${stationData.stationNumber}`}</div>
                 </div>
-                <div className="text-[10px] text-slate-400">
+                <div className="text-[10px] text-muted-foreground">
                   {latestEffectiveDate
                     ? new Date(latestEffectiveDate).toLocaleDateString('ru-RU', {
                         day: '2-digit',
@@ -93,9 +93,9 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
 
                   if (!price || !stat) {
                     return (
-                      <div key={fuelType} className="flex items-center justify-between py-1.5 border-b border-slate-700/50 last:border-b-0">
-                        <span className="text-xs text-slate-500">{fuelType}</span>
-                        <span className="text-xs text-slate-600">—</span>
+                      <div key={fuelType} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-b-0">
+                        <span className="text-xs text-muted-foreground">{fuelType}</span>
+                        <span className="text-xs text-muted-foreground">—</span>
                       </div>
                     );
                   }
@@ -103,10 +103,10 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
                   const deviation = checkPriceDeviation(price.price, stat.averagePrice);
 
                   return (
-                    <div key={fuelType} className="flex items-center justify-between py-1.5 border-b border-slate-700/50 last:border-b-0">
-                      <span className="text-xs text-slate-400">{fuelType}</span>
+                    <div key={fuelType} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-b-0">
+                      <span className="text-xs text-muted-foreground">{fuelType}</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold text-white">
+                        <span className="text-sm font-bold text-foreground">
                           {formatPrice(price.price)} ₽
                         </span>
                         {deviation.hasDeviation && (
@@ -134,15 +134,15 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-slate-800 z-10">
-          <tr className="border-b border-slate-600">
-            <th className="text-left pb-3 px-4 text-slate-300 font-medium">Торговая точка</th>
+        <thead className="sticky top-0 bg-card z-10">
+          <tr className="border-b border-border">
+            <th className="text-left pb-3 px-4 text-foreground/80 font-medium">Торговая точка</th>
             {fuelTypes.map(fuelType => (
-              <th key={fuelType} className="text-center pb-3 px-3 text-slate-300 font-medium">
+              <th key={fuelType} className="text-center pb-3 px-3 text-foreground/80 font-medium">
                 {fuelType}
               </th>
             ))}
-            <th className="text-center pb-3 px-3 text-slate-300 font-medium">Дата установки</th>
+            <th className="text-center pb-3 px-3 text-foreground/80 font-medium">Дата установки</th>
           </tr>
         </thead>
         <tbody>
@@ -157,13 +157,13 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
             return (
               <tr
                 key={stationData.stationId}
-                className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors"
+                className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
               >
                 {/* Название станции */}
                 <td className="py-3 px-4">
                   <div>
-                    <div className="text-white font-medium">{stationData.stationName}</div>
-                    <div className="text-xs text-slate-400">{stationData.stationDescription || `АЗС №${stationData.stationNumber}`}</div>
+                    <div className="text-foreground font-medium">{stationData.stationName}</div>
+                    <div className="text-xs text-muted-foreground">{stationData.stationDescription || `АЗС №${stationData.stationNumber}`}</div>
                   </div>
                 </td>
 
@@ -175,7 +175,7 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
                   if (!price || !stat) {
                     return (
                       <td key={fuelType} className="py-3 px-3 text-center">
-                        <span className="text-slate-600">—</span>
+                        <span className="text-muted-foreground">—</span>
                       </td>
                     );
                   }
@@ -185,7 +185,7 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
                   return (
                     <td key={fuelType} className="py-3 px-3 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-foreground">
                           {formatPrice(price.price)}
                         </span>
                         {deviation.hasDeviation && (
@@ -204,7 +204,7 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
 
                 {/* Дата установки последней цены */}
                 <td className="py-3 px-3 text-center">
-                  <span className="text-slate-300 text-xs">
+                  <span className="text-foreground/80 text-xs">
                     {latestEffectiveDate
                       ? new Date(latestEffectiveDate).toLocaleDateString('ru-RU', {
                           day: '2-digit',

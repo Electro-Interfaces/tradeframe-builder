@@ -79,28 +79,28 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
   // Простой промпт
   if (!showInstructions) {
     return (
-      <Card className="fixed bottom-4 left-4 right-4 z-50 shadow-2xl border-2 border-blue-500/50 bg-gradient-to-r from-blue-900/95 to-blue-800/95 backdrop-blur-md md:max-w-md md:left-auto md:right-4 animate-in slide-in-from-bottom-5 duration-500">
+      <Card className="fixed bottom-4 left-4 right-4 z-50 shadow-2xl border border-border bg-card backdrop-blur-md md:max-w-md md:mx-auto md:left-4 md:right-4 animate-in slide-in-from-bottom-5 duration-500">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
-              <div className="bg-blue-500/20 p-2 rounded-full">
-                <Smartphone className="h-6 w-6 text-blue-400" />
+              <div className="bg-blue-100 dark:bg-blue-500/20 p-2 rounded-full">
+                <Smartphone className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
 
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-blue-400 mb-1">
-                📱 Установить TradeFrame на iOS
+              <h3 className="text-sm font-bold text-foreground mb-1">
+                Установить TradeControl на iOS
               </h3>
-              <p className="text-xs text-blue-200 mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 Получите лучший опыт использования с установкой на домашний экран
               </p>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Button
                   onClick={handleShowInstructions}
                   size="sm"
-                  className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold shadow-lg"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
                 >
                   <Share className="h-4 w-4 mr-1" />
                   Показать инструкции
@@ -110,7 +110,7 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
                   onClick={handleDismiss}
                   size="sm"
                   variant="ghost"
-                  className="text-blue-300 hover:text-blue-200 hover:bg-blue-900/30"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   Позже
                 </Button>
@@ -121,7 +121,7 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
               onClick={handleDismiss}
               size="sm"
               variant="ghost"
-              className="flex-shrink-0 h-6 w-6 p-0 text-blue-400 hover:text-blue-200 hover:bg-blue-900/30"
+              className="flex-shrink-0 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -134,24 +134,24 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
   // Визуальные инструкции
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <Card className="w-full max-w-lg bg-gradient-to-br from-slate-900 to-slate-800 border-2 border-blue-500/50 shadow-2xl animate-in zoom-in-95 duration-300">
+      <Card className="w-full max-w-lg bg-gradient-to-br from-background to-card border-2 border-blue-500/50 shadow-2xl animate-in zoom-in-95 duration-300">
         <CardContent className="p-6">
           {/* Заголовок */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="bg-blue-500/20 p-3 rounded-full">
-                <Smartphone className="h-8 w-8 text-blue-400" />
+              <div className="bg-blue-100 dark:bg-blue-500/20 p-3 rounded-full">
+                <Smartphone className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Установка на iOS</h2>
-                <p className="text-sm text-slate-400">Safari — всего 3 шага</p>
+                <h2 className="text-xl font-bold text-foreground">Установка на iOS</h2>
+                <p className="text-sm text-muted-foreground">Safari — всего 3 шага</p>
               </div>
             </div>
             <Button
               onClick={handleDismiss}
               size="sm"
               variant="ghost"
-              className="text-slate-400 hover:text-white hover:bg-slate-700"
+              className="text-muted-foreground hover:text-foreground hover:bg-secondary"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -165,21 +165,21 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
                 1
               </div>
               <div className="flex-1">
-                <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
+                <h3 className="text-foreground font-semibold mb-2 flex items-center gap-2">
                   Нажмите кнопку "Поделиться"
-                  <Share className="h-5 w-5 text-blue-400 animate-bounce" />
+                  <Share className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-bounce" />
                 </h3>
-                <p className="text-slate-300 text-sm mb-3">
+                <p className="text-foreground/80 text-sm mb-3">
                   Найдите иконку "Поделиться" в нижней панели Safari
                 </p>
-                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex items-center justify-center">
+                <div className="bg-card/50 border border-border rounded-lg p-4 flex items-center justify-center">
                   <div className="relative">
                     {/* Имитация кнопки Safari Share */}
-                    <div className="bg-blue-500/20 border-2 border-blue-500 rounded-lg p-3 animate-pulse">
-                      <Share className="h-8 w-8 text-blue-400" />
+                    <div className="bg-blue-100 dark:bg-blue-500/20 border-2 border-blue-500 rounded-lg p-3 animate-pulse">
+                      <Share className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                     </div>
                     {/* Анимированная стрелка */}
-                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-blue-400 animate-bounce">
+                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-blue-600 dark:text-blue-400 animate-bounce">
                       <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 4l-8 8h5v8h6v-8h5z"/>
                       </svg>
@@ -190,7 +190,7 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
             </div>
 
             {/* Разделитель */}
-            <div className="border-t border-slate-700"></div>
+            <div className="border-t border-border"></div>
 
             {/* Шаг 2 */}
             <div className="flex gap-4 items-start group">
@@ -198,25 +198,25 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
                 2
               </div>
               <div className="flex-1">
-                <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
+                <h3 className="text-foreground font-semibold mb-2 flex items-center gap-2">
                   Выберите "На экран Домой"
-                  <Plus className="h-5 w-5 text-blue-400" />
+                  <Plus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </h3>
-                <p className="text-slate-300 text-sm mb-3">
+                <p className="text-foreground/80 text-sm mb-3">
                   Прокрутите список действий и найдите эту опцию
                 </p>
-                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                <div className="bg-card/50 border border-border rounded-lg p-4">
                   <div className="space-y-2">
-                    <div className="bg-slate-700/50 rounded p-2 text-slate-400 text-sm flex items-center gap-2">
-                      <div className="w-6 h-6 bg-slate-600 rounded"></div>
+                    <div className="bg-secondary/50 rounded p-2 text-muted-foreground text-sm flex items-center gap-2">
+                      <div className="w-6 h-6 bg-secondary rounded"></div>
                       Сообщение
                     </div>
-                    <div className="bg-slate-700/50 rounded p-2 text-slate-400 text-sm flex items-center gap-2">
-                      <div className="w-6 h-6 bg-slate-600 rounded"></div>
+                    <div className="bg-secondary/50 rounded p-2 text-muted-foreground text-sm flex items-center gap-2">
+                      <div className="w-6 h-6 bg-secondary rounded"></div>
                       Копировать
                     </div>
                     <div className="bg-blue-600/20 border-2 border-blue-500 rounded p-2 text-white font-semibold text-sm flex items-center gap-2 animate-pulse">
-                      <Plus className="w-6 h-6 text-blue-400" />
+                      <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                       На экран "Домой"
                     </div>
                   </div>
@@ -225,7 +225,7 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
             </div>
 
             {/* Разделитель */}
-            <div className="border-t border-slate-700"></div>
+            <div className="border-t border-border"></div>
 
             {/* Шаг 3 */}
             <div className="flex gap-4 items-start group">
@@ -233,16 +233,16 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
                 3
               </div>
               <div className="flex-1">
-                <h3 className="text-white font-semibold mb-2">
+                <h3 className="text-foreground font-semibold mb-2">
                   Нажмите "Добавить"
                 </h3>
-                <p className="text-slate-300 text-sm mb-3">
+                <p className="text-foreground/80 text-sm mb-3">
                   Подтвердите установку приложения
                 </p>
                 <div className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border border-green-500/50 rounded-lg p-4 text-center">
-                  <p className="text-green-400 font-semibold mb-2">✨ Готово!</p>
-                  <p className="text-slate-300 text-sm">
-                    TradeFrame появится на домашнем экране
+                  <p className="text-green-600 dark:text-green-400 font-semibold mb-2">✨ Готово!</p>
+                  <p className="text-foreground/80 text-sm">
+                    TradeControl появится на домашнем экране
                   </p>
                 </div>
               </div>
@@ -250,7 +250,7 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
           </div>
 
           {/* Кнопка закрытия */}
-          <div className="mt-6 pt-6 border-t border-slate-700">
+          <div className="mt-6 pt-6 border-t border-border">
             <Button
               onClick={handleDismiss}
               className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold"

@@ -149,13 +149,13 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
   };
 
   const getTimeAgoColor = (date: Date | null) => {
-    if (!date) return 'text-slate-500';
+    if (!date) return 'text-muted-foreground';
     const now = new Date();
     const diffMinutes = (now.getTime() - date.getTime()) / (1000 * 60);
-    if (diffMinutes < 5) return 'text-green-400';
-    if (diffMinutes < 15) return 'text-yellow-400';
-    if (diffMinutes < 60) return 'text-orange-400';
-    return 'text-red-400';
+    if (diffMinutes < 5) return 'text-green-600 dark:text-green-400';
+    if (diffMinutes < 15) return 'text-yellow-600 dark:text-yellow-400';
+    if (diffMinutes < 60) return 'text-orange-600 dark:text-orange-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   const getStatusIcon = (status: 'online' | 'offline' | 'unknown') => {
@@ -165,7 +165,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
       case 'offline':
         return <WifiOff className="w-4 h-4 text-red-500" />;
       default:
-        return <AlertTriangle className="w-4 h-4 text-slate-500" />;
+        return <AlertTriangle className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -188,7 +188,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
         );
       default:
         return (
-          <Badge className={`bg-slate-600 text-white flex items-center gap-1 ${baseClass}`}>
+          <Badge className={`bg-secondary text-foreground flex items-center gap-1 ${baseClass}`}>
             <AlertTriangle className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
             {!compact && "?"}
           </Badge>
@@ -201,29 +201,29 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] sm:max-h-[80vh] bg-slate-800 border-slate-600 text-white overflow-hidden flex flex-col p-3 sm:p-6">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] sm:max-h-[80vh] bg-card border-border text-foreground overflow-hidden flex flex-col p-3 sm:p-6">
         <DialogHeader className="pb-2 sm:pb-4">
-          <DialogTitle className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+          <DialogTitle className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
             <Wifi className="w-4 h-4 sm:w-5 sm:h-5" />
             Связь со станциями
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-xs sm:text-sm">
+          <DialogDescription className="text-muted-foreground text-xs sm:text-sm">
             {selectedNetwork?.name}
           </DialogDescription>
         </DialogHeader>
 
         {/* Статистика и кнопка обновления */}
-        <div className="flex items-center justify-between py-2 border-b border-slate-700 gap-2">
+        <div className="flex items-center justify-between py-2 border-b border-border gap-2">
           <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm flex-wrap">
-            <span className="text-green-400 flex items-center gap-1">
+            <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
               <Wifi className="w-3 h-3" />
               {onlineCount}
             </span>
-            <span className="text-red-400 flex items-center gap-1">
+            <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
               <WifiOff className="w-3 h-3" />
               {offlineCount}
             </span>
-            <span className="text-slate-400">
+            <span className="text-muted-foreground">
               Всего: {stations.length}
             </span>
           </div>
@@ -232,7 +232,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
             size="sm"
             onClick={loadStationsConnection}
             disabled={loading}
-            className="border-slate-600 text-white hover:bg-slate-700 h-8 px-2 sm:px-3"
+            className="border-border text-foreground hover:bg-secondary h-8 px-2 sm:px-3"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline ml-1">Обновить</span>
@@ -240,12 +240,12 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
         </div>
 
         {/* Легенда цветов времени */}
-        <div className="flex items-center gap-3 py-1.5 text-[10px] sm:text-xs text-slate-500 border-b border-slate-700/50">
-          <span className="text-slate-400">Последняя связь:</span>
-          <span className="text-green-400">&lt;5 мин</span>
-          <span className="text-yellow-400">5-15 мин</span>
-          <span className="text-orange-400">15-60 мин</span>
-          <span className="text-red-400">&gt;1 ч</span>
+        <div className="flex items-center gap-3 py-1.5 text-[10px] sm:text-xs text-muted-foreground border-b border-border/50">
+          <span className="text-muted-foreground">Последняя связь:</span>
+          <span className="text-green-600 dark:text-green-400">&lt;5 мин</span>
+          <span className="text-yellow-600 dark:text-yellow-400">5-15 мин</span>
+          <span className="text-orange-600 dark:text-orange-400">15-60 мин</span>
+          <span className="text-red-600 dark:text-red-400">&gt;1 ч</span>
         </div>
 
         {/* Контент */}
@@ -253,15 +253,15 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
           {loading ? (
             <div className="flex items-center justify-center py-8 sm:py-12">
               <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-500" />
-              <span className="ml-2 text-slate-400 text-sm">Загрузка...</span>
+              <span className="ml-2 text-muted-foreground text-sm">Загрузка...</span>
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-muted-foreground">
               <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 mb-2 text-yellow-500" />
               <p className="text-sm text-center">{error}</p>
             </div>
           ) : stations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-muted-foreground">
               <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 mb-2" />
               <p className="text-sm">Нет данных</p>
             </div>
@@ -274,28 +274,28 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
                     key={station.id}
                     className={`p-3 rounded-lg border ${
                       station.status === 'online'
-                        ? 'border-green-600/30 bg-emerald-900/10'
+                        ? 'border-green-600/30 bg-emerald-100 dark:bg-emerald-900/10'
                         : station.status === 'offline'
-                        ? 'border-red-600/30 bg-red-900/10'
-                        : 'border-slate-700 bg-slate-800/50'
+                        ? 'border-red-600/30 bg-red-100 dark:bg-red-900/10'
+                        : 'border-border bg-card/50'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           {getStatusIcon(station.status)}
-                          <span className="text-white font-medium text-sm truncate">
+                          <span className="text-foreground font-medium text-sm truncate">
                             {station.name}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           ID: {station.externalId}
                         </div>
                       </div>
                       {station.shiftNumber && (
                         <div className="text-right shrink-0">
-                          <div className="text-xs text-slate-400">Смена</div>
-                          <div className="text-white text-sm font-medium">#{station.shiftNumber}</div>
+                          <div className="text-xs text-muted-foreground">Смена</div>
+                          <div className="text-foreground text-sm font-medium">#{station.shiftNumber}</div>
                         </div>
                       )}
                     </div>
@@ -303,7 +303,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
                       <Clock className="w-3 h-3" />
                       <span className="font-medium">{formatLastConnection(station.lastConnection)}</span>
                       {station.lastConnection && (
-                        <span className="text-slate-500 ml-1">
+                        <span className="text-muted-foreground ml-1">
                           ({station.lastConnection.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })})
                         </span>
                       )}
@@ -314,26 +314,26 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
 
               {/* Десктопный вид - таблица */}
               <table className="hidden sm:table w-full text-sm">
-                <thead className="bg-slate-700 sticky top-0">
+                <thead className="bg-secondary sticky top-0">
                   <tr>
-                    <th className="text-left px-3 py-2 text-slate-300 font-medium">Станция</th>
-                    <th className="text-center px-3 py-2 text-slate-300 font-medium">Статус</th>
-                    <th className="text-left px-3 py-2 text-slate-300 font-medium">Последняя связь</th>
-                    <th className="text-center px-3 py-2 text-slate-300 font-medium">Смена</th>
+                    <th className="text-left px-3 py-2 text-foreground/80 font-medium">Станция</th>
+                    <th className="text-center px-3 py-2 text-foreground/80 font-medium">Статус</th>
+                    <th className="text-left px-3 py-2 text-foreground/80 font-medium">Последняя связь</th>
+                    <th className="text-center px-3 py-2 text-foreground/80 font-medium">Смена</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stations.map((station, index) => (
                     <tr
                       key={station.id}
-                      className={`border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${
-                        index % 2 === 0 ? 'bg-slate-800' : 'bg-slate-750'
+                      className={`border-b border-border hover:bg-secondary/50 transition-colors ${
+                        index % 2 === 0 ? 'bg-card' : 'bg-secondary'
                       }`}
                     >
                       <td className="px-3 py-3">
                         <div className="flex flex-col">
-                          <span className="text-white font-medium">{station.name}</span>
-                          <span className="text-slate-500 text-xs">ID: {station.externalId}</span>
+                          <span className="text-foreground font-medium">{station.name}</span>
+                          <span className="text-muted-foreground text-xs">ID: {station.externalId}</span>
                         </div>
                       </td>
                       <td className="px-3 py-3 text-center">
@@ -345,7 +345,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
                           <span className="font-medium">{formatLastConnection(station.lastConnection)}</span>
                         </div>
                         {station.lastConnection && (
-                          <div className="text-xs text-slate-500 mt-0.5">
+                          <div className="text-xs text-muted-foreground mt-0.5">
                             {station.lastConnection.toLocaleString('ru-RU')}
                           </div>
                         )}
@@ -353,11 +353,11 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
                       <td className="px-3 py-3 text-center">
                         {station.shiftNumber ? (
                           <div className="flex flex-col items-center">
-                            <span className="text-white">#{station.shiftNumber}</span>
-                            <span className="text-xs text-slate-400">{station.shiftState}</span>
+                            <span className="text-foreground">#{station.shiftNumber}</span>
+                            <span className="text-xs text-muted-foreground">{station.shiftState}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-500">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </td>
                     </tr>

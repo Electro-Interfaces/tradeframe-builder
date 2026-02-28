@@ -168,7 +168,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
 
   const getStatusIcon = () => {
     if (isChecking) {
-      return <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />;
+      return <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-spin" />;
     }
     if (hasUpdate) {
       return <AlertCircle className="h-4 w-4 text-orange-500" />;
@@ -182,7 +182,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
     if (lastChecked) {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     }
-    return <RefreshCw className="h-4 w-4 text-slate-400" />;
+    return <RefreshCw className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getStatusText = () => {
@@ -202,17 +202,17 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
 
   return (
     <div
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800/80 cursor-pointer transition-all duration-200 text-slate-200 hover:text-white group w-full ${className}`}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-card/80 cursor-pointer transition-all duration-200 text-foreground hover:text-foreground group w-full ${className}`}
       onClick={checkForUpdates}
     >
-      <div className="w-8 h-8 rounded-lg bg-slate-800/50 group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
+      <div className="w-8 h-8 rounded-lg bg-card/50 group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
         {getStatusIcon()}
       </div>
       <div className="flex flex-col flex-1">
         <span className="text-sm font-medium">
           {isChecking ? 'Проверка обновлений...' : 'Проверить обновления'}
         </span>
-        <span className="text-xs text-slate-500 group-hover:text-slate-400">
+        <span className="text-xs text-muted-foreground group-hover:text-muted-foreground">
           v{currentVersion} • {getStatusText()}
         </span>
       </div>

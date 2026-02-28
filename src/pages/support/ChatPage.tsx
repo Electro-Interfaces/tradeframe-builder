@@ -74,9 +74,9 @@ function RoomListPanel({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 relative">
+    <div className="flex flex-col h-full bg-background relative">
       {/* Header */}
-      <div className="px-3 pt-3 pb-2.5 border-b border-slate-700/50 shrink-0">
+      <div className="px-3 pt-3 pb-2.5 border-b border-border/50 shrink-0">
         <div className="flex items-center gap-1.5 mb-2.5">
           <div className="flex gap-1.5 flex-1">
             {TABS.map(tab => (
@@ -86,24 +86,24 @@ function RoomListPanel({
                 className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-colors touch-manipulation ${
                   filter === tab.key
                     ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                    : 'bg-card text-muted-foreground hover:text-foreground hover:bg-secondary'
                 }`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          <Button size="sm" variant="outline" onClick={onRefresh} className="h-10 w-10 p-0 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full touch-manipulation" aria-label="Обновить">
+          <Button size="sm" variant="outline" onClick={onRefresh} className="h-10 w-10 p-0 border-border text-foreground/80 hover:text-foreground hover:bg-secondary rounded-full touch-manipulation" aria-label="Обновить">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={e => onSearchChange(e.target.value)}
             placeholder="Поиск..."
-            className="!h-10 pl-9 text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+            className="!h-10 pl-9 text-sm bg-card border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
       </div>
@@ -112,10 +112,10 @@ function RoomListPanel({
       <ScrollArea className="flex-1">
         {loading ? (
           <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : filteredRooms.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-500">
+          <div className="p-8 text-center text-sm text-muted-foreground">
             {search ? 'Ничего не найдено' : 'Нет диалогов'}
           </div>
         ) : (
@@ -128,33 +128,33 @@ function RoomListPanel({
                 <button
                   key={room.id}
                   onClick={() => onSelectRoom(room.id)}
-                  className={`w-full text-left px-3 py-3 transition-colors touch-manipulation border-b border-slate-700/20 ${
-                    isSelected ? 'bg-slate-800' : 'hover:bg-slate-800/40 active:bg-slate-800/60'
+                  className={`w-full text-left px-3 py-3 transition-colors touch-manipulation border-b border-border/20 ${
+                    isSelected ? 'bg-card' : 'hover:bg-card/40 active:bg-card/60'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-blue-100 dark:bg-blue-500/20'}`}>
                       {isCompany ? (
-                        <Users className="h-5 w-5 text-emerald-400" />
+                        <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
-                        <User className="h-5 w-5 text-blue-400" />
+                        <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`text-sm truncate ${hasUnread ? 'text-white font-semibold' : 'text-slate-200 font-medium'}`}>
+                        <span className={`text-sm truncate ${hasUnread ? 'text-foreground font-semibold' : 'text-foreground font-medium'}`}>
                           {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
                           {room.last_message_at && (
-                            <span className={`text-[11px] ${hasUnread ? 'text-blue-400' : 'text-slate-500'}`}>
+                            <span className={`text-[11px] ${hasUnread ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}>
                               {formatTime(room.last_message_at)}
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <p className={`text-xs truncate ${hasUnread ? 'text-slate-300' : 'text-slate-500'}`}>
+                        <p className={`text-xs truncate ${hasUnread ? 'text-foreground/80' : 'text-muted-foreground'}`}>
                           {room.last_message
                             ? `${room.last_message_by ? `${room.last_message_by}: ` : ''}${room.last_message}`
                             : 'Нет сообщений'}
@@ -216,9 +216,9 @@ function NewChatDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] bg-slate-900 border-slate-700 text-white">
+      <DialogContent className="sm:max-w-[400px] bg-background border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-white">Новый чат</DialogTitle>
+          <DialogTitle className="text-foreground">Новый чат</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           {/* Type selection */}
@@ -228,35 +228,35 @@ function NewChatDialog({
               className={`p-4 rounded-lg border transition-colors text-center ${
                 type === 'direct'
                   ? 'border-blue-500 bg-blue-500/10'
-                  : 'border-slate-700 hover:border-slate-600'
+                  : 'border-border hover:border-border'
               }`}
             >
-              <User className={`h-6 w-6 mx-auto mb-2 ${type === 'direct' ? 'text-blue-400' : 'text-slate-400'}`} />
+              <User className={`h-6 w-6 mx-auto mb-2 ${type === 'direct' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
               <p className="text-sm font-medium">Личный</p>
-              <p className="text-xs text-slate-500 mt-0.5">Чат с Elsy</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Чат с Elsy</p>
             </button>
             <button
               onClick={() => setType('company')}
               className={`p-4 rounded-lg border transition-colors text-center ${
                 type === 'company'
                   ? 'border-emerald-500 bg-emerald-500/10'
-                  : 'border-slate-700 hover:border-slate-600'
+                  : 'border-border hover:border-border'
               }`}
             >
-              <Building2 className={`h-6 w-6 mx-auto mb-2 ${type === 'company' ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <Building2 className={`h-6 w-6 mx-auto mb-2 ${type === 'company' ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`} />
               <p className="text-sm font-medium">Компания</p>
-              <p className="text-xs text-slate-500 mt-0.5">Групповой чат</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Групповой чат</p>
             </button>
           </div>
 
           {/* Name */}
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Тема (необязательно)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Тема (необязательно)</label>
             <Input
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Например: Вопрос по оплате"
-              className="bg-slate-800 border-slate-600 text-white text-sm"
+              className="bg-card border-border text-foreground text-sm"
             />
           </div>
 
@@ -279,7 +279,7 @@ function NewChatDialog({
 function DateDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center justify-center my-3">
-      <span className="bg-slate-800/80 text-slate-400 text-xs px-3 py-1 rounded-full">
+      <span className="bg-card/80 text-muted-foreground text-xs px-3 py-1 rounded-full">
         {label}
       </span>
     </div>
@@ -311,8 +311,8 @@ function MessageBubble({
   if (message.is_deleted) {
     return (
       <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'}`}>
-        <div className="max-w-[75%] px-3 py-1.5 rounded-xl bg-slate-800/30 border border-slate-700/30">
-          <p className="text-xs text-slate-600 italic">Сообщение удалено</p>
+        <div className="max-w-[75%] px-3 py-1.5 rounded-xl bg-card/30 border border-border/30">
+          <p className="text-xs text-muted-foreground italic">Сообщение удалено</p>
         </div>
       </div>
     );
@@ -322,7 +322,7 @@ function MessageBubble({
   if (message.type === 'system') {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-xs text-slate-500 italic px-3 py-1">
+        <span className="text-xs text-muted-foreground italic px-3 py-1">
           {message.content}
         </span>
       </div>
@@ -357,16 +357,16 @@ function MessageBubble({
       {/* Action buttons (hover) */}
       {hovered && (
         <div className={`absolute top-0 ${isOwn ? 'left-0 -translate-x-full pr-1' : 'right-0 translate-x-full pl-1'} flex items-center gap-0.5 z-10`}>
-          <button onClick={() => onReply?.(message)} className="p-1 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-white transition-colors" title="Ответить">
+          <button onClick={() => onReply?.(message)} className="p-1 rounded bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" title="Ответить">
             <Reply className="h-3.5 w-3.5" />
           </button>
           {isOwn && (
-            <button onClick={() => onEdit?.(message)} className="p-1 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-white transition-colors" title="Редактировать">
+            <button onClick={() => onEdit?.(message)} className="p-1 rounded bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" title="Редактировать">
               <Pencil className="h-3.5 w-3.5" />
             </button>
           )}
           {isOwn && (
-            <button onClick={() => onDelete?.(message)} className="p-1 rounded bg-slate-700/80 hover:bg-red-600/80 text-slate-400 hover:text-white transition-colors" title="Удалить">
+            <button onClick={() => onDelete?.(message)} className="p-1 rounded bg-secondary/80 hover:bg-red-600/80 text-muted-foreground hover:text-white transition-colors" title="Удалить">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
@@ -377,7 +377,7 @@ function MessageBubble({
         className={`max-w-[75%] px-3 py-1.5 ${radius} ${
           isOwn
             ? 'bg-[#2B5278]'
-            : 'bg-slate-800'
+            : 'bg-card'
         }`}
       >
         {/* Author name (only for others, first in group) */}
@@ -389,9 +389,9 @@ function MessageBubble({
 
         {/* Reply-to quote */}
         {message.reply_to && (
-          <div className={`border-l-2 pl-2 mb-1.5 ${isOwn ? 'border-blue-400/50' : 'border-slate-500/50'}`}>
-            <p className="text-[11px] font-medium text-blue-400/80">{message.reply_to_user_name || ''}</p>
-            <p className="text-xs text-slate-400 truncate">
+          <div className={`border-l-2 pl-2 mb-1.5 ${isOwn ? 'border-blue-400/50' : 'border-border/50'}`}>
+            <p className="text-[11px] font-medium text-blue-600 dark:text-blue-400/80">{message.reply_to_user_name || ''}</p>
+            <p className="text-xs text-muted-foreground truncate">
               {message.reply_to_deleted ? 'Сообщение удалено' : (message.reply_to_content || '')}
             </p>
           </div>
@@ -413,33 +413,33 @@ function MessageBubble({
             target="_blank"
             rel="noopener noreferrer"
             className={`flex items-center gap-2 p-2 rounded mb-1 transition-colors ${
-              isOwn ? 'bg-[#1e3f5e] hover:bg-[#244a6e]' : 'bg-slate-700/50 hover:bg-slate-700'
+              isOwn ? 'bg-[#1e3f5e] hover:bg-[#244a6e]' : 'bg-secondary/50 hover:bg-secondary'
             }`}
           >
-            <FileText className="h-8 w-8 text-blue-400 shrink-0" />
+            <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-white truncate">{message.file_name || 'Файл'}</p>
+              <p className="text-xs text-foreground truncate">{message.file_name || 'Файл'}</p>
               {message.file_size != null && (
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-muted-foreground">
                   {message.file_size < 1024 * 1024
                     ? `${(message.file_size / 1024).toFixed(0)} КБ`
                     : `${(message.file_size / (1024 * 1024)).toFixed(1)} МБ`}
                 </p>
               )}
             </div>
-            <Download className="h-4 w-4 text-slate-400 shrink-0" />
+            <Download className="h-4 w-4 text-muted-foreground shrink-0" />
           </a>
         ))}
 
         {/* Content */}
         <div className="flex items-end gap-2">
           {message.content && (
-            <p className="text-sm text-white whitespace-pre-wrap break-words flex-1">
+            <p className="text-sm text-foreground whitespace-pre-wrap break-words flex-1">
               {message.content}
             </p>
           )}
-          <span className="text-xs text-slate-400 shrink-0 translate-y-0.5 select-none">
-            {message.is_edited && <span className="text-slate-500 mr-1">ред.</span>}
+          <span className="text-xs text-muted-foreground shrink-0 translate-y-0.5 select-none">
+            {message.is_edited && <span className="text-muted-foreground mr-1">ред.</span>}
             {formatTime(message.created_at)}
           </span>
         </div>
@@ -465,9 +465,9 @@ const USER_ROLE_LABELS: Record<string, string> = {
 };
 
 function ParticipantRoleIcon({ role }: { role: string }) {
-  if (role === 'admin') return <Crown className="h-3 w-3 text-amber-400" />;
-  if (role === 'observer') return <Eye className="h-3 w-3 text-slate-500" />;
-  return <Shield className="h-3 w-3 text-slate-600" />;
+  if (role === 'admin') return <Crown className="h-3 w-3 text-amber-600 dark:text-amber-400" />;
+  if (role === 'observer') return <Eye className="h-3 w-3 text-muted-foreground" />;
+  return <Shield className="h-3 w-3 text-muted-foreground" />;
 }
 
 function ChatInfoPanel({
@@ -485,11 +485,11 @@ function ChatInfoPanel({
   const typeLabel = isCompany ? 'Чат компании' : 'Личный чат';
 
   return (
-    <div className="w-[280px] border-l border-slate-700/50 flex flex-col shrink-0 bg-slate-900/50">
+    <div className="w-[280px] border-l border-border/50 flex flex-col shrink-0 bg-background/50">
       {/* Header */}
-      <div className="p-3 border-b border-slate-700/50 flex items-center justify-between shrink-0">
-        <h3 className="text-sm font-semibold text-white">Информация</h3>
-        <Button size="sm" variant="ghost" onClick={onClose} className="h-7 w-7 p-0 text-slate-400 hover:text-white">
+      <div className="p-3 border-b border-border/50 flex items-center justify-between shrink-0">
+        <h3 className="text-sm font-semibold text-foreground">Информация</h3>
+        <Button size="sm" variant="ghost" onClick={onClose} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -498,26 +498,26 @@ function ChatInfoPanel({
         <div className="p-4">
           {/* Avatar + Name */}
           <div className="flex flex-col items-center text-center mb-5">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${isCompany ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-blue-100 dark:bg-blue-500/20'}`}>
               {isCompany ? (
-                <Users className="h-7 w-7 text-emerald-400" />
+                <Users className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <User className="h-7 w-7 text-blue-400" />
+                <User className="h-7 w-7 text-blue-600 dark:text-blue-400" />
               )}
             </div>
-            <p className="text-sm font-medium text-white">
+            <p className="text-sm font-medium text-foreground">
               {room.name || typeLabel}
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">{typeLabel}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{typeLabel}</p>
           </div>
 
           {/* Info fields */}
           <div className="space-y-3 mb-5">
             <div className="flex items-center gap-2.5 text-xs">
-              <Calendar className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-slate-500">Создан</p>
-                <p className="text-slate-300">
+                <p className="text-muted-foreground">Создан</p>
+                <p className="text-foreground/80">
                   {new Date(room.created_at).toLocaleDateString('ru', {
                     day: 'numeric', month: 'long', year: 'numeric',
                   })}
@@ -526,10 +526,10 @@ function ChatInfoPanel({
             </div>
             {isCompany && (
               <div className="flex items-center gap-2.5 text-xs">
-                <Building2 className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-slate-500">Тип</p>
-                  <p className="text-slate-300">Групповой</p>
+                  <p className="text-muted-foreground">Тип</p>
+                  <p className="text-foreground/80">Групповой</p>
                 </div>
               </div>
             )}
@@ -537,16 +537,16 @@ function ChatInfoPanel({
 
           {/* Participants */}
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
               Участники{!loadingInfo && ` (${participants.length})`}
             </p>
 
             {loadingInfo ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : participants.length === 0 ? (
-              <p className="text-xs text-slate-600 py-2">Нет участников</p>
+              <p className="text-xs text-muted-foreground py-2">Нет участников</p>
             ) : (
               <div className="space-y-1">
                 {participants.map(p => {
@@ -554,10 +554,10 @@ function ChatInfoPanel({
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
+                      className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-card/50 transition-colors"
                     >
                       {/* Avatar */}
-                      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
                         {p.avatar_url ? (
                           <img src={p.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                         ) : (
@@ -574,13 +574,13 @@ function ChatInfoPanel({
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <ParticipantRoleIcon role={p.role} />
-                          <span className="text-[10px] text-slate-500">
+                          <span className="text-[10px] text-muted-foreground">
                             {ROLE_LABELS[p.role] || p.role}
                           </span>
                           {p.user_role && p.user_role !== p.role && (
                             <>
-                              <span className="text-[10px] text-slate-700">·</span>
-                              <span className="text-[10px] text-slate-600">
+                              <span className="text-[10px] text-foreground">·</span>
+                              <span className="text-[10px] text-muted-foreground">
                                 {USER_ROLE_LABELS[p.user_role] || p.user_role}
                               </span>
                             </>
@@ -693,9 +693,9 @@ function MessagePanel({
 
   if (!room) {
     return (
-      <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+      <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
         <div className="text-center">
-          <MessageCircle className="h-12 w-12 mx-auto mb-3 text-slate-700" />
+          <MessageCircle className="h-12 w-12 mx-auto mb-3 text-foreground" />
           <p>Выберите диалог</p>
         </div>
       </div>
@@ -709,20 +709,20 @@ function MessagePanel({
       {/* Chat Header — clickable to open info panel */}
       <button
         onClick={onHeaderClick}
-        className="p-3 border-b border-slate-700/50 flex items-center gap-2.5 shrink-0 hover:bg-slate-800/30 transition-colors text-left w-full"
+        className="p-3 border-b border-border/50 flex items-center gap-2.5 shrink-0 hover:bg-card/30 transition-colors text-left w-full"
       >
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompany ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-blue-100 dark:bg-blue-500/20'}`}>
           {isCompany ? (
-            <Users className="h-4 w-4 text-emerald-400" />
+            <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <User className="h-4 w-4 text-blue-400" />
+            <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-white truncate">
+          <p className="text-sm font-medium text-foreground truncate">
             {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             {isCompany ? 'Чат компании' : 'Личный чат'}
             {participantCount != null && participantCount > 0 && (
               <span className="ml-1">· {participantCount} участн.</span>
@@ -735,10 +735,10 @@ function MessagePanel({
       <ScrollArea className="flex-1 px-3 py-2">
         {loadingMessages ? (
           <div className="flex items-center justify-center h-full min-h-[200px]">
-            <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full min-h-[200px] text-slate-500 text-sm">
+          <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground text-sm">
             Нет сообщений. Напишите первое!
           </div>
         ) : (
@@ -768,12 +768,12 @@ function MessagePanel({
 
       {/* Reply bar */}
       {replyingTo && (
-        <div className="px-3 pt-2 border-t border-slate-700/50 shrink-0 flex items-center gap-2">
+        <div className="px-3 pt-2 border-t border-border/50 shrink-0 flex items-center gap-2">
           <div className="flex-1 border-l-2 border-blue-500 pl-2 min-w-0">
-            <p className="text-xs font-medium text-blue-400">{replyingTo.user_name}</p>
-            <p className="text-xs text-slate-400 truncate">{replyingTo.content || 'Файл'}</p>
+            <p className="text-xs font-medium text-blue-600 dark:text-blue-400">{replyingTo.user_name}</p>
+            <p className="text-xs text-muted-foreground truncate">{replyingTo.content || 'Файл'}</p>
           </div>
-          <button onClick={() => onSetReplyingTo(null)} className="p-1 text-slate-500 hover:text-white">
+          <button onClick={() => onSetReplyingTo(null)} className="p-1 text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -781,13 +781,13 @@ function MessagePanel({
 
       {/* Edit bar */}
       {editingMessage && (
-        <div className="px-3 pt-2 border-t border-slate-700/50 shrink-0 flex items-center gap-2">
-          <Pencil className="h-4 w-4 text-amber-400 shrink-0" />
+        <div className="px-3 pt-2 border-t border-border/50 shrink-0 flex items-center gap-2">
+          <Pencil className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-amber-400 font-medium">Редактирование</p>
-            <p className="text-xs text-slate-400 truncate">{editingMessage.content}</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Редактирование</p>
+            <p className="text-xs text-muted-foreground truncate">{editingMessage.content}</p>
           </div>
-          <button onClick={() => onSetEditingMessage(null)} className="p-1 text-slate-500 hover:text-white">
+          <button onClick={() => onSetEditingMessage(null)} className="p-1 text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -795,7 +795,7 @@ function MessagePanel({
 
       {/* Pending files preview */}
       {pendingFiles.length > 0 && (
-        <div className="px-3 pt-2 border-t border-slate-700/50 shrink-0">
+        <div className="px-3 pt-2 border-t border-border/50 shrink-0">
           <div className="flex gap-2 flex-wrap">
             {pendingFiles.map((f, i) => (
               <div key={i} className="relative group">
@@ -803,12 +803,12 @@ function MessagePanel({
                   <img
                     src={getBlobUrl(f, i)}
                     alt={f.name}
-                    className="h-16 w-16 rounded object-cover border border-slate-600"
+                    className="h-16 w-16 rounded object-cover border border-border"
                   />
                 ) : (
-                  <div className="h-16 w-16 rounded border border-slate-600 bg-slate-800 flex flex-col items-center justify-center p-1">
-                    <FileText className="h-5 w-5 text-blue-400 mb-0.5" />
-                    <span className="text-[9px] text-slate-400 truncate w-full text-center">{f.name.split('.').pop()}</span>
+                  <div className="h-16 w-16 rounded border border-border bg-card flex flex-col items-center justify-center p-1">
+                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 mb-0.5" />
+                    <span className="text-[9px] text-muted-foreground truncate w-full text-center">{f.name.split('.').pop()}</span>
                   </div>
                 )}
                 <button
@@ -817,7 +817,7 @@ function MessagePanel({
                 >
                   <X className="h-3 w-3" />
                 </button>
-                <p className="text-[9px] text-slate-500 truncate max-w-[64px] mt-0.5">{f.name}</p>
+                <p className="text-[9px] text-muted-foreground truncate max-w-[64px] mt-0.5">{f.name}</p>
               </div>
             ))}
           </div>
@@ -825,7 +825,7 @@ function MessagePanel({
       )}
 
       {/* Input */}
-      <div className={`p-3 ${pendingFiles.length === 0 ? 'border-t border-slate-700/50' : ''} shrink-0`}>
+      <div className={`p-3 ${pendingFiles.length === 0 ? 'border-t border-border/50' : ''} shrink-0`}>
         <div className="flex gap-2 items-end">
           {/* Attach button */}
           <Button
@@ -833,7 +833,7 @@ function MessagePanel({
             variant="ghost"
             onClick={openFilePicker}
             disabled={sending}
-            className="h-9 w-9 text-slate-400 hover:text-white shrink-0"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
           >
             <Paperclip className="h-4 w-4" />
           </Button>
@@ -843,7 +843,7 @@ function MessagePanel({
             onChange={e => onMessageTextChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Сообщение..."
-            className="flex-1 bg-slate-800 border-slate-600 text-white text-sm resize-none min-h-[38px] max-h-[120px]"
+            className="flex-1 bg-card border-border text-foreground text-sm resize-none min-h-[38px] max-h-[120px]"
             rows={1}
           />
           <Button
@@ -912,7 +912,7 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Load TSupport user ID (maps TradeFrame ID → TSupport internal ID)
+  // Load TSupport user ID (maps TradeControl ID → TSupport internal ID)
   useEffect(() => {
     getTSupportMe()
       .then(data => setTsupportUserId(data.tsupportUserId))
@@ -1146,7 +1146,7 @@ export default function ChatPage() {
       <div className="flex h-full overflow-hidden">
         {/* Desktop: fixed left panel */}
         {!isMobile && (
-          <div className="w-[340px] xl:w-[380px] border-r border-slate-700/50 flex flex-col shrink-0">
+          <div className="w-[340px] xl:w-[380px] border-r border-border/50 flex flex-col shrink-0">
             {roomListPanel}
           </div>
         )}
@@ -1163,12 +1163,12 @@ export default function ChatPage() {
             {selectedRoomId && (
               <div className="flex-1 flex flex-col min-h-0">
                 {/* Mobile chat header with back button */}
-                <div className="px-2 py-1.5 border-b border-slate-700/50 flex items-center shrink-0">
+                <div className="px-2 py-1.5 border-b border-border/50 flex items-center shrink-0">
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => setSelectedRoomId(null)}
-                    className="h-10 px-2 text-sm text-slate-400 hover:text-white touch-manipulation"
+                    className="h-10 px-2 text-sm text-muted-foreground hover:text-foreground touch-manipulation"
                   >
                     ← Назад
                   </Button>
@@ -1201,7 +1201,7 @@ export default function ChatPage() {
       {/* Mobile: info panel as Dialog */}
       {isMobile && infoPanelOpen && selectedRoom && (
         <Dialog open={infoPanelOpen} onOpenChange={setInfoPanelOpen}>
-          <DialogContent className="bg-slate-900 border-slate-700 text-white p-0 max-w-[340px] max-h-[80vh] overflow-hidden">
+          <DialogContent className="bg-background border-border text-foreground p-0 max-w-[340px] max-h-[80vh] overflow-hidden">
             <div className="h-full max-h-[80vh]">
               <ChatInfoPanel
                 room={selectedRoom}

@@ -213,10 +213,10 @@ try {
   const root = document.getElementById('root');
   if (root) {
     root.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #1e293b; color: white; font-family: system-ui;">
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: system-ui;">
         <div style="text-align: center; padding: 20px;">
-          <h1 style="margin-bottom: 20px;">⚠️ Ошибка загрузки</h1>
-          <p style="margin-bottom: 20px; color: #94a3b8;">Приложение не может быть загружено</p>
+          <h1 style="margin-bottom: 20px;">Ошибка загрузки</h1>
+          <p style="margin-bottom: 20px; color: hsl(var(--muted-foreground));">Приложение не может быть загружено</p>
           <button
             onclick="localStorage.clear(); sessionStorage.clear(); location.reload();"
             style="background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px;">

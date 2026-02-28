@@ -15,13 +15,13 @@ YouTrack (mag.youtrack.cloud)
 │
 ├── TradeSuite (TS)              — Зонтичный проект
 │   ├── Подсистемы:
-│   │   ├── TradeFrame           — Админ-панель, терминалы
+│   │   ├── TradeControl           — Админ-панель, терминалы
 │   │   ├── TradeCorp            — Корпоративный модуль
 │   │   ├── TradeGate            — Шлюз, интеграции
 │   │   └── TradeBonus           — Бонусная система
 │   └── Доски:
 │       ├── TradeSuite Main      (147-26) — общая доска
-│       ├── TradeFrame Builder   (147-30)
+│       ├── TradeControl Builder   (147-30)
 │       ├── TradeCorp            (147-32)
 │       ├── TradeGate            (147-33)
 │       └── TradeBonus           (147-34)
@@ -446,7 +446,7 @@ main                    # Основная ветка
 
 ```bash
 # Просмотр задач
-"покажи открытые задачи TradeFrame"
+"покажи открытые задачи TradeControl"
 "найди задачи по терминалам"
 "статус задачи TS-248"
 
@@ -524,13 +524,13 @@ main                    # Основная ветка
 assignee: me #Unresolved
 
 # Задачи по подсистемам
-project: TS Subsystem: TradeFrame
+project: TS Subsystem: TradeControl
 project: TS Subsystem: TradeCorp
 project: TS Subsystem: TradeGate
 project: TS Subsystem: TradeBonus
 
 # Задачи на доске
-project: TS Board: {TradeFrame Builder}
+project: TS Board: {TradeControl Builder}
 project: TS Board: {TradeCorp}
 
 # Задачи проекта Бизнес

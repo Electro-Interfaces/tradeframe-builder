@@ -1,4 +1,4 @@
-# 🏪 TradeFrame Builder
+# 🏪 TradeControl Builder
 
 Платформа управления торговыми сетями АЗС с полной интеграцией Supabase.
 

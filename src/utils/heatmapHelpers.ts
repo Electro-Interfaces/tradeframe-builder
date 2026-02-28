@@ -21,15 +21,15 @@ export const getHeatmapCellColor = (transactions: number, maxTransactions: numbe
  * Получить цвет текста для ячейки тепловой карты
  */
 export const getHeatmapTextColor = (transactions: number, maxTransactions: number): string => {
-  if (transactions === 0) return 'text-gray-500';
+  if (transactions === 0) return 'text-muted-foreground';
 
   const intensity = maxTransactions > 0 ? transactions / maxTransactions : 0;
 
   // Белый текст для темных ячеек
-  if (intensity > 0.6) return 'text-white';
+  if (intensity > 0.6) return 'text-foreground';
 
   // Темный текст для светлых ячеек
-  return 'text-gray-900';
+  return 'text-foreground';
 };
 
 /**

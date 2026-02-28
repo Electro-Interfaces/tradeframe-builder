@@ -121,7 +121,7 @@ router.post('/generate-link-code', async (req, res) => {
       throw insertError;
     }
 
-    const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'TradeFrameDW_Bot';
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'TradeControlDW_Bot';
     const telegramLink = `https://t.me/${botUsername}?start=${linkCode}`;
 
     console.log(`[Telegram] Generated link code: ${linkCode} for user: ${userId}`);

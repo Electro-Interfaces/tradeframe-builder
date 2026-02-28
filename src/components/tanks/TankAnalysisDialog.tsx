@@ -206,15 +206,15 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 text-white">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-background text-foreground">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center gap-3">
             {tank.name} - Детальная аналитика
-            <Badge className="bg-gradient-to-r from-slate-600 to-slate-700">
+            <Badge className="bg-gradient-to-r from-secondary to-secondary">
               {tank.fuelType}
             </Badge>
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             Анализ динамики резервуара за выбранный период
           </DialogDescription>
         </DialogHeader>
@@ -248,157 +248,157 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         {/* Статистика */}
         {stats && (
           <div className="mb-4 overflow-x-auto">
-            <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden min-w-[600px]">
+            <div className="bg-card border border-border rounded-lg overflow-hidden min-w-[600px]">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700 bg-slate-750">
-                    <th className="text-left py-2 px-3 text-xs font-medium text-slate-400">Показатель</th>
-                    <th className="text-right py-2 px-3 text-xs font-medium text-slate-400">Текущее</th>
-                    <th className="text-right py-2 px-3 text-xs font-medium text-slate-400">Мин</th>
-                    <th className="text-right py-2 px-3 text-xs font-medium text-slate-400">Макс</th>
-                    <th className="text-right py-2 px-3 text-xs font-medium text-slate-400">Среднее</th>
-                    <th className="text-center py-2 px-3 text-xs font-medium text-slate-400">Тренд</th>
+                  <tr className="border-b border-border bg-secondary">
+                    <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">Показатель</th>
+                    <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground">Текущее</th>
+                    <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground">Мин</th>
+                    <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground">Макс</th>
+                    <th className="text-right py-2 px-3 text-xs font-medium text-muted-foreground">Среднее</th>
+                    <th className="text-center py-2 px-3 text-xs font-medium text-muted-foreground">Тренд</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-700">
+                <tbody className="divide-y divide-border">
                   {/* Остатки */}
-                  <tr className="hover:bg-slate-750/50">
-                    <td className="py-2 px-3 text-slate-300">Фактический остаток</td>
-                    <td className="py-2 px-3 text-right font-semibold text-white">{stats.volume.current.toFixed(2)} л</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.volume.min.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.volume.max.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.volume.avg.toFixed(2)}</td>
+                  <tr className="hover:bg-secondary/50">
+                    <td className="py-2 px-3 text-foreground/80">Фактический остаток</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.volume.current.toFixed(2)} л</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.volume.min.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.volume.max.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.volume.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
                       {stats.volume.current > stats.volume.avg ? (
-                        <TrendingUp className="w-4 h-4 text-green-400 mx-auto" />
+                        <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
                       ) : stats.volume.current < stats.volume.avg ? (
-                        <TrendingDown className="w-4 h-4 text-red-400 mx-auto" />
+                        <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
-                        <Minus className="w-4 h-4 text-slate-400 mx-auto" />
+                        <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
                       )}
                     </td>
                   </tr>
-                  <tr className="hover:bg-slate-750/50">
-                    <td className="py-2 px-3 text-slate-300">Книжный остаток</td>
-                    <td className="py-2 px-3 text-right font-semibold text-white">{(stats.volumeBook?.current || 0).toFixed(2)} л</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{(stats.volumeBook?.min || 0).toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{(stats.volumeBook?.max || 0).toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{(stats.volumeBook?.avg || 0).toFixed(2)}</td>
+                  <tr className="hover:bg-secondary/50">
+                    <td className="py-2 px-3 text-foreground/80">Книжный остаток</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{(stats.volumeBook?.current || 0).toFixed(2)} л</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{(stats.volumeBook?.min || 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{(stats.volumeBook?.max || 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{(stats.volumeBook?.avg || 0).toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
                       {(stats.volumeBook?.current || 0) > (stats.volumeBook?.avg || 0) ? (
-                        <TrendingUp className="w-4 h-4 text-green-400 mx-auto" />
+                        <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
                       ) : (stats.volumeBook?.current || 0) < (stats.volumeBook?.avg || 0) ? (
-                        <TrendingDown className="w-4 h-4 text-red-400 mx-auto" />
+                        <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
-                        <Minus className="w-4 h-4 text-slate-400 mx-auto" />
+                        <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
                       )}
                     </td>
                   </tr>
 
                   {/* Физические параметры */}
-                  <tr className="hover:bg-slate-750/50">
-                    <td className="py-2 px-3 text-slate-300">Температура</td>
-                    <td className="py-2 px-3 text-right font-semibold text-white">{stats.temperature.current.toFixed(2)} °C</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.temperature.min.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.temperature.max.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.temperature.avg.toFixed(2)}</td>
+                  <tr className="hover:bg-secondary/50">
+                    <td className="py-2 px-3 text-foreground/80">Температура</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.temperature.current.toFixed(2)} °C</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.temperature.min.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.temperature.max.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.temperature.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
                       {stats.temperature.current > stats.temperature.avg ? (
-                        <TrendingUp className="w-4 h-4 text-green-400 mx-auto" />
+                        <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
                       ) : stats.temperature.current < stats.temperature.avg ? (
-                        <TrendingDown className="w-4 h-4 text-red-400 mx-auto" />
+                        <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
-                        <Minus className="w-4 h-4 text-slate-400 mx-auto" />
+                        <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
                       )}
                     </td>
                   </tr>
-                  <tr className="hover:bg-slate-750/50">
-                    <td className="py-2 px-3 text-slate-300">Плотность</td>
-                    <td className="py-2 px-3 text-right font-semibold text-white">{stats.density.current.toFixed(2)} кг/м³</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.density.min.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.density.max.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.density.avg.toFixed(2)}</td>
+                  <tr className="hover:bg-secondary/50">
+                    <td className="py-2 px-3 text-foreground/80">Плотность</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.density.current.toFixed(2)} кг/м³</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.density.min.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.density.max.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.density.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
                       {stats.density.current > stats.density.avg ? (
-                        <TrendingUp className="w-4 h-4 text-green-400 mx-auto" />
+                        <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
                       ) : stats.density.current < stats.density.avg ? (
-                        <TrendingDown className="w-4 h-4 text-red-400 mx-auto" />
+                        <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
-                        <Minus className="w-4 h-4 text-slate-400 mx-auto" />
+                        <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
                       )}
                     </td>
                   </tr>
-                  <tr className="hover:bg-slate-750/50">
-                    <td className="py-2 px-3 text-slate-300">Уровень воды</td>
-                    <td className="py-2 px-3 text-right font-semibold text-white">{stats.waterLevel.current.toFixed(2)} см</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.waterLevel.min.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.waterLevel.max.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.waterLevel.avg.toFixed(2)}</td>
+                  <tr className="hover:bg-secondary/50">
+                    <td className="py-2 px-3 text-foreground/80">Уровень воды</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.waterLevel.current.toFixed(2)} см</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.waterLevel.min.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.waterLevel.max.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.waterLevel.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
                       {stats.waterLevel.current > stats.waterLevel.avg ? (
-                        <TrendingUp className="w-4 h-4 text-green-400 mx-auto" />
+                        <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
                       ) : stats.waterLevel.current < stats.waterLevel.avg ? (
-                        <TrendingDown className="w-4 h-4 text-red-400 mx-auto" />
+                        <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
-                        <Minus className="w-4 h-4 text-slate-400 mx-auto" />
+                        <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
                       )}
                     </td>
                   </tr>
 
                   {/* Реализация */}
-                  <tr className="hover:bg-slate-750/50">
-                    <td className="py-2 px-3 text-slate-300">Фактическая реализация</td>
-                    <td className="py-2 px-3 text-right font-semibold text-white">{stats.release.total.toFixed(2)} л</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{stats.release.avg.toFixed(2)}</td>
+                  <tr className="hover:bg-secondary/50">
+                    <td className="py-2 px-3 text-foreground/80">Фактическая реализация</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.release.total.toFixed(2)} л</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.release.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">-</td>
                   </tr>
-                  <tr className="hover:bg-slate-750/50">
-                    <td className="py-2 px-3 text-slate-300">Книжная реализация (транзакции)</td>
-                    <td className="py-2 px-3 text-right font-semibold text-white">{(bookRelease || 0).toFixed(2)} л</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
+                  <tr className="hover:bg-secondary/50">
+                    <td className="py-2 px-3 text-foreground/80">Книжная реализация (транзакции)</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{(bookRelease || 0).toFixed(2)} л</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
                     <td className="py-2 px-3 text-center">-</td>
                   </tr>
-                  <tr className="hover:bg-slate-750/50">
-                    <td className="py-2 px-3 text-slate-300">Поступления</td>
-                    <td className="py-2 px-3 text-right font-semibold text-cyan-400">{(bookReceipts || 0).toFixed(2)} л</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
+                  <tr className="hover:bg-secondary/50">
+                    <td className="py-2 px-3 text-foreground/80">Поступления</td>
+                    <td className="py-2 px-3 text-right font-semibold text-cyan-600 dark:text-cyan-400">{(bookReceipts || 0).toFixed(2)} л</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
                     <td className="py-2 px-3 text-center">
                       {bookReceipts > 0 ? (
-                        <TrendingUp className="w-4 h-4 text-cyan-400 mx-auto" />
+                        <TrendingUp className="w-4 h-4 text-cyan-600 dark:text-cyan-400 mx-auto" />
                       ) : (
-                        <Minus className="w-4 h-4 text-slate-400 mx-auto" />
+                        <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
                       )}
                     </td>
                   </tr>
-                  <tr className="hover:bg-slate-750/50 bg-slate-750/30">
-                    <td className="py-2 px-3 text-slate-300 font-semibold">Разница реализации (факт - транзакции)</td>
+                  <tr className="hover:bg-secondary/50 bg-secondary/30">
+                    <td className="py-2 px-3 text-foreground/80 font-semibold">Разница реализации (факт - транзакции)</td>
                     <td className="py-2 px-3 text-right font-bold">
                       {(() => {
                         const difference = stats.release.total - (bookRelease || 0);
                         const isPositive = difference >= 0;
                         return (
-                          <span className={isPositive ? 'text-green-400' : 'text-red-400'}>
+                          <span className={isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                             {isPositive ? '+' : ''}{difference.toFixed(2)} л
                           </span>
                         );
                       })()}
                     </td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">-</td>
                     <td className="py-2 px-3 text-center">
                       {(() => {
                         const difference = stats.release.total - (bookRelease || 0);
                         return difference >= 0 ? (
-                          <TrendingUp className="w-4 h-4 text-green-400 mx-auto" />
+                          <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
                         ) : (
-                          <TrendingDown className="w-4 h-4 text-red-400 mx-auto" />
+                          <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                         );
                       })()}
                     </td>
@@ -414,18 +414,18 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
           <div className="flex flex-col justify-center items-center h-64 gap-4">
             <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
             <div className="text-center">
-              <p className="text-slate-300 text-sm mb-3">{loadingStage}</p>
+              <p className="text-foreground/80 text-sm mb-3">{loadingStage}</p>
               <div className="flex gap-6 text-xs">
-                <div className={`flex items-center gap-2 ${loadingProgress.tankHistory ? 'text-green-400' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${loadingProgress.tankHistory ? 'bg-emerald-400' : 'bg-slate-600 animate-pulse'}`} />
+                <div className={`flex items-center gap-2 ${loadingProgress.tankHistory ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.tankHistory ? 'bg-emerald-400' : 'bg-secondary animate-pulse'}`} />
                   История резервуара
                 </div>
-                <div className={`flex items-center gap-2 ${loadingProgress.transactions ? 'text-green-400' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${loadingProgress.transactions ? 'bg-emerald-400' : 'bg-slate-600 animate-pulse'}`} />
+                <div className={`flex items-center gap-2 ${loadingProgress.transactions ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.transactions ? 'bg-emerald-400' : 'bg-secondary animate-pulse'}`} />
                   Транзакции
                 </div>
-                <div className={`flex items-center gap-2 ${loadingProgress.receipts ? 'text-green-400' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${loadingProgress.receipts ? 'bg-emerald-400' : 'bg-slate-600 animate-pulse'}`} />
+                <div className={`flex items-center gap-2 ${loadingProgress.receipts ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.receipts ? 'bg-emerald-400' : 'bg-secondary animate-pulse'}`} />
                   Поступления
                 </div>
               </div>
@@ -434,7 +434,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         )}
 
         {error && (
-          <div className="bg-red-900/20 border border-red-600 rounded-lg p-4 text-red-400">
+          <div className="bg-red-100 dark:bg-red-900/20 border border-red-600 rounded-lg p-4 text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
@@ -442,7 +442,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         {/* Графики */}
         {!loading && !error && chartData.length > 0 && (
           <Tabs defaultValue="release" className="w-full">
-            <TabsList className="flex flex-wrap gap-1 w-full bg-slate-800 h-auto p-1 md:grid md:grid-cols-6">
+            <TabsList className="flex flex-wrap gap-1 w-full bg-card h-auto p-1 md:grid md:grid-cols-6">
               <TabsTrigger value="release" className="flex-1 min-w-[80px] text-xs md:text-sm">Реализация</TabsTrigger>
               <TabsTrigger value="minusa" className="flex-1 min-w-[80px] text-xs md:text-sm">Погрешность</TabsTrigger>
               <TabsTrigger value="volume" className="flex-1 min-w-[80px] text-xs md:text-sm">Остатки</TabsTrigger>
@@ -465,23 +465,23 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                   <XAxis
                     dataKey="time"
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   />
                   <YAxis
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                    label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#1e293b',
-                      border: '1px solid #475569',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      color: '#fff'
+                      color: 'hsl(var(--foreground))'
                     }}
                   />
                   <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -518,23 +518,23 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                   <XAxis
                     dataKey="time"
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   />
                   <YAxis
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                    label={{ value: 'Температура (°C)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    label={{ value: 'Температура (°C)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#1e293b',
-                      border: '1px solid #475569',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      color: '#fff'
+                      color: 'hsl(var(--foreground))'
                     }}
                   />
                   <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -561,16 +561,16 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                   <XAxis
                     dataKey="time"
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   />
                   <YAxis
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                    label={{ value: 'Плотность (кг/м³)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    label={{ value: 'Плотность (кг/м³)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
                     domain={[
                       (dataMin: number) => Math.floor(dataMin - 2),
                       (dataMax: number) => Math.ceil(dataMax + 2)
@@ -578,10 +578,10 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#1e293b',
-                      border: '1px solid #475569',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      color: '#fff'
+                      color: 'hsl(var(--foreground))'
                     }}
                   />
                   <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -608,23 +608,23 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
                   <XAxis
                     dataKey="time"
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   />
                   <YAxis
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                    label={{ value: 'Уровень воды (см)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    label={{ value: 'Уровень воды (см)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#1e293b',
-                      border: '1px solid #475569',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      color: '#fff'
+                      color: 'hsl(var(--foreground))'
                     }}
                   />
                   <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -645,23 +645,23 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
             <TabsContent value="release" className="mt-6">
               <ResponsiveContainer width="100%" height={400}>
                 <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis
                     dataKey="time"
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <YAxis
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
-                    label={{ value: 'Литры', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    label={{ value: 'Литры', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#1e293b',
-                      border: '1px solid #475569',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      color: '#fff'
+                      color: 'hsl(var(--foreground))'
                     }}
                     formatter={(value: any) => {
                       if (typeof value === 'number') {
@@ -696,41 +696,41 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
             {/* График Погрешности - разница между книгой и фактом */}
             <TabsContent value="minusa" className="mt-6">
-              <div className="mb-4 p-4 bg-slate-800 rounded-lg border border-slate-700">
-                <p className="text-sm text-slate-300">
+              <div className="mb-4 p-4 bg-card rounded-lg border border-border">
+                <p className="text-sm text-foreground/80">
                   <span className="font-semibold">График погрешности учета:</span> Разница между книжной и фактической реализацией.
                 </p>
                 <div className="grid grid-cols-2 gap-4 mt-2 text-xs">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                    <span className="text-slate-400">Погрешность = Книжная реализация - Фактическая реализация</span>
+                    <span className="text-muted-foreground">Погрешность = Книжная реализация - Фактическая реализация</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-emerald-500 rounded"></div>
-                    <span className="text-slate-400">Положительные значения - недоучет, отрицательные - переучет</span>
+                    <span className="text-muted-foreground">Положительные значения - недоучет, отрицательные - переучет</span>
                   </div>
                 </div>
               </div>
 
               <ResponsiveContainer width="100%" height={400}>
                 <AreaChart data={minusaChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis
                     dataKey="time"
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <YAxis
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
-                    label={{ value: 'Литры (разница)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    label={{ value: 'Литры (разница)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#1e293b',
-                      border: '1px solid #475569',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      color: '#fff'
+                      color: 'hsl(var(--foreground))'
                     }}
                     formatter={(value: any) => {
                       if (typeof value === 'number') {
@@ -740,7 +740,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                     }}
                   />
                   <Legend />
-                  <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
+                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                   <Area
                     type="monotone"
                     dataKey="minusa"
@@ -758,7 +758,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         )}
 
         {!loading && !error && chartData.length === 0 && (
-          <div className="text-center py-12 text-slate-400">
+          <div className="text-center py-12 text-muted-foreground">
             Нет данных за выбранный период
           </div>
         )}

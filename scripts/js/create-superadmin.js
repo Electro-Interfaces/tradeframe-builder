@@ -51,7 +51,7 @@ async function createSuperAdmin() {
       const { data: newTenant, error: createTenantError } = await supabase
         .from('tenants')
         .insert([{
-          name: 'Система TradeFrame',
+          name: 'Система TradeControl',
           code: 'system',
           type: 'system',
           is_active: true,

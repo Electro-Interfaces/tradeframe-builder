@@ -44,18 +44,18 @@ export function TankCalibrationDialog({ tank, open, onOpenChange }: TankCalibrat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">
+          <DialogTitle className="text-2xl font-bold text-foreground">
             Параметры резервуара
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-base">
-            Настройка параметров и калибровки для резервуара: <span className="text-blue-400 font-semibold text-lg">{tank.name} ({tank.fuelType})</span>
+          <DialogDescription className="text-muted-foreground text-base">
+            Настройка параметров и калибровки для резервуара: <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">{tank.name} ({tank.fuelType})</span>
           </DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground">
             Загрузка настроек...
           </div>
         ) : (

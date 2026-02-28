@@ -89,7 +89,7 @@ const getStatusConfig = (status: ComponentStatus) => {
         color: 'text-green-500',
         bgColor: 'bg-emerald-50',
         borderColor: 'border-green-200',
-        badgeColor: 'bg-emerald-500/20 text-green-400',
+        badgeColor: 'bg-emerald-100 dark:bg-emerald-500/20 text-green-600 dark:text-green-400',
         text: 'Работает'
       };
     case 'error':
@@ -98,7 +98,7 @@ const getStatusConfig = (status: ComponentStatus) => {
         color: 'text-red-500',
         bgColor: 'bg-red-50',
         borderColor: 'border-red-200',
-        badgeColor: 'bg-red-500/20 text-red-400',
+        badgeColor: 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400',
         text: 'Ошибка'
       };
     case 'offline':
@@ -107,16 +107,16 @@ const getStatusConfig = (status: ComponentStatus) => {
         color: 'text-yellow-500',
         bgColor: 'bg-yellow-50',
         borderColor: 'border-yellow-200',
-        badgeColor: 'bg-yellow-500/20 text-yellow-400',
+        badgeColor: 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
         text: 'Офлайн'
       };
     case 'disabled':
       return {
         icon: Power,
-        color: 'text-gray-500',
-        bgColor: 'bg-gray-50',
-        borderColor: 'border-gray-200',
-        badgeColor: 'bg-gray-500/20 text-gray-400',
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted',
+        borderColor: 'border-border',
+        badgeColor: 'bg-muted-foreground/20 text-muted-foreground',
         text: 'Отключен'
       };
     case 'archived':
@@ -125,16 +125,16 @@ const getStatusConfig = (status: ComponentStatus) => {
         color: 'text-blue-500',
         bgColor: 'bg-blue-50',
         borderColor: 'border-blue-200',
-        badgeColor: 'bg-blue-500/20 text-blue-400',
+        badgeColor: 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400',
         text: 'Архив'
       };
     default:
       return {
         icon: AlertCircle,
-        color: 'text-gray-500',
-        bgColor: 'bg-gray-50',
-        borderColor: 'border-gray-200',
-        badgeColor: 'bg-gray-500/20 text-gray-400',
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted',
+        borderColor: 'border-border',
+        badgeColor: 'bg-muted-foreground/20 text-muted-foreground',
         text: 'Неизвестно'
       };
   }
@@ -448,7 +448,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
               checked={Boolean(value)}
               onCheckedChange={(checked) => handleParamChange(paramName, checked)}
             />
-            <Label htmlFor={paramName} className="text-white">{paramSchema.title || paramName}</Label>
+            <Label htmlFor={paramName} className="text-foreground">{paramSchema.title || paramName}</Label>
           </div>
         );
 
@@ -458,7 +458,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
             type="number"
             min={paramSchema.minimum}
             max={paramSchema.maximum}
-            className="bg-slate-700 border-slate-600 text-white"
+            className="bg-secondary border-border text-foreground"
             {...inputProps}
             onChange={(e) => handleParamChange(paramName, Number(e.target.value))}
           />
@@ -468,12 +468,12 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
         if (paramSchema.enum) {
           return (
             <Select value={value || ''} onValueChange={(val) => handleParamChange(paramName, val)}>
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="bg-secondary border-border text-foreground">
                 <SelectValue placeholder={`Выберите ${paramSchema.title || paramName}`} />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
+              <SelectContent className="bg-card border-border">
                 {paramSchema.enum.map((option: string, index: number) => (
-                  <SelectItem key={option} value={option} className="text-white hover:bg-slate-700">
+                  <SelectItem key={option} value={option} className="text-foreground hover:bg-secondary">
                     {paramSchema.enumNames?.[index] || option}
                   </SelectItem>
                 ))}
@@ -483,7 +483,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
         } else {
           return (
             <Input
-              className="bg-slate-700 border-slate-600 text-white"
+              className="bg-secondary border-border text-foreground"
               {...inputProps}
             />
           );
@@ -492,7 +492,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
       default:
         return (
           <Textarea
-            className="bg-slate-700 border-slate-600 text-white min-h-20"
+            className="bg-secondary border-border text-foreground min-h-20"
             {...inputProps}
           />
         );
@@ -502,8 +502,8 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-        <span className="ml-2 text-slate-400">Загрузка компонентов...</span>
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Загрузка компонентов...</span>
       </div>
     );
   }
@@ -512,8 +512,8 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
-          <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-          <p className="text-red-400 text-sm">{error}</p>
+          <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400 mx-auto mb-2" />
+          <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
         </div>
       </div>
     );
@@ -523,8 +523,8 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
-          <Layers3 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400 text-sm">
+          <Layers3 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">
             У этого оборудования нет компонентов
           </p>
         </div>
@@ -534,7 +534,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
 
   return (
     <div>
-      <h4 className="text-white font-medium mb-4">
+      <h4 className="text-foreground font-medium mb-4">
         Компоненты ({components.length})
       </h4>
       
@@ -546,19 +546,19 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
           return (
             <div
               key={component.id}
-              className="flex items-center justify-between p-3 bg-slate-800 rounded-lg border border-slate-700"
+              className="flex items-center justify-between p-3 bg-card rounded-lg border border-border"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className={cn(
                   "rounded-full border-2 p-1.5 flex-shrink-0",
-                  "bg-slate-700 border-slate-600"
+                  "bg-secondary border-border"
                 )}>
                   <Icon className={cn("w-4 h-4", config.color)} />
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h5 className="font-medium text-white truncate">
+                    <h5 className="font-medium text-foreground truncate">
                       {component.display_name}
                     </h5>
                     <Badge 
@@ -569,7 +569,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                     </Badge>
                   </div>
                   
-                  <div className="flex items-center gap-4 text-xs text-slate-400">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>{component.system_type}</span>
                     {component.serial_number && (
                       <span>S/N: {component.serial_number}</span>
@@ -586,22 +586,22 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 w-8 p-0 text-slate-300 hover:text-blue-400 hover:bg-blue-500/20 border border-slate-600"
+                      className="h-8 w-8 p-0 text-foreground/80 hover:text-blue-400 hover:bg-blue-500/20 border border-border"
                       title="Управление командами"
                     >
                       <Terminal className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-64 p-0 bg-slate-800 border-slate-600" side="left">
-                    <div className="p-3 border-b border-slate-600 bg-slate-700">
-                      <h4 className="font-semibold text-sm text-white">Команды компонента</h4>
-                      <p className="text-xs text-slate-300">{component.display_name}</p>
+                  <PopoverContent className="w-64 p-0 bg-card border-border" side="left">
+                    <div className="p-3 border-b border-border bg-secondary">
+                      <h4 className="font-semibold text-sm text-foreground">Команды компонента</h4>
+                      <p className="text-xs text-foreground/80">{component.display_name}</p>
                     </div>
                     <div className="p-2 space-y-1">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start h-8 px-2 text-slate-200 hover:text-white hover:bg-slate-700"
+                        className="w-full justify-start h-8 px-2 text-foreground hover:text-foreground hover:bg-secondary"
                         onClick={() => openAddCommandDialog(component)}
                       >
                         <Plus className="h-3 w-3 mr-2" />
@@ -611,16 +611,16 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                       {/* Существующие команды компонента */}
                       {componentCommandsData[component.id]?.length > 0 && (
                         <>
-                          <div className="border-t border-slate-600 my-1"></div>
-                          <div className="text-xs text-slate-400 px-2 py-1">Команды компонента:</div>
+                          <div className="border-t border-border my-1"></div>
+                          <div className="text-xs text-muted-foreground px-2 py-1">Команды компонента:</div>
                           {componentCommandsData[component.id].map(command => (
-                            <div key={command.id} className="flex items-center justify-between px-2 py-1 bg-slate-900/50 rounded">
-                              <span className="text-xs text-slate-300 flex-1">{command.display_name}</span>
+                            <div key={command.id} className="flex items-center justify-between px-2 py-1 bg-background/50 rounded">
+                              <span className="text-xs text-foreground/80 flex-1">{command.display_name}</span>
                               <div className="flex items-center gap-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-slate-400 hover:text-blue-400"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-blue-400"
                                   onClick={() => handleEditCommand(command)}
                                   title="Редактировать"
                                 >
@@ -629,7 +629,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-slate-400 hover:text-red-400"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-red-400"
                                   onClick={() => handleDeleteCommand(command.id, component.id)}
                                   title="Удалить"
                                 >
@@ -651,7 +651,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                             key={template.id}
                             variant="ghost"
                             size="sm"
-                            className="w-full justify-start h-8 px-2 text-slate-200 hover:text-white hover:bg-slate-700"
+                            className="w-full justify-start h-8 px-2 text-foreground hover:text-foreground hover:bg-secondary"
                             onClick={() => openParametersEditor(component, template)}
                             disabled={isExecuting}
                             title="Настроить и выполнить команду"
@@ -673,7 +673,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-green-400 hover:bg-emerald-500/10"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-green-400 hover:bg-emerald-500/10"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEditComponent(component);
@@ -688,7 +688,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteComponent(component);
@@ -706,12 +706,12 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
       
       {/* Диалог добавления/редактирования команды */}
       <Dialog open={addCommandDialogOpen} onOpenChange={setAddCommandDialogOpen}>
-        <DialogContent className="sm:max-w-2xl bg-slate-800 border-slate-600 max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl bg-card border-border max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               {editingCommand ? 'Редактировать команду' : 'Добавить команду'}
             </DialogTitle>
-            <DialogDescription className="text-slate-300">
+            <DialogDescription className="text-foreground/80">
               {editingCommand 
                 ? `Редактирование команды "${editingCommand.display_name}"` 
                 : `Выберите шаблон команды для компонента "${selectedComponent?.display_name}"`
@@ -723,17 +723,17 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
             {/* Выбор шаблона (только при добавлении) */}
             {!editingCommand && (
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none text-white">Шаблон команды</label>
+                <label className="text-sm font-medium leading-none text-foreground">Шаблон команды</label>
                 <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
                     <SelectValue placeholder="Выберите шаблон команды" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
+                  <SelectContent className="bg-card border-border">
                     {commandTemplates.map(template => (
-                      <SelectItem key={template.template_id || template.id} value={template.template_id || template.id} className="text-white hover:bg-slate-700">
+                      <SelectItem key={template.template_id || template.id} value={template.template_id || template.id} className="text-foreground hover:bg-secondary">
                         <div className="flex flex-col">
                           <span className="font-medium">{template.name}</span>
-                          <span className="text-xs text-slate-400">{template.description}</span>
+                          <span className="text-xs text-muted-foreground">{template.description}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -744,24 +744,24 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
 
             {/* Форма параметров */}
             {showParamsForm && selectedTemplateId && (
-              <div className="space-y-4 border-t border-slate-600 pt-4">
-                <h3 className="text-lg font-medium text-white">Параметры команды</h3>
+              <div className="space-y-4 border-t border-border pt-4">
+                <h3 className="text-lg font-medium text-foreground">Параметры команды</h3>
                 {(() => {
                   const template = commandTemplates.find(t => t.id === selectedTemplateId);
                   if (!template?.param_schema?.properties) {
-                    return <p className="text-slate-400">У этой команды нет настраиваемых параметров.</p>;
+                    return <p className="text-muted-foreground">У этой команды нет настраиваемых параметров.</p>;
                   }
 
                   return Object.entries(template.param_schema.properties).map(([paramName, paramSchema]: [string, any]) => (
                     <div key={paramName} className="space-y-2">
-                      <Label htmlFor={paramName} className="text-white font-medium">
+                      <Label htmlFor={paramName} className="text-foreground font-medium">
                         {getParameterLabel(paramName, paramSchema)}
                         {template.required_params?.includes(paramName) && (
-                          <span className="text-red-400 ml-1">*</span>
+                          <span className="text-red-600 dark:text-red-400 ml-1">*</span>
                         )}
                       </Label>
                       {paramSchema.description && (
-                        <p className="text-xs text-slate-400">{paramSchema.description}</p>
+                        <p className="text-xs text-muted-foreground">{paramSchema.description}</p>
                       )}
                       {renderParamInput(paramName, template.param_schema, commandParams[paramName])}
                     </div>
@@ -771,7 +771,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
             )}
             
             {/* Кнопки действий */}
-            <div className="flex justify-end gap-2 border-t border-slate-600 pt-4">
+            <div className="flex justify-end gap-2 border-t border-border pt-4">
               <Button 
                 variant="outline" 
                 onClick={() => {
@@ -781,7 +781,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                   setCommandParams({});
                   setSelectedTemplateId('');
                 }}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                className="border-border text-foreground/80 hover:bg-secondary hover:text-foreground"
               >
                 Отмена
               </Button>

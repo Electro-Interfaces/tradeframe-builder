@@ -2,7 +2,7 @@
 
 ## ✅ Установка завершена
 
-TradeFrame Builder теперь поддерживает PWA функциональность с помощью `vite-plugin-pwa`.
+TradeControl Builder теперь поддерживает PWA функциональность с помощью `vite-plugin-pwa`.
 
 ## 🎯 Основные возможности
 
@@ -39,8 +39,8 @@ VitePWA({
   registerType: 'autoUpdate',
   includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
   manifest: {
-    name: 'TradeFrame Builder',
-    short_name: 'TradeFrame',
+    name: 'TradeControl Builder',
+    short_name: 'TradeControl',
     description: 'Платформа управления торговыми сетями АЗС',
     theme_color: '#1e293b',
     background_color: '#0f172a',
@@ -97,7 +97,7 @@ npm run preview
 
 **Desktop (Chrome/Edge):**
 - В адресной строке появится иконка установки
-- Или: Меню → "Установить TradeFrame"
+- Или: Меню → "Установить TradeControl"
 
 **Android:**
 - Chrome → Меню → "Добавить на главный экран"

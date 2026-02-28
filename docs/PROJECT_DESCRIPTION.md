@@ -1,4 +1,4 @@
-# TradeFrame Builder — Полное описание проекта
+# TradeControl Builder — Полное описание проекта
 
 > **Версия:** 1.9.1
 > **Дата:** Февраль 2026
@@ -9,7 +9,7 @@
 
 ## 1. Обзор
 
-**TradeFrame Builder** — веб-платформа для управления торговыми сетями автозаправочных станций. Обеспечивает мониторинг оборудования, резервуаров, операций, ценообразования, сменных отчётов, купонов и онлайн-заказов. Поддерживает автоматические уведомления через Telegram и Email, экспорт данных в PDF/Excel, работу в офлайн-режиме (PWA).
+**TradeControl Builder** — веб-платформа для управления торговыми сетями автозаправочных станций. Обеспечивает мониторинг оборудования, резервуаров, операций, ценообразования, сменных отчётов, купонов и онлайн-заказов. Поддерживает автоматические уведомления через Telegram и Email, экспорт данных в PDF/Excel, работу в офлайн-режиме (PWA).
 
 ### Ключевые возможности
 
@@ -152,7 +152,7 @@ Frontend (React)
 ## 4. Структура проекта
 
 ```
-TradeFrame/
+TradeControl/
 │
 ├── src/                              # Frontend (React + TypeScript)
 │   ├── pages/                        # 38 страниц-маршрутов
@@ -493,8 +493,8 @@ TradeFrame/
 
 ### 8.4. Telegram Bot
 
-- **PRODUCTION бот:** @TradeFrameDW_Bot
-- **TEST бот:** @TradeFrameTest_Bot
+- **PRODUCTION бот:** @TradeControlDW_Bot
+- **TEST бот:** @TradeControlTest_Bot
 - **Режим:** Polling (не webhook)
 - **Команды:**
 
@@ -687,8 +687,8 @@ error        — Красный (hsl 0 84% 60%)
 
 ```json
 {
-  "name": "TradeFrame Builder",
-  "short_name": "TradeFrame",
+  "name": "TradeControl Builder",
+  "short_name": "TradeControl",
   "description": "Платформа управления торговыми сетями АЗС",
   "theme_color": "#1e293b",
   "background_color": "#0f172a",
@@ -877,8 +877,8 @@ node tools/sql-direct.js select equipment_templates    # Данные
 ## 20. YouTrack (Управление задачами)
 
 - **URL:** https://mag.youtrack.cloud/
-- **Проект:** TradeFrame (TF)
-- **Доска:** TradeFrame Builder (ID: 147-35, спринт: 148-47)
+- **Проект:** TradeControl (TF)
+- **Доска:** TradeControl Builder (ID: 147-35, спринт: 148-47)
 - **Формат задач:** TF-XXX
 - **Формат коммитов:** `тип(TF-XXX): описание на русском`
 - **Статусы:** Open → Подготовка → In Progress → To Verify → Done

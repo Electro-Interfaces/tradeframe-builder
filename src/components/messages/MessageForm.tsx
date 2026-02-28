@@ -77,8 +77,8 @@ export function MessageForm({
   const isFormValid = title.trim() && content.trim();
 
   return (
-    <Card className="p-4 md:p-6 bg-slate-800/50 border-slate-700">
-      <h2 className={`font-semibold text-slate-100 mb-4 flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'}`}>
+    <Card className="p-4 md:p-6 bg-card/50 border-border">
+      <h2 className={`font-semibold text-foreground mb-4 flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'}`}>
         <Send className="w-5 h-5" />
         Новое сообщение
       </h2>
@@ -86,7 +86,7 @@ export function MessageForm({
       <div className="space-y-4">
         {/* Заголовок */}
         <div>
-          <Label htmlFor="title" className="text-slate-300">
+          <Label htmlFor="title" className="text-foreground/80">
             Заголовок сообщения
           </Label>
           <Input
@@ -94,13 +94,13 @@ export function MessageForm({
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
             placeholder="Введите заголовок..."
-            className="mt-1 bg-slate-900 border-slate-700 text-white"
+            className="mt-1 bg-background border-border text-foreground"
           />
         </div>
 
         {/* Текст сообщения */}
         <div>
-          <Label htmlFor="content" className="text-slate-300">
+          <Label htmlFor="content" className="text-foreground/80">
             Текст сообщения
           </Label>
           <Textarea
@@ -108,24 +108,24 @@ export function MessageForm({
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
             placeholder="Введите текст сообщения..."
-            className="mt-1 min-h-[200px] bg-slate-900 border-slate-700 text-white"
+            className="mt-1 min-h-[200px] bg-background border-border text-foreground"
           />
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Поддерживается Markdown форматирование
           </p>
         </div>
 
-        <Separator className="bg-slate-700" />
+        <Separator className="bg-secondary" />
 
         {/* Настройки сообщения */}
         <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
           {/* Тип сообщения */}
           <div>
-            <Label className="text-slate-300">Тип сообщения</Label>
+            <Label className="text-foreground/80">Тип сообщения</Label>
             <select
               value={messageType}
               onChange={(e) => onMessageTypeChange(e.target.value as MessageType)}
-              className="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-md text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-md text-foreground focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Object.entries(MESSAGE_TYPE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -137,11 +137,11 @@ export function MessageForm({
 
           {/* Приоритет */}
           <div>
-            <Label className="text-slate-300">Приоритет</Label>
+            <Label className="text-foreground/80">Приоритет</Label>
             <select
               value={priority}
               onChange={(e) => onPriorityChange(e.target.value as MessagePriority)}
-              className="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-md text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-md text-foreground focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Object.entries(MESSAGE_PRIORITY_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -154,7 +154,7 @@ export function MessageForm({
 
         {/* Каналы доставки */}
         <div>
-          <Label className="text-slate-300 mb-2 block">
+          <Label className="text-foreground/80 mb-2 block">
             Каналы доставки
           </Label>
           <div className="flex gap-4">
@@ -163,21 +163,21 @@ export function MessageForm({
                 checked={channels.includes('telegram')}
                 onCheckedChange={() => handleToggleChannel('telegram')}
               />
-              <span className="text-slate-300">Telegram</span>
+              <span className="text-foreground/80">Telegram</span>
             </label>
           </div>
         </div>
 
         {/* Информация о получателях */}
-        <div className="bg-slate-900/50 border border-slate-700 rounded-md p-3">
-          <Label className="text-slate-300 text-sm">Получатели</Label>
-          <p className="text-slate-100 mt-1">Все пользователи сети АЗС</p>
-          <p className="text-xs text-slate-500 mt-1">
+        <div className="bg-background/50 border border-border rounded-md p-3">
+          <Label className="text-foreground/80 text-sm">Получатели</Label>
+          <p className="text-foreground mt-1">Все пользователи сети АЗС</p>
+          <p className="text-xs text-muted-foreground mt-1">
             Сообщение будет отправлено всем пользователям торговой сети
           </p>
         </div>
 
-        <Separator className="bg-slate-700" />
+        <Separator className="bg-secondary" />
 
         {/* Кнопки действий */}
         <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-3`}>
@@ -203,7 +203,7 @@ export function MessageForm({
             onClick={onSaveAsDraft}
             variant="outline"
             disabled={!isFormValid}
-            className={`${isMobile ? 'w-full' : ''} border-slate-600 hover:bg-slate-700`}
+            className={`${isMobile ? 'w-full' : ''} border-border hover:bg-secondary`}
           >
             <Save className="w-4 h-4 mr-2" />
             Сохранить черновик
@@ -212,7 +212,7 @@ export function MessageForm({
           <Button
             onClick={onReset}
             variant="ghost"
-            className={`${isMobile ? 'w-full' : ''} hover:bg-slate-700`}
+            className={`${isMobile ? 'w-full' : ''} hover:bg-secondary`}
           >
             Очистить
           </Button>

@@ -58,7 +58,7 @@ export function ApiSwitchPanel() {
   return (
     <Card className="border-2 border-blue-500/20 bg-blue-950/20">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-blue-300">
+        <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-300">
           <Settings className="w-5 h-5" />
           🔧 API Switch Panel (DEV)
         </CardTitle>
@@ -67,7 +67,7 @@ export function ApiSwitchPanel() {
         {/* Текущий статус */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-300">Текущий режим:</span>
+            <span className="text-sm text-foreground/80">Текущий режим:</span>
             <Badge variant={apiStatus.mode === 'HTTP' ? 'default' : 'secondary'}>
               {apiStatus.mode === 'HTTP' ? (
                 <><Globe className="w-3 h-3 mr-1" /> HTTP API</>
@@ -110,7 +110,7 @@ export function ApiSwitchPanel() {
         {apiStatus.mode === 'HTTP' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-300">Тест подключения к API:</span>
+              <span className="text-sm text-foreground/80">Тест подключения к API:</span>
               <Button
                 size="sm"
                 onClick={handleTestConnection}
@@ -130,9 +130,9 @@ export function ApiSwitchPanel() {
                 {testResults.map((result, index) => (
                   <div 
                     key={index}
-                    className="flex items-center justify-between p-2 rounded border border-slate-600 bg-slate-800"
+                    className="flex items-center justify-between p-2 rounded border border-border bg-card"
                   >
-                    <span className="text-xs text-slate-300">{result.service}</span>
+                    <span className="text-xs text-foreground/80">{result.service}</span>
                     <div className="flex items-center gap-2">
                       {result.success ? (
                         <CheckCircle className="w-4 h-4 text-green-500" />
@@ -152,8 +152,8 @@ export function ApiSwitchPanel() {
 
         {/* Инструкции */}
         <Alert className="bg-amber-950/20 border-amber-500/20">
-          <AlertCircle className="h-4 w-4 text-amber-400" />
-          <AlertDescription className="text-xs text-amber-300">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="text-xs text-amber-600 dark:text-amber-300">
             <strong>Для production:</strong><br/>
             1. Настроить VITE_API_URL в .env<br/>
             2. Заменить импорты в services/ на apiSwitch.ts<br/>

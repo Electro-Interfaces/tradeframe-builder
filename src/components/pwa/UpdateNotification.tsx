@@ -83,7 +83,7 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
   }
 
   return (
-    <Card className="fixed top-4 left-4 right-4 z-50 shadow-lg border-trade.blue/30 bg-slate-800/95 backdrop-blur-md md:max-w-md md:left-auto md:right-4">
+    <Card className="fixed top-4 left-4 right-4 z-50 shadow-lg border-trade.blue/30 bg-card/95 backdrop-blur-md md:max-w-md md:left-auto md:right-4">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
@@ -91,17 +91,17 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-white mb-1">
+            <h3 className="text-sm font-semibold text-foreground mb-1">
               {updateStatus === 'checking' ? 'Проверка обновлений...' :
                updateStatus === 'updating' ? 'Обновление...' :
                updateStatus === 'no-updates' ? 'Нет доступных обновлений' :
                'Доступно обновление'}
             </h3>
-            <p className="text-xs text-slate-300 mb-3">
+            <p className="text-xs text-foreground/80 mb-3">
               {updateStatus === 'checking' ? 'Поиск новых версий приложения' :
                updateStatus === 'updating' ? 'Применение обновления, пожалуйста подождите' :
                updateStatus === 'no-updates' ? 'У вас установлена последняя версия' :
-               'Новая версия TradeFrame готова к установке. Обновите для получения последних улучшений.'}
+               'Новая версия TradeControl готова к установке. Обновите для получения последних улучшений.'}
             </p>
 
             <div className="flex gap-2">
@@ -109,7 +109,7 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
                 onClick={handleUpdateClick}
                 size="sm"
                 disabled={isUpdating || updateStatus === 'no-updates'}
-                className="bg-trade.blue hover:bg-trade.blue/90 text-white disabled:opacity-50"
+                className="bg-trade.blue hover:bg-trade.blue/90 text-foreground disabled:opacity-50"
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${isUpdating ? 'animate-spin' : ''}`} />
                 {updateStatus === 'checking' ? 'Проверка...' :
@@ -122,7 +122,7 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
                 onClick={handleDismiss}
                 size="sm"
                 variant="ghost"
-                className="text-slate-300 hover:text-white hover:bg-slate-700"
+                className="text-foreground/80 hover:text-foreground hover:bg-secondary"
               >
                 Позже
               </Button>
@@ -133,7 +133,7 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
             onClick={handleDismiss}
             size="sm"
             variant="ghost"
-            className="flex-shrink-0 h-6 w-6 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+            className="flex-shrink-0 h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             <X className="h-4 w-4" />
           </Button>

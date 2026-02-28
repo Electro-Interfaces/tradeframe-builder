@@ -17,15 +17,15 @@ export const HourlyActivityChart = memo(function HourlyActivityChart({
 
   if (!data || data.length === 0) {
     return (
-      <Card className="bg-slate-800 border-slate-600">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-lg flex items-center gap-2">
-            <Activity className="h-5 w-5 text-blue-400" />
+          <CardTitle className="text-foreground text-lg flex items-center gap-2">
+            <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Суточная активность по часам
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-slate-400">
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
             <p>Нет данных</p>
           </div>
         </CardContent>
@@ -34,10 +34,10 @@ export const HourlyActivityChart = memo(function HourlyActivityChart({
   }
 
   return (
-    <Card className={`bg-slate-800 border-slate-600 ${isMobile ? '' : 'lg:h-full lg:flex lg:flex-col'}`}>
+    <Card className={`bg-card border-border ${isMobile ? '' : 'lg:h-full lg:flex lg:flex-col'}`}>
       <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
-        <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-          <Activity className="h-5 w-5 text-blue-400" />
+        <CardTitle className={`text-foreground ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
+          <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           Суточная активность по часам
         </CardTitle>
       </CardHeader>
@@ -54,15 +54,15 @@ export const HourlyActivityChart = memo(function HourlyActivityChart({
             >
               <XAxis
                 dataKey="hour"
-                stroke="#94a3b8"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={isMobile ? 9 : 11}
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 interval={isMobile ? 2 : 1}
               />
               <YAxis
-                stroke="#94a3b8"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={isMobile ? 9 : 11}
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 tickFormatter={(value) => Math.round(value).toString()}
                 width={isMobile ? 25 : 40}
               />
@@ -74,14 +74,14 @@ export const HourlyActivityChart = memo(function HourlyActivityChart({
 
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
-                      <p className="text-white font-medium mb-2">{data.hour}</p>
+                    <div className="bg-background/95 border border-border rounded-lg p-3 shadow-xl backdrop-blur-sm">
+                      <p className="text-foreground font-medium mb-2">{data.hour}</p>
                       <div className="space-y-1">
-                        <p className="text-slate-300 flex justify-between">
+                        <p className="text-foreground/80 flex justify-between">
                           <span>Операций:</span>
                           <span className="font-medium">{data.operations || data.count}</span>
                         </p>
-                        <p className="text-blue-400 flex justify-between">
+                        <p className="text-blue-600 dark:text-blue-400 flex justify-between">
                           <span>Выручка:</span>
                           <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
                         </p>

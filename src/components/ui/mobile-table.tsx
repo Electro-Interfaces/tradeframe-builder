@@ -76,7 +76,7 @@ export const MobileTable: React.FC<MobileTableProps> = ({
         <div
           ref={tableRef}
           className={cn(
-            "overflow-x-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800",
+            "overflow-x-auto scrollbar-thin scrollbar-thumb-secondary scrollbar-track-card",
             "touch-pan-x", // Разрешить горизонтальную прокрутку касанием
             className
           )}
@@ -115,11 +115,11 @@ export const MobileTable: React.FC<MobileTableProps> = ({
       <div className="flex justify-center mt-2 gap-1">
         <div className={cn(
           "w-2 h-2 rounded-full transition-colors",
-          canScrollLeft ? "bg-slate-600" : "bg-blue-400"
+          canScrollLeft ? "bg-secondary" : "bg-blue-400"
         )} />
         <div className={cn(
           "w-2 h-2 rounded-full transition-colors",
-          canScrollRight ? "bg-slate-600" : "bg-blue-400"
+          canScrollRight ? "bg-secondary" : "bg-blue-400"
         )} />
       </div>
     </div>

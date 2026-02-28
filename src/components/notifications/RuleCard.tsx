@@ -18,21 +18,21 @@ interface RuleCardProps {
 
 export function RuleCard({ rule, onToggle, onEdit, onDelete, isMobile = false }: RuleCardProps) {
   return (
-    <Card className={`bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors ${isMobile ? 'p-4' : 'p-6'}`}>
+    <Card className={`bg-card border-border hover:border-border transition-colors ${isMobile ? 'p-4' : 'p-6'}`}>
       <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-start justify-between'} mb-4`}>
         <div className="flex-1">
           <div className={`flex items-center ${isMobile ? 'flex-wrap gap-2' : 'gap-3'} mb-2`}>
-            <h3 className={`font-semibold text-white ${isMobile ? 'text-lg' : 'text-xl'}`}>{rule.name}</h3>
-            <Badge className={`${getPriorityColor(rule.notification_config?.priority || 'medium')} text-white text-xs`}>
+            <h3 className={`font-semibold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>{rule.name}</h3>
+            <Badge className={`${getPriorityColor(rule.notification_config?.priority || 'medium')} text-foreground text-xs`}>
               {rule.notification_config?.priority || 'medium'}
             </Badge>
             {rule.is_active ? (
               <Badge className="bg-emerald-600 text-white text-xs">Активно</Badge>
             ) : (
-              <Badge variant="outline" className="text-slate-400 text-xs">Отключено</Badge>
+              <Badge variant="outline" className="text-muted-foreground text-xs">Отключено</Badge>
             )}
           </div>
-          <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>{rule.description}</p>
+          <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>{rule.description}</p>
         </div>
         <div className={`flex gap-2 ${isMobile ? 'w-full' : 'ml-4'}`}>
           <Button
@@ -45,7 +45,7 @@ export function RuleCard({ rule, onToggle, onEdit, onDelete, isMobile = false }:
             {rule.is_active ? (
               <Power className="w-4 h-4 text-green-500" />
             ) : (
-              <PowerOff className="w-4 h-4 text-slate-500" />
+              <PowerOff className="w-4 h-4 text-muted-foreground" />
             )}
           </Button>
           <Button
@@ -75,37 +75,37 @@ export function RuleCard({ rule, onToggle, onEdit, onDelete, isMobile = false }:
 
       <div className={`grid gap-4 mb-4 ${isMobile ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
         <div>
-          <div className="text-xs text-slate-400 mb-1">Тип</div>
-          <div className="text-sm text-white">{getRuleTypeLabel(rule.type)}</div>
+          <div className="text-xs text-muted-foreground mb-1">Тип</div>
+          <div className="text-sm text-foreground">{getRuleTypeLabel(rule.type)}</div>
         </div>
         <div>
-          <div className="text-xs text-slate-400 mb-1">Расписание</div>
-          <div className="text-sm text-white">{getScheduleText(rule)}</div>
+          <div className="text-xs text-muted-foreground mb-1">Расписание</div>
+          <div className="text-sm text-foreground">{getScheduleText(rule)}</div>
         </div>
         <div>
-          <div className="text-xs text-slate-400 mb-1">Каналы</div>
+          <div className="text-xs text-muted-foreground mb-1">Каналы</div>
           <div className="flex gap-2">
             {rule.notification_config?.channels?.map((channel) => (
-              <div key={channel} className="text-blue-400">
+              <div key={channel} className="text-blue-600 dark:text-blue-400">
                 {getChannelIcon(channel)}
               </div>
             ))}
           </div>
         </div>
         <div>
-          <div className="text-xs text-slate-400 mb-1">Отправлено</div>
-          <div className="text-sm text-white">{rule.total_notifications_sent || 0}</div>
+          <div className="text-xs text-muted-foreground mb-1">Отправлено</div>
+          <div className="text-sm text-foreground">{rule.total_notifications_sent || 0}</div>
         </div>
       </div>
 
-      <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-6'} text-xs text-slate-400 pt-4 border-t border-slate-700`}>
+      <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-6'} text-xs text-muted-foreground pt-4 border-t border-border`}>
         <div>
           <span className="mr-2">Последняя проверка:</span>
-          <span className="text-slate-300">{formatDate(rule.last_check_at)}</span>
+          <span className="text-foreground/80">{formatDate(rule.last_check_at)}</span>
         </div>
         <div>
           <span className="mr-2">Последнее оповещение:</span>
-          <span className="text-slate-300">{formatDate(rule.last_notification_at)}</span>
+          <span className="text-foreground/80">{formatDate(rule.last_notification_at)}</span>
         </div>
       </div>
     </Card>
@@ -119,7 +119,7 @@ function getPriorityColor(priority: NotificationPriority): string {
     case 'high': return 'bg-orange-600';
     case 'medium': return 'bg-yellow-600';
     case 'low': return 'bg-blue-600';
-    default: return 'bg-gray-600';
+    default: return 'bg-secondary';
   }
 }
 

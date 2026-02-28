@@ -16,8 +16,8 @@ interface MessageHistoryProps {
 export function MessageHistory({ messages, loading }: MessageHistoryProps) {
   if (loading) {
     return (
-      <Card className="p-6 bg-slate-800/50 border-slate-700">
-        <h2 className="text-xl font-semibold text-slate-100 mb-4 flex items-center gap-2">
+      <Card className="p-6 bg-card/50 border-border">
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
           <Clock className="w-5 h-5" />
           История сообщений
         </h2>
@@ -30,12 +30,12 @@ export function MessageHistory({ messages, loading }: MessageHistoryProps) {
 
   if (messages.length === 0) {
     return (
-      <Card className="p-6 bg-slate-800/50 border-slate-700">
-        <h2 className="text-xl font-semibold text-slate-100 mb-4 flex items-center gap-2">
+      <Card className="p-6 bg-card/50 border-border">
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
           <Clock className="w-5 h-5" />
           История сообщений
         </h2>
-        <div className="text-center py-8 text-slate-500">
+        <div className="text-center py-8 text-muted-foreground">
           <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p>Нет отправленных сообщений</p>
         </div>
@@ -44,8 +44,8 @@ export function MessageHistory({ messages, loading }: MessageHistoryProps) {
   }
 
   return (
-    <Card className="p-6 bg-slate-800/50 border-slate-700">
-      <h2 className="text-xl font-semibold text-slate-100 mb-4 flex items-center gap-2">
+    <Card className="p-6 bg-card/50 border-border">
+      <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
         <Clock className="w-5 h-5" />
         История сообщений
       </h2>
@@ -68,10 +68,10 @@ interface MessageCardProps {
 
 function MessageCard({ message }: MessageCardProps) {
   return (
-    <div className="p-4 bg-slate-900/50 border border-slate-700 rounded-lg hover:border-blue-500/50 transition-all cursor-pointer group">
+    <div className="p-4 bg-background/50 border border-border rounded-lg hover:border-blue-500/50 transition-all cursor-pointer group">
       {/* Заголовок и статус */}
       <div className="flex items-start justify-between mb-2">
-        <h3 className="font-medium text-slate-200 text-sm line-clamp-1 group-hover:text-blue-400 transition-colors">
+        <h3 className="font-medium text-foreground text-sm line-clamp-1 group-hover:text-blue-400 transition-colors">
           {message.title}
         </h3>
         <Badge
@@ -83,12 +83,12 @@ function MessageCard({ message }: MessageCardProps) {
       </div>
 
       {/* Содержимое */}
-      <p className="text-xs text-slate-400 line-clamp-2 mb-3">
+      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
         {message.content}
       </p>
 
       {/* Информация */}
-      <div className="flex items-center gap-2 text-xs text-slate-500">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Users className="w-3 h-3" />
         <span>{message.total_recipients} получателей</span>
 

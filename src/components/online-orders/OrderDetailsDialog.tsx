@@ -41,10 +41,10 @@ import type { MSTOOrderDetailsResponse, MSTOTimelineEvent } from '@/types/mstoOr
 
 /** Цвета статусов */
 const STATUS_COLORS: Record<string, string> = {
-  completed: 'bg-emerald-500/20 text-green-400 border-green-500/30',
-  pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  failed: 'bg-red-500/20 text-red-400 border-red-500/30',
-  cancelled: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+  completed: 'bg-emerald-100 dark:bg-emerald-500/20 text-green-600 dark:text-green-400 border-green-500/30',
+  pending: 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30',
+  failed: 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30',
+  cancelled: 'bg-muted-foreground/20 text-muted-foreground border-border/30'
 };
 
 /** Метки статусов */
@@ -241,11 +241,11 @@ export function OrderDetailsDialog({
 
   return (
     <Dialog open={!!order} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] bg-slate-900 border-slate-700 overflow-hidden p-4 sm:p-6">
+      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] bg-background border-border overflow-hidden p-4 sm:p-6">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-400" />
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               Детали заказа
             </DialogTitle>
             <Button
@@ -271,29 +271,29 @@ export function OrderDetailsDialog({
                   {STATUS_ICONS[order.status]}
                   {STATUS_LABELS[order.status]}
                 </Badge>
-                <span className="text-xs sm:text-sm text-gray-400 truncate max-w-[180px] sm:max-w-none">
+                <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[180px] sm:max-w-none">
                   ID: {orderId}
                 </span>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="text-gray-400">
-                  Источник: <span className="text-white">Агрегатор</span>
+                <span className="text-muted-foreground">
+                  Источник: <span className="text-foreground">Агрегатор</span>
                 </span>
                 {duration !== '—' && (
-                  <span className="text-gray-400 flex items-center gap-1">
+                  <span className="text-muted-foreground flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    Обработка: <span className="text-white">{duration}</span>
+                    Обработка: <span className="text-foreground">{duration}</span>
                   </span>
                 )}
               </div>
               {/* Даты создания и завершения */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs sm:text-sm">
-                <span className="text-gray-400">
-                  Создан: <span className="text-white">{startTime ? formatTimestamp(startTime) : '—'}</span>
+                <span className="text-muted-foreground">
+                  Создан: <span className="text-foreground">{startTime ? formatTimestamp(startTime) : '—'}</span>
                 </span>
                 {endTime && (
-                  <span className="text-gray-400">
-                    Завершён: <span className="text-white">{formatTimestamp(endTime)}</span>
+                  <span className="text-muted-foreground">
+                    Завершён: <span className="text-foreground">{formatTimestamp(endTime)}</span>
                   </span>
                 )}
               </div>
@@ -306,18 +306,18 @@ export function OrderDetailsDialog({
               <Card className="bg-red-500/10 border-red-500/30">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       {detailedStatusName && (
-                        <p className="text-red-400 font-medium">{detailedStatusName}</p>
+                        <p className="text-red-600 dark:text-red-400 font-medium">{detailedStatusName}</p>
                       )}
                       {errorMessage && (
-                        <p className="text-white text-sm">
+                        <p className="text-foreground text-sm">
                           Причина: {errorMessage}
                         </p>
                       )}
                       {errorCode && (
-                        <p className="text-red-300/70 text-xs font-mono">
+                        <p className="text-red-600 dark:text-red-300/70 text-xs font-mono">
                           Код: {errorCode}
                         </p>
                       )}
@@ -330,15 +330,15 @@ export function OrderDetailsDialog({
             {/* ============================================================ */}
             {/* Станция и колонка */}
             {/* ============================================================ */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-gray-500" />
-                  <span className="text-white font-medium">{order.stationName}</span>
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-foreground font-medium">{order.stationName}</span>
                 </div>
                 {order.columnNumber && (
-                  <div className="text-sm text-gray-400">
-                    Колонка (ТРК): <span className="text-white">{order.columnNumber}</span>
+                  <div className="text-sm text-muted-foreground">
+                    Колонка (ТРК): <span className="text-foreground">{order.columnNumber}</span>
                   </div>
                 )}
               </CardContent>
@@ -347,35 +347,35 @@ export function OrderDetailsDialog({
             {/* ============================================================ */}
             {/* Топливо и объём с прогресс-баром */}
             {/* ============================================================ */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4 space-y-4">
                 {/* Топливо и цена */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Fuel className="w-4 h-4 text-gray-500" />
-                    <div className={`w-3 h-3 rounded-full ${FUEL_COLORS[order.fuelType] || 'bg-gray-500'}`} />
-                    <span className="text-white font-medium">{order.fuelType}</span>
+                    <Fuel className="w-4 h-4 text-muted-foreground" />
+                    <div className={`w-3 h-3 rounded-full ${FUEL_COLORS[order.fuelType] || 'bg-muted-foreground'}`} />
+                    <span className="text-foreground font-medium">{order.fuelType}</span>
                     {orderType && (
-                      <Badge variant="outline" className="text-xs text-gray-400 border-gray-600">
+                      <Badge variant="outline" className="text-xs text-muted-foreground border-border">
                         {orderType === 'Liters' ? 'по литрам' : 'по сумме'}
                       </Badge>
                     )}
                   </div>
-                  <span className="text-gray-300">{order.price.toFixed(2)} ₽/л</span>
+                  <span className="text-foreground/80">{order.price.toFixed(2)} ₽/л</span>
                 </div>
 
                 {/* Прогресс-бар */}
                 {actualVolume > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Выполнение</span>
-                      <span className={`font-medium ${progress >= 95 ? 'text-green-400' : progress >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      <span className="text-muted-foreground">Выполнение</span>
+                      <span className={`font-medium ${progress >= 95 ? 'text-green-600 dark:text-green-400' : progress >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
                         {progress}%
                       </span>
                     </div>
                     <Progress
                       value={progress}
-                      className="h-2 bg-slate-700"
+                      className="h-2 bg-secondary"
                     />
                   </div>
                 )}
@@ -383,12 +383,12 @@ export function OrderDetailsDialog({
                 {/* Объёмы */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Заказано</p>
-                    <span className="text-amber-400 font-medium">{orderedVolume.toFixed(2)} л</span>
+                    <p className="text-xs text-muted-foreground mb-1">Заказано</p>
+                    <span className="text-amber-600 dark:text-amber-400 font-medium">{orderedVolume.toFixed(2)} л</span>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Отпущено</p>
-                    <span className="text-green-400 font-medium">
+                    <p className="text-xs text-muted-foreground mb-1">Отпущено</p>
+                    <span className="text-green-600 dark:text-green-400 font-medium">
                       {actualVolume > 0 ? `${actualVolume.toFixed(2)} л` : '—'}
                     </span>
                   </div>
@@ -396,10 +396,10 @@ export function OrderDetailsDialog({
 
                 {/* Неполучено (всегда показываем если есть отпуск) */}
                 {actualVolume > 0 && underfill !== 0 && (
-                  <div className="pt-2 border-t border-slate-700">
+                  <div className="pt-2 border-t border-border">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Неполучено</span>
-                      <span className={`font-medium ${underfill > 0.5 ? 'text-red-400' : 'text-gray-300'}`}>
+                      <span className="text-sm text-muted-foreground">Неполучено</span>
+                      <span className={`font-medium ${underfill > 0.5 ? 'text-red-600 dark:text-red-400' : 'text-foreground/80'}`}>
                         {underfill > 0 ? `${underfill.toFixed(2)} л` : `+${Math.abs(underfill).toFixed(2)} л`}
                       </span>
                     </div>
@@ -411,9 +411,9 @@ export function OrderDetailsDialog({
             {/* ============================================================ */}
             {/* Финансы */}
             {/* ============================================================ */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-card/50 border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <CardTitle className="text-sm font-medium text-foreground/80 flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
                   Финансы
                 </CardTitle>
@@ -421,14 +421,14 @@ export function OrderDetailsDialog({
               <CardContent className="p-4 pt-0">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Оплачено</p>
-                    <span className="text-amber-400 font-medium">
+                    <p className="text-xs text-muted-foreground mb-1">Оплачено</p>
+                    <span className="text-amber-600 dark:text-amber-400 font-medium">
                       {onlineOrdersService.formatCurrency(orderedSum)}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Фактически</p>
-                    <span className="text-green-400 font-medium">
+                    <p className="text-xs text-muted-foreground mb-1">Фактически</p>
+                    <span className="text-green-600 dark:text-green-400 font-medium">
                       {actualSum > 0 ? onlineOrdersService.formatCurrency(actualSum) : '—'}
                     </span>
                   </div>
@@ -436,10 +436,10 @@ export function OrderDetailsDialog({
 
                 {/* Возврат (только если > 0) */}
                 {refundSum > 0 && (
-                  <div className="mt-4 pt-4 border-t border-slate-700">
+                  <div className="mt-4 pt-4 border-t border-border">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Возврат клиенту</span>
-                      <span className="text-red-400 font-medium">
+                      <span className="text-sm text-muted-foreground">Возврат клиенту</span>
+                      <span className="text-red-600 dark:text-red-400 font-medium">
                         {onlineOrdersService.formatCurrency(refundSum)}
                       </span>
                     </div>
@@ -451,13 +451,13 @@ export function OrderDetailsDialog({
             {/* ============================================================ */}
             {/* Хронология событий */}
             {/* ============================================================ */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-card/50 border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <CardTitle className="text-sm font-medium text-foreground/80 flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   Хронология
                   {isLoadingDetails && (
-                    <RefreshCw className="w-3 h-3 animate-spin text-gray-500" />
+                    <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />
                   )}
                   {orderDetails && (
                     <Badge variant="outline" className="text-xs text-green-500 border-green-500/30">
@@ -471,10 +471,10 @@ export function OrderDetailsDialog({
                   <div className="space-y-3">
                     {[1, 2, 3].map(i => (
                       <div key={i} className="flex gap-3 animate-pulse">
-                        <div className="w-3 h-3 rounded-full bg-slate-600" />
+                        <div className="w-3 h-3 rounded-full bg-secondary" />
                         <div className="flex-1 space-y-1">
-                          <div className="h-4 bg-slate-700 rounded w-1/2" />
-                          <div className="h-3 bg-slate-700 rounded w-3/4" />
+                          <div className="h-4 bg-secondary rounded w-1/2" />
+                          <div className="h-3 bg-secondary rounded w-3/4" />
                         </div>
                       </div>
                     ))}
@@ -488,20 +488,20 @@ export function OrderDetailsDialog({
                             item.isError ? 'bg-red-500' :
                             item.status === 'completed' ? 'bg-emerald-500' :
                             item.status === 'active' ? 'bg-yellow-500 animate-pulse' :
-                            'bg-gray-500'
+                            'bg-muted-foreground'
                           }`} />
                           {index < timeline.length - 1 && (
-                            <div className="w-0.5 h-full bg-slate-700 mt-1" />
+                            <div className="w-0.5 h-full bg-secondary mt-1" />
                           )}
                         </div>
                         <div className="flex-1 pb-3">
-                          <p className={`font-medium text-sm ${item.isError ? 'text-red-400' : 'text-white'}`}>
+                          <p className={`font-medium text-sm ${item.isError ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
                             {item.event}
                           </p>
                           {item.description && (
-                            <p className="text-gray-400 text-xs">{item.description}</p>
+                            <p className="text-muted-foreground text-xs">{item.description}</p>
                           )}
-                          <p className="text-gray-500 text-xs mt-1">{item.time}</p>
+                          <p className="text-muted-foreground text-xs mt-1">{item.time}</p>
                         </div>
                       </div>
                     ))}
@@ -513,9 +513,9 @@ export function OrderDetailsDialog({
             {/* ============================================================ */}
             {/* Техническая информация */}
             {/* ============================================================ */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-card/50 border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <CardTitle className="text-sm font-medium text-foreground/80 flex items-center gap-2">
                   <Info className="w-4 h-4" />
                   Техническая информация
                 </CardTitle>
@@ -523,21 +523,21 @@ export function OrderDetailsDialog({
               <CardContent className="p-4 pt-0">
                 <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-gray-400">Order ID</span>
-                    <span className="text-white font-mono text-xs break-all">{orderId}</span>
+                    <span className="text-muted-foreground">Order ID</span>
+                    <span className="text-foreground font-mono text-xs break-all">{orderId}</span>
                   </div>
                   {sessionId && (
                     <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                      <span className="text-gray-400">Session ID</span>
-                      <span className="text-white font-mono text-xs break-all">
+                      <span className="text-muted-foreground">Session ID</span>
+                      <span className="text-foreground font-mono text-xs break-all">
                         {sessionId}
                       </span>
                     </div>
                   )}
                   {contractId && (
                     <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                      <span className="text-gray-400">Contract ID</span>
-                      <span className="text-white font-mono text-xs">{contractId}</span>
+                      <span className="text-muted-foreground">Contract ID</span>
+                      <span className="text-foreground font-mono text-xs">{contractId}</span>
                     </div>
                   )}
                 </div>

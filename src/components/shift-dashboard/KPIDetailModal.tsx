@@ -258,9 +258,9 @@ export function KPIDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="bg-card border-border max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             {color && (
               <div
                 className="w-4 h-4 rounded-full"
@@ -273,15 +273,15 @@ export function KPIDetailModal({
 
         <div className="flex-1 overflow-auto">
           {sortedData.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               Нет данных для отображения
             </div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-slate-900/50 sticky top-0">
+              <thead className="bg-background/50 sticky top-0">
                 <tr>
                   <th
-                    className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                    className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                     onClick={() => handleSort('shiftNumber')}
                   >
                     <div className="flex items-center gap-1">
@@ -289,7 +289,7 @@ export function KPIDetailModal({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                    className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                     onClick={() => handleSort('openedAt')}
                   >
                     <div className="flex items-center gap-1">
@@ -297,19 +297,19 @@ export function KPIDetailModal({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                    className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                     onClick={() => handleSort('stationName')}
                   >
                     <div className="flex items-center gap-1">
                       Станция <SortIcon field="stationName" />
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                     Топливо
                   </th>
                   {showRevenue && (
                     <th
-                      className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                      className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                       onClick={() => handleSort('revenue')}
                     >
                       <div className="flex items-center justify-end gap-1">
@@ -318,7 +318,7 @@ export function KPIDetailModal({
                     </th>
                   )}
                   <th
-                    className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                    className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                     onClick={() => handleSort('volume')}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -327,16 +327,16 @@ export function KPIDetailModal({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-border">
                 {sortedData.map((row, idx) => (
-                  <tr key={`${row.shiftNumber}-${idx}`} className="hover:bg-slate-700/30">
-                    <td className="px-4 py-3 text-white font-medium">
+                  <tr key={`${row.shiftNumber}-${idx}`} className="hover:bg-secondary/30">
+                    <td className="px-4 py-3 text-foreground font-medium">
                       №{row.shiftNumber}
                     </td>
-                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
+                    <td className="px-4 py-3 text-foreground/80 whitespace-nowrap">
                       {formatDate(row.openedAt)}
                     </td>
-                    <td className="px-4 py-3 text-slate-300">
+                    <td className="px-4 py-3 text-foreground/80">
                       {row.stationName}
                     </td>
                     <td className="px-4 py-3">
@@ -344,41 +344,41 @@ export function KPIDetailModal({
                         <div className="space-y-1">
                           {row.fuelBreakdown.map((fuel, fIdx) => (
                             <div key={`${fuel.fuelCode}-${fIdx}`} className="flex items-center gap-2 text-xs flex-wrap">
-                              <span className="text-slate-400">{fuel.fuelName}:</span>
-                              <span className="text-blue-400">{formatNumber(fuel.volume)} л</span>
+                              <span className="text-muted-foreground">{fuel.fuelName}:</span>
+                              <span className="text-blue-600 dark:text-blue-400">{formatNumber(fuel.volume)} л</span>
                               {showRevenue && fuel.revenue > 0 && (
-                                <span className="text-slate-300">({formatNumber(fuel.revenue)} ₽)</span>
+                                <span className="text-foreground/80">({formatNumber(fuel.revenue)} ₽)</span>
                               )}
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-slate-500">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </td>
                     {showRevenue && (
-                      <td className="px-4 py-3 text-right text-slate-300">
+                      <td className="px-4 py-3 text-right text-foreground/80">
                         {formatNumber(row.revenue)}
                       </td>
                     )}
-                    <td className="px-4 py-3 text-right text-blue-400 font-medium">
+                    <td className="px-4 py-3 text-right text-blue-600 dark:text-blue-400 font-medium">
                       {formatNumber(row.volume)}
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-900/50 border-t border-slate-600">
+              <tfoot className="bg-background/50 border-t border-border">
                 <tr>
-                  <td colSpan={3} className="px-4 py-3 text-sm font-bold text-white">
+                  <td colSpan={3} className="px-4 py-3 text-sm font-bold text-foreground">
                     ИТОГО ({sortedData.length} смен)
                   </td>
                   <td></td>
                   {showRevenue && (
-                    <td className="px-4 py-3 text-right text-sm font-bold text-white">
+                    <td className="px-4 py-3 text-right text-sm font-bold text-foreground">
                       {formatNumber(totals.revenue)}
                     </td>
                   )}
-                  <td className="px-4 py-3 text-right text-sm font-bold text-blue-400">
+                  <td className="px-4 py-3 text-right text-sm font-bold text-blue-600 dark:text-blue-400">
                     {formatNumber(totals.volume)}
                   </td>
                 </tr>

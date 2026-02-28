@@ -2,7 +2,7 @@
  * TSupport SDK Proxy Router
  *
  * Прокси для TSupport SDK API v2
- * TradeFrame backend подписывает HMAC → TSupport upsert-ит пользователя → выдаёт JWT
+ * TradeControl backend подписывает HMAC → TSupport upsert-ит пользователя → выдаёт JWT
  *
  * Эндпоинты:
  *   GET    /api/support/categories          → категории заявок
@@ -92,7 +92,7 @@ async function getToken(userInfo) {
 
   // Полная аутентификация через HMAC
   const timestamp = Date.now().toString();
-  // companyId НЕ передаём из TradeFrame — TSupport сам резолвит по email
+  // companyId НЕ передаём из TradeControl — TSupport сам резолвит по email
   // (UUID компаний в Supabase ≠ UUID в TSupport PostgreSQL)
   const companyId = '';
   const signature = createHmacSignature(userInfo.userId, companyId, timestamp);

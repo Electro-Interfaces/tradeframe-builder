@@ -136,8 +136,9 @@ export async function stsProxyRequest<T>(
           const error = new Error(`STS API request failed (${response.status}): ${errorDetails}`) as any;
           error.status = response.status;
 
-          // Не повторяем для клиентских ошибок (кроме 401/408)
-          if (response.status >= 400 && response.status < 500 && response.status !== 401 && response.status !== 408) {
+          // Не повторяем для клиентских ошибок (кроме 401/408/429)
+          // 429 = rate limit — повторяем с увеличенной задержкой
+          if (response.status >= 400 && response.status < 500 && response.status !== 401 && response.status !== 408 && response.status !== 429) {
             throw error;
           }
 
@@ -163,8 +164,8 @@ export async function stsProxyRequest<T>(
     } catch (error: any) {
       lastError = error;
 
-      // Не повторяем для клиентских ошибок (кроме 401/408)
-      if (error.status >= 400 && error.status < 500 && error.status !== 401 && error.status !== 408) {
+      // Не повторяем для клиентских ошибок (кроме 401/408/429)
+      if (error.status >= 400 && error.status < 500 && error.status !== 401 && error.status !== 408 && error.status !== 429) {
         throw error;
       }
 
@@ -173,8 +174,9 @@ export async function stsProxyRequest<T>(
         break;
       }
 
-      // Ждем перед следующей попыткой
-      const delay = retryDelays[attempt] || 4000;
+      // При 429 ждём дольше (rate limit)
+      const baseDelay = retryDelays[attempt] || 4000;
+      const delay = error.status === 429 ? baseDelay * 2 : baseDelay;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }

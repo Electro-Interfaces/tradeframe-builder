@@ -59,14 +59,14 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
 
   const getStatusIcon = () => {
     if (!docType.current_version) {
-      return <AlertCircle className="w-5 h-5 text-yellow-400" />;
+      return <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />;
     }
-    return <CheckCircle className="w-5 h-5 text-green-400" />;
+    return <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />;
   };
 
   const getStatusBadge = () => {
     if (!docType.current_version) {
-      return <Badge variant="outline" className="bg-slate-700 text-slate-300 border-slate-600">Не опубликован</Badge>;
+      return <Badge variant="outline" className="bg-secondary text-foreground/80 border-border">Не опубликован</Badge>;
     }
     return <Badge className="bg-blue-600 text-white">v{docType.current_version.version}</Badge>;
   };
@@ -75,14 +75,14 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
     if (!statistics) return null;
     
     const percentage = statistics.acceptance_percentage;
-    let colorClass = 'text-red-400';
+    let colorClass = 'text-red-600 dark:text-red-400';
     let icon = AlertCircle;
     
     if (percentage >= 90) {
-      colorClass = 'text-green-400';
+      colorClass = 'text-green-600 dark:text-green-400';
       icon = CheckCircle;
     } else if (percentage >= 70) {
-      colorClass = 'text-yellow-400';
+      colorClass = 'text-yellow-600 dark:text-yellow-400';
       icon = AlertCircle;
     }
     
@@ -96,15 +96,15 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
   };
 
   return (
-    <Card className={`bg-slate-800 border-slate-700 h-full ${className}`}>
+    <Card className={`bg-card border-border h-full ${className}`}>
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FileText className="w-5 h-5 text-white" />
+              <FileText className="w-5 h-5 text-foreground" />
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-white text-lg leading-tight">
+              <CardTitle className="text-foreground text-lg leading-tight">
                 {docType.title}
               </CardTitle>
               <div className="flex items-center gap-2 mt-1">
@@ -123,18 +123,18 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
         {/* Информация о текущей версии */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
-            <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <span className="text-slate-400">Дата публикации:</span>
-            <span className="text-slate-300 min-w-0">
+            <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground">Дата публикации:</span>
+            <span className="text-foreground/80 min-w-0">
               {formatDate(docType.current_version?.published_at)}
             </span>
           </div>
           
           {docType.current_version?.editor_name && (
             <div className="flex items-center gap-2 text-sm">
-              <Users className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <span className="text-slate-400">Автор:</span>
-              <span className="text-slate-300 min-w-0 truncate" title={docType.current_version.editor_name}>
+              <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-muted-foreground">Автор:</span>
+              <span className="text-foreground/80 min-w-0 truncate" title={docType.current_version.editor_name}>
                 {docType.current_version.editor_name}
               </span>
             </div>
@@ -143,17 +143,17 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
 
         {/* Статистика согласий */}
         {statistics && (
-          <div className="bg-slate-700/50 rounded-lg p-3">
+          <div className="bg-secondary/50 rounded-lg p-3">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <div className="text-slate-400">Подписали</div>
-                <div className="text-slate-200 font-medium">
+                <div className="text-muted-foreground">Подписали</div>
+                <div className="text-foreground font-medium">
                   {statistics.accepted_users} / {statistics.total_users}
                 </div>
               </div>
               <div>
-                <div className="text-slate-400">Процент</div>
-                <div className="text-slate-200 font-medium">
+                <div className="text-muted-foreground">Процент</div>
+                <div className="text-foreground font-medium">
                   {statistics.acceptance_percentage}%
                 </div>
               </div>
@@ -161,15 +161,15 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
             
             {statistics.pending_users > 0 && (
               <div className="mt-2 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                <span className="text-sm text-slate-300">
+                <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                <span className="text-sm text-foreground/80">
                   {statistics.pending_users} пользовател{statistics.pending_users === 1 ? 'ь требует' : statistics.pending_users < 5 ? 'я требуют' : 'ей требуют'} согласия
                 </span>
               </div>
             )}
             
             {statistics.avg_acceptance_time_hours && (
-              <div className="mt-2 text-sm text-slate-400">
+              <div className="mt-2 text-sm text-muted-foreground">
                 Среднее время согласия: {Math.round(statistics.avg_acceptance_time_hours)} ч
               </div>
             )}
@@ -182,7 +182,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
             onClick={() => onEdit(docType.code)}
             variant="outline" 
             size="sm"
-            className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 hover:border-slate-500 transition-colors"
+            className="bg-secondary border-border text-foreground hover:bg-secondary hover:border-border transition-colors"
           >
             <Edit3 className="w-4 h-4 mr-2" />
             Редактировать
@@ -192,7 +192,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
             onClick={() => onHistory(docType.code)}
             variant="outline"
             size="sm" 
-            className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 hover:border-slate-500 transition-colors"
+            className="bg-secondary border-border text-foreground hover:bg-secondary hover:border-border transition-colors"
           >
             <History className="w-4 h-4 mr-2" />
             История
@@ -204,7 +204,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
                 onClick={() => onViewAcceptances(docType.code)}
                 variant="outline"
                 size="sm"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 hover:border-slate-500 transition-colors"
+                className="bg-secondary border-border text-foreground hover:bg-secondary hover:border-border transition-colors"
               >
                 <Users className="w-4 h-4 mr-2" />
                 Согласия ({statistics?.accepted_users || 0})
@@ -214,7 +214,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
                 onClick={() => onPublishDraft(docType.code)}
                 variant="outline"
                 size="sm"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 hover:border-slate-500 transition-colors"
+                className="bg-secondary border-border text-foreground hover:bg-secondary hover:border-border transition-colors"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Новая версия
@@ -226,11 +226,11 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
         {/* Дополнительная информация для неопубликованного документа */}
         {!docType.current_version && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-yellow-400">
+            <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
               <AlertCircle className="w-4 h-4" />
               <span className="text-sm font-medium">Документ не опубликован</span>
             </div>
-            <p className="text-sm text-slate-300 mt-1">
+            <p className="text-sm text-foreground/80 mt-1">
               Создайте первую версию документа и опубликуйте её для начала работы с согласиями пользователей.
             </p>
           </div>

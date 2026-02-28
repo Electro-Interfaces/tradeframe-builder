@@ -27,15 +27,15 @@ export const FuelPerformanceChart = memo(function FuelPerformanceChart({
 
   if (!data || data.length === 0) {
     return (
-      <Card className="bg-slate-800 border-slate-600">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-lg flex items-center gap-2">
-            <Fuel className="h-5 w-5 text-blue-400" />
+          <CardTitle className="text-foreground text-lg flex items-center gap-2">
+            <Fuel className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Производительность по видам топлива
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-slate-400">
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
             <p>Нет данных</p>
           </div>
         </CardContent>
@@ -66,10 +66,10 @@ export const FuelPerformanceChart = memo(function FuelPerformanceChart({
   };
 
   return (
-    <Card className={`bg-slate-800 border-slate-600 ${isMobile ? '' : 'lg:h-full lg:flex lg:flex-col'}`}>
+    <Card className={`bg-card border-border ${isMobile ? '' : 'lg:h-full lg:flex lg:flex-col'}`}>
       <CardHeader className={`${isMobile ? 'pb-2' : 'pb-3'}`}>
-        <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-          <Fuel className="h-5 w-5 text-blue-400" />
+        <CardTitle className={`text-foreground ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
+          <Fuel className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           Виды топлива
         </CardTitle>
       </CardHeader>
@@ -97,19 +97,19 @@ export const FuelPerformanceChart = memo(function FuelPerformanceChart({
                   if (!active || !payload || !payload.length) return null;
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl">
-                      <p className="text-white font-medium mb-2">{data.name}</p>
+                    <div className="bg-background/95 border border-border rounded-lg p-3 shadow-xl">
+                      <p className="text-foreground font-medium mb-2">{data.name}</p>
                       <div className="space-y-1 text-xs">
-                        <p className="text-slate-300">
+                        <p className="text-foreground/80">
                           Выручка: <span className="font-medium">{data.value.toLocaleString('ru-RU')}₽</span>
                         </p>
-                        <p className="text-slate-300">
+                        <p className="text-foreground/80">
                           Объем: <span className="font-medium">{data.volume.toFixed(0)} л</span>
                         </p>
-                        <p className="text-slate-300">
+                        <p className="text-foreground/80">
                           Операций: <span className="font-medium">{data.operations}</span>
                         </p>
-                        <p className="text-blue-400">
+                        <p className="text-blue-600 dark:text-blue-400">
                           Доля: <span className="font-medium">{data.share.toFixed(1)}%</span>
                         </p>
                       </div>
@@ -130,11 +130,11 @@ export const FuelPerformanceChart = memo(function FuelPerformanceChart({
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: getFuelColor(fuel.type) }}
                 />
-                <span className="text-slate-300">{fuel.type}</span>
+                <span className="text-foreground/80">{fuel.type}</span>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <span className="text-slate-400">{fuel.volume.toFixed(0)} л</span>
-                <span className="text-white font-medium">{fuel.share.toFixed(1)}%</span>
+                <span className="text-muted-foreground">{fuel.volume.toFixed(0)} л</span>
+                <span className="text-foreground font-medium">{fuel.share.toFixed(1)}%</span>
               </div>
             </div>
           ))}

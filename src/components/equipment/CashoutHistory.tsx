@@ -52,14 +52,14 @@ export function CashoutHistory({ cashoutRecords, loading, isMobile }: CashoutHis
   }
 
   return (
-    <div className={`${isMobile ? 'mt-3' : 'mt-4'} border-t border-slate-600 pt-3`}>
+    <div className={`${isMobile ? 'mt-3' : 'mt-4'} border-t border-border pt-3`}>
       {/* Кнопка раскрытия/скрытия */}
       <Button
         size="sm"
         variant="outline"
         onClick={() => setIsExpanded(!isExpanded)}
         disabled={loading}
-        className="w-full border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white transition-colors"
+        className="w-full border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white transition-colors"
       >
         {loading ? (
           <>
@@ -90,28 +90,28 @@ export function CashoutHistory({ cashoutRecords, loading, isMobile }: CashoutHis
               {sortedRecords.map((record, index) => (
                 <div
                   key={`${record.shift}-${record.cashoutno}-${index}`}
-                  className="bg-slate-700/30 p-3 rounded-lg"
+                  className="bg-secondary/30 p-3 rounded-lg"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-muted-foreground">
                       {formatDateTime(record.dt)}
                     </div>
-                    <div className="text-sm font-bold text-green-400">
+                    <div className="text-sm font-bold text-green-600 dark:text-green-400">
                       {formatRubles(record.value)} ₽
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div>
-                      <div className="text-slate-500">Смена</div>
-                      <div className="text-white font-medium">{record.shift}</div>
+                      <div className="text-muted-foreground">Смена</div>
+                      <div className="text-foreground font-medium">{record.shift}</div>
                     </div>
                     <div>
-                      <div className="text-slate-500">POS</div>
-                      <div className="text-white font-medium">{record.pos}</div>
+                      <div className="text-muted-foreground">POS</div>
+                      <div className="text-foreground font-medium">{record.pos}</div>
                     </div>
                     <div>
-                      <div className="text-slate-500">№ инк.</div>
-                      <div className="text-white font-medium">{record.cashoutno}</div>
+                      <div className="text-muted-foreground">№ инк.</div>
+                      <div className="text-foreground font-medium">{record.cashoutno}</div>
                     </div>
                   </div>
                 </div>
@@ -121,34 +121,34 @@ export function CashoutHistory({ cashoutRecords, loading, isMobile }: CashoutHis
             // Desktop вид - таблица
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-600">
-                  <th className="text-left pb-2 px-2 text-slate-300 font-medium">Дата и время</th>
-                  <th className="text-center pb-2 px-2 text-slate-300 font-medium">Смена</th>
-                  <th className="text-center pb-2 px-2 text-slate-300 font-medium">POS</th>
-                  <th className="text-center pb-2 px-2 text-slate-300 font-medium">№ инкассации</th>
-                  <th className="text-right pb-2 px-2 text-slate-300 font-medium">Сумма (₽)</th>
+                <tr className="border-b border-border">
+                  <th className="text-left pb-2 px-2 text-foreground/80 font-medium">Дата и время</th>
+                  <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Смена</th>
+                  <th className="text-center pb-2 px-2 text-foreground/80 font-medium">POS</th>
+                  <th className="text-center pb-2 px-2 text-foreground/80 font-medium">№ инкассации</th>
+                  <th className="text-right pb-2 px-2 text-foreground/80 font-medium">Сумма (₽)</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedRecords.map((record, index) => (
                   <tr
                     key={`${record.shift}-${record.cashoutno}-${index}`}
-                    className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors"
+                    className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
                   >
                     <td className="py-2 px-2">
-                      <span className="text-slate-300">{formatDateTime(record.dt)}</span>
+                      <span className="text-foreground/80">{formatDateTime(record.dt)}</span>
                     </td>
                     <td className="py-2 px-2 text-center">
-                      <span className="text-white font-medium">{record.shift}</span>
+                      <span className="text-foreground font-medium">{record.shift}</span>
                     </td>
                     <td className="py-2 px-2 text-center">
-                      <span className="text-white font-medium">{record.pos}</span>
+                      <span className="text-foreground font-medium">{record.pos}</span>
                     </td>
                     <td className="py-2 px-2 text-center">
-                      <span className="text-white font-medium">{record.cashoutno}</span>
+                      <span className="text-foreground font-medium">{record.cashoutno}</span>
                     </td>
                     <td className="py-2 px-2 text-right">
-                      <span className="text-green-400 font-bold">{formatRubles(record.value)} ₽</span>
+                      <span className="text-green-600 dark:text-green-400 font-bold">{formatRubles(record.value)} ₽</span>
                     </td>
                   </tr>
                 ))}

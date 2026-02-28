@@ -62,11 +62,11 @@ export const ComponentHealthIndicator: React.FC<ComponentHealthIndicatorProps> =
       <div className={cn("flex items-center gap-2", className)}>
         <div className={cn(
           "rounded-full p-1 flex items-center justify-center",
-          "bg-slate-700 border border-slate-600"
+          "bg-secondary border border-border"
         )}>
-          <div className="h-3 w-3 rounded-full bg-slate-500" />
+          <div className="h-3 w-3 rounded-full bg-muted-foreground" />
         </div>
-        <span className="text-xs font-medium text-slate-500">0</span>
+        <span className="text-xs font-medium text-muted-foreground">0</span>
       </div>
     );
   }
@@ -89,11 +89,11 @@ export const ComponentHealthIndicator: React.FC<ComponentHealthIndicatorProps> =
     >
       <div className={cn(
         "rounded-full p-1 flex items-center justify-center",
-        "bg-slate-700 border border-slate-600"
+        "bg-secondary border border-border"
       )}>
         <Icon className={cn(sizeClasses[size], config.color)} />
       </div>
-      <span className="text-xs font-medium text-slate-300">
+      <span className="text-xs font-medium text-foreground/80">
         {componentCount}
       </span>
     </div>

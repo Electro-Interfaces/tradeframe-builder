@@ -60,7 +60,7 @@ export function getStatusColorClass(status: ReconciliationTransactionStatus): st
     case 'only_corp': return 'bg-orange-600';
     case 'only_tf': return 'bg-orange-600';
     case 'mismatch': return 'bg-red-600';
-    default: return 'bg-slate-600';
+    default: return 'bg-secondary';
   }
 }
 

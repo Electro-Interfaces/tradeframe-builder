@@ -1,6 +1,6 @@
 /**
  * Прямое применение SQL миграции к базе данных Supabase через PostgreSQL
- * TradeFrame Builder v1.7.26
+ * TradeControl Builder v1.7.26
  */
 
 import { createClient } from '@supabase/supabase-js';

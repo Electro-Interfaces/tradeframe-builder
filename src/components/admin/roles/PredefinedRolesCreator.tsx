@@ -257,7 +257,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
       case 'error':
         return <XCircle className="w-5 h-5 text-red-500" />;
       default:
-        return <div className="w-5 h-5 rounded-full border-2 border-gray-300" />;
+        return <div className="w-5 h-5 rounded-full border-2 border-border" />;
     }
   };
 
@@ -278,13 +278,13 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
   const errorCount = roleStatuses.filter(rs => rs.status === 'error').length;
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
+        <CardTitle className="flex items-center gap-2 text-foreground">
           <Shield className="w-5 h-5" />
           Предустановленные роли системы
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           Быстрое создание стандартных ролей для полнофункциональной работы системы управления доступом
         </CardDescription>
       </CardHeader>
@@ -292,17 +292,17 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
         {isCreating && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-white">Прогресс создания ролей</span>
-              <span className="text-sm text-slate-400">{Math.round(progress)}%</span>
+              <span className="text-sm font-medium text-foreground">Прогресс создания ролей</span>
+              <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="w-full" />
           </div>
         )}
 
         <div className="flex items-center justify-between mb-4">
-          <div className="text-sm text-slate-400">
-            {successCount > 0 && <span className="text-green-400">✓ Создано: {successCount}</span>}
-            {errorCount > 0 && <span className="text-red-400 ml-4">✗ Ошибок: {errorCount}</span>}
+          <div className="text-sm text-muted-foreground">
+            {successCount > 0 && <span className="text-green-600 dark:text-green-400">✓ Создано: {successCount}</span>}
+            {errorCount > 0 && <span className="text-red-600 dark:text-red-400 ml-4">✗ Ошибок: {errorCount}</span>}
           </div>
           <Button 
             onClick={handleCreateAllRoles}
@@ -330,19 +330,19 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
                   status === 'creating' ? 'border-blue-500 bg-blue-950/20' :
                   status === 'success' ? 'border-green-500 bg-emerald-950/20' :
                   status === 'error' ? 'border-red-500 bg-red-950/20' :
-                  'border-slate-600 hover:border-slate-500'
+                  'border-border hover:border-border'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   {getStatusIcon(status)}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <IconComponent className="w-4 h-4 text-blue-400" />
-                      <h3 className="font-semibold text-white truncate">{role.name}</h3>
+                      <IconComponent className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <h3 className="font-semibold text-foreground truncate">{role.name}</h3>
                       {getStatusBadge(roleStatus)}
                     </div>
                     
-                    <p className="text-sm text-slate-400 mb-2 line-clamp-2">
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                       {role.description}
                     </p>
 
@@ -367,7 +367,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
                     </div>
 
                     {error && (
-                      <div className="mt-2 text-xs text-red-400 bg-red-950/20 p-2 rounded">
+                      <div className="mt-2 text-xs text-red-600 dark:text-red-400 bg-red-950/20 p-2 rounded">
                         {error}
                       </div>
                     )}
@@ -378,9 +378,9 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
           })}
         </div>
 
-        <div className="mt-6 p-4 bg-slate-900/50 rounded-lg">
-          <h4 className="text-sm font-medium text-white mb-2">Описание ролей:</h4>
-          <div className="text-xs text-slate-400 space-y-1">
+        <div className="mt-6 p-4 bg-background/50 rounded-lg">
+          <h4 className="text-sm font-medium text-foreground mb-2">Описание ролей:</h4>
+          <div className="text-xs text-muted-foreground space-y-1">
             <p>• <strong>Суперадминистратор:</strong> Полный контроль над системой</p>
             <p>• <strong>Администратор сети:</strong> Управление конкретной торговой сетью</p>
             <p>• <strong>Менеджер:</strong> Операционное управление и мониторинг</p>

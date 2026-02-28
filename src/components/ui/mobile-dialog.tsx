@@ -58,25 +58,25 @@ export const MobileDialog: React.FC<MobileDialogProps> = ({
       >
         {/* Мобильная шапка */}
         {isMobile && (
-          <div className="flex items-center justify-between p-4 border-b border-slate-600 bg-slate-800">
+          <div className="flex items-center justify-between p-4 border-b border-border bg-card">
             {/* Индикатор перетаскивания */}
-            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-slate-500 rounded-full" />
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-muted-foreground rounded-full" />
             
-            <DialogTitle className="text-lg font-semibold text-white pr-8">
+            <DialogTitle className="text-lg font-semibold text-foreground pr-8">
               {title}
             </DialogTitle>
             {description && (
-              <DialogDescription className="text-sm text-slate-400 pr-8 mt-1">
+              <DialogDescription className="text-sm text-muted-foreground pr-8 mt-1">
                 {description}
               </DialogDescription>
             )}
             
             <button
               onClick={() => onOpenChange?.(false)}
-              className="absolute right-4 top-4 p-2 hover:bg-slate-700 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="absolute right-4 top-4 p-2 hover:bg-secondary rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Закрыть"
             >
-              <X className="w-5 h-5 text-slate-400" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
         )}
@@ -92,7 +92,7 @@ export const MobileDialog: React.FC<MobileDialogProps> = ({
                 {title}
               </DialogTitle>
               {description && (
-                <DialogDescription className="text-sm text-slate-500 mt-1">
+                <DialogDescription className="text-sm text-muted-foreground mt-1">
                   {description}
                 </DialogDescription>
               )}
@@ -103,7 +103,7 @@ export const MobileDialog: React.FC<MobileDialogProps> = ({
 
         {/* Безопасная зона для iPhone */}
         {isMobile && (
-          <div className="h-safe-area-inset-bottom bg-slate-800" />
+          <div className="h-safe-area-inset-bottom bg-card" />
         )}
       </DialogContent>
     </Dialog>

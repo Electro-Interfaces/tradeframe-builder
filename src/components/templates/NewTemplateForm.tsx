@@ -383,7 +383,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
                           {getScopeIcon(option.value as TemplateScope)}
                           <div>
                             <div className="font-medium">{option.label}</div>
-                            <div className="text-sm text-slate-500">{option.description}</div>
+                            <div className="text-sm text-muted-foreground">{option.description}</div>
                           </div>
                         </div>
                       </SelectItem>
@@ -410,7 +410,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
                       <SelectItem key={connection.id} value={connection.id}>
                         <div>
                           <div className="font-medium">{connection.provider_id}</div>
-                          <div className="text-sm text-slate-500">{connection.base_url}</div>
+                          <div className="text-sm text-muted-foreground">{connection.base_url}</div>
                         </div>
                       </SelectItem>
                     ))}
@@ -474,7 +474,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
                           }
                           <div>
                             <div className="font-medium">{option.label}</div>
-                            <div className="text-sm text-slate-500">{option.description}</div>
+                            <div className="text-sm text-muted-foreground">{option.description}</div>
                           </div>
                         </div>
                       </SelectItem>
@@ -501,7 +501,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
                       <SelectItem key={option.value} value={option.value}>
                         <div>
                           <div className="font-medium">{option.label}</div>
-                          <div className="text-sm text-slate-500">{option.description}</div>
+                          <div className="text-sm text-muted-foreground">{option.description}</div>
                         </div>
                       </SelectItem>
                     ))}
@@ -525,7 +525,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
               {errors.endpoint && (
                 <p className="text-sm text-red-600">{errors.endpoint.message}</p>
               )}
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 Use curly braces for path parameters: {'{'}variable_name{'}'}
               </p>
             </div>
@@ -693,7 +693,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
                       disabled={isReadOnly}
                       className={isReadOnly ? 'opacity-60' : ''}
                     />
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted-foreground">
                       Header name for idempotency key (e.g., Idempotency-Key, X-Request-ID)
                     </p>
                   </div>
@@ -713,7 +713,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm text-slate-500">Status</Label>
+                      <Label className="text-sm text-muted-foreground">Status</Label>
                       <div className="mt-1">
                         <Badge variant={
                           template.status === 'active' ? 'default' :
@@ -725,7 +725,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
                       </div>
                     </div>
                     <div>
-                      <Label className="text-sm text-slate-500">Type</Label>
+                      <Label className="text-sm text-muted-foreground">Type</Label>
                       <div className="mt-1">
                         <Badge variant={template.is_system ? 'outline' : 'default'}>
                           {template.is_system ? 'System' : 'User'}
@@ -733,11 +733,11 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
                       </div>
                     </div>
                     <div>
-                      <Label className="text-sm text-slate-500">Created</Label>
+                      <Label className="text-sm text-muted-foreground">Created</Label>
                       <p className="text-sm mt-1">{new Date(template.created_at).toLocaleDateString()}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-slate-500">Last Updated</Label>
+                      <Label className="text-sm text-muted-foreground">Last Updated</Label>
                       <p className="text-sm mt-1">{new Date(template.updated_at).toLocaleDateString()}</p>
                     </div>
                   </div>
@@ -749,7 +749,7 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
 
         {/* Form Actions */}
         {!isReadOnly && (
-          <div className="flex justify-end gap-3 pt-6 border-t bg-white dark:bg-slate-900">
+          <div className="flex justify-end gap-3 pt-6 border-t bg-white dark:bg-background">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <X className="w-4 h-4 mr-2" />
               Cancel

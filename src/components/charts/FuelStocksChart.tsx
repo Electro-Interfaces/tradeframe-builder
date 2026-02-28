@@ -154,19 +154,19 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
     if (active && payload && payload.length) {
       const data = payload[0].payload as ChartDataPoint;
       return (
-        <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
-          <p className="text-slate-300 text-sm font-medium mb-2">{label}</p>
+        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+          <p className="text-foreground/80 text-sm font-medium mb-2">{label}</p>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div 
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: (selectedFuelType === 'Все' ? ALL_FUEL_COLOR : getFuelColor(selectedFuelType)) }}
               />
-              <span className="text-white font-mono">
+              <span className="text-foreground font-mono">
                 {formatVolume(data.totalVolume)}
               </span>
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-muted-foreground">
               Резервуаров: {data.tankCount} | Средний уровень: {data.averageLevel}%
             </div>
           </div>
@@ -182,22 +182,22 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
   const changePercent = previousTotal > 0 ? (changeLiters / previousTotal) * 100 : 0;
 
   return (
-    <Card className="bg-slate-800 border-slate-700 col-span-full overflow-visible">
+    <Card className="bg-card border-border col-span-full overflow-visible">
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
             Динамика остатков топлива
-            {loading && <span className="text-sm text-slate-400">(загрузка...)</span>}
+            {loading && <span className="text-sm text-muted-foreground">(загрузка...)</span>}
           </CardTitle>
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-4">
               {/* Селектор периода */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">Период:</span>
+                <span className="text-xs text-muted-foreground">Период:</span>
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-28 h-8">
+                  <SelectTrigger className="bg-secondary border-border text-foreground w-28 h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -213,13 +213,13 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
               {/* Показатель изменения */}
               {chartData.length > 1 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">Изменение:</span>
+                  <span className="text-xs text-muted-foreground">Изменение:</span>
                   <Badge 
                     variant="outline" 
                     className={`text-xs ${
-                      changePercent > 0 ? 'text-green-400 border-green-400' :
-                      changePercent < 0 ? 'text-red-400 border-red-400' : 
-                      'text-slate-400 border-slate-400'
+                      changePercent > 0 ? 'text-green-600 dark:text-green-400 border-green-400' :
+                      changePercent < 0 ? 'text-red-600 dark:text-red-400 border-red-400' : 
+                      'text-muted-foreground border-border'
                     }`}
                   >
                     {changePercent > 0 ? '+' : ''}{changePercent.toFixed(1)}%
@@ -229,9 +229,9 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
 
               {/* Селектор типа топлива */}
               <div className="flex items-center gap-2">
-                <Fuel className="w-4 h-4 text-slate-400" />
+                <Fuel className="w-4 h-4 text-muted-foreground" />
                 <Select value={selectedFuelType} onValueChange={setSelectedFuelType}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-28 h-8">
+                  <SelectTrigger className="bg-secondary border-border text-foreground w-28 h-8">
                     <SelectValue />
                   </SelectTrigger>
                 <SelectContent>
@@ -259,10 +259,10 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="time" 
-                  stroke="#9ca3af"
+                  stroke="hsl(var(--muted-foreground))"
                   fontSize={11}
                   angle={-45}
                   textAnchor="end"
@@ -277,7 +277,7 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
                   }}
                 />
                 <YAxis 
-                  stroke="#9ca3af"
+                  stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                   tickFormatter={formatVolume}
                 />
@@ -296,10 +296,10 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
         ) : (
           <div className="h-64 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-slate-400 mb-2">
+              <div className="text-muted-foreground mb-2">
                 {loading ? 'Загрузка данных...' : 'Нет данных для отображения'}
               </div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-muted-foreground">
                 {selectedPeriod === '1month' ? 'Данные за август 2025' : 
                  `Данные за ${TIME_PERIODS.find(p => p.value === selectedPeriod)?.label || ''} (август 2025)`}
               </div>
@@ -309,34 +309,34 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
 
         {/* Краткая статистика под графиком */}
         {chartData.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-700">
+          <div className="mt-4 pt-4 border-t border-border">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               <div>
-                <div className="text-lg font-bold text-white">
+                <div className="text-lg font-bold text-foreground">
                   {formatVolume(currentTotal)}
                 </div>
-                <div className="text-xs text-slate-400">Текущий объем</div>
+                <div className="text-xs text-muted-foreground">Текущий объем</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-white">
+                <div className="text-lg font-bold text-foreground">
                   {chartData[chartData.length - 1]?.tankCount || 0}
                 </div>
-                <div className="text-xs text-slate-400">Резервуаров</div>
+                <div className="text-xs text-muted-foreground">Резервуаров</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-white">
+                <div className="text-lg font-bold text-foreground">
                   {chartData[chartData.length - 1]?.averageLevel || 0}%
                 </div>
-                <div className="text-xs text-slate-400">Средний уровень</div>
+                <div className="text-xs text-muted-foreground">Средний уровень</div>
               </div>
               <div>
                 <div className={`text-lg font-bold ${
-                  changeLiters > 0 ? 'text-green-400' :
-                  changeLiters < 0 ? 'text-red-400' : 'text-slate-400'
+                  changeLiters > 0 ? 'text-green-600 dark:text-green-400' :
+                  changeLiters < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'
                 }`}>
                   {changeLiters > 0 ? '+' : ''}{formatVolume(Math.abs(changeLiters))}
                 </div>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-muted-foreground">
                   {changeLiters > 0 ? 'Прирост' : changeLiters < 0 ? 'Расход' : 'Без изменений'}
                 </div>
               </div>

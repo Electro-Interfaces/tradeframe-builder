@@ -21,39 +21,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
     // Показываем собственный лоадер для надежности
     return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 9998,
-        color: 'white',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif'
-      }}>
-        <div style={{
-          width: '60px',
-          height: '60px',
-          background: '#3b82f6',
-          borderRadius: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '16px',
-          boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)'
-        }}>
+      <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-background font-sans">
+        <div className="w-[60px] h-[60px] bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-600/30">
           <Loader2 className="w-8 h-8 animate-spin text-white" />
         </div>
-        <p style={{
-          fontSize: '16px',
-          color: '#94a3b8',
-          margin: 0
-        }}>Проверка авторизации...</p>
+        <p className="text-base text-muted-foreground m-0">Проверка авторизации...</p>
       </div>
     );
   }

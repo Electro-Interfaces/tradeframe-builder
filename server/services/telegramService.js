@@ -122,7 +122,7 @@ ${emoji} <b>${levelText}</b>
 
 <b>Рекомендация:</b> Требуется инкассация купюроприемника.
 
-<i>Автоматическое уведомление TradeFrame Builder</i>
+<i>Автоматическое уведомление TradeControl Builder</i>
     `.trim();
 
     return this.sendMessage({
@@ -165,7 +165,7 @@ ${emoji} <b>${levelText}</b>
 
 <b>Рекомендация:</b> Требуется заправка резервуара.
 
-<i>Автоматическое уведомление TradeFrame Builder</i>
+<i>Автоматическое уведомление TradeControl Builder</i>
     `.trim();
 
     return this.sendMessage({
@@ -204,7 +204,7 @@ ${emoji} <b>${levelText}</b>
 
 <b>Отпуск данного вида топлива заблокирован</b> до поступления следующей партии нефтепродуктов.
 
-<i>Автоматическое уведомление TradeFrame Builder</i>
+<i>Автоматическое уведомление TradeControl Builder</i>
     `.trim();
 
     return this.sendMessage({
@@ -244,7 +244,7 @@ ${emoji} <b>${levelText}</b>
 
 <b>Рекомендация:</b> Проверьте работу терминала и связь с облаком.
 
-<i>Автоматическое уведомление TradeFrame Builder</i>
+<i>Автоматическое уведомление TradeControl Builder</i>
     `.trim();
 
     return this.sendMessage({
@@ -301,7 +301,7 @@ ${emoji} <b>${levelText}</b>
       '',
       '<b>Рекомендация:</b> Пробейте чеки для корректировки кассы.',
       '',
-      '<i>Автоматическое уведомление TradeFrame Builder</i>'
+      '<i>Автоматическое уведомление TradeControl Builder</i>'
     ].join('\n');
 
     return this.sendMessage({

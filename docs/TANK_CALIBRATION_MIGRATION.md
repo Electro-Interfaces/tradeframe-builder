@@ -1,7 +1,7 @@
 # Миграция таблицы tank_calibration_settings
 
 **Дата:** 2025-10-28
-**Версия:** TradeFrame Builder v1.5.79+
+**Версия:** TradeControl Builder v1.5.79+
 **Статус:** Готово к применению
 
 ---

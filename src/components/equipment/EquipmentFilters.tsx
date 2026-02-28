@@ -14,11 +14,11 @@ interface EquipmentFiltersProps {
 }
 
 const statusOptions: Array<{ value: EquipmentStatus; label: string; color: string }> = [
-  { value: "online", label: "Онлайн", color: "bg-emerald-500" },
+  { value: "online", label: "Онлайн", color: "bg-emerald-600" },
   { value: "offline", label: "Офлайн", color: "bg-yellow-500" },
   { value: "error", label: "Ошибка", color: "bg-red-500" },
-  { value: "disabled", label: "Отключено", color: "bg-gray-500" },
-  { value: "archived", label: "Архив", color: "bg-slate-500" },
+  { value: "disabled", label: "Отключено", color: "bg-muted-foreground" },
+  { value: "archived", label: "Архив", color: "bg-muted-foreground" },
 ];
 
 const systemTypeOptions = [
@@ -84,7 +84,7 @@ export function EquipmentFilters({
     <div className="space-y-4">
       {/* Строка поиска */}
       <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Поиск по названию или серийному номеру..."
           value={searchValue}

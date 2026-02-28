@@ -36,10 +36,10 @@ export function ConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700">
+      <DialogContent className="bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">{title}</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-foreground">{title}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -49,7 +49,7 @@ export function ConfirmDialog({
             variant="outline" 
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="border-slate-600 text-slate-200 hover:bg-slate-700"
+            className="border-border text-foreground hover:bg-secondary"
           >
             {cancelText}
           </Button>

@@ -102,14 +102,14 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
   return (
     <div className="space-y-6">
       {/* Filters Panel */}
-      <div className="bg-slate-800 border border-slate-600 rounded-lg">
+      <div className="bg-card border border-border rounded-lg">
         <div className="px-6 py-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-sm">⚙️</span>
+              <span className="text-foreground text-sm">⚙️</span>
             </div>
-            <h2 className="text-lg font-semibold text-white">Фильтры анализа</h2>
-            <div className="text-sm text-slate-400">
+            <h2 className="text-lg font-semibold text-foreground">Фильтры анализа</h2>
+            <div className="text-sm text-muted-foreground">
               {isTradingPointSelected ? 'Для торговой точки' : 'Для сети'}
             </div>
           </div>
@@ -118,33 +118,33 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-4'}`}>
             {/* Дата начала */}
             <div>
-              <Label htmlFor="dateFrom" className="text-sm text-slate-400 mb-2 block">Дата начала</Label>
+              <Label htmlFor="dateFrom" className="text-sm text-muted-foreground mb-2 block">Дата начала</Label>
               <Input
                 id="dateFrom"
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
             </div>
             
             {/* Дата окончания */}
             <div>
-              <Label htmlFor="dateTo" className="text-sm text-slate-400 mb-2 block">Дата окончания</Label>
+              <Label htmlFor="dateTo" className="text-sm text-muted-foreground mb-2 block">Дата окончания</Label>
               <Input
                 id="dateTo"
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
             </div>
             
             {/* Группировка */}
             <div>
-              <Label className="text-sm text-slate-400 mb-2 block">Группировка</Label>
+              <Label className="text-sm text-muted-foreground mb-2 block">Группировка</Label>
               <Select value={groupBy} onValueChange={setGroupBy}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="bg-secondary border-border text-foreground">
                   <SelectValue placeholder="Выберите группировку" />
                 </SelectTrigger>
                 <SelectContent>
@@ -157,7 +157,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
             
             {/* Применить */}
             <div>
-              <Label className="text-sm text-slate-400 mb-2 block">Применить</Label>
+              <Label className="text-sm text-muted-foreground mb-2 block">Применить</Label>
               <Button 
                 onClick={handleApplyFilters}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
@@ -175,80 +175,80 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
       {/* KPI Cards as Individual Tiles */}
       <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-5'}`}>
         {/* Общая выручка */}
-        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <DollarSign className="h-8 w-8 text-green-400" />
+            <DollarSign className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
           <div className="space-y-2">
-            <p className="text-sm text-slate-400">{isTradingPointSelected ? 'Выручка точки' : 'Общая выручка'}</p>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-sm text-muted-foreground">{isTradingPointSelected ? 'Выручка точки' : 'Общая выручка'}</p>
+            <p className="text-3xl font-bold text-foreground">
               {formatCurrency(isTradingPointSelected ? mockKpiData.totalRevenue / 5 : mockKpiData.totalRevenue)}
             </p>
-            <p className="text-xs text-green-400">
+            <p className="text-xs text-green-600 dark:text-green-400">
               +12.5% к предыдущему периоду
             </p>
           </div>
         </div>
 
         {/* Транзакции */}
-        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <Users className="h-8 w-8 text-blue-400" />
+            <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="space-y-2">
-            <p className="text-sm text-slate-400">Транзакции</p>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-sm text-muted-foreground">Транзакции</p>
+            <p className="text-3xl font-bold text-foreground">
               {(isTradingPointSelected ? Math.floor(mockKpiData.totalTransactions / 5) : mockKpiData.totalTransactions).toLocaleString()}
             </p>
-            <p className="text-xs text-blue-400">
+            <p className="text-xs text-blue-600 dark:text-blue-400">
               +8.1% к предыдущему периоду
             </p>
           </div>
         </div>
 
         {/* Топлива отпущено */}
-        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <Fuel className="h-8 w-8 text-orange-400" />
+            <Fuel className="h-8 w-8 text-orange-600 dark:text-orange-400" />
           </div>
           <div className="space-y-2">
-            <p className="text-sm text-slate-400">Топлива отпущено</p>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-sm text-muted-foreground">Топлива отпущено</p>
+            <p className="text-3xl font-bold text-foreground">
               {(isTradingPointSelected ? Math.floor(mockKpiData.totalFuelLiters / 5) : mockKpiData.totalFuelLiters).toLocaleString()} л
             </p>
-            <p className="text-xs text-orange-400">
+            <p className="text-xs text-orange-600 dark:text-orange-400">
               +5.3% к предыдущему периоду
             </p>
           </div>
         </div>
 
         {/* Средний чек */}
-        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <TrendingUp className="h-8 w-8 text-purple-400" />
+            <TrendingUp className="h-8 w-8 text-purple-600 dark:text-purple-400" />
           </div>
           <div className="space-y-2">
-            <p className="text-sm text-slate-400">Средний чек</p>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-sm text-muted-foreground">Средний чек</p>
+            <p className="text-3xl font-bold text-foreground">
               {formatCurrency(mockKpiData.averageTicket)}
             </p>
-            <p className="text-xs text-purple-400">
+            <p className="text-xs text-purple-600 dark:text-purple-400">
               +3.7% к предыдущему периоду
             </p>
           </div>
         </div>
 
         {/* Доля безналичных */}
-        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <CreditCard className="h-8 w-8 text-cyan-400" />
+            <CreditCard className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
           </div>
           <div className="space-y-2">
-            <p className="text-sm text-slate-400">Доля безналичных</p>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-sm text-muted-foreground">Доля безналичных</p>
+            <p className="text-3xl font-bold text-foreground">
               {mockKpiData.cashlessPercentage}%
             </p>
-            <p className="text-xs text-cyan-400">
+            <p className="text-xs text-cyan-600 dark:text-cyan-400">
               +2.1% к предыдущему периоду
             </p>
           </div>
@@ -258,16 +258,16 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
       {/* Analysis Tabs */}
       <Tabs defaultValue="structure" className="space-y-4">
         {isMobile ? (
-          <TabsList className="grid w-full grid-cols-2 h-auto gap-2 bg-slate-700 border border-slate-600 p-1">
+          <TabsList className="grid w-full grid-cols-2 h-auto gap-2 bg-secondary border border-border p-1">
             <TabsTrigger 
               value="structure" 
-              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
             >
               📊 Структура
             </TabsTrigger>
             <TabsTrigger 
               value="trends"
-              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
             >
               📈 Тренды
             </TabsTrigger>
@@ -275,13 +275,13 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
               <>
                 <TabsTrigger 
                   value="stations"
-                  className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+                  className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
                 >
                   🏪 Сравнение ТТ
                 </TabsTrigger>
                 <TabsTrigger 
                   value="transactions"
-                  className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+                  className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
                 >
                   🧾 Транзакции
                 </TabsTrigger>
@@ -289,30 +289,30 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
             )}
           </TabsList>
         ) : (
-          <TabsList className="bg-slate-700 border border-slate-600 h-auto p-1">
+          <TabsList className="bg-secondary border border-border h-auto p-1">
             <TabsTrigger 
               value="structure" 
-              className="text-white font-medium px-6 py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+              className="text-white font-medium px-6 py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
             >
               📊 Структура продаж
             </TabsTrigger>
             <TabsTrigger 
               value="trends" 
-              className="text-white font-medium px-6 py-3 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+              className="text-white font-medium px-6 py-3 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
             >
               📈 Динамика (Тренды)
             </TabsTrigger>
             {isNetworkOnly && (
               <TabsTrigger 
                 value="stations" 
-                className="text-white font-medium px-6 py-3 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+                className="text-white font-medium px-6 py-3 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
               >
                 🏪 Сравнение торговых точек
               </TabsTrigger>
             )}
             <TabsTrigger 
               value="transactions" 
-              className="text-white font-medium px-6 py-3 data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+              className="text-white font-medium px-6 py-3 data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
             >
               🧾 Детализация транзакций
             </TabsTrigger>
@@ -334,10 +334,10 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
           
           <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
             {/* Разрез по видам топлива */}
-            <Card className="bg-slate-800 border border-slate-600">
+            <Card className="bg-card border border-border">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Fuel className="h-5 w-5 text-orange-400" />
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <Fuel className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                   Разрез по видам топлива
                 </CardTitle>
               </CardHeader>
@@ -365,10 +365,10 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
             </Card>
             
             {/* Разрез по способам оплаты */}
-            <Card className="bg-slate-800 border border-slate-600">
+            <Card className="bg-card border border-border">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <CreditCard className="h-5 w-5 text-blue-400" />
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   Разрез по способам оплаты
                 </CardTitle>
               </CardHeader>
@@ -412,10 +412,10 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
             </Button>
           </div>
           
-          <Card className="bg-slate-800 border border-slate-600">
+          <Card className="bg-card border border-border">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <TrendingUp className="h-5 w-5 text-green-400" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
                 График продаж
               </CardTitle>
             </CardHeader>
@@ -449,10 +449,10 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
               </Button>
             </div>
             
-            <Card className="bg-slate-800 border border-slate-600">
+            <Card className="bg-card border border-border">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Network className="h-5 w-5 text-purple-400" />
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <Network className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   Сравнение торговых точек
                 </CardTitle>
               </CardHeader>
@@ -507,10 +507,10 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
             </div>
           </div>
           
-          <Card className="bg-slate-800 border border-slate-600">
+          <Card className="bg-card border border-border">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <FileText className="h-5 w-5 text-orange-400" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 Детализация транзакций
               </CardTitle>
             </CardHeader>

@@ -6,88 +6,96 @@
 
 @layer base {
   :root {
-    /* Dark theme primary colors based on TradeControl design */
-    --background: 215 28% 12%;
-    --foreground: 0 0% 95%;
+    /* Light theme — Linear/Notion inspired, high contrast */
+    --background: 220 14% 94%;
+    --foreground: 224 71% 4%;
 
-    --card: 217 32% 17%;
-    --card-foreground: 0 0% 95%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
 
-    --popover: 217 32% 17%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
 
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 32% 22%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 40% 20%;
 
-    --muted: 217 32% 14%;
-    --muted-foreground: 215 15% 65%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 43%;
 
-    --accent: 217 32% 20%;
-    --accent-foreground: 0 0% 95%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 220 40% 20%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 217 32% 22%;
-    --input: 217 32% 17%;
+    --border: 220 13% 87%;
+    --input: 220 13% 91%;
     --ring: 217 91% 60%;
 
     --radius: 0.75rem;
 
-    /* Sidebar specific colors */
-    --sidebar-background: 215 28% 10%;
-    --sidebar-foreground: 0 0% 95%;
+    /* Sidebar — white, distinct from gray page bg */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 14% 25%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 32% 15%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 217 32% 18%;
+    --sidebar-accent: 220 14% 95%;
+    --sidebar-accent-foreground: 220 14% 20%;
+    --sidebar-border: 220 13% 90%;
     --sidebar-ring: 217 91% 60%;
 
     /* Trading platform accent colors */
     --accent-blue: 217 91% 60%;
-    --accent-purple: 280 100% 70%;
-    --accent-green: 120 100% 40%;
-    --accent-orange: 25 100% 55%;
-    
+    --accent-purple: 280 80% 60%;
+    --accent-green: 142 76% 36%;
+    --accent-orange: 25 95% 53%;
+
     /* Status colors */
-    --success: 120 100% 40%;
-    --warning: 45 100% 55%;
+    --success: 142 76% 36%;
+    --warning: 45 93% 47%;
     --error: 0 84% 60%;
-    
+
     /* Header height */
     --header-height: 5rem;
-    
-    /* Soft shadows and modern effects */
-    --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.12);
-    --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.15);
-    --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.18);
+
+    /* Light shadows — elevated cards over gray bg */
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
   }
 
   .dark {
-    /* Keep the same dark theme for consistency */
     --background: 215 28% 12%;
     --foreground: 0 0% 95%;
+
     --card: 217 32% 17%;
     --card-foreground: 0 0% 95%;
+
     --popover: 217 32% 17%;
     --popover-foreground: 0 0% 95%;
+
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
+
     --secondary: 217 32% 22%;
     --secondary-foreground: 0 0% 95%;
+
     --muted: 217 32% 14%;
     --muted-foreground: 215 15% 65%;
+
     --accent: 217 32% 20%;
     --accent-foreground: 0 0% 95%;
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
+
     --border: 217 32% 22%;
     --input: 217 32% 17%;
     --ring: 217 91% 60%;
+
     --sidebar-background: 215 28% 10%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 217 91% 60%;
@@ -96,7 +104,18 @@
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 217 32% 18%;
     --sidebar-ring: 217 91% 60%;
-    
+
+    /* Trading platform accent colors (dark) */
+    --accent-blue: 217 91% 60%;
+    --accent-purple: 280 100% 70%;
+    --accent-green: 120 100% 40%;
+    --accent-orange: 25 100% 55%;
+
+    /* Status colors (dark) */
+    --success: 120 100% 40%;
+    --warning: 45 100% 55%;
+    --error: 0 84% 60%;
+
     /* Dark mode soft shadows */
     --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.25);
     --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.35);
@@ -155,29 +174,29 @@
   
   /* Selector component styles */
   .sel {
-    @apply h-10 min-w-56 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/40 flex items-center justify-between px-3 text-sm font-medium transition-colors;
+    @apply h-10 min-w-56 rounded-lg bg-input border border-border text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/40 flex items-center justify-between px-3 text-sm font-medium transition-colors;
   }
-  
+
   /* Panel component styles */
   .panel {
-    @apply bg-slate-800/60 border border-slate-700 rounded-lg p-4;
+    @apply bg-card border border-border rounded-lg p-4;
   }
-  
+
   /* Table condensed styles */
   .table-condensed table {
     @apply w-full text-sm;
   }
-  
+
   .table-condensed th {
-    @apply h-11 px-3 text-left font-medium text-slate-300 border-b border-slate-800;
+    @apply h-11 px-3 text-left font-medium text-muted-foreground border-b border-border;
   }
-  
+
   .table-condensed td {
-    @apply h-[44px] px-3 border-b border-slate-800;
+    @apply h-[44px] px-3 border-b border-border;
   }
-  
+
   .table-condensed tbody tr:hover {
-    @apply bg-slate-800/40;
+    @apply bg-accent/40;
   }
   
   /* Thin scrollbar */
@@ -237,96 +256,96 @@
   }
   
   .badge.info {
-    @apply bg-slate-600/20 text-slate-300 border-slate-700/40;
+    @apply bg-secondary text-muted-foreground border-border;
   }
-  
+
   .badge.success {
-    @apply bg-emerald-600/20 text-emerald-300 border-emerald-700/40;
+    @apply bg-emerald-600/20 text-emerald-600 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/40;
   }
   
   /* Стили для отображения инструкций */
   .instruction-content {
-    @apply text-slate-100 leading-relaxed;
+    @apply text-foreground leading-relaxed;
     line-height: 1.7;
     font-size: 15px;
   }
-  
+
   .instruction-content h1 {
-    @apply text-2xl font-bold text-white mb-6 mt-8 first:mt-0;
+    @apply text-2xl font-bold text-foreground mb-6 mt-8 first:mt-0;
   }
-  
+
   .instruction-content h2 {
-    @apply text-xl font-semibold text-white mb-4 mt-6;
+    @apply text-xl font-semibold text-foreground mb-4 mt-6;
   }
-  
+
   .instruction-content h3 {
-    @apply text-lg font-semibold text-slate-200 mb-3 mt-5;
+    @apply text-lg font-semibold text-foreground/90 mb-3 mt-5;
   }
-  
+
   .instruction-content p {
-    @apply text-slate-200 mb-4 leading-relaxed;
+    @apply text-foreground/90 mb-4 leading-relaxed;
   }
-  
+
   .instruction-content ul,
   .instruction-content ol {
     @apply mb-4 pl-6 space-y-2;
   }
-  
+
   .instruction-content li {
-    @apply text-slate-200 leading-relaxed;
+    @apply text-foreground/90 leading-relaxed;
   }
-  
+
   .instruction-content ul li {
     @apply list-disc;
   }
-  
+
   .instruction-content ol li {
     @apply list-decimal;
   }
-  
+
   .instruction-content strong {
-    @apply font-semibold text-white;
+    @apply font-semibold text-foreground;
   }
-  
+
   .instruction-content em {
-    @apply italic text-slate-300;
+    @apply italic text-muted-foreground;
   }
-  
+
   .instruction-content code {
-    @apply bg-slate-700 text-slate-100 px-2 py-1 rounded text-sm font-mono;
+    @apply bg-secondary text-foreground px-2 py-1 rounded text-sm font-mono;
   }
-  
+
   .instruction-content pre {
-    @apply bg-slate-800 border border-slate-600 rounded-lg p-4 mb-4 overflow-x-auto;
+    @apply bg-muted border border-border rounded-lg p-4 mb-4 overflow-x-auto;
   }
-  
+
   .instruction-content pre code {
-    @apply bg-transparent p-0 text-slate-200;
+    @apply bg-transparent p-0 text-foreground/90;
   }
-  
+
   .instruction-content blockquote {
-    @apply border-l-4 border-blue-500 bg-slate-800/50 pl-4 py-2 my-4 text-slate-300 italic;
+    @apply border-l-4 border-primary bg-muted pl-4 py-2 my-4 text-muted-foreground italic;
   }
-  
+
   .instruction-content table {
-    @apply w-full border-collapse border border-slate-600 mb-4;
+    @apply w-full border-collapse border border-border mb-4;
   }
-  
+
   .instruction-content th,
   .instruction-content td {
-    @apply border border-slate-600 px-3 py-2 text-left;
+    @apply border border-border px-3 py-2 text-left;
   }
-  
+
   .instruction-content th {
-    @apply bg-slate-700 font-semibold text-slate-200;
+    @apply bg-secondary font-semibold text-foreground/90;
   }
-  
+
   .instruction-content td {
-    @apply text-slate-200;
+    @apply text-foreground/90;
   }
-  
+
   .instruction-content a {
-    @apply text-blue-400 hover:text-blue-300 underline;
+    @apply text-primary hover:text-primary/80 underline;
   }
 }
 

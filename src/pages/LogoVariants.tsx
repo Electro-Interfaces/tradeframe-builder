@@ -9,7 +9,7 @@ export default function LogoVariants() {
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <h1 style={{ textAlign: 'center', marginBottom: '40px', fontSize: '32px' }}>
-          🎨 TradeFrame - Варианты логотипов
+          🎨 TradeControl - Варианты логотипов
         </h1>
 
         <div style={{
@@ -49,7 +49,7 @@ export default function LogoVariants() {
                 <circle cx="60" cy="62" r="2" fill="#60a5fa"/>
               </svg>
             </div>
-            <div style={{ color: '#94a3b8', lineHeight: 1.6, marginBottom: '16px' }}>
+            <div style={{ color: 'hsl(var(--muted-foreground))', lineHeight: 1.6, marginBottom: '16px' }}>
               Классическая топливная колонка с современным дизайном. Прямая ассоциация с АЗС.
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -82,7 +82,7 @@ export default function LogoVariants() {
                 <circle cx="50" cy="65" r="6" fill="#3b82f6"/>
               </svg>
             </div>
-            <div style={{ color: '#94a3b8', lineHeight: 1.6, marginBottom: '16px' }}>
+            <div style={{ color: 'hsl(var(--muted-foreground))', lineHeight: 1.6, marginBottom: '16px' }}>
               Визуализация сети торговых точек. Центральный узел - система управления.
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -117,7 +117,7 @@ export default function LogoVariants() {
                 <ellipse cx="45" cy="32" rx="6" ry="9" fill="rgba(255,255,255,0.2)"/>
               </svg>
             </div>
-            <div style={{ color: '#94a3b8', lineHeight: 1.6, marginBottom: '16px' }}>
+            <div style={{ color: 'hsl(var(--muted-foreground))', lineHeight: 1.6, marginBottom: '16px' }}>
               Капля топлива с графиком аналитики. Объединяет индустрию и данные.
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -151,7 +151,7 @@ export default function LogoVariants() {
                 <line x1="70" y1="63" x2="65" y2="58" stroke="#60a5fa" strokeWidth="1.5"/>
               </svg>
             </div>
-            <div style={{ color: '#94a3b8', lineHeight: 1.6, marginBottom: '16px' }}>
+            <div style={{ color: 'hsl(var(--muted-foreground))', lineHeight: 1.6, marginBottom: '16px' }}>
               Современный геометрический дизайн. Технологичный вид, хорошо масштабируется.
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -190,7 +190,7 @@ export default function LogoVariants() {
                 <text x="66" y="34" fill="#60a5fa" fontSize="6" fontWeight="bold">F</text>
               </svg>
             </div>
-            <div style={{ color: '#94a3b8', lineHeight: 1.6, marginBottom: '16px' }}>
+            <div style={{ color: 'hsl(var(--muted-foreground))', lineHeight: 1.6, marginBottom: '16px' }}>
               Рамка (Frame) с элементами dashboard. Показывает аналитику и контроль.
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -220,7 +220,7 @@ export default function LogoVariants() {
                 <text x="50" y="63" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">TF</text>
               </svg>
             </div>
-            <div style={{ color: '#94a3b8', lineHeight: 1.6, marginBottom: '16px' }}>
+            <div style={{ color: 'hsl(var(--muted-foreground))', lineHeight: 1.6, marginBottom: '16px' }}>
               Чистый минимализм. Просто капля топлива с инициалами. Максимально понятно.
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

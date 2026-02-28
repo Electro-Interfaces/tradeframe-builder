@@ -30,11 +30,11 @@ const StateIcons = {
 };
 
 const StateColors = {
-  loading: 'text-blue-400',
-  error: 'text-red-400',
-  unauthorized: 'text-orange-400',
-  disabled: 'text-slate-400',
-  ready: 'text-green-400'
+  loading: 'text-blue-600 dark:text-blue-400',
+  error: 'text-red-600 dark:text-red-400',
+  unauthorized: 'text-orange-600 dark:text-orange-400',
+  disabled: 'text-muted-foreground',
+  ready: 'text-green-600 dark:text-green-400'
 };
 
 const StateTitles = {
@@ -71,7 +71,7 @@ export function ComponentStateDisplay({
   const description = message || StateDescriptions[state];
 
   return (
-    <Card className={`bg-slate-800 border-slate-700 ${className}`}>
+    <Card className={`bg-card border-border ${className}`}>
       <CardContent className="pt-6">
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <div className="mb-4">
@@ -80,11 +80,11 @@ export function ComponentStateDisplay({
             />
           </div>
           
-          <h3 className="text-xl font-semibold text-white mb-2">
+          <h3 className="text-xl font-semibold text-foreground mb-2">
             {title}
           </h3>
           
-          <p className="text-slate-400 mb-4 max-w-md">
+          <p className="text-muted-foreground mb-4 max-w-md">
             {description}
           </p>
 
@@ -94,7 +94,7 @@ export function ComponentStateDisplay({
               <Button
                 variant="outline"
                 onClick={onRetry}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Повторить
@@ -105,7 +105,7 @@ export function ComponentStateDisplay({
               <Button
                 variant="outline"
                 onClick={() => window.location.href = '/profile'}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 <Lock className="w-4 h-4 mr-2" />
                 Профиль
@@ -115,14 +115,14 @@ export function ComponentStateDisplay({
 
           {/* Подсказки для пользователя */}
           {state === 'unauthorized' && (
-            <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+            <div className="mt-6 p-4 bg-secondary/50 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <EyeOff className="h-5 w-5 text-orange-400 mt-0.5" />
+                <EyeOff className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
                 <div className="text-left">
-                  <div className="text-sm font-medium text-white mb-1">
+                  <div className="text-sm font-medium text-foreground mb-1">
                     Что это значит?
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-muted-foreground">
                     Для доступа к этому разделу необходимы дополнительные права. 
                     Обратитесь к администратору системы для получения доступа.
                   </div>
@@ -132,14 +132,14 @@ export function ComponentStateDisplay({
           )}
 
           {state === 'disabled' && (
-            <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+            <div className="mt-6 p-4 bg-secondary/50 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Power className="h-5 w-5 text-slate-400 mt-0.5" />
+                <Power className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="text-left">
-                  <div className="text-sm font-medium text-white mb-1">
+                  <div className="text-sm font-medium text-foreground mb-1">
                     Временно недоступно
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-muted-foreground">
                     Данная функция отключена для обслуживания. 
                     Попробуйте позже или обратитесь к техническому специалисту.
                   </div>

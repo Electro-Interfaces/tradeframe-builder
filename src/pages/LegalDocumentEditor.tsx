@@ -294,11 +294,11 @@ export default function LegalDocumentEditor() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="min-h-screen bg-background text-foreground p-6">
         <div className="max-w-4xl mx-auto">
           <div className="animate-pulse">
-            <div className="h-8 bg-slate-700 rounded mb-4"></div>
-            <div className="h-64 bg-slate-700 rounded"></div>
+            <div className="h-8 bg-secondary rounded mb-4"></div>
+            <div className="h-64 bg-secondary rounded"></div>
           </div>
         </div>
       </div>
@@ -307,11 +307,11 @@ export default function LegalDocumentEditor() {
 
   if (error && !documentInfo) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="min-h-screen bg-background text-foreground p-6">
         <div className="max-w-4xl mx-auto">
           <Alert className="bg-red-500/10 border-red-500/20">
-            <AlertTriangle className="h-4 w-4 text-red-400" />
-            <AlertDescription className="text-red-300">
+            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-red-600 dark:text-red-300">
               {error}
             </AlertDescription>
           </Alert>
@@ -325,7 +325,7 @@ export default function LegalDocumentEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
+    <div className="min-h-screen bg-background text-foreground p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Заголовок и навигация */}
@@ -336,10 +336,10 @@ export default function LegalDocumentEditor() {
               Назад
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-foreground">
                 {isCreateMode ? 'Создание версии' : isViewMode ? 'Просмотр документа' : 'Редактирование'}
               </h1>
-              <p className="text-slate-400">{documentInfo?.title}</p>
+              <p className="text-muted-foreground">{documentInfo?.title}</p>
             </div>
           </div>
           
@@ -350,7 +350,7 @@ export default function LegalDocumentEditor() {
                   onClick={handleSaveDraft}
                   disabled={isSaving}
                   variant="outline"
-                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                  className="bg-secondary border-border text-foreground hover:bg-secondary"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {isSaving ? 'Сохранение...' : 'Сохранить черновик'}
@@ -374,8 +374,8 @@ export default function LegalDocumentEditor() {
         {/* Уведомления */}
         {error && (
           <Alert className="bg-red-500/10 border-red-500/20">
-            <AlertTriangle className="h-4 w-4 text-red-400" />
-            <AlertDescription className="text-red-300">
+            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-red-600 dark:text-red-300">
               {error}
             </AlertDescription>
           </Alert>
@@ -383,8 +383,8 @@ export default function LegalDocumentEditor() {
         
         {success && (
           <Alert className="bg-emerald-500/10 border-green-500/20">
-            <CheckCircle className="h-4 w-4 text-green-400" />
-            <AlertDescription className="text-green-300">
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <AlertDescription className="text-green-600 dark:text-green-300">
               {success}
             </AlertDescription>
           </Alert>
@@ -407,9 +407,9 @@ export default function LegalDocumentEditor() {
           <div className="space-y-6">
             
             {/* Информация о версии */}
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-foreground flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Метаданные
                 </CardTitle>
@@ -418,39 +418,39 @@ export default function LegalDocumentEditor() {
                 
                 {/* Версия */}
                 <div>
-                  <Label htmlFor="version" className="text-slate-300">Версия</Label>
+                  <Label htmlFor="version" className="text-foreground/80">Версия</Label>
                   <Input
                     id="version"
                     value={formData.version}
                     onChange={(e) => handleInputChange('version', e.target.value)}
                     placeholder="1.0.0"
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                     readOnly={isViewMode}
                   />
                 </div>
 
                 {/* Заголовок */}
                 <div>
-                  <Label htmlFor="title" className="text-slate-300">Заголовок</Label>
+                  <Label htmlFor="title" className="text-foreground/80">Заголовок</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
                     placeholder="Заголовок документа"
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                     readOnly={isViewMode}
                   />
                 </div>
 
                 {/* Changelog */}
                 <div>
-                  <Label htmlFor="changelog" className="text-slate-300">Описание изменений</Label>
+                  <Label htmlFor="changelog" className="text-foreground/80">Описание изменений</Label>
                   <Textarea
                     id="changelog"
                     value={formData.changelog}
                     onChange={(e) => handleInputChange('changelog', e.target.value)}
                     placeholder="Краткое описание изменений в этой версии..."
-                    className="bg-slate-700 border-slate-600 text-white min-h-[100px]"
+                    className="bg-secondary border-border text-foreground min-h-[100px]"
                     readOnly={isViewMode}
                   />
                 </div>
@@ -460,9 +460,9 @@ export default function LegalDocumentEditor() {
 
             {/* Статус версии */}
             {currentVersion && (
-              <Card className="bg-slate-800 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-foreground flex items-center gap-2">
                     <Hash className="w-5 h-5" />
                     Статус
                   </CardTitle>
@@ -470,11 +470,11 @@ export default function LegalDocumentEditor() {
                 <CardContent className="space-y-3">
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Статус:</span>
+                    <span className="text-muted-foreground">Статус:</span>
                     <Badge className={
                       currentVersion.status === 'published' ? 'bg-emerald-600' :
                       currentVersion.status === 'draft' ? 'bg-yellow-600' :
-                      'bg-slate-600'
+                      'bg-secondary'
                     }>
                       {currentVersion.status === 'published' ? 'Опубликован' :
                        currentVersion.status === 'draft' ? 'Черновик' :
@@ -484,10 +484,10 @@ export default function LegalDocumentEditor() {
 
                   {currentVersion.created_at && (
                     <div className="flex items-start gap-2 text-sm">
-                      <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                      <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <div>
-                        <div className="text-slate-400">Создан:</div>
-                        <div className="text-slate-300">
+                        <div className="text-muted-foreground">Создан:</div>
+                        <div className="text-foreground/80">
                           {new Date(currentVersion.created_at).toLocaleString('ru-RU')}
                         </div>
                       </div>
@@ -496,10 +496,10 @@ export default function LegalDocumentEditor() {
 
                   {currentVersion.published_at && (
                     <div className="flex items-start gap-2 text-sm">
-                      <Upload className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                      <Upload className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <div>
-                        <div className="text-slate-400">Опубликован:</div>
-                        <div className="text-slate-300">
+                        <div className="text-muted-foreground">Опубликован:</div>
+                        <div className="text-foreground/80">
                           {new Date(currentVersion.published_at).toLocaleString('ru-RU')}
                         </div>
                       </div>
@@ -508,10 +508,10 @@ export default function LegalDocumentEditor() {
 
                   {currentVersion.editor_name && (
                     <div className="flex items-center gap-2 text-sm">
-                      <User className="w-4 h-4 text-slate-400" />
+                      <User className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <div className="text-slate-400">Автор:</div>
-                        <div className="text-slate-300">{currentVersion.editor_name}</div>
+                        <div className="text-muted-foreground">Автор:</div>
+                        <div className="text-foreground/80">{currentVersion.editor_name}</div>
                       </div>
                     </div>
                   )}
@@ -521,12 +521,12 @@ export default function LegalDocumentEditor() {
             )}
 
             {/* Подсказки */}
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-sm">Подсказки</CardTitle>
+                <CardTitle className="text-foreground text-sm">Подсказки</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-xs text-slate-400 space-y-2">
+                <div className="text-xs text-muted-foreground space-y-2">
                   <p>• Используйте Markdown для форматирования</p>
                   <p>• Черновики можно редактировать многократно</p>
                   <p>• После публикации версия становится неизменяемой</p>

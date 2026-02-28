@@ -317,7 +317,7 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
                             type="checkbox"
                             checked={field.value}
                             onChange={field.onChange}
-                            className="h-4 w-4 rounded border border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="h-4 w-4 rounded border border-border text-blue-600 focus:ring-blue-500"
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">

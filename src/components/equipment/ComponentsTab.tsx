@@ -64,9 +64,9 @@ const getStatusIcon = (status: ComponentStatus) => {
     case 'online': return <CheckCircle2 className="w-4 h-4 text-green-600" />;
     case 'offline': return <AlertCircle className="w-4 h-4 text-yellow-600" />;
     case 'error': return <XCircle className="w-4 h-4 text-red-600" />;
-    case 'disabled': return <PowerOff className="w-4 h-4 text-gray-600" />;
-    case 'archived': return <Archive className="w-4 h-4 text-slate-600" />;
-    default: return <Clock className="w-4 h-4 text-gray-600" />;
+    case 'disabled': return <PowerOff className="w-4 h-4 text-muted-foreground" />;
+    case 'archived': return <Archive className="w-4 h-4 text-muted-foreground" />;
+    default: return <Clock className="w-4 h-4 text-muted-foreground" />;
   }
 };
 
@@ -83,12 +83,12 @@ const getStatusText = (status: ComponentStatus) => {
 
 const getStatusColor = (status: ComponentStatus) => {
   switch (status) {
-    case 'online': return 'bg-emerald-500';
+    case 'online': return 'bg-emerald-600';
     case 'offline': return 'bg-yellow-500';
     case 'error': return 'bg-red-500';
-    case 'disabled': return 'bg-gray-500';
-    case 'archived': return 'bg-slate-500';
-    default: return 'bg-gray-500';
+    case 'disabled': return 'bg-muted-foreground';
+    case 'archived': return 'bg-muted-foreground';
+    default: return 'bg-muted-foreground';
   }
 };
 
@@ -309,16 +309,16 @@ export function ComponentsTab({
         {!loading && !error && components.length > 0 && (
           <div className="space-y-3">
             {components.map(component => (
-              <Card key={component.id} className="bg-slate-800 border-slate-700">
+              <Card key={component.id} className="bg-card border-border">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h3 className="font-medium text-white">{component.display_name}</h3>
-                      <p className="text-sm text-slate-400">
+                      <h3 className="font-medium text-foreground">{component.display_name}</h3>
+                      <p className="text-sm text-muted-foreground">
                         {component.template?.name || "Неизвестный тип"}
                       </p>
                       {component.serial_number && (
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           S/N: {component.serial_number}
                         </p>
                       )}
@@ -367,7 +367,7 @@ export function ComponentsTab({
                   <div className="flex items-center justify-between">
                     <Badge variant="secondary" className={cn(
                       "flex items-center gap-1 text-xs",
-                      "bg-slate-600 text-slate-200"
+                      "bg-secondary text-foreground"
                     )}>
                       <div className={cn("w-2 h-2 rounded-full", getStatusColor(component.status))} />
                       {getStatusText(component.status)}
@@ -487,43 +487,43 @@ export function ComponentsTab({
 
       {/* Таблица компонентов */}
       {!loading && !error && components.length > 0 && (
-        <div className="bg-slate-800 border border-slate-600 rounded-lg overflow-hidden">
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-700">
+            <thead className="bg-secondary">
               <tr>
-                <th className="px-4 py-3 text-left text-slate-200 font-medium">НАЗВАНИЕ</th>
-                <th className="px-4 py-3 text-left text-slate-200 font-medium">ТИП</th>
-                <th className="px-4 py-3 text-left text-slate-200 font-medium">СЕРИЙНЫЙ НОМЕР</th>
-                <th className="px-4 py-3 text-left text-slate-200 font-medium">СТАТУС</th>
-                <th className="px-4 py-3 text-right text-slate-200 font-medium">ДЕЙСТВИЯ</th>
+                <th className="px-4 py-3 text-left text-foreground font-medium">НАЗВАНИЕ</th>
+                <th className="px-4 py-3 text-left text-foreground font-medium">ТИП</th>
+                <th className="px-4 py-3 text-left text-foreground font-medium">СЕРИЙНЫЙ НОМЕР</th>
+                <th className="px-4 py-3 text-left text-foreground font-medium">СТАТУС</th>
+                <th className="px-4 py-3 text-right text-foreground font-medium">ДЕЙСТВИЯ</th>
               </tr>
             </thead>
             <tbody>
               {components.map(component => (
                 <tr
                   key={component.id}
-                  className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors"
+                  className="border-b border-border hover:bg-secondary/50 transition-colors"
                 >
                   <td className="px-4 py-3">
                     <div>
-                      <div className="font-medium text-white">{component.display_name}</div>
+                      <div className="font-medium text-foreground">{component.display_name}</div>
                       {component.template && (
-                        <div className="text-xs text-slate-400 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           {component.template.code}
                         </div>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-400">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {component.template?.name || "Неизвестный тип"}
                   </td>
-                  <td className="px-4 py-3 text-slate-400">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {component.serial_number || "—"}
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant="secondary" className={cn(
                       "flex items-center gap-1 w-fit",
-                      "bg-slate-600 text-slate-200"
+                      "bg-secondary text-foreground"
                     )}>
                       <div className={cn("w-2 h-2 rounded-full", getStatusColor(component.status))} />
                       {getStatusText(component.status)}
@@ -534,7 +534,7 @@ export function ComponentsTab({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => setSelectedComponent(component)}
                       >
                         <Edit className="h-4 w-4" />
@@ -544,7 +544,7 @@ export function ComponentsTab({
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>

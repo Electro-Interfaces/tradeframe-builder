@@ -151,7 +151,7 @@ export function DashboardPeriodSelector({
   return (
     <div className={cn('flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3', className)}>
       {/* Пресеты периода */}
-      <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1 overflow-x-auto">
+      <div className="flex items-center gap-1 bg-card rounded-lg p-1 overflow-x-auto">
         {presets.map((preset) => (
           <Button
             key={preset}
@@ -162,7 +162,7 @@ export function DashboardPeriodSelector({
               'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap',
               period.preset === preset
                 ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                : 'text-foreground/80 hover:text-foreground hover:bg-secondary'
             )}
           >
             {PRESET_LABELS[preset]}
@@ -171,7 +171,7 @@ export function DashboardPeriodSelector({
       </div>
 
       {/* Раздельный выбор дат */}
-      <div className="flex items-center gap-1 sm:gap-2 bg-slate-800 rounded-lg p-1">
+      <div className="flex items-center gap-1 sm:gap-2 bg-card rounded-lg p-1">
         {/* Начальная дата */}
         <Popover open={fromOpen} onOpenChange={setFromOpen}>
           <PopoverTrigger asChild>
@@ -182,7 +182,7 @@ export function DashboardPeriodSelector({
                 'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm',
                 period.preset === 'custom'
                   ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                  : 'text-foreground/80 hover:text-foreground hover:bg-secondary'
               )}
             >
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
@@ -190,8 +190,8 @@ export function DashboardPeriodSelector({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <div className="p-2 border-b border-slate-700 bg-slate-800">
-              <span className="text-sm font-medium text-green-400">Начальная дата</span>
+            <div className="p-2 border-b border-border bg-card">
+              <span className="text-sm font-medium text-green-600 dark:text-green-400">Начальная дата</span>
             </div>
             <CalendarComponent
               mode="single"
@@ -204,7 +204,7 @@ export function DashboardPeriodSelector({
           </PopoverContent>
         </Popover>
 
-        <span className="text-slate-500 text-xs">—</span>
+        <span className="text-muted-foreground text-xs">—</span>
 
         {/* Конечная дата */}
         <Popover open={toOpen} onOpenChange={setToOpen}>
@@ -216,7 +216,7 @@ export function DashboardPeriodSelector({
                 'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm',
                 period.preset === 'custom'
                   ? 'bg-orange-600 text-white hover:bg-orange-700'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                  : 'text-foreground/80 hover:text-foreground hover:bg-secondary'
               )}
             >
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
@@ -224,8 +224,8 @@ export function DashboardPeriodSelector({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <div className="p-2 border-b border-slate-700 bg-slate-800">
-              <span className="text-sm font-medium text-orange-400">Конечная дата</span>
+            <div className="p-2 border-b border-border bg-card">
+              <span className="text-sm font-medium text-orange-600 dark:text-orange-400">Конечная дата</span>
             </div>
             <CalendarComponent
               mode="single"
@@ -240,31 +240,31 @@ export function DashboardPeriodSelector({
       </div>
 
       {/* Отображение выбранного периода - адаптивно */}
-      <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-900/50 to-slate-800 rounded-lg border border-blue-700/30">
-        <CalendarDays className="h-5 w-5 text-blue-400" />
+      <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-900/50 to-card rounded-lg border border-blue-300 dark:border-blue-700/30">
+        <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         <div className="flex flex-col">
-          <span className="text-xs text-slate-400 uppercase tracking-wide">Период</span>
-          <span className="text-sm text-white font-semibold">{formatPeriodLabel(period)}</span>
+          <span className="text-xs text-muted-foreground uppercase tracking-wide">Период</span>
+          <span className="text-sm text-foreground font-semibold">{formatPeriodLabel(period)}</span>
         </div>
-        <div className="h-8 w-px bg-slate-600 mx-1" />
+        <div className="h-8 w-px bg-secondary mx-1" />
         <div className="flex flex-col">
-          <span className="text-xs text-slate-400">Дней</span>
-          <span className="text-sm text-blue-400 font-bold">{calculateDays(period)}</span>
+          <span className="text-xs text-muted-foreground">Дней</span>
+          <span className="text-sm text-blue-600 dark:text-blue-400 font-bold">{calculateDays(period)}</span>
         </div>
       </div>
 
       {/* Мобильная версия периода */}
-      <div className="flex sm:hidden items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-900/50 to-slate-800 rounded-lg border border-blue-700/30">
+      <div className="flex sm:hidden items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-900/50 to-card rounded-lg border border-blue-300 dark:border-blue-700/30">
         <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-blue-400" />
-          <span className="text-xs text-white font-medium">{calculateDays(period)} дн.</span>
+          <CalendarDays className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <span className="text-xs text-foreground font-medium">{calculateDays(period)} дн.</span>
         </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={onRefresh}
           disabled={isLoading}
-          className="h-7 px-2 text-slate-300 hover:text-white"
+          className="h-7 px-2 text-foreground/80 hover:text-foreground"
         >
           <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
         </Button>
@@ -276,7 +276,7 @@ export function DashboardPeriodSelector({
         size="sm"
         onClick={onRefresh}
         disabled={isLoading}
-        className="hidden sm:flex h-8 px-3 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+        className="hidden sm:flex h-8 px-3 border-border text-foreground/80 hover:bg-secondary hover:text-foreground"
       >
         <RefreshCw className={cn('h-4 w-4 mr-1', isLoading && 'animate-spin')} />
         Обновить

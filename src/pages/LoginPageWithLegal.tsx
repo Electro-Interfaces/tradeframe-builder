@@ -32,14 +32,14 @@ const getDefaultLegalDocuments = (): LegalDocument[] => [
     version: '1.0.0',
     content: `
       <div class="legal-document">
-        <h2>Пользовательское соглашение TradeFrame</h2>
+        <h2>Пользовательское соглашение TradeControl</h2>
         <p><strong>Дата вступления в силу:</strong> ${new Date().toLocaleDateString('ru-RU')}</p>
 
         <h3>1. Общие положения</h3>
-        <p>Настоящее Пользовательское соглашение регулирует отношения между администрацией системы TradeFrame и пользователями системы.</p>
+        <p>Настоящее Пользовательское соглашение регулирует отношения между администрацией системы TradeControl и пользователями системы.</p>
 
         <h3>2. Предмет соглашения</h3>
-        <p>TradeFrame предоставляет пользователям доступ к системе управления торговыми сетями и АЗС, включая:</p>
+        <p>TradeControl предоставляет пользователям доступ к системе управления торговыми сетями и АЗС, включая:</p>
         <ul>
           <li>Управление операциями и транзакциями</li>
           <li>Контроль цен на топливо</li>
@@ -56,7 +56,7 @@ const getDefaultLegalDocuments = (): LegalDocument[] => [
         </ul>
 
         <h3>4. Ответственность</h3>
-        <p>Администрация TradeFrame не несет ответственности за убытки, возникшие вследствие неправильного использования системы.</p>
+        <p>Администрация TradeControl не несет ответственности за убытки, возникшие вследствие неправильного использования системы.</p>
 
         <h3>5. Изменения соглашения</h3>
         <p>Администрация оставляет за собой право изменять настоящее соглашение с уведомлением пользователей.</p>
@@ -69,7 +69,7 @@ const getDefaultLegalDocuments = (): LegalDocument[] => [
     version: '1.0.0',
     content: `
       <div class="legal-document">
-        <h2>Политика конфиденциальности TradeFrame</h2>
+        <h2>Политика конфиденциальности TradeControl</h2>
         <p><strong>Дата вступления в силу:</strong> ${new Date().toLocaleDateString('ru-RU')}</p>
 
         <h3>1. Общие положения</h3>
@@ -136,7 +136,7 @@ const getDefaultLegalDocuments = (): LegalDocument[] => [
         <h3>Цели обработки</h3>
         <p>Персональные данные обрабатываются в следующих целях:</p>
         <ul>
-          <li>Предоставление доступа к системе TradeFrame</li>
+          <li>Предоставление доступа к системе TradeControl</li>
           <li>Ведение учета пользователей</li>
           <li>Обеспечение обратной связи</li>
           <li>Выполнение договорных обязательств</li>
@@ -165,7 +165,7 @@ const getMobileLegalDocuments = (): LegalDocument[] => [
     type: 'tos',
     title: 'Пользовательское соглашение',
     version: '1.0.0-mobile',
-    content: '<p>Краткая версия пользовательского соглашения для мобильных устройств. Используя TradeFrame, вы соглашаетесь с условиями использования системы управления торговыми сетями.</p>'
+    content: '<p>Краткая версия пользовательского соглашения для мобильных устройств. Используя TradeControl, вы соглашаетесь с условиями использования системы управления торговыми сетями.</p>'
   },
   {
     type: 'privacy',
@@ -177,7 +177,7 @@ const getMobileLegalDocuments = (): LegalDocument[] => [
     type: 'pdn',
     title: 'Согласие на обработку ПДн',
     version: '1.0.0-mobile',
-    content: '<p>Даю согласие на обработку персональных данных в соответствии с ФЗ-152 для использования системы TradeFrame.</p>'
+    content: '<p>Даю согласие на обработку персональных данных в соответствии с ФЗ-152 для использования системы TradeControl.</p>'
   }
 ];
 
@@ -408,7 +408,7 @@ const LoginPageWithLegal = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2 ${
+    <div className={`min-h-screen bg-gradient-to-br from-background via-muted to-background p-2 ${
       mobileInfo.isMobile ? 'mobile-no-select mobile-scroll mobile-safe-top mobile-safe-bottom flex flex-col' : 'flex items-center justify-center'
     }`} style={mobileInfo.isMobile ? { height: 'var(--vh, 100vh)' } : {}}>
       <div className={`w-full space-y-2 ${
@@ -419,19 +419,19 @@ const LoginPageWithLegal = () => {
           <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-600 rounded-full mb-1">
             <Shield className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-white mb-0.5">TradeFrame</h1>
-          <p className="text-xs text-slate-400">Система управления АЗС</p>
+          <h1 className="text-xl font-bold text-foreground mb-0.5">TradeControl</h1>
+          <p className="text-xs text-muted-foreground">Система управления АЗС</p>
         </div>
 
         {/* Форма входа */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-white">Вход в систему</CardTitle>
+            <CardTitle className="text-base text-foreground">Вход в систему</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <form onSubmit={handleSubmit} className="space-y-2">
               <div>
-                <Label htmlFor="email" className="text-xs text-slate-200">Email</Label>
+                <Label htmlFor="email" className="text-xs text-foreground/90">Email</Label>
                 <Input
                   id="email"
                   name="email"
@@ -439,14 +439,14 @@ const LoginPageWithLegal = () => {
                   placeholder="user@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-8 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-sm mt-1"
+                  className="h-8 bg-input border-border text-foreground placeholder:text-muted-foreground text-sm mt-1"
                   required
                   autoComplete="email"
                 />
               </div>
 
               <div>
-                <Label htmlFor="password" className="text-xs text-slate-200">Пароль</Label>
+                <Label htmlFor="password" className="text-xs text-foreground/90">Пароль</Label>
                 <div className="relative mt-1">
                   <Input
                     id="password"
@@ -455,7 +455,7 @@ const LoginPageWithLegal = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 pr-10 h-8 text-sm"
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10 h-8 text-sm"
                     required
                     autoComplete="off"
                   />
@@ -463,7 +463,7 @@ const LoginPageWithLegal = () => {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-1.5 hover:bg-transparent text-slate-400"
+                    className="absolute right-0 top-0 h-full px-1.5 hover:bg-transparent text-muted-foreground"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
@@ -472,21 +472,21 @@ const LoginPageWithLegal = () => {
               </div>
 
               {/* Правовые документы */}
-              <div className="space-y-1 p-2 bg-slate-700/50 rounded-lg border border-slate-600">
+              <div className="space-y-1 p-2 bg-muted rounded-lg border border-border">
                 <div className="flex items-start space-x-2">
                   <Checkbox 
                     id="terms"
                     checked={acceptedTerms}
                     onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
-                    className="mt-1 border-slate-500 data-[state=checked]:bg-blue-600"
+                    className="mt-1 border-border data-[state=checked]:bg-blue-600"
                   />
                   <div className="space-y-1">
-                    <Label htmlFor="terms" className="text-xs text-slate-300 cursor-pointer">
+                    <Label htmlFor="terms" className="text-xs text-muted-foreground cursor-pointer">
                       Я принимаю{' '}
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-xs text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
                         onClick={() => setShowTermsDialog(true)}
                       >
                         Пользовательское соглашение
@@ -500,15 +500,15 @@ const LoginPageWithLegal = () => {
                     id="privacy"
                     checked={acceptedPrivacy}
                     onCheckedChange={(checked) => setAcceptedPrivacy(checked as boolean)}
-                    className="mt-1 border-slate-500 data-[state=checked]:bg-blue-600"
+                    className="mt-1 border-border data-[state=checked]:bg-blue-600"
                   />
                   <div className="space-y-1">
-                    <Label htmlFor="privacy" className="text-xs text-slate-300 cursor-pointer">
+                    <Label htmlFor="privacy" className="text-xs text-muted-foreground cursor-pointer">
                       Я согласен с{' '}
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-xs text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
                         onClick={() => setShowPrivacyDialog(true)}
                       >
                         Политикой конфиденциальности
@@ -522,15 +522,15 @@ const LoginPageWithLegal = () => {
                     id="pdn"
                     checked={acceptedPdn}
                     onCheckedChange={(checked) => setAcceptedPdn(checked as boolean)}
-                    className="mt-1 border-slate-500 data-[state=checked]:bg-blue-600"
+                    className="mt-1 border-border data-[state=checked]:bg-blue-600"
                   />
                   <div className="space-y-1">
-                    <Label htmlFor="pdn" className="text-xs text-slate-300 cursor-pointer">
+                    <Label htmlFor="pdn" className="text-xs text-muted-foreground cursor-pointer">
                       Я ознакомлен с положением о{' '}
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-xs text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
                         onClick={() => setShowPdnDialog(true)}
                       >
                         Защите персональных данных
@@ -546,15 +546,15 @@ const LoginPageWithLegal = () => {
                   id="remember"
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  className="border-slate-500 data-[state=checked]:bg-blue-600 h-3 w-3"
+                  className="border-border data-[state=checked]:bg-blue-600 h-3 w-3"
                 />
-                <Label htmlFor="remember" className="text-xs text-slate-300 cursor-pointer">
+                <Label htmlFor="remember" className="text-xs text-muted-foreground cursor-pointer">
                   Запомнить меня
                 </Label>
               </div>
 
               {error && (
-                <Alert variant="destructive" className="bg-red-900/50 border-red-800">
+                <Alert variant="destructive" className="bg-red-100 dark:bg-red-900/50 border-red-800">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -584,7 +584,7 @@ const LoginPageWithLegal = () => {
 
         {/* Информация о безопасности - супер компактная */}
         <div className="text-center">
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-muted-foreground/50">
             {VERSION_INFO.copyright}
           </p>
         </div>
@@ -592,14 +592,14 @@ const LoginPageWithLegal = () => {
 
       {/* Диалог пользовательского соглашения */}
       <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
-        <DialogContent className="max-w-3xl max-h-[80vh] bg-slate-800 border-slate-700">
+        <DialogContent className="max-w-3xl max-h-[80vh] bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Пользовательское соглашение</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Пользовательское соглашение</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Версия: {legalDocuments.find(d => d.type === 'tos')?.version || '1.0.0'}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-[60vh] w-full rounded-md border border-slate-700 p-4">
+          <ScrollArea className="h-[60vh] w-full rounded-md border border-border p-4">
             <div 
               className="prose prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(getTermsContent()) }}
@@ -621,14 +621,14 @@ const LoginPageWithLegal = () => {
 
       {/* Диалог политики конфиденциальности */}
       <Dialog open={showPrivacyDialog} onOpenChange={setShowPrivacyDialog}>
-        <DialogContent className="max-w-3xl max-h-[80vh] bg-slate-800 border-slate-700">
+        <DialogContent className="max-w-3xl max-h-[80vh] bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Политика конфиденциальности</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Политика конфиденциальности</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Версия: {legalDocuments.find(d => d.type === 'privacy')?.version || '1.0.0'}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-[60vh] w-full rounded-md border border-slate-700 p-4">
+          <ScrollArea className="h-[60vh] w-full rounded-md border border-border p-4">
             <div 
               className="prose prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(getPrivacyContent()) }}
@@ -650,14 +650,14 @@ const LoginPageWithLegal = () => {
 
       {/* Диалог защиты персональных данных */}
       <Dialog open={showPdnDialog} onOpenChange={setShowPdnDialog}>
-        <DialogContent className="max-w-3xl max-h-[80vh] bg-slate-800 border-slate-700">
+        <DialogContent className="max-w-3xl max-h-[80vh] bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Положение о защите персональных данных</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Положение о защите персональных данных</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Версия: {legalDocuments.find(d => d.type === 'pdn')?.version || '1.0.0'}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-[60vh] w-full rounded-md border border-slate-700 p-4">
+          <ScrollArea className="h-[60vh] w-full rounded-md border border-border p-4">
             <div 
               className="prose prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(getPdnContent()) }}

@@ -1,7 +1,7 @@
 {
   "name": "tradeframe-backend-proxy",
   "version": "1.0.0",
-  "description": "Backend proxy server for TradeFrame Builder to securely handle STS API authentication",
+  "description": "Backend proxy server for TradeControl Builder to securely handle STS API authentication",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
@@ -14,7 +14,7 @@
     "express",
     "sts-api"
   ],
-  "author": "TradeFrame Team",
+  "author": "TradeControl Team",
   "license": "MIT",
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

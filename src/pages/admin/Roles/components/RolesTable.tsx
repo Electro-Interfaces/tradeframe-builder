@@ -20,35 +20,35 @@ export function RolesTable({
 }: RolesTableProps) {
   if (isLoading) {
     return (
-      <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+      <div className="overflow-x-auto w-full rounded-lg border border-border">
         <table className="w-full text-sm min-w-full table-fixed">
-          <thead className="bg-slate-700">
+          <thead className="bg-secondary">
             <tr>
-              <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[25%]">Название роли</th>
-              <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[15%]">Код</th>
-              <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[15%]">Область</th>
-              <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[15%]">Разрешения</th>
-              <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[15%]">Статус</th>
-              <th className="px-4 py-3 text-right text-slate-200 font-medium text-xs uppercase w-[15%]">Действия</th>
+              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[25%]">Название роли</th>
+              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Код</th>
+              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Область</th>
+              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Разрешения</th>
+              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Статус</th>
+              <th className="px-4 py-3 text-right text-foreground font-medium text-xs uppercase w-[15%]">Действия</th>
             </tr>
           </thead>
-          <tbody className="bg-slate-800">
+          <tbody className="bg-card">
             {[...Array(5)].map((_, i) => (
-              <tr key={i} className="border-b border-slate-600">
+              <tr key={i} className="border-b border-border">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Skeleton className="w-7 h-7 rounded-lg bg-slate-700" />
+                    <Skeleton className="w-7 h-7 rounded-lg bg-secondary" />
                     <div className="space-y-1">
-                      <Skeleton className="h-4 w-32 bg-slate-700" />
-                      <Skeleton className="h-3 w-48 bg-slate-700" />
+                      <Skeleton className="h-4 w-32 bg-secondary" />
+                      <Skeleton className="h-3 w-48 bg-secondary" />
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3"><Skeleton className="h-5 w-24 bg-slate-700" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-5 w-20 bg-slate-700" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-4 w-8 bg-slate-700" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-5 w-16 bg-slate-700" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-7 w-16 bg-slate-700 ml-auto" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-5 w-24 bg-secondary" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-5 w-20 bg-secondary" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-8 bg-secondary" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-5 w-16 bg-secondary" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-7 w-16 bg-secondary ml-auto" /></td>
               </tr>
             ))}
           </tbody>
@@ -58,41 +58,41 @@ export function RolesTable({
   }
 
   return (
-    <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+    <div className="overflow-x-auto w-full rounded-lg border border-border">
       <table className="w-full text-sm min-w-full table-fixed">
-        <thead className="bg-slate-700">
+        <thead className="bg-secondary">
           <tr>
-            <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[25%]">Название роли</th>
-            <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[15%]">Код</th>
-            <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[15%]">Область</th>
-            <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[15%]">Разрешения</th>
-            <th className="px-4 py-3 text-left text-slate-200 font-medium text-xs uppercase w-[15%]">Статус</th>
-            <th className="px-4 py-3 text-right text-slate-200 font-medium text-xs uppercase w-[15%]">Действия</th>
+            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[25%]">Название роли</th>
+            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Код</th>
+            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Область</th>
+            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Разрешения</th>
+            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Статус</th>
+            <th className="px-4 py-3 text-right text-foreground font-medium text-xs uppercase w-[15%]">Действия</th>
           </tr>
         </thead>
-        <tbody className="bg-slate-800">
+        <tbody className="bg-card">
           {roles.map((role) => (
             <tr
               key={role.id}
-              className="border-b border-slate-600 hover:bg-slate-700 transition-colors"
+              className="border-b border-border hover:bg-secondary transition-colors"
             >
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Shield className="w-3.5 h-3.5 text-slate-300" />
+                  <div className="w-7 h-7 bg-secondary rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Shield className="w-3.5 h-3.5 text-foreground/80" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-white text-sm truncate">
+                    <div className="font-medium text-foreground text-sm truncate">
                       {role.name}
                     </div>
-                    <div className="text-xs text-slate-400 truncate">
+                    <div className="text-xs text-muted-foreground truncate">
                       {role.description}
                     </div>
                   </div>
                 </div>
               </td>
               <td className="px-4 py-3">
-                <code className="bg-slate-600 text-slate-200 px-2 py-0.5 rounded text-xs">
+                <code className="bg-secondary text-foreground px-2 py-0.5 rounded text-xs">
                   {role.code}
                 </code>
               </td>
@@ -105,7 +105,7 @@ export function RolesTable({
                 </Badge>
               </td>
               <td className="px-4 py-3">
-                <span className="text-white text-sm">{role.permissions.length}</span>
+                <span className="text-foreground text-sm">{role.permissions.length}</span>
               </td>
               <td className="px-4 py-3">
                 <Badge
@@ -120,7 +120,7 @@ export function RolesTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary"
                     onClick={() => onEdit(role)}
                     title="Редактировать роль"
                   >
@@ -129,7 +129,7 @@ export function RolesTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0 text-slate-400 hover:text-red-400 hover:bg-slate-700"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400 hover:bg-secondary"
                     onClick={() => onDelete(role)}
                     title="Удалить роль"
                   >

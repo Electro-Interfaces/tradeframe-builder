@@ -55,22 +55,22 @@ export function TradingPointsTable({
 }: TradingPointsTableProps) {
   if (loading) {
     return (
-      <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+      <div className="overflow-x-auto w-full rounded-lg border border-border">
         <table className="w-full text-sm min-w-full">
-          <thead className="bg-slate-700">
+          <thead className="bg-secondary">
             <tr>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[6%]">API ID</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[24%]">НАЗВАНИЕ</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[14%]">ВНЕШНИЕ КОДЫ</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[20%]">АДРЕС</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[10%]">ТЕЛЕФОН</th>
-              <th className="px-4 py-4 text-right text-slate-200 font-medium w-[10%]">ОБНОВЛЕНО</th>
-              <th className="px-4 py-4 text-right text-slate-200 font-medium w-[16%]">ДЕЙСТВИЯ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[6%]">API ID</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[24%]">НАЗВАНИЕ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[14%]">ВНЕШНИЕ КОДЫ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[20%]">АДРЕС</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[10%]">ТЕЛЕФОН</th>
+              <th className="px-4 py-4 text-right text-foreground font-medium w-[10%]">ОБНОВЛЕНО</th>
+              <th className="px-4 py-4 text-right text-foreground font-medium w-[16%]">ДЕЙСТВИЯ</th>
             </tr>
           </thead>
-          <tbody className="bg-slate-800">
+          <tbody className="bg-card">
             <tr>
-              <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+              <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
                 Загрузка торговых точек...
               </td>
             </tr>
@@ -82,22 +82,22 @@ export function TradingPointsTable({
 
   if (tradingPoints.length === 0) {
     return (
-      <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+      <div className="overflow-x-auto w-full rounded-lg border border-border">
         <table className="w-full text-sm min-w-full">
-          <thead className="bg-slate-700">
+          <thead className="bg-secondary">
             <tr>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[6%]">API ID</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[24%]">НАЗВАНИЕ</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[14%]">ВНЕШНИЕ КОДЫ</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[20%]">АДРЕС</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[10%]">ТЕЛЕФОН</th>
-              <th className="px-4 py-4 text-right text-slate-200 font-medium w-[10%]">ОБНОВЛЕНО</th>
-              <th className="px-4 py-4 text-right text-slate-200 font-medium w-[16%]">ДЕЙСТВИЯ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[6%]">API ID</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[24%]">НАЗВАНИЕ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[14%]">ВНЕШНИЕ КОДЫ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[20%]">АДРЕС</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[10%]">ТЕЛЕФОН</th>
+              <th className="px-4 py-4 text-right text-foreground font-medium w-[10%]">ОБНОВЛЕНО</th>
+              <th className="px-4 py-4 text-right text-foreground font-medium w-[16%]">ДЕЙСТВИЯ</th>
             </tr>
           </thead>
-          <tbody className="bg-slate-800">
+          <tbody className="bg-card">
             <tr>
-              <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+              <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
                 Нет торговых точек в этой сети
               </td>
             </tr>
@@ -109,34 +109,34 @@ export function TradingPointsTable({
 
   return (
     <TooltipProvider>
-      <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+      <div className="overflow-x-auto w-full rounded-lg border border-border">
         <table className="w-full text-sm min-w-full table-fixed">
-          <thead className="bg-slate-700">
+          <thead className="bg-secondary">
             <tr>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[6%]">API ID</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[24%]">НАЗВАНИЕ</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[14%]">ВНЕШНИЕ КОДЫ</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[20%]">АДРЕС</th>
-              <th className="px-4 py-4 text-left text-slate-200 font-medium w-[10%]">ТЕЛЕФОН</th>
-              <th className="px-4 py-4 text-right text-slate-200 font-medium w-[10%]">ОБНОВЛЕНО</th>
-              <th className="px-4 py-4 text-right text-slate-200 font-medium w-[16%]">ДЕЙСТВИЯ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[6%]">API ID</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[24%]">НАЗВАНИЕ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[14%]">ВНЕШНИЕ КОДЫ</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[20%]">АДРЕС</th>
+              <th className="px-4 py-4 text-left text-foreground font-medium w-[10%]">ТЕЛЕФОН</th>
+              <th className="px-4 py-4 text-right text-foreground font-medium w-[10%]">ОБНОВЛЕНО</th>
+              <th className="px-4 py-4 text-right text-foreground font-medium w-[16%]">ДЕЙСТВИЯ</th>
             </tr>
           </thead>
-          <tbody className="bg-slate-800">
+          <tbody className="bg-card">
             {tradingPoints.map((point) => {
               const externalCodesInfo = formatExternalCodes(point.externalCodes || []);
               return (
-                <tr key={point.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
+                <tr key={point.id} className="border-b border-border hover:bg-secondary transition-colors">
                   <td className="px-4 py-4">
-                    <span className="text-xs bg-blue-900/50 text-blue-300 px-2 py-1 rounded font-mono">
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-1 rounded font-mono">
                       {point.external_id || '—'}
                     </span>
                   </td>
                   <td className="px-4 py-4">
                     <div>
-                      <div className="text-white font-medium text-base">{point.name}</div>
+                      <div className="text-foreground font-medium text-base">{point.name}</div>
                       {point.description && (
-                        <div className="text-xs text-slate-400 mt-1 line-clamp-2">{point.description}</div>
+                        <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{point.description}</div>
                       )}
                     </div>
                   </td>
@@ -150,7 +150,7 @@ export function TradingPointsTable({
                               .map(code => (
                                 <span 
                                   key={code.id} 
-                                  className="text-xs bg-emerald-900/50 text-emerald-300 px-2 py-0.5 rounded font-mono"
+                                  className="text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded font-mono"
                                 >
                                   {code.system.toUpperCase()}: {code.code}
                                 </span>
@@ -163,14 +163,14 @@ export function TradingPointsTable({
                         </TooltipContent>
                       </Tooltip>
                     ) : (
-                      <span className="text-slate-500">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-slate-400">
+                  <td className="px-4 py-4 text-muted-foreground">
                     {point.geolocation?.address || point.geolocation?.city || '—'}
                   </td>
-                  <td className="px-4 py-4 text-slate-400">{point.phone || '—'}</td>
-                  <td className="px-4 py-4 text-right text-slate-400">
+                  <td className="px-4 py-4 text-muted-foreground">{point.phone || '—'}</td>
+                  <td className="px-4 py-4 text-right text-muted-foreground">
                     {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') :
                      point.createdAt ? new Date(point.createdAt).toLocaleDateString('ru-RU') : '—'}
                   </td>
@@ -179,7 +179,7 @@ export function TradingPointsTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => onEdit(point)}
                         disabled={actionLoading === `edit-${point.id}` || actionLoading === `delete-${point.id}`}
                       >
@@ -188,7 +188,7 @@ export function TradingPointsTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
                         onClick={() => onDelete(point)}
                         disabled={actionLoading === `edit-${point.id}` || actionLoading === `delete-${point.id}`}
                       >

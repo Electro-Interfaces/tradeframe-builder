@@ -93,21 +93,21 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
   }
 
   return (
-    <div className={cn('bg-slate-800 rounded-xl border border-slate-700', className)}>
+    <div className={cn('bg-card rounded-xl border border-border', className)}>
       {/* Заголовок */}
       <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50"
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-emerald-400" />
-          <h3 className="text-sm font-medium text-white">Детализация по ТТН</h3>
-          <span className="text-xs text-slate-500">({receipts.length} записей)</span>
+          <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <h3 className="text-sm font-medium text-foreground">Детализация по ТТН</h3>
+          <span className="text-xs text-muted-foreground">({receipts.length} записей)</span>
         </div>
         {expanded ? (
-          <ChevronUp className="w-5 h-5 text-slate-400" />
+          <ChevronUp className="w-5 h-5 text-muted-foreground" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-slate-400" />
+          <ChevronDown className="w-5 h-5 text-muted-foreground" />
         )}
       </div>
 
@@ -115,10 +115,10 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
       {expanded && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-900/50">
+            <thead className="bg-background/50">
               <tr>
                 <th
-                  className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                  className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('datetime')}
                 >
                   <div className="flex items-center gap-1">
@@ -126,7 +126,7 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                  className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('ttn')}
                 >
                   <div className="flex items-center gap-1">
@@ -134,18 +134,18 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                  className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('fuelName')}
                 >
                   <div className="flex items-center gap-1">
                     Топливо <SortIcon field="fuelName" />
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   Резервуар
                 </th>
                 <th
-                  className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                  className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('docVolume')}
                 >
                   <div className="flex items-center justify-end gap-1">
@@ -153,7 +153,7 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                  className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('factVolume')}
                 >
                   <div className="flex items-center justify-end gap-1">
@@ -161,29 +161,29 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
+                  className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('volumeDiff')}
                 >
                   <div className="flex items-center justify-end gap-1">
                     Разница <SortIcon field="volumeDiff" />
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   Нефтебаза
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   Станция
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-border">
               {isLoading ? (
                 // Скелетон загрузки
                 [...Array(3)].map((_, i) => (
                   <tr key={i}>
                     {[...Array(9)].map((_, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-4 bg-slate-700 rounded animate-pulse" />
+                        <div className="h-4 bg-secondary rounded animate-pulse" />
                       </td>
                     ))}
                   </tr>
@@ -194,11 +194,11 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
                   const isNegative = receipt.volumeDiff < 0;
 
                   return (
-                    <tr key={`${receipt.ttn}-${idx}`} className="hover:bg-slate-700/30">
-                      <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
+                    <tr key={`${receipt.ttn}-${idx}`} className="hover:bg-secondary/30">
+                      <td className="px-4 py-3 text-foreground/80 whitespace-nowrap">
                         {formatDate(receipt.datetime)}
                       </td>
-                      <td className="px-4 py-3 text-white font-medium">
+                      <td className="px-4 py-3 text-foreground font-medium">
                         {receipt.ttn}
                       </td>
                       <td className="px-4 py-3">
@@ -207,37 +207,37 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
                             className="w-2 h-2 rounded-full"
                             style={{ backgroundColor: receipt.color || '#3b82f6' }}
                           />
-                          <span className="text-slate-300">{receipt.fuelName}</span>
+                          <span className="text-foreground/80">{receipt.fuelName}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-400">
+                      <td className="px-4 py-3 text-muted-foreground">
                         №{receipt.tankNumber}
                       </td>
-                      <td className="px-4 py-3 text-right text-slate-300">
+                      <td className="px-4 py-3 text-right text-foreground/80">
                         {formatVolume(receipt.docVolume)}
                       </td>
-                      <td className="px-4 py-3 text-right text-blue-400">
+                      <td className="px-4 py-3 text-right text-blue-600 dark:text-blue-400">
                         {formatVolume(receipt.factVolume)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {isPositive && <TrendingUp className="w-3 h-3 text-green-400" />}
-                          {isNegative && <TrendingDown className="w-3 h-3 text-red-400" />}
-                          {!isPositive && !isNegative && <Minus className="w-3 h-3 text-slate-400" />}
+                          {isPositive && <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400" />}
+                          {isNegative && <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400" />}
+                          {!isPositive && !isNegative && <Minus className="w-3 h-3 text-muted-foreground" />}
                           <span className={cn(
                             'font-medium',
-                            isPositive && 'text-green-400',
-                            isNegative && 'text-red-400',
-                            !isPositive && !isNegative && 'text-slate-400'
+                            isPositive && 'text-green-600 dark:text-green-400',
+                            isNegative && 'text-red-600 dark:text-red-400',
+                            !isPositive && !isNegative && 'text-muted-foreground'
                           )}>
                             {isPositive && '+'}{formatVolume(receipt.volumeDiff)}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-400">
+                      <td className="px-4 py-3 text-muted-foreground">
                         {receipt.baseName}
                       </td>
-                      <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                         {receipt.stationName || `Станция ${receipt.stationCode}`}
                       </td>
                     </tr>

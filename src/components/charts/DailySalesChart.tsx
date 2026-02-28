@@ -19,15 +19,15 @@ export const DailySalesChart = memo(function DailySalesChart({
 
   if (!data || data.length === 0) {
     return (
-      <Card className="bg-slate-800 border-slate-600">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-4">
-          <CardTitle className="text-white text-lg flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-green-400" />
+          <CardTitle className="text-foreground text-lg flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
             Реализация по дням
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 pb-2">
-          <div className="flex items-center justify-center h-80 text-slate-400">
+          <div className="flex items-center justify-center h-80 text-muted-foreground">
             <p>Нет данных за выбранный период</p>
           </div>
         </CardContent>
@@ -36,11 +36,11 @@ export const DailySalesChart = memo(function DailySalesChart({
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-600">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-lg flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-green-400" />
+          <CardTitle className="text-foreground text-lg flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
             Реализация по дням ({data.length} дней)
           </CardTitle>
         </div>
@@ -58,18 +58,18 @@ export const DailySalesChart = memo(function DailySalesChart({
             >
               <XAxis
                 dataKey="displayDate"
-                stroke="#94a3b8"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={isMobile ? 10 : 11}
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 angle={isMobile ? -90 : -45}
                 textAnchor="end"
                 height={isMobile ? 40 : 60}
                 interval={isMobile ? "preserveStartEnd" : 0}
               />
               <YAxis
-                stroke="#94a3b8"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={isMobile ? 10 : 11}
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 tickFormatter={(value) => isMobile ? `${Math.round(value / 1000)}к` : `${Math.round(value / 1000)}к ₽`}
                 width={isMobile ? 25 : 60}
               />
@@ -81,10 +81,10 @@ export const DailySalesChart = memo(function DailySalesChart({
 
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
-                      <p className="text-white font-medium mb-2">{label}</p>
+                    <div className="bg-background/95 border border-border rounded-lg p-3 shadow-xl backdrop-blur-sm">
+                      <p className="text-foreground font-medium mb-2">{label}</p>
                       <div className="space-y-1">
-                        <p className="text-slate-300 flex justify-between">
+                        <p className="text-foreground/80 flex justify-between">
                           <span>Общая выручка:</span>
                           <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
                         </p>
@@ -100,7 +100,7 @@ export const DailySalesChart = memo(function DailySalesChart({
                               </p>
                             );
                           })}
-                        <p className="text-blue-400 flex justify-between">
+                        <p className="text-blue-600 dark:text-blue-400 flex justify-between">
                           <span>Операции:</span>
                           <span className="font-medium">{data.operations}</span>
                         </p>

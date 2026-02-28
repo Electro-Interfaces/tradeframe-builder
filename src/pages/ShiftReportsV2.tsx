@@ -181,7 +181,7 @@ export default function ShiftReportsV2() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-semibold text-white">Сменные отчеты</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Сменные отчеты</h1>
             <LastDataTransfer />
           </div>
           <div className="flex gap-2">
@@ -189,7 +189,7 @@ export default function ShiftReportsV2() {
               variant="outline"
               size="sm"
               onClick={() => navigate('/point/shift-dashboard')}
-              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200"
+              className="bg-secondary border-border hover:bg-secondary text-foreground"
             >
               <LayoutDashboard className="w-4 h-4 mr-2" />
               Дашборд
@@ -198,7 +198,7 @@ export default function ShiftReportsV2() {
               variant="outline"
               size="sm"
               onClick={() => setIsReceiptsModalOpen(true)}
-              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200"
+              className="bg-secondary border-border hover:bg-secondary text-foreground"
             >
               <Receipt className="w-4 h-4 mr-2" />
               Чеки
@@ -207,7 +207,7 @@ export default function ShiftReportsV2() {
               variant="outline"
               size="sm"
               onClick={() => setIsReconciliationModalOpen(true)}
-              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200"
+              className="bg-secondary border-border hover:bg-secondary text-foreground"
             >
               <FileCheck className="w-4 h-4 mr-2" />
               Сверки
@@ -226,11 +226,11 @@ export default function ShiftReportsV2() {
         </div>
 
         {/* Журнал смен */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 md:p-6">
+        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-foreground">
               Журнал смен
-              <span className="text-slate-400 ml-2 font-normal text-sm">
+              <span className="text-muted-foreground ml-2 font-normal text-sm">
                 ({filteredShifts.length} из {shifts.length})
               </span>
             </h2>
@@ -269,13 +269,13 @@ export default function ShiftReportsV2() {
 
         {/* Модальное окно "Сверки" */}
         <Dialog open={isReconciliationModalOpen} onOpenChange={setIsReconciliationModalOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-green-400" />
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <FileCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
                 Сверки
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-muted-foreground">
                 Сверка данных по сменам
               </DialogDescription>
             </DialogHeader>
@@ -286,16 +286,16 @@ export default function ShiftReportsV2() {
                   setIsReconciliationModalOpen(false);
                   setIsCorpCardsParamsOpen(true);
                 }}
-                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-green-600/50 hover:bg-slate-700 hover:border-green-500 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg border border-green-600/50 hover:bg-secondary hover:border-green-500 transition-colors cursor-pointer"
               >
                 <div>
-                  <p className="text-slate-200 font-medium flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-green-400" />
+                  <p className="text-foreground font-medium flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-green-600 dark:text-green-400" />
                     Корпоративные карты
                   </p>
-                  <p className="text-slate-500 text-sm">Сверка операций по корпоративным картам с TradeCorp</p>
+                  <p className="text-muted-foreground text-sm">Сверка операций по корпоративным картам с TradeCorp</p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-emerald-900/20">
+                <Button variant="ghost" size="sm" className="text-green-600 dark:text-green-400 hover:text-green-300 hover:bg-emerald-900/20">
                   Открыть
                 </Button>
               </div>
@@ -306,27 +306,27 @@ export default function ShiftReportsV2() {
                   setIsReconciliationModalOpen(false);
                   setIsMstoParamsOpen(true);
                 }}
-                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-cyan-600/50 hover:bg-slate-700 hover:border-cyan-500 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg border border-cyan-600/50 hover:bg-secondary hover:border-cyan-500 transition-colors cursor-pointer"
               >
                 <div>
-                  <p className="text-slate-200 font-medium flex items-center gap-2">
-                    <Smartphone className="w-4 h-4 text-cyan-400" />
+                  <p className="text-foreground font-medium flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                     Онлайн заказы
                   </p>
-                  <p className="text-slate-500 text-sm">Сверка операций Яндекс, FuelUp и др. с MSTO</p>
+                  <p className="text-muted-foreground text-sm">Сверка операций Яндекс, FuelUp и др. с MSTO</p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20">
+                <Button variant="ghost" size="sm" className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20">
                   Открыть
                 </Button>
               </div>
 
               {/* Эквайринг - в разработке */}
               <div
-                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 opacity-60 cursor-not-allowed"
+                className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg border border-border opacity-60 cursor-not-allowed"
               >
                 <div>
-                  <p className="text-slate-200 font-medium">Эквайринг</p>
-                  <p className="text-slate-500 text-sm">Сверка операций эквайринга</p>
+                  <p className="text-foreground font-medium">Эквайринг</p>
+                  <p className="text-muted-foreground text-sm">Сверка операций эквайринга</p>
                 </div>
                 <div className="flex items-center gap-2 text-amber-500">
                   <Construction className="w-5 h-5" />
@@ -347,7 +347,7 @@ export default function ShiftReportsV2() {
 
         {/* Модальное окно результатов сверки корп. карт */}
         <Dialog open={isCorpCardsResultOpen} onOpenChange={setIsCorpCardsResultOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-card border-border max-w-6xl max-h-[90vh] overflow-y-auto">
             {corpCardsResult && (
               <ReconciliationResults
                 result={corpCardsResult}
@@ -367,7 +367,7 @@ export default function ShiftReportsV2() {
 
         {/* Модальное окно результатов сверки MSTO */}
         <Dialog open={isMstoResultOpen} onOpenChange={setIsMstoResultOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-card border-border max-w-6xl max-h-[90vh] overflow-y-auto">
             {mstoResult && (
               <MSTOReconciliationResults
                 result={mstoResult}

@@ -44,15 +44,15 @@ export function PriceCard({
   const isEditing = editingPriceId === price.id;
 
   return (
-    <div className={`bg-slate-800 border border-slate-700 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-slate-700 p-4`}>
+    <div className={`bg-card border border-border rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-secondary p-4`}>
       {/* Компактный layout */}
       <div className="space-y-3">
         {/* Название топлива и статус */}
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Fuel className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <p className={`text-slate-100 font-semibold truncate ${isMobile ? 'text-sm' : 'text-base'}`}>
+              <Fuel className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <p className={`text-foreground font-semibold truncate ${isMobile ? 'text-sm' : 'text-base'}`}>
                 {price.fuelType || 'Неизвестно'}
               </p>
             </div>
@@ -66,10 +66,10 @@ export function PriceCard({
         </div>
 
         {/* Цена */}
-        <div className="border-t border-slate-700 pt-3">
+        <div className="border-t border-border pt-3">
           {isEditing ? (
             <div className="flex items-center gap-2 justify-between">
-              <span className="text-slate-400 text-sm">Цена:</span>
+              <span className="text-muted-foreground text-sm">Цена:</span>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -77,7 +77,7 @@ export function PriceCard({
                   min="0"
                   value={editingValue}
                   onChange={(e) => onEditingValueChange(e.target.value)}
-                  className="w-28 h-11 md:h-9 text-right bg-slate-700 border-slate-600 text-white font-bold text-base md:text-sm"
+                  className="w-28 h-11 md:h-9 text-right bg-secondary border-border text-foreground font-bold text-base md:text-sm"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       onSaveInlinePrice();
@@ -87,32 +87,32 @@ export function PriceCard({
                   }}
                   autoFocus
                 />
-                <span className="text-slate-400 text-sm">₽/{price.unit}</span>
+                <span className="text-muted-foreground text-sm">₽/{price.unit}</span>
               </div>
             </div>
           ) : (
             <div className="text-right">
               <button
                 onClick={() => onInlineEdit(price.id, price.priceGross)}
-                className="text-slate-100 font-semibold hover:text-blue-400 transition-colors cursor-pointer text-2xl"
+                className="text-foreground font-semibold hover:text-blue-400 transition-colors cursor-pointer text-2xl"
                 title="Нажмите для редактирования цены"
               >
                 {formatPrice(price.priceGross, price.source !== 'sts-api')}
               </button>
-              <div className="text-slate-400 text-sm mt-1">₽/{price.unit}</div>
+              <div className="text-muted-foreground text-sm mt-1">₽/{price.unit}</div>
             </div>
           )}
         </div>
 
         {/* Кнопки редактирования */}
         {isEditing && (
-          <div className="flex gap-2 pt-2 border-t border-slate-700">
+          <div className="flex gap-2 pt-2 border-t border-border">
             <Button
               variant="ghost"
               size="sm"
               onClick={onSaveInlinePrice}
               disabled={!hasChanges}
-              className="flex-1 text-green-400 hover:text-green-300 hover:bg-emerald-500/10 disabled:text-slate-500 disabled:hover:text-slate-500"
+              className="flex-1 text-green-600 dark:text-green-400 hover:text-green-300 hover:bg-emerald-500/10 disabled:text-muted-foreground disabled:hover:text-muted-foreground"
             >
               <Save className="w-4 h-4 mr-1" />
               Сохранить
@@ -121,7 +121,7 @@ export function PriceCard({
               variant="ghost"
               size="sm"
               onClick={onCancelInlineEdit}
-              className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+              className="text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
             >
               <X className="w-4 h-4" />
             </Button>

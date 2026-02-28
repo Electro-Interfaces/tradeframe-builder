@@ -48,7 +48,7 @@ async function fixDocumentVersion() {
         .insert({
           id: 'tos',
           title: 'Terms of Service',
-          content: 'Базовые условия использования TradeFrame Builder',
+          content: 'Базовые условия использования TradeControl Builder',
           version: '1.0',
           is_active: true,
           document_type_id: null // Может быть null, если нет связи с document_types
@@ -64,7 +64,7 @@ async function fixDocumentVersion() {
           .from('document_versions')
           .insert({
             title: 'Terms of Service',
-            content: 'Базовые условия использования TradeFrame Builder',
+            content: 'Базовые условия использования TradeControl Builder',
             version: '1.0',
             is_active: true
           })

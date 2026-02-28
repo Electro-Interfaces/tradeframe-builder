@@ -48,7 +48,7 @@ interface LoadPdfMakeResult {
 function showNotification(message: string, type: 'success' | 'error' | 'warning', isMobile: boolean = false) {
   const notification = document.createElement('div');
   const bgColor = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-amber-500';
-  notification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+  notification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} ${bgColor} text-foreground px-4 py-2 rounded-lg shadow-lg z-50`;
   notification.textContent = message;
   document.body.appendChild(notification);
 
@@ -456,7 +456,7 @@ export async function exportToPdf(options: ExportOptions): Promise<void> {
     const docDefinition = {
       info: {
         title: 'Отчёт по операциям',
-        author: 'TradeFrame Builder',
+        author: 'TradeControl Builder',
         subject: 'Экспорт операций',
       },
       pageOrientation: 'landscape',

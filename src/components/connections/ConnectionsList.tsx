@@ -82,7 +82,7 @@ export function ConnectionsList({
         : <XCircle className="h-4 w-4 text-red-500" />;
     }
     
-    return <Clock className="h-4 w-4 text-slate-400" />;
+    return <Clock className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getStatusText = (connection: Connection) => {

@@ -56,9 +56,9 @@ const getStatusIcon = (status: ComponentStatus) => {
     case 'online': return <CheckCircle2 className="w-4 h-4 text-green-600" />;
     case 'offline': return <AlertCircle className="w-4 h-4 text-yellow-600" />;
     case 'error': return <XCircle className="w-4 h-4 text-red-600" />;
-    case 'disabled': return <PowerOff className="w-4 h-4 text-gray-600" />;
-    case 'archived': return <Archive className="w-4 h-4 text-slate-600" />;
-    default: return <Info className="w-4 h-4 text-gray-600" />;
+    case 'disabled': return <PowerOff className="w-4 h-4 text-muted-foreground" />;
+    case 'archived': return <Archive className="w-4 h-4 text-muted-foreground" />;
+    default: return <Info className="w-4 h-4 text-muted-foreground" />;
   }
 };
 
@@ -75,12 +75,12 @@ const getStatusText = (status: ComponentStatus) => {
 
 const getStatusColor = (status: ComponentStatus) => {
   switch (status) {
-    case 'online': return 'bg-emerald-500';
+    case 'online': return 'bg-emerald-600';
     case 'offline': return 'bg-yellow-500';
     case 'error': return 'bg-red-500';
-    case 'disabled': return 'bg-gray-500';
-    case 'archived': return 'bg-slate-500';
-    default: return 'bg-gray-500';
+    case 'disabled': return 'bg-muted-foreground';
+    case 'archived': return 'bg-muted-foreground';
+    default: return 'bg-muted-foreground';
   }
 };
 

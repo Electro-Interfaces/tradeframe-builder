@@ -72,9 +72,9 @@ export function PriceHistoryTable({
   }, [priceSchedule]);
 
   return (
-    <Card className="bg-slate-800 border-slate-700 mt-6">
+    <Card className="bg-card border-border mt-6">
       <CardHeader className="pb-4">
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <History className="w-5 h-5" />
           <span className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>
             История изменения цен
@@ -84,14 +84,14 @@ export function PriceHistoryTable({
       <CardContent>
         {isLoadingSchedule ? (
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-blue-400 mr-2" />
-            <span className="text-slate-300">Загрузка истории цен...</span>
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400 mr-2" />
+            <span className="text-foreground/80">Загрузка истории цен...</span>
           </div>
         ) : priceSchedule.length === 0 ? (
           <div className="text-center py-8">
-            <AlertCircle className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-            <p className="text-slate-400 text-lg">История цен не найдена</p>
-            <p className="text-slate-500 text-sm mt-2">
+            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">История цен не найдена</p>
+            <p className="text-muted-foreground text-sm mt-2">
               За последние 30 дней изменений цен не было
             </p>
           </div>
@@ -105,44 +105,44 @@ export function PriceHistoryTable({
               return (
                 <div
                   key={`${entry.service_code}-${entry.effective_date}-${index}`}
-                  className="bg-slate-700/50 border border-slate-600 rounded-lg p-3"
+                  className="bg-secondary/50 border border-border rounded-lg p-3"
                 >
                   {/* Заголовок карточки - топливо и цена */}
-                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-600">
+                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
                     <div className="flex items-center gap-2">
-                      <Fuel className="w-4 h-4 text-blue-400" />
-                      <span className="text-slate-200 font-semibold text-sm">
+                      <Fuel className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-foreground font-semibold text-sm">
                         {entry.fuel_type || `Код: ${entry.service_code}`}
                       </span>
                     </div>
-                    <span className="text-green-400 font-bold text-lg">
+                    <span className="text-green-600 dark:text-green-400 font-bold text-lg">
                       {Number(entry.price).toFixed(2)} ₽
                     </span>
                   </div>
 
                   {/* Изменение цены - ВАЖНЫЙ БЛОК */}
                   {change && (
-                    <div className="mb-3 pb-3 border-b border-slate-600">
-                      <div className="text-xs text-slate-400 mb-1">Изменение:</div>
+                    <div className="mb-3 pb-3 border-b border-border">
+                      <div className="text-xs text-muted-foreground mb-1">Изменение:</div>
                       <div className="flex items-center gap-2">
                         {change.diff > 0 ? (
                           <>
-                            <TrendingUp className="w-5 h-5 text-red-400" />
-                            <span className="text-red-400 font-semibold text-sm">
+                            <TrendingUp className="w-5 h-5 text-red-600 dark:text-red-400" />
+                            <span className="text-red-600 dark:text-red-400 font-semibold text-sm">
                               +{change.diff.toFixed(2)} ₽ ({change.percent > 0 ? '+' : ''}{change.percent.toFixed(1)}%)
                             </span>
                           </>
                         ) : change.diff < 0 ? (
                           <>
-                            <TrendingDown className="w-5 h-5 text-green-400" />
-                            <span className="text-green-400 font-semibold text-sm">
+                            <TrendingDown className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            <span className="text-green-600 dark:text-green-400 font-semibold text-sm">
                               {change.diff.toFixed(2)} ₽ ({change.percent.toFixed(1)}%)
                             </span>
                           </>
                         ) : (
                           <>
-                            <Minus className="w-4 h-4 text-slate-400" />
-                            <span className="text-slate-400 text-xs">
+                            <Minus className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-muted-foreground text-xs">
                               Без изменений
                             </span>
                           </>
@@ -154,8 +154,8 @@ export function PriceHistoryTable({
                   {/* Даты */}
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Дата применения:</span>
-                      <span className="text-slate-300">
+                      <span className="text-muted-foreground">Дата применения:</span>
+                      <span className="text-foreground/80">
                         {entry.effective_date ? new Date(entry.effective_date).toLocaleString('ru-RU', {
                           day: '2-digit',
                           month: '2-digit',
@@ -167,8 +167,8 @@ export function PriceHistoryTable({
                     </div>
                     {entry.created_at && (
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Дата создания:</span>
-                        <span className="text-slate-300">
+                        <span className="text-muted-foreground">Дата создания:</span>
+                        <span className="text-foreground/80">
                           {new Date(entry.created_at).toLocaleString('ru-RU', {
                             day: '2-digit',
                             month: '2-digit',
@@ -182,10 +182,10 @@ export function PriceHistoryTable({
                   </div>
 
                   {/* Статус */}
-                  <div className="mt-3 pt-3 border-t border-slate-600">
+                  <div className="mt-3 pt-3 border-t border-border">
                     <Badge
                       variant="outline"
-                      className="border-blue-600 text-blue-400 bg-blue-900/20 text-xs"
+                      className="border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 text-xs"
                     >
                       Применена
                     </Badge>
@@ -199,23 +199,23 @@ export function PriceHistoryTable({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-slate-700">
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium text-sm">
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
                     Дата создания
                   </th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium text-sm">
+                  <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
                     Дата применения
                   </th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium text-sm">
+                  <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
                     Топливо
                   </th>
-                  <th className="text-right py-3 px-4 text-slate-300 font-medium text-sm">
+                  <th className="text-right py-3 px-4 text-foreground/80 font-medium text-sm">
                     Цена (руб/л)
                   </th>
-                  <th className="text-right py-3 px-4 text-slate-300 font-medium text-sm">
+                  <th className="text-right py-3 px-4 text-foreground/80 font-medium text-sm">
                     Изменение
                   </th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium text-sm">
+                  <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
                     Статус
                   </th>
                 </tr>
@@ -228,9 +228,9 @@ export function PriceHistoryTable({
                   return (
                     <tr
                       key={`${entry.service_code}-${entry.effective_date}-${index}`}
-                      className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
+                      className="border-b border-border hover:bg-card/50 transition-colors"
                     >
-                      <td className="py-3 px-4 text-slate-300 text-sm">
+                      <td className="py-3 px-4 text-foreground/80 text-sm">
                         {entry.created_at ? new Date(entry.created_at).toLocaleString('ru-RU', {
                           day: '2-digit',
                           month: '2-digit',
@@ -239,7 +239,7 @@ export function PriceHistoryTable({
                           minute: '2-digit'
                         }) : '—'}
                       </td>
-                      <td className="py-3 px-4 text-slate-300 text-sm">
+                      <td className="py-3 px-4 text-foreground/80 text-sm">
                         {entry.effective_date ? new Date(entry.effective_date).toLocaleString('ru-RU', {
                           day: '2-digit',
                           month: '2-digit',
@@ -250,14 +250,14 @@ export function PriceHistoryTable({
                       </td>
                       <td className="py-3 px-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <Fuel className="w-4 h-4 text-blue-400" />
-                          <span className="text-slate-300 font-medium">
+                          <Fuel className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <span className="text-foreground/80 font-medium">
                             {entry.fuel_type || `Код: ${entry.service_code}`}
                           </span>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right text-lg">
-                        <span className="text-green-400 font-semibold">
+                        <span className="text-green-600 dark:text-green-400 font-semibold">
                           {Number(entry.price).toFixed(2)}
                         </span>
                       </td>
@@ -266,35 +266,35 @@ export function PriceHistoryTable({
                           <div className="flex items-center justify-end gap-1">
                             {change.diff > 0 ? (
                               <>
-                                <TrendingUp className="w-4 h-4 text-red-400" />
-                                <span className="text-red-400 font-semibold">
+                                <TrendingUp className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                <span className="text-red-600 dark:text-red-400 font-semibold">
                                   +{change.diff.toFixed(2)} ({change.percent > 0 ? '+' : ''}{change.percent.toFixed(1)}%)
                                 </span>
                               </>
                             ) : change.diff < 0 ? (
                               <>
-                                <TrendingDown className="w-4 h-4 text-green-400" />
-                                <span className="text-green-400 font-semibold">
+                                <TrendingDown className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                <span className="text-green-600 dark:text-green-400 font-semibold">
                                   {change.diff.toFixed(2)} ({change.percent.toFixed(1)}%)
                                 </span>
                               </>
                             ) : (
                               <>
-                                <Minus className="w-4 h-4 text-slate-400" />
-                                <span className="text-slate-400">
+                                <Minus className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">
                                   Без изменений
                                 </span>
                               </>
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-500 text-xs">Первая цена</span>
+                          <span className="text-muted-foreground text-xs">Первая цена</span>
                         )}
                       </td>
                       <td className="py-3 px-4">
                         <Badge
                           variant="outline"
-                          className="border-blue-600 text-blue-400 bg-blue-900/20 text-sm"
+                          className="border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 text-sm"
                         >
                           Применена
                         </Badge>

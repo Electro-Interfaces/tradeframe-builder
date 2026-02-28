@@ -852,7 +852,7 @@ export default function STSApiSettings() {
       return <XCircle className="h-4 w-4 text-red-500" />;
     }
     
-    return <Globe className="h-4 w-4 text-gray-400" />;
+    return <Globe className="h-4 w-4 text-muted-foreground" />;
   };
 
   return (

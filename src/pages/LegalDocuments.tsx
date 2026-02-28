@@ -63,28 +63,28 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
 
   const getStatusIcon = () => {
     if (!docType.current_version) {
-      return <AlertCircle className="w-5 h-5 text-slate-400" />;
+      return <AlertCircle className="w-5 h-5 text-muted-foreground" />;
     }
-    return <CheckCircle className="w-5 h-5 text-slate-400" />;
+    return <CheckCircle className="w-5 h-5 text-muted-foreground" />;
   };
 
   const getStatusBadge = () => {
     if (!docType.current_version) {
-      return <Badge variant="secondary" className="bg-slate-700 text-slate-300">Не опубликован</Badge>;
+      return <Badge variant="secondary" className="bg-secondary text-foreground/80">Не опубликован</Badge>;
     }
-    return <Badge className="bg-slate-600 text-slate-200">v{docType.current_version.version}</Badge>;
+    return <Badge className="bg-secondary text-foreground">v{docType.current_version.version}</Badge>;
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700 h-full">
+    <Card className="bg-card border-border h-full">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FileText className="w-5 h-5 text-white" />
+              <FileText className="w-5 h-5 text-foreground" />
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-white text-base leading-tight mb-1 h-10 flex items-center">
+              <CardTitle className="text-foreground text-base leading-tight mb-1 h-10 flex items-center">
                 {docType.title}
               </CardTitle>
               <div className="flex items-center gap-2 flex-wrap">
@@ -99,34 +99,34 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         {/* Информация о текущей версии - компактно */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
           <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-            <span className="text-slate-300 truncate">
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="text-foreground/80 truncate">
               {formatDate(docType.current_version?.published_at).split(',')[0]}
             </span>
           </div>
 
           {docType.current_version?.editor_name && (
             <div className="flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-              <span className="text-slate-300 truncate">{docType.current_version.editor_name}</span>
+              <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              <span className="text-foreground/80 truncate">{docType.current_version.editor_name}</span>
             </div>
           )}
         </div>
 
         {/* Статистика согласий - компактно */}
         {statistics && (
-          <div className="bg-slate-700/50 rounded-lg p-2.5">
+          <div className="bg-secondary/50 rounded-lg p-2.5">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div>
-                  <div className="text-xs text-slate-400">Подписали</div>
-                  <div className="text-sm text-slate-200 font-semibold">
+                  <div className="text-xs text-muted-foreground">Подписали</div>
+                  <div className="text-sm text-foreground font-semibold">
                     {statistics.accepted_users} / {statistics.total_users}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">Процент</div>
-                  <div className="text-sm text-slate-200 font-semibold">
+                  <div className="text-xs text-muted-foreground">Процент</div>
+                  <div className="text-sm text-foreground font-semibold">
                     {statistics.acceptance_percentage}%
                   </div>
                 </div>
@@ -134,8 +134,8 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
 
               {statistics.pending_users > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                  <span className="text-xs text-slate-300">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                  <span className="text-xs text-foreground/80">
                     {statistics.pending_users}
                   </span>
                 </div>
@@ -150,7 +150,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
             onClick={() => onEdit(docType.code)}
             variant="outline"
             size="sm"
-            className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 h-8 text-xs"
+            className="bg-secondary border-border text-foreground hover:bg-secondary h-8 text-xs"
           >
             <Edit3 className="w-3.5 h-3.5 mr-1.5" />
             Редактировать
@@ -160,7 +160,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
             onClick={() => onHistory(docType.code)}
             variant="outline"
             size="sm"
-            className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 h-8 text-xs"
+            className="bg-secondary border-border text-foreground hover:bg-secondary h-8 text-xs"
           >
             <History className="w-3.5 h-3.5 mr-1.5" />
             История
@@ -172,7 +172,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                 onClick={() => onViewAcceptances(docType.code)}
                 variant="outline"
                 size="sm"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 h-8 text-xs"
+                className="bg-secondary border-border text-foreground hover:bg-secondary h-8 text-xs"
               >
                 <Users className="w-3.5 h-3.5 mr-1.5" />
                 Согласия
@@ -182,7 +182,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
                 onClick={() => onPublishDraft(docType.code)}
                 variant="outline"
                 size="sm"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 h-8 text-xs"
+                className="bg-secondary border-border text-foreground hover:bg-secondary h-8 text-xs"
               >
                 <Plus className="w-3.5 h-3.5 mr-1.5" />
                 Новая версия
@@ -312,10 +312,10 @@ export default function LegalDocuments() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full report-full-width">
           <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-            <h1 className="text-2xl font-semibold text-white">Правовые документы</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Правовые документы</h1>
           </div>
           <div className="flex items-center justify-center py-16">
-            <div className="text-slate-400">Загрузка документов...</div>
+            <div className="text-muted-foreground">Загрузка документов...</div>
           </div>
         </div>
       </MainLayout>
@@ -329,8 +329,8 @@ export default function LegalDocuments() {
         <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Правовые документы</h1>
-              <p className="text-slate-400 mt-2">
+              <h1 className="text-2xl font-semibold text-foreground">Правовые документы</h1>
+              <p className="text-muted-foreground mt-2">
                 Управление пользовательскими соглашениями, политиками конфиденциальности и согласиями
               </p>
             </div>
@@ -343,7 +343,7 @@ export default function LegalDocuments() {
                 <Button
                   onClick={() => navigate('/admin/legal-documents/users-acceptances')}
                   variant="outline"
-                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                  className="bg-secondary border-border text-foreground hover:bg-secondary"
                 >
                   <Users className="w-4 h-4 mr-2" />
                   Согласия пользователей
@@ -352,7 +352,7 @@ export default function LegalDocuments() {
                 <Button
                   onClick={handleExportAcceptances}
                   variant="outline"
-                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                  className="bg-secondary border-border text-foreground hover:bg-secondary"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Экспорт согласий
@@ -361,7 +361,7 @@ export default function LegalDocuments() {
                 <Button
                   onClick={handleViewAuditLog}
                   variant="outline"
-                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                  className="bg-secondary border-border text-foreground hover:bg-secondary"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Журнал действий
@@ -374,9 +374,9 @@ export default function LegalDocuments() {
 
         {/* Сводка по всем документам */}
         <div className="mx-4 md:mx-6 lg:mx-8 mb-6">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-4">
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Общая статистика
               </CardTitle>
@@ -384,24 +384,24 @@ export default function LegalDocuments() {
             <CardContent>
               <div className={`grid ${isMobile ? 'grid-cols-2 gap-4' : 'grid-cols-3 gap-4'}`}>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">
+                  <div className="text-xl font-bold text-foreground">
                     {documentTypes.length}
                   </div>
-                  <div className="text-sm text-slate-400">Типов документов</div>
+                  <div className="text-sm text-muted-foreground">Типов документов</div>
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">
+                  <div className="text-xl font-bold text-foreground">
                     {documentTypes.filter(d => d.current_version).length}
                   </div>
-                  <div className="text-sm text-slate-400">Опубликовано</div>
+                  <div className="text-sm text-muted-foreground">Опубликовано</div>
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-xl font-bold text-white">
+                  <div className="text-xl font-bold text-foreground">
                     {statistics.length > 0 ? statistics[0].total_users : 0}
                   </div>
-                  <div className="text-sm text-slate-400">Всего пользователей</div>
+                  <div className="text-sm text-muted-foreground">Всего пользователей</div>
                 </div>
               </div>
             </CardContent>
@@ -415,7 +415,7 @@ export default function LegalDocuments() {
               <Button
                 onClick={() => navigate('/admin/legal-documents/users-acceptances')}
                 variant="outline"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                className="bg-secondary border-border text-foreground hover:bg-secondary"
               >
                 <Users className="w-4 h-4 mr-2" />
                 Согласия пользователей
@@ -425,7 +425,7 @@ export default function LegalDocuments() {
                 <Button
                   onClick={handleExportAcceptances}
                   variant="outline"
-                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                  className="bg-secondary border-border text-foreground hover:bg-secondary"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Экспорт согласий
@@ -434,7 +434,7 @@ export default function LegalDocuments() {
                 <Button
                   onClick={handleViewAuditLog}
                   variant="outline"
-                  className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                  className="bg-secondary border-border text-foreground hover:bg-secondary"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Журнал действий
@@ -465,13 +465,13 @@ export default function LegalDocuments() {
           </div>
           
           {documentTypes.length === 0 && (
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardContent className="p-8 text-center">
-                <FileText className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   Документы не найдены
                 </h3>
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   В системе пока нет правовых документов
                 </p>
               </CardContent>

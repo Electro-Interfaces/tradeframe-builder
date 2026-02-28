@@ -71,9 +71,9 @@ export function ChangePasswordDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <KeyRound className="w-5 h-5 text-yellow-500" />
             Изменить пароль
           </DialogTitle>
@@ -82,15 +82,15 @@ export function ChangePasswordDialog({
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             {/* Информация о пользователе */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-md p-3">
-              <p className="text-sm text-slate-400">Пользователь:</p>
-              <p className="text-white font-medium">{user?.name}</p>
-              <p className="text-sm text-slate-400">{user?.email}</p>
+            <div className="bg-background/50 border border-border rounded-md p-3">
+              <p className="text-sm text-muted-foreground">Пользователь:</p>
+              <p className="text-foreground font-medium">{user?.name}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
 
             {/* Новый пароль */}
             <div className="space-y-2">
-              <Label htmlFor="newPassword" className="text-slate-300">
+              <Label htmlFor="newPassword" className="text-foreground/80">
                 Новый пароль
               </Label>
               <div className="relative">
@@ -100,14 +100,14 @@ export function ChangePasswordDialog({
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Введите новый пароль"
-                  className="bg-slate-900 border-slate-700 text-white pr-10"
+                  className="bg-background border-border text-foreground pr-10"
                   disabled={isLoading}
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -121,7 +121,7 @@ export function ChangePasswordDialog({
 
             {/* Подтверждение пароля */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-slate-300">
+              <Label htmlFor="confirmPassword" className="text-foreground/80">
                 Подтвердите пароль
               </Label>
               <Input
@@ -130,7 +130,7 @@ export function ChangePasswordDialog({
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Повторите новый пароль"
-                className="bg-slate-900 border-slate-700 text-white"
+                className="bg-background border-border text-foreground"
                 disabled={isLoading}
                 autoComplete="new-password"
               />
@@ -139,13 +139,13 @@ export function ChangePasswordDialog({
             {/* Сообщение об ошибке */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/50 rounded-md p-3">
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               </div>
             )}
 
             {/* Информация */}
             <div className="bg-blue-500/10 border border-blue-500/50 rounded-md p-3">
-              <p className="text-xs text-blue-400">
+              <p className="text-xs text-blue-600 dark:text-blue-400">
                 Пароль должен содержать минимум 6 символов. После изменения пароля пользователю необходимо войти с новым паролем.
               </p>
             </div>
@@ -157,7 +157,7 @@ export function ChangePasswordDialog({
               variant="outline"
               onClick={handleClose}
               disabled={isLoading}
-              className="border-slate-600 hover:bg-slate-700"
+              className="border-border hover:bg-secondary"
             >
               Отмена
             </Button>

@@ -178,60 +178,60 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label className="text-sm font-medium text-slate-300">Техническое название</Label>
-            <p className="text-white mt-1">{initialData?.name}</p>
+            <Label className="text-sm font-medium text-foreground/80">Техническое название</Label>
+            <p className="text-foreground mt-1">{initialData?.name}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium text-slate-300">Отображаемое название</Label>
-            <p className="text-white mt-1">{initialData?.display_name}</p>
+            <Label className="text-sm font-medium text-foreground/80">Отображаемое название</Label>
+            <p className="text-foreground mt-1">{initialData?.display_name}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium text-slate-300">Категория</Label>
-            <p className="text-white mt-1">{COMMAND_CATEGORIES[initialData?.category || 'custom']?.name}</p>
+            <Label className="text-sm font-medium text-foreground/80">Категория</Label>
+            <p className="text-foreground mt-1">{COMMAND_CATEGORIES[initialData?.category || 'custom']?.name}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium text-slate-300">Версия</Label>
-            <p className="text-white mt-1">{initialData?.version}</p>
+            <Label className="text-sm font-medium text-foreground/80">Версия</Label>
+            <p className="text-foreground mt-1">{initialData?.version}</p>
           </div>
         </div>
 
         <div>
-          <Label className="text-sm font-medium text-slate-300">Описание</Label>
-          <p className="text-white mt-1">{initialData?.description}</p>
+          <Label className="text-sm font-medium text-foreground/80">Описание</Label>
+          <p className="text-foreground mt-1">{initialData?.description}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <Label className="text-sm font-medium text-slate-300">Таймаут (сек)</Label>
-            <p className="text-white mt-1">{initialData?.execution_timeout || 'Не задан'}</p>
+            <Label className="text-sm font-medium text-foreground/80">Таймаут (сек)</Label>
+            <p className="text-foreground mt-1">{initialData?.execution_timeout || 'Не задан'}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium text-slate-300">Повторы</Label>
-            <p className="text-white mt-1">{initialData?.retry_count || 0}</p>
+            <Label className="text-sm font-medium text-foreground/80">Повторы</Label>
+            <p className="text-foreground mt-1">{initialData?.retry_count || 0}</p>
           </div>
           <div>
-            <Label className="text-sm font-medium text-slate-300">Подтверждение</Label>
-            <p className="text-white mt-1">{initialData?.requires_confirmation ? 'Требуется' : 'Не требуется'}</p>
+            <Label className="text-sm font-medium text-foreground/80">Подтверждение</Label>
+            <p className="text-foreground mt-1">{initialData?.requires_confirmation ? 'Требуется' : 'Не требуется'}</p>
           </div>
         </div>
 
         <div>
-          <Label className="text-sm font-medium text-slate-300">Возможности</Label>
+          <Label className="text-sm font-medium text-foreground/80">Возможности</Label>
           <div className="flex gap-4 mt-2">
             {initialData?.supports_scheduling && (
-              <Badge variant="outline" className="text-slate-400">
+              <Badge variant="outline" className="text-muted-foreground">
                 <Clock className="w-3 h-3 mr-1" />
                 Планирование
               </Badge>
             )}
             {initialData?.supports_batch_execution && (
-              <Badge variant="outline" className="text-slate-400">
+              <Badge variant="outline" className="text-muted-foreground">
                 <Users className="w-3 h-3 mr-1" />
                 Пакетное выполнение
               </Badge>
             )}
             {initialData?.is_dangerous && (
-              <Badge variant="outline" className="text-orange-400 border-orange-400">
+              <Badge variant="outline" className="text-orange-600 dark:text-orange-400 border-orange-400">
                 <AlertTriangle className="w-3 h-3 mr-1" />
                 Опасная команда
               </Badge>
@@ -240,10 +240,10 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
         </div>
 
         <div>
-          <Label className="text-sm font-medium text-slate-300">Допустимые цели</Label>
+          <Label className="text-sm font-medium text-foreground/80">Допустимые цели</Label>
           <div className="flex flex-wrap gap-2 mt-2">
             {initialData?.allowed_targets.map(target => (
-              <Badge key={target} variant="outline" className="text-slate-400">
+              <Badge key={target} variant="outline" className="text-muted-foreground">
                 {targetTypeOptions.find(opt => opt.value === target)?.label || target}
               </Badge>
             ))}
@@ -251,8 +251,8 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
         </div>
 
         <div>
-          <Label className="text-sm font-medium text-slate-300">Схема параметров</Label>
-          <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-xs mt-2 overflow-auto max-h-40">
+          <Label className="text-sm font-medium text-foreground/80">Схема параметров</Label>
+          <pre className="bg-background text-green-600 dark:text-green-400 p-4 rounded-lg text-xs mt-2 overflow-auto max-h-40">
             {JSON.stringify(initialData?.param_schema, null, 2)}
           </pre>
         </div>
@@ -282,7 +282,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                       <FormLabel>Техническое название</FormLabel>
                       <FormControl>
                         <Input 
-                          className="bg-slate-700 border-slate-600" 
+                          className="bg-secondary border-border" 
                           placeholder="shift_close" 
                           {...field} 
                           disabled={isReadOnly}
@@ -304,7 +304,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                       <FormLabel>Отображаемое название</FormLabel>
                       <FormControl>
                         <Input 
-                          className="bg-slate-700 border-slate-600" 
+                          className="bg-secondary border-border" 
                           placeholder="Закрыть смену" 
                           {...field} 
                           disabled={isReadOnly}
@@ -324,7 +324,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                     <FormLabel>Категория</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isReadOnly}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-700 border-slate-600">
+                        <SelectTrigger className="bg-secondary border-border">
                           <SelectValue placeholder="Выберите категорию" />
                         </SelectTrigger>
                       </FormControl>
@@ -352,7 +352,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                     <FormLabel>Описание</FormLabel>
                     <FormControl>
                       <Textarea 
-                        className="bg-slate-700 border-slate-600" 
+                        className="bg-secondary border-border" 
                         placeholder="Подробное описание того, что делает эта команда"
                         rows={3}
                         {...field}
@@ -368,7 +368,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
             <TabsContent value="targets" className="space-y-4">
               <div>
                 <Label className="text-base font-medium">Допустимые цели выполнения</Label>
-                <p className="text-sm text-slate-400 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Выберите типы объектов, к которым может применяться эта команда
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -394,12 +394,12 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                   id="paramSchema"
                   value={paramSchema}
                   onChange={(e) => setParamSchema(e.target.value)}
-                  className="bg-slate-700 border-slate-600 font-mono text-sm"
+                  className="bg-secondary border-border font-mono text-sm"
                   rows={10}
                   placeholder='{"type": "object", "properties": {}, "required": []}'
                   disabled={isReadOnly}
                 />
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   JSON Schema для валидации параметров команды
                 </p>
               </div>
@@ -410,7 +410,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                   id="defaultParams"
                   value={defaultParams}
                   onChange={(e) => setDefaultParams(e.target.value)}
-                  className="bg-slate-700 border-slate-600 font-mono text-sm"
+                  className="bg-secondary border-border font-mono text-sm"
                   rows={5}
                   placeholder='{}'
                   disabled={isReadOnly}
@@ -424,7 +424,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                     value={newParam}
                     onChange={(e) => setNewParam(e.target.value)}
                     placeholder="Название параметра"
-                    className="bg-slate-700 border-slate-600"
+                    className="bg-secondary border-border"
                     disabled={isReadOnly}
                   />
                   <Button type="button" onClick={addRequiredParam} disabled={isReadOnly}>
@@ -433,7 +433,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {requiredParams.map((param) => (
-                    <Badge key={param} variant="outline" className="text-slate-400">
+                    <Badge key={param} variant="outline" className="text-muted-foreground">
                       {param}
                       {!isReadOnly && (
                         <button
@@ -461,7 +461,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                       <FormControl>
                         <Input 
                           type="number"
-                          className="bg-slate-700 border-slate-600" 
+                          className="bg-secondary border-border" 
                           placeholder="60" 
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
@@ -482,7 +482,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                       <FormControl>
                         <Input 
                           type="number"
-                          className="bg-slate-700 border-slate-600" 
+                          className="bg-secondary border-border" 
                           placeholder="1" 
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
@@ -500,7 +500,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                   control={form.control}
                   name="supports_scheduling"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-slate-600 p-4">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-border p-4">
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Поддержка планирования</FormLabel>
                         <FormDescription>
@@ -522,7 +522,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                   control={form.control}
                   name="supports_batch_execution"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-slate-600 p-4">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-border p-4">
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Пакетное выполнение</FormLabel>
                         <FormDescription>
@@ -544,10 +544,10 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                   control={form.control}
                   name="is_dangerous"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-slate-600 p-4">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-border p-4">
                       <div className="space-y-0.5">
                         <FormLabel className="text-base flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-orange-400" />
+                          <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                           Потенциально опасная команда
                         </FormLabel>
                         <FormDescription>
@@ -569,7 +569,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                   control={form.control}
                   name="requires_confirmation"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-slate-600 p-4">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-border p-4">
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Требует подтверждения</FormLabel>
                         <FormDescription>
@@ -595,7 +595,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                     value={newPermission}
                     onChange={(e) => setNewPermission(e.target.value)}
                     placeholder="Название права (например: shift_management)"
-                    className="bg-slate-700 border-slate-600"
+                    className="bg-secondary border-border"
                     disabled={isReadOnly}
                   />
                   <Button type="button" onClick={addPermission} disabled={isReadOnly}>
@@ -604,7 +604,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {requiredPermissions.map((permission) => (
-                    <Badge key={permission} variant="outline" className="text-slate-400">
+                    <Badge key={permission} variant="outline" className="text-muted-foreground">
                       {permission}
                       {!isReadOnly && (
                         <button
@@ -629,7 +629,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
                     <FormControl>
                       <Input 
                         type="url"
-                        className="bg-slate-700 border-slate-600" 
+                        className="bg-secondary border-border" 
                         placeholder="https://docs.example.com/commands/shift-close" 
                         {...field} 
                         disabled={isReadOnly}
@@ -643,7 +643,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
           </Tabs>
 
           {!isReadOnly && (
-            <div className="flex justify-between pt-6 border-t border-slate-600">
+            <div className="flex justify-between pt-6 border-t border-border">
               <Button type="button" variant="outline" onClick={onCancel}>
                 Отмена
               </Button>

@@ -57,29 +57,29 @@ export function NameConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
+      <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-red-400 flex items-center gap-2">
+          <DialogTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
             {title || `Удалить ${itemType}`}
           </DialogTitle>
-          <DialogDescription className="text-slate-300">
+          <DialogDescription className="text-foreground/80">
             {description || `Это действие нельзя отменить. Будет безвозвратно удален${itemType === 'сеть' ? 'а' : ''} "${itemName}".`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-4">
-            <p className="text-sm text-red-300">
+          <div className="bg-red-100 dark:bg-red-900/20 border border-red-500/20 rounded-lg p-4">
+            <p className="text-sm text-red-600 dark:text-red-300">
               ⚠️ Для подтверждения введите точное название {itemType === 'сеть' ? 'сети' : 'торговой точки'}:
             </p>
-            <p className="font-mono text-sm text-white bg-slate-900 px-2 py-1 rounded mt-2">
+            <p className="font-mono text-sm text-foreground bg-background px-2 py-1 rounded mt-2">
               {itemName}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmName" className="text-slate-200">
+            <Label htmlFor="confirmName" className="text-foreground">
               Подтверждение удаления
             </Label>
             <Input
@@ -87,12 +87,12 @@ export function NameConfirmationDialog({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={`Введите: ${itemName}`}
-              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+              className="bg-secondary border-border text-foreground placeholder-muted-foreground"
               autoComplete="off"
               disabled={loading}
             />
             {inputValue && inputValue !== itemName && (
-              <p className="text-red-400 text-sm">
+              <p className="text-red-600 dark:text-red-400 text-sm">
                 Название не совпадает
               </p>
             )}
@@ -103,7 +103,7 @@ export function NameConfirmationDialog({
               variant="outline"
               onClick={() => handleOpenChange(false)}
               disabled={loading}
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              className="border-border text-foreground hover:bg-secondary"
             >
               Отмена
             </Button>

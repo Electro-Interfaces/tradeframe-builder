@@ -1,4 +1,4 @@
-# 🧪 План тестовой и продуктовой среды TradeFrame Builder v2.0
+# 🧪 План тестовой и продуктовой среды TradeControl Builder v2.0
 
 **Дата создания:** 2025-10-17
 **Версия:** 2.0 (два репозитория)
@@ -257,7 +257,7 @@ EOF
 
 #### Шаг 3.1: Создать тестовый проект Supabase
 1. Dashboard → New Project
-2. Name: `TradeFrame Testing`
+2. Name: `TradeControl Testing`
 3. Password: сохранить
 4. Region: тот же что и prod
 

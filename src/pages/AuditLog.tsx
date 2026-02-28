@@ -162,28 +162,28 @@ export default function AuditLog() {
           <div className="mb-6 pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-semibold text-white">Журнал аудита</h1>
-                <p className="text-slate-400 mt-2">Полный лог всех действий пользователей в системе</p>
+                <h1 className="text-2xl font-semibold text-foreground">Журнал аудита</h1>
+                <p className="text-muted-foreground mt-2">Полный лог всех действий пользователей в системе</p>
               </div>
               <HelpButton route="/admin/audit" variant="text" size="sm" className="flex-shrink-0" />
             </div>
           </div>
 
-          <div className="bg-slate-800 rounded-lg p-8">
+          <div className="bg-card rounded-lg p-8">
             <div className="flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
               <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mb-4">
-                <AlertCircle className="h-8 w-8 text-white" />
+                <AlertCircle className="h-8 w-8 text-foreground" />
               </div>
-              <h2 className="text-2xl font-semibold text-white mb-3">
+              <h2 className="text-2xl font-semibold text-foreground mb-3">
                 Таблица журнала аудита не создана
               </h2>
-              <p className="text-slate-400 mb-6 text-lg">
+              <p className="text-muted-foreground mb-6 text-lg">
                 Для начала работы журнала аудита необходимо применить SQL миграцию в Supabase.
               </p>
 
-              <div className="bg-slate-700 rounded-lg p-6 text-left w-full mb-6">
-                <h3 className="text-lg font-semibold text-white mb-4">📋 Инструкция по применению миграции:</h3>
-                <ol className="space-y-3 text-slate-300">
+              <div className="bg-secondary rounded-lg p-6 text-left w-full mb-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">📋 Инструкция по применению миграции:</h3>
+                <ol className="space-y-3 text-foreground/80">
                   <li className="flex items-start">
                     <span className="font-semibold mr-2">1.</span>
                     <span>
@@ -192,7 +192,7 @@ export default function AuditLog() {
                         href={`https://supabase.com/dashboard/project/${(import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').split('.')[0]}/sql/new`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         Supabase SQL Editor
                       </a>
@@ -200,7 +200,7 @@ export default function AuditLog() {
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold mr-2">2.</span>
-                    <span>Откройте файл <code className="bg-slate-600 px-2 py-1 rounded text-sm">migrations/create-audit-log-table.sql</code> в редакторе кода</span>
+                    <span>Откройте файл <code className="bg-secondary px-2 py-1 rounded text-sm">migrations/create-audit-log-table.sql</code> в редакторе кода</span>
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold mr-2">3.</span>
@@ -212,7 +212,7 @@ export default function AuditLog() {
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold mr-2">5.</span>
-                    <span>Нажмите <strong>Run</strong> или <kbd className="bg-slate-600 px-2 py-1 rounded text-sm">Ctrl+Enter</kbd></span>
+                    <span>Нажмите <strong>Run</strong> или <kbd className="bg-secondary px-2 py-1 rounded text-sm">Ctrl+Enter</kbd></span>
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold mr-2">6.</span>
@@ -231,7 +231,7 @@ export default function AuditLog() {
                 <Button
                   onClick={loadAuditLogs}
                   variant="outline"
-                  className="border-slate-600 text-white hover:bg-slate-700"
+                  className="border-border text-foreground hover:bg-secondary"
                 >
                   Проверить снова
                 </Button>
@@ -249,13 +249,13 @@ export default function AuditLog() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full px-4 md:px-6 lg:px-8">
           <div className="mb-6 pt-4">
-            <h1 className="text-2xl font-semibold text-white">Журнал аудита</h1>
-            <p className="text-slate-400 mt-2">Загрузка данных...</p>
+            <h1 className="text-2xl font-semibold text-foreground">Журнал аудита</h1>
+            <p className="text-muted-foreground mt-2">Загрузка данных...</p>
           </div>
-          <div className="bg-slate-800 rounded-lg p-8 flex items-center justify-center">
+          <div className="bg-card rounded-lg p-8 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-slate-400">Загружаем журнал аудита...</p>
+              <p className="text-muted-foreground">Загружаем журнал аудита...</p>
             </div>
           </div>
         </div>
@@ -269,15 +269,15 @@ export default function AuditLog() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full px-4 md:px-6 lg:px-8">
           <div className="mb-6 pt-4">
-            <h1 className="text-2xl font-semibold text-white">Журнал аудита</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Журнал аудита</h1>
           </div>
-          <div className="bg-slate-800 rounded-lg p-8">
+          <div className="bg-card rounded-lg p-8">
             <div className="flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4">
-                <AlertCircle className="h-8 w-8 text-white" />
+                <AlertCircle className="h-8 w-8 text-foreground" />
               </div>
-              <h2 className="text-2xl font-semibold text-white mb-3">Ошибка загрузки данных</h2>
-              <p className="text-slate-400 mb-6">{error}</p>
+              <h2 className="text-2xl font-semibold text-foreground mb-3">Ошибка загрузки данных</h2>
+              <p className="text-muted-foreground mb-6">{error}</p>
               <Button onClick={loadAuditLogs} className="bg-blue-600 hover:bg-blue-700">
                 Попробовать снова
               </Button>
@@ -295,23 +295,23 @@ export default function AuditLog() {
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Журнал аудита</h1>
-              <p className="text-slate-400 mt-2">Полный лог всех действий пользователей в системе</p>
+              <h1 className="text-2xl font-semibold text-foreground">Журнал аудита</h1>
+              <p className="text-muted-foreground mt-2">Полный лог всех действий пользователей в системе</p>
             </div>
             <HelpButton route="/admin/audit" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 
         {/* Панель фильтров */}
-        <div className="bg-slate-800 mb-6 w-full">
+        <div className="bg-card mb-6 w-full">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">🔍</span>
+                  <span className="text-foreground text-sm">🔍</span>
                 </div>
-                <h2 className="text-lg font-semibold text-white">События аудита</h2>
-                <div className="text-sm text-slate-400">
+                <h2 className="text-lg font-semibold text-foreground">События аудита</h2>
+                <div className="text-sm text-muted-foreground">
                   Всего событий: {filteredEvents.length}
                 </div>
               </div>
@@ -319,7 +319,7 @@ export default function AuditLog() {
                 onClick={loadAuditLogs}
                 variant="outline"
                 size="sm"
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 Обновить
               </Button>
@@ -329,14 +329,14 @@ export default function AuditLog() {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <Label className="text-slate-300 text-sm mb-2 block">Период</Label>
+                  <Label className="text-foreground/80 text-sm mb-2 block">Период</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal bg-slate-700 border-slate-600 text-white hover:bg-slate-600",
-                          !dateRange.from && "text-slate-400"
+                          "w-full justify-start text-left font-normal bg-secondary border-border text-foreground hover:bg-secondary",
+                          !dateRange.from && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -371,10 +371,10 @@ export default function AuditLog() {
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Поиск по действиям..."
-                    className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                    className="pl-10 bg-secondary border-border text-foreground placeholder-muted-foreground"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -382,7 +382,7 @@ export default function AuditLog() {
 
                 <div>
                   <Select value={selectedActionType} onValueChange={setSelectedActionType}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectTrigger className="bg-secondary border-border text-foreground">
                       <SelectValue placeholder="Все действия" />
                     </SelectTrigger>
                     <SelectContent>
@@ -405,7 +405,7 @@ export default function AuditLog() {
                   <Button
                     variant="outline"
                     onClick={resetFilters}
-                    className="border-slate-600 text-white hover:bg-slate-700"
+                    className="border-border text-foreground hover:bg-secondary"
                   >
                     Сброс
                   </Button>
@@ -417,16 +417,16 @@ export default function AuditLog() {
 
         {/* Таблица событий */}
         {filteredEvents.length === 0 ? (
-          <div className="bg-slate-800 w-full">
+          <div className="bg-card w-full">
             <div className="px-4 md:px-6 pb-6">
               <div className="text-center py-16">
-                <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white text-2xl">🔍</span>
+                <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-foreground text-2xl">🔍</span>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   События не найдены
                 </h3>
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   {events.length === 0
                     ? "Журнал аудита пуст. События будут появляться после входа в систему, изменения цен и других действий."
                     : "Нет событий, соответствующих выбранным фильтрам"
@@ -436,46 +436,46 @@ export default function AuditLog() {
             </div>
           </div>
         ) : (
-          <div className="bg-slate-800 w-full">
+          <div className="bg-card w-full">
             <div className="hidden md:block w-full">
-              <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+              <div className="overflow-x-auto w-full rounded-lg border border-border">
                 <table className="w-full text-sm min-w-full table-fixed">
-                  <thead className="bg-slate-700">
+                  <thead className="bg-secondary">
                     <tr>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ДАТА И ВРЕМЯ</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ПОЛЬЗОВАТЕЛЬ</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '25%'}}>ДЕЙСТВИЕ</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ОБЪЕКТ</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>IP-АДРЕС</th>
-                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '8%'}}>ДЕТАЛИ</th>
+                      <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '15%'}}>ДАТА И ВРЕМЯ</th>
+                      <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '20%'}}>ПОЛЬЗОВАТЕЛЬ</th>
+                      <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '25%'}}>ДЕЙСТВИЕ</th>
+                      <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '20%'}}>ОБЪЕКТ</th>
+                      <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '12%'}}>IP-АДРЕС</th>
+                      <th className="px-6 py-4 text-right text-foreground font-medium" style={{width: '8%'}}>ДЕТАЛИ</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-slate-800">
+                  <tbody className="bg-card">
                     {filteredEvents.map((event) => (
                       <tr
                         key={event.id}
-                        className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                        className="border-b border-border cursor-pointer hover:bg-secondary transition-colors"
                       >
                         <td className="px-4 md:px-6 py-4">
-                          <div className="text-white font-mono text-sm">
+                          <div className="text-foreground font-mono text-sm">
                             {format(new Date(event.timestamp), "dd.MM.yyyy HH:mm", { locale: ru })}
                           </div>
                         </td>
                         <td className="px-4 md:px-6 py-4">
                           <div>
-                            <div className="font-medium text-white text-base">{event.user_name || 'Неизвестно'}</div>
-                            <div className="text-sm text-slate-400">{event.user_email}</div>
+                            <div className="font-medium text-foreground text-base">{event.user_name || 'Неизвестно'}</div>
+                            <div className="text-sm text-muted-foreground">{event.user_email}</div>
                           </div>
                         </td>
                         <td className="px-4 md:px-6 py-4">
                           <div className="flex items-center gap-3">
                             {(() => {
                               const IconComponent = getActionTypeIcon(event.action_type);
-                              return <IconComponent className="h-4 w-4 text-blue-400 flex-shrink-0" />;
+                              return <IconComponent className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />;
                             })()}
                             <div>
-                              <div className="font-medium text-white text-base">{event.action}</div>
-                              <Badge variant="outline" className="text-xs bg-slate-600 text-slate-200 border-slate-500 mt-1">
+                              <div className="font-medium text-foreground text-base">{event.action}</div>
+                              <Badge variant="outline" className="text-xs bg-secondary text-foreground border-border mt-1">
                                 {actionTypes.find(t => t.value === event.action_type)?.label || event.action_type}
                               </Badge>
                             </div>
@@ -483,12 +483,12 @@ export default function AuditLog() {
                         </td>
                         <td className="px-4 md:px-6 py-4">
                           <div>
-                            <div className="font-medium text-white text-base">{event.object || '-'}</div>
-                            <div className="text-sm text-slate-400">{event.object_type || '-'}</div>
+                            <div className="font-medium text-foreground text-base">{event.object || '-'}</div>
+                            <div className="text-sm text-muted-foreground">{event.object_type || '-'}</div>
                           </div>
                         </td>
                         <td className="px-4 md:px-6 py-4">
-                          <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs font-mono">
+                          <code className="bg-secondary text-foreground px-2 py-1 rounded text-xs font-mono">
                             {event.ip_address || '-'}
                           </code>
                         </td>
@@ -497,7 +497,7 @@ export default function AuditLog() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                               onClick={() => handleViewDetails(event)}
                               title="Подробности события"
                             >
@@ -517,7 +517,7 @@ export default function AuditLog() {
               {filteredEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors cursor-pointer"
+                  className="bg-secondary rounded-lg p-4 hover:bg-secondary transition-colors cursor-pointer"
                   onClick={() => handleViewDetails(event)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -525,19 +525,19 @@ export default function AuditLog() {
                       <div className="flex items-center gap-2 mb-2">
                         {(() => {
                           const IconComponent = getActionTypeIcon(event.action_type);
-                          return <IconComponent className="h-4 w-4 text-blue-400 flex-shrink-0" />;
+                          return <IconComponent className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />;
                         })()}
-                        <div className="font-medium text-white text-base truncate">{event.action}</div>
+                        <div className="font-medium text-foreground text-base truncate">{event.action}</div>
                       </div>
-                      <div className="text-sm text-slate-400 mb-2">
+                      <div className="text-sm text-muted-foreground mb-2">
                         <div>{event.user_name || 'Неизвестно'} • {event.user_email}</div>
                         <div className="font-mono">{format(new Date(event.timestamp), "dd.MM.yyyy HH:mm", { locale: ru })}</div>
                       </div>
-                      <div className="text-sm text-slate-400 mb-2">
+                      <div className="text-sm text-muted-foreground mb-2">
                         <div>Объект: {event.object || '-'}</div>
-                        <div>IP: <code className="bg-slate-600 px-1 rounded text-xs">{event.ip_address || '-'}</code></div>
+                        <div>IP: <code className="bg-secondary px-1 rounded text-xs">{event.ip_address || '-'}</code></div>
                       </div>
-                      <Badge variant="outline" className="text-xs bg-slate-600 text-slate-200 border-slate-500">
+                      <Badge variant="outline" className="text-xs bg-secondary text-foreground border-border">
                         {actionTypes.find(t => t.value === event.action_type)?.label || event.action_type}
                       </Badge>
                     </div>
@@ -545,7 +545,7 @@ export default function AuditLog() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewDetails(event);

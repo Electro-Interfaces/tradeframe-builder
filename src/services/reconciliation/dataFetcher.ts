@@ -3,7 +3,7 @@
  *
  * Три источника данных:
  * 1. Corp (TradeCorp API) - транзакции корпоративного процессинга
- * 2. TF (/v2/transactions) - детальные операции TradeFrame
+ * 2. TF (/v2/transactions) - детальные операции TradeControl
  * 3. Смена (/v1/report/shift_report) - агрегированные данные сменного отчёта
  */
 

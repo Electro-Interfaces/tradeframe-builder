@@ -196,10 +196,10 @@ export function TradingPointCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} bg-slate-800 border-slate-700 overflow-y-auto`}>
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} bg-card border-border overflow-y-auto`}>
         <DialogHeader>
-          <DialogTitle className="text-white">Создать торговую точку</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-foreground">Создать торговую точку</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Добавьте новую торговую точку с геолокацией и контактными данными
           </DialogDescription>
         </DialogHeader>
@@ -207,32 +207,32 @@ export function TradingPointCreateDialog({
         <div className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Основная информация</h3>
+            <h3 className="text-lg font-medium text-foreground">Основная информация</h3>
             
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-slate-200 block">
-                Название <span className="text-red-400">*</span>
+              <Label htmlFor="name" className="text-foreground block">
+                Название <span className="text-red-600 dark:text-red-400">*</span>
               </Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Введите название торговой точки"
-                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                className="bg-secondary border-border text-foreground placeholder-muted-foreground"
               />
               {errors.name && (
-                <p className="text-red-400 text-sm mt-1">{errors.name}</p>
+                <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.name}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-slate-200 block">Описание</Label>
+              <Label htmlFor="description" className="text-foreground block">Описание</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Описание торговой точки"
-                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                 rows={3}
               />
             </div>
@@ -240,12 +240,12 @@ export function TradingPointCreateDialog({
 
           {/* Location */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Геолокация</h3>
+            <h3 className="text-lg font-medium text-foreground">Геолокация</h3>
             
             <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
               <div className="space-y-2">
-                <Label htmlFor="latitude" className="text-slate-200 block">
-                  Широта <span className="text-red-400">*</span>
+                <Label htmlFor="latitude" className="text-foreground block">
+                  Широта <span className="text-red-600 dark:text-red-400">*</span>
                 </Label>
                 <Input
                   id="latitude"
@@ -273,13 +273,13 @@ export function TradingPointCreateDialog({
                     }
                   }}
                   placeholder="55.7558"
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="longitude" className="text-slate-200 block">
-                  Долгота <span className="text-red-400">*</span>
+                <Label htmlFor="longitude" className="text-foreground block">
+                  Долгота <span className="text-red-600 dark:text-red-400">*</span>
                 </Label>
                 <Input
                   id="longitude"
@@ -307,18 +307,18 @@ export function TradingPointCreateDialog({
                     }
                   }}
                   placeholder="49.2077"
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                 />
               </div>
             </div>
 
             {errors.geolocation && (
-              <p className="text-red-400 text-sm mt-1">{errors.geolocation}</p>
+              <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.geolocation}</p>
             )}
 
             <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
               <div className="space-y-2">
-                <Label htmlFor="region" className="text-slate-200 block">Регион</Label>
+                <Label htmlFor="region" className="text-foreground block">Регион</Label>
                 <Input
                   id="region"
                   value={formData.geolocation.region}
@@ -327,12 +327,12 @@ export function TradingPointCreateDialog({
                     geolocation: { ...prev.geolocation, region: e.target.value }
                   }))}
                   placeholder="Республика Татарстан"
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="city" className="text-slate-200 block">Город</Label>
+                <Label htmlFor="city" className="text-foreground block">Город</Label>
                 <Input
                   id="city"
                   value={formData.geolocation.city}
@@ -341,13 +341,13 @@ export function TradingPointCreateDialog({
                     geolocation: { ...prev.geolocation, city: e.target.value }
                   }))}
                   placeholder="Казань"
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address" className="text-slate-200 block">Адрес</Label>
+              <Label htmlFor="address" className="text-foreground block">Адрес</Label>
               <Input
                 id="address"
                 value={formData.geolocation.address}
@@ -356,53 +356,53 @@ export function TradingPointCreateDialog({
                   geolocation: { ...prev.geolocation, address: e.target.value }
                 }))}
                 placeholder="ул. Баумана, 10"
-                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                className="bg-secondary border-border text-foreground placeholder-muted-foreground"
               />
             </div>
           </div>
 
           {/* Contact Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white">Контактная информация</h3>
+            <h3 className="text-lg font-medium text-foreground">Контактная информация</h3>
             
             <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'}`}>
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-slate-200 block">Телефон</Label>
+                <Label htmlFor="phone" className="text-foreground block">Телефон</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="+7 (843) 123-45-67"
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                 />
                 {errors.phone && (
-                  <p className="text-red-400 text-sm mt-1">{errors.phone}</p>
+                  <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.phone}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200 block">Email</Label>
+                <Label htmlFor="email" className="text-foreground block">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="point@company.ru"
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                 />
                 {errors.email && (
-                  <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                  <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.email}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="website" className="text-slate-200 block">Веб-сайт</Label>
+                <Label htmlFor="website" className="text-foreground block">Веб-сайт</Label>
                 <Input
                   id="website"
                   value={formData.website}
                   onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
                   placeholder="https://company.ru"
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                 />
               </div>
             </div>
@@ -413,7 +413,7 @@ export function TradingPointCreateDialog({
               variant="outline" 
               onClick={handleCancel}
               disabled={loading}
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              className="border-border text-foreground hover:bg-secondary"
             >
               Отмена
             </Button>

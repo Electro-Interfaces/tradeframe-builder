@@ -69,56 +69,56 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl'} bg-slate-800 border-slate-700 overflow-y-auto`}>
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl'} bg-card border-border overflow-y-auto`}>
         <DialogHeader>
-          <DialogTitle className="text-white">Создать сеть</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-foreground">Создать сеть</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Добавьте новую торговую сеть в систему
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-200 block">
-              Название сети <span className="text-red-400">*</span>
+            <Label htmlFor="name" className="text-foreground block">
+              Название сети <span className="text-red-600 dark:text-red-400">*</span>
             </Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="Введите название сети"
-              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+              className="bg-secondary border-border text-foreground placeholder-muted-foreground"
             />
             {errors.name && (
-              <p className="text-red-400 text-sm mt-1">{errors.name}</p>
+              <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.name}</p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-slate-200 block">Описание</Label>
+            <Label htmlFor="description" className="text-foreground block">Описание</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Описание сети"
-              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+              className="bg-secondary border-border text-foreground placeholder-muted-foreground"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type" className="text-slate-200 block">Тип сети</Label>
+            <Label htmlFor="type" className="text-foreground block">Тип сети</Label>
             <Select 
               value={formData.type} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
             >
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="bg-secondary border-border text-foreground">
                 <SelectValue placeholder="Выберите тип сети" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                <SelectItem value="АЗС" className="text-white hover:bg-slate-700">АЗС</SelectItem>
-                <SelectItem value="АГЗС" className="text-white hover:bg-slate-700">АГЗС</SelectItem>
-                <SelectItem value="Мойка" className="text-white hover:bg-slate-700">Мойка</SelectItem>
-                <SelectItem value="Прочее" className="text-white hover:bg-slate-700">Прочее</SelectItem>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="АЗС" className="text-foreground hover:bg-secondary">АЗС</SelectItem>
+                <SelectItem value="АГЗС" className="text-foreground hover:bg-secondary">АГЗС</SelectItem>
+                <SelectItem value="Мойка" className="text-foreground hover:bg-secondary">Мойка</SelectItem>
+                <SelectItem value="Прочее" className="text-foreground hover:bg-secondary">Прочее</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -128,7 +128,7 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
               variant="outline" 
               onClick={handleCancel}
               disabled={loading}
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              className="border-border text-foreground hover:bg-secondary"
             >
               Отмена
             </Button>

@@ -86,7 +86,7 @@ export default function VoiceInputButton({ onResult, disabled, className }: Voic
       size="icon"
       onClick={toggleRecording}
       disabled={disabled}
-      className={`h-8 w-8 ${isRecording ? 'text-red-400 bg-red-500/20 animate-pulse' : 'text-slate-400 hover:text-white'} ${className || ''}`}
+      className={`h-8 w-8 ${isRecording ? 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-500/20 animate-pulse' : 'text-muted-foreground hover:text-foreground'} ${className || ''}`}
       title={isRecording ? 'Остановить запись' : 'Голосовой ввод'}
     >
       {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}

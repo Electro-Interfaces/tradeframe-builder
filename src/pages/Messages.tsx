@@ -124,7 +124,7 @@ const mockTickets: TicketWithId[] = [
 const mockTelegramBots: TelegramBotWithId[] = [
   {
     id: "1",
-    name: "TradeFrame Network Bot",
+    name: "TradeControl Network Bot",
     token: "1234567890:AABBCCDDEEFFgghhiijjkkllmmnnooppqq",
     isActive: true,
     channels: ["@tradeframe_network", "@tradeframe_managers"],
@@ -134,7 +134,7 @@ const mockTelegramBots: TelegramBotWithId[] = [
   },
   {
     id: "2",
-    name: "TradeFrame Support Bot", 
+    name: "TradeControl Support Bot", 
     token: "9876543210:ZZYYXXWWVVuuttssrrqqppoonn",
     isActive: true,
     channels: ["@tradeframe_support"],
@@ -259,12 +259,12 @@ export default function Messages() {
   // Вспомогательные функции для стилизации
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "new": return "bg-slate-600 text-slate-200";
-      case "in_progress": return "bg-slate-600 text-slate-200";
-      case "waiting_response": return "bg-slate-600 text-slate-200";
-      case "resolved": return "bg-slate-700 text-slate-300";
-      case "closed": return "bg-slate-700 text-slate-300";
-      default: return "bg-slate-600 text-slate-200";
+      case "new": return "bg-secondary text-foreground";
+      case "in_progress": return "bg-secondary text-foreground";
+      case "waiting_response": return "bg-secondary text-foreground";
+      case "resolved": return "bg-secondary text-foreground/80";
+      case "closed": return "bg-secondary text-foreground/80";
+      default: return "bg-secondary text-foreground";
     }
   };
 
@@ -281,11 +281,11 @@ export default function Messages() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "low": return "bg-slate-600 text-slate-200";
-      case "medium": return "bg-slate-600 text-slate-200";
-      case "high": return "bg-slate-700 text-slate-300";
-      case "urgent": return "bg-slate-700 text-slate-300";
-      default: return "bg-slate-600 text-slate-200";
+      case "low": return "bg-secondary text-foreground";
+      case "medium": return "bg-secondary text-foreground";
+      case "high": return "bg-secondary text-foreground/80";
+      case "urgent": return "bg-secondary text-foreground/80";
+      default: return "bg-secondary text-foreground";
     }
   };
 
@@ -305,10 +305,10 @@ export default function Messages() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full report-full-width">
           <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-            <h1 className="text-2xl font-semibold text-white">Коммуникации и поддержка</h1>
-            <p className="text-slate-400 mt-1">Управление тикетами техподдержки и настройка Telegram-интеграции</p>
+            <h1 className="text-2xl font-semibold text-foreground">Коммуникации и поддержка</h1>
+            <p className="text-muted-foreground mt-1">Управление тикетами техподдержки и настройка Telegram-интеграции</p>
           </div>
-          <div className="bg-slate-800 mb-6 w-full mx-4 md:mx-6 lg:mx-8">
+          <div className="bg-card mb-6 w-full">
             <div className="px-4 md:px-6 py-4">
               <EmptyState 
                 title="Выберите торговую сеть" 
@@ -329,8 +329,8 @@ export default function Messages() {
         <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Коммуникации и поддержка</h1>
-              <p className="text-slate-400 mt-1">
+              <h1 className="text-2xl font-semibold text-foreground">Коммуникации и поддержка</h1>
+              <p className="text-muted-foreground mt-1">
                 Коммуникации для сети: {selectedNetwork?.name}
                 {selectedTradingPoint && ` - Точка: ${selectedTradingPoint.name}`}
               </p>
@@ -340,14 +340,14 @@ export default function Messages() {
         </div>
 
         {/* Секция техподдержки */}
-        <div className="bg-slate-800 mb-6 w-full mx-4 md:mx-6 lg:mx-8">
+        <div className="bg-card mb-6 w-full">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Mail className="h-4 w-4 text-white" />
+                  <Mail className="h-4 w-4 text-foreground" />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Техподдержка</h2>
+                <h2 className="text-lg font-semibold text-foreground">Техподдержка</h2>
               </div>
               <Button 
                 onClick={() => setIsCreateTicketOpen(true)}
@@ -359,16 +359,16 @@ export default function Messages() {
             </div>
             <div className="mt-4 flex flex-col lg:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Поиск по теме, описанию или email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white"
+                  className="pl-10 bg-secondary border-border text-foreground"
                 />
               </div>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-full lg:w-48 bg-slate-700 border-slate-600">
+                <SelectTrigger className="w-full lg:w-48 bg-secondary border-border">
                   <SelectValue placeholder="Статус" />
                 </SelectTrigger>
                 <SelectContent>
@@ -384,24 +384,24 @@ export default function Messages() {
           </div>
           
           <div className="px-4 md:px-6 pb-6">
-            <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-600">
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-sm">
-                <thead className="bg-slate-700">
+                <thead className="bg-secondary">
                   <tr>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium">ТЕМА</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium">СТАТУС</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium">ПРИОРИТЕТ</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium">EMAIL</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium">СОЗДАН</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium">ОТВЕТОВ</th>
+                    <th className="px-6 py-4 text-left text-foreground font-medium">ТЕМА</th>
+                    <th className="px-6 py-4 text-left text-foreground font-medium">СТАТУС</th>
+                    <th className="px-6 py-4 text-left text-foreground font-medium">ПРИОРИТЕТ</th>
+                    <th className="px-6 py-4 text-left text-foreground font-medium">EMAIL</th>
+                    <th className="px-6 py-4 text-left text-foreground font-medium">СОЗДАН</th>
+                    <th className="px-6 py-4 text-left text-foreground font-medium">ОТВЕТОВ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-700 bg-slate-800">
+                <tbody className="divide-y divide-border bg-card">
                   {filteredTickets.map((ticket) => (
-                    <tr key={ticket.id} className="hover:bg-slate-700 transition-colors">
+                    <tr key={ticket.id} className="hover:bg-secondary transition-colors">
                       <td className="px-4 md:px-6 py-4">
-                        <div className="font-medium text-white">{ticket.subject}</div>
-                        <div className="text-sm text-slate-400 truncate max-w-xs">
+                        <div className="font-medium text-foreground">{ticket.subject}</div>
+                        <div className="text-sm text-muted-foreground truncate max-w-xs">
                           {ticket.description.substring(0, 80)}...
                         </div>
                       </td>
@@ -415,10 +415,10 @@ export default function Messages() {
                           {getPriorityText(ticket.priority)}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-slate-300">{ticket.email}</td>
-                      <td className="px-6 py-4 text-slate-400">{ticket.createdAt}</td>
+                      <td className="px-6 py-4 text-foreground/80">{ticket.email}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{ticket.createdAt}</td>
                       <td className="px-4 md:px-6 py-4">
-                        <span className="text-white font-medium">{ticket.responses}</span>
+                        <span className="text-foreground font-medium">{ticket.responses}</span>
                       </td>
                     </tr>
                   ))}
@@ -427,14 +427,14 @@ export default function Messages() {
             </div>
             <div className="md:hidden space-y-3">
               {filteredTickets.map((ticket) => (
-                <div key={ticket.id} className="bg-slate-700 border border-slate-600 rounded-lg p-4">
+                <div key={ticket.id} className="bg-secondary border border-border rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-white text-sm">{ticket.subject}</h3>
+                    <h3 className="font-medium text-foreground text-sm">{ticket.subject}</h3>
                     <Badge variant="secondary" className={`${getStatusColor(ticket.status)} text-xs`}>
                       {getStatusText(ticket.status)}
                     </Badge>
                   </div>
-                  <p className="text-sm text-slate-300 mb-3 line-clamp-2">{ticket.description}</p>
+                  <p className="text-sm text-foreground/80 mb-3 line-clamp-2">{ticket.description}</p>
                   <div className="flex flex-wrap gap-2 mb-3">
                     <Badge variant="secondary" className={`${getPriorityColor(ticket.priority)} text-xs`}>
                       {getPriorityText(ticket.priority)}
@@ -443,7 +443,7 @@ export default function Messages() {
                       {ticket.responses} ответов
                     </Badge>
                   </div>
-                  <div className="flex justify-between items-center text-xs text-slate-400">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>{ticket.email}</span>
                     <span>{ticket.createdAt}</span>
                   </div>
@@ -454,14 +454,14 @@ export default function Messages() {
         </div>
 
         {/* Секция Telegram-ботов */}
-        <div className="bg-slate-800 w-full mx-4 md:mx-6 lg:mx-8">
+        <div className="bg-card w-full mx-4 md:mx-6 lg:mx-8">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Bot className="h-4 w-4 text-white" />
+                  <Bot className="h-4 w-4 text-foreground" />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Telegram-боты</h2>
+                <h2 className="text-lg font-semibold text-foreground">Telegram-боты</h2>
               </div>
               <Button 
                 onClick={() => setIsCreateBotOpen(true)}
@@ -474,24 +474,24 @@ export default function Messages() {
           </div>
           <div className="px-6 pb-6 grid gap-4">
             {telegramBots.map((bot) => (
-              <Card key={bot.id} className="bg-slate-800 border-slate-700">
+              <Card key={bot.id} className="bg-card border-border">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
-                        <Bot className="h-5 w-5 text-slate-400" />
+                      <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+                        <Bot className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div>
-                        <CardTitle className="text-white text-lg">{bot.name}</CardTitle>
+                        <CardTitle className="text-foreground text-lg">{bot.name}</CardTitle>
                         <CardDescription className="flex items-center gap-2">
                           <Badge variant="secondary" className={
                             bot.isActive 
-                              ? "bg-slate-600 text-slate-200" 
-                              : "bg-slate-700 text-slate-300"
+                              ? "bg-secondary text-foreground" 
+                              : "bg-secondary text-foreground/80"
                           }>
                             {bot.isActive ? "Активен" : "Неактивен"}
                           </Badge>
-                          <span className="text-slate-500">•</span>
+                          <span className="text-muted-foreground">•</span>
                           <span>{bot.connectedUsers} подключений</span>
                         </CardDescription>
                       </div>
@@ -501,7 +501,7 @@ export default function Messages() {
                         variant="ghost"
                         size="sm"
                         onClick={() => openEditBotDialog(bot)}
-                        className="text-slate-400 hover:text-white hover:bg-slate-700"
+                        className="text-muted-foreground hover:text-foreground hover:bg-secondary"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -509,7 +509,7 @@ export default function Messages() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeletingBot(bot)}
-                        className="text-slate-400 hover:text-red-400 hover:bg-slate-700"
+                        className="text-muted-foreground hover:text-red-400 hover:bg-secondary"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -519,9 +519,9 @@ export default function Messages() {
                 <CardContent className="pt-0">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-xs text-slate-400">ТОКЕН</Label>
+                      <Label className="text-xs text-muted-foreground">ТОКЕН</Label>
                       <div className="flex items-center gap-2 mt-1">
-                        <code className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300 truncate flex-1">
+                        <code className="text-xs bg-secondary px-2 py-1 rounded text-foreground/80 truncate flex-1">
                           {bot.token.substring(0, 15)}...
                         </code>
                         <Button
@@ -531,34 +531,34 @@ export default function Messages() {
                             navigator.clipboard.writeText(bot.token);
                             toast({ title: "Токен скопирован" });
                           }}
-                          className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-400">КАНАЛЫ</Label>
+                      <Label className="text-xs text-muted-foreground">КАНАЛЫ</Label>
                       <div className="mt-1">
                         {bot.channels.length > 0 ? (
                           <div className="space-y-1">
                             {bot.channels.slice(0, 2).map((channel, idx) => (
-                              <div key={idx} className="text-xs text-slate-300 bg-slate-700 px-2 py-1 rounded">
+                              <div key={idx} className="text-xs text-foreground/80 bg-secondary px-2 py-1 rounded">
                                 {channel}
                               </div>
                             ))}
                             {bot.channels.length > 2 && (
-                              <div className="text-xs text-slate-500">+{bot.channels.length - 2} еще</div>
+                              <div className="text-xs text-muted-foreground">+{bot.channels.length - 2} еще</div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-500">Каналы не настроены</span>
+                          <span className="text-xs text-muted-foreground">Каналы не настроены</span>
                         )}
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-400">ПОСЛЕДНЯЯ АКТИВНОСТЬ</Label>
-                      <div className="text-xs text-slate-300 mt-1">{bot.lastActivity}</div>
+                      <Label className="text-xs text-muted-foreground">ПОСЛЕДНЯЯ АКТИВНОСТЬ</Label>
+                      <div className="text-xs text-foreground/80 mt-1">{bot.lastActivity}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -569,10 +569,10 @@ export default function Messages() {
 
         {/* Диалоговые окна */}
         <Dialog open={isCreateTicketOpen} onOpenChange={setIsCreateTicketOpen}>
-          <DialogContent className="max-w-2xl bg-slate-800 border-slate-700">
+          <DialogContent className="max-w-2xl bg-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-white">Создать обращение в техподдержку</DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogTitle className="text-foreground">Создать обращение в техподдержку</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 Опишите проблему или задайте вопрос. Ответ будет отправлен на указанный email
               </DialogDescription>
             </DialogHeader>
@@ -593,9 +593,9 @@ export default function Messages() {
             botForm.reset();
           }
         }}>
-          <DialogContent className="max-w-2xl bg-slate-800 border-slate-700">
+          <DialogContent className="max-w-2xl bg-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-white">{editingBot ? "Редактировать" : "Добавить"} Telegram-бота</DialogTitle>
+              <DialogTitle className="text-foreground">{editingBot ? "Редактировать" : "Добавить"} Telegram-бота</DialogTitle>
             </DialogHeader>
             <form onSubmit={botForm.handleSubmit(editingBot ? handleEditBot : handleCreateBot)} className="space-y-4">
               {/* ... форма создания/редактирования бота ... */}
@@ -608,10 +608,10 @@ export default function Messages() {
         </Dialog>
 
         <AlertDialog open={!!deletingBot} onOpenChange={(open) => !open && setDeletingBot(null)}>
-          <AlertDialogContent className="bg-slate-800 border-slate-700">
+          <AlertDialogContent className="bg-card border-border">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-white">Удалить Telegram-бота?</AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-400">
+              <AlertDialogTitle className="text-foreground">Удалить Telegram-бота?</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground">
                 Бот "{deletingBot?.name}" будет удален из системы. Это действие нельзя отменить.
               </AlertDialogDescription>
             </AlertDialogHeader>

@@ -182,11 +182,11 @@ export default function NetworksPage() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full px-4 md:px-6 lg:px-8">
           <div className="mb-6 pt-4">
-            <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Настройки сетей и торговых точек</h1>
           </div>
-          <div className="bg-slate-800 mb-6 w-full rounded-lg">
+          <div className="bg-card mb-6 w-full rounded-lg">
             <div className="px-4 md:px-6 py-4">
-              <div className="text-white">Загрузка...</div>
+              <div className="text-foreground">Загрузка...</div>
             </div>
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function NetworksPage() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Настройки сетей и торговых точек</h1>
             <HelpButton route="/admin/networks" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>

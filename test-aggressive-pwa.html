@@ -105,7 +105,7 @@
   <div class="test-panel">
     <h2>Тестирование:</h2>
     <div class="controls">
-      <button onclick="openApp()" class="success">🚀 Открыть TradeFrame (prod)</button>
+      <button onclick="openApp()" class="success">🚀 Открыть TradeControl (prod)</button>
       <button onclick="openAppNewWindow()" class="info">🔗 Открыть в новом окне</button>
       <button onclick="clearStorage()" class="warning">🗑️ Очистить Storage</button>
       <button onclick="testChrome()" class="info">⚡ Тест Chrome PWA</button>
@@ -150,7 +150,7 @@
     }
 
     function openApp() {
-      log('🚀 Загружаем TradeFrame с агрессивным PWA installer...', 'info');
+      log('🚀 Загружаем TradeControl с агрессивным PWA installer...', 'info');
       const frame = document.getElementById('appFrame');
       frame.src = 'https://electro-interfaces.github.io/tradeframe-builder/';
 
@@ -168,7 +168,7 @@
     }
 
     function openAppNewWindow() {
-      log('🔗 Открываем TradeFrame в новом окне для тестирования Chrome...', 'info');
+      log('🔗 Открываем TradeControl в новом окне для тестирования Chrome...', 'info');
       const newWindow = window.open('https://electro-interfaces.github.io/tradeframe-builder/', '_blank');
       log('✅ Новое окно открыто. Следите за PWA installer через 1-2 секунды!', 'success');
       log('🎯 В консоли должно появиться: "АГРЕССИВНО показываем fallback для ВСЕХ браузеров"', 'info');

@@ -21,7 +21,7 @@ import VoiceInputButton from './VoiceInputButton';
 import type { TicketCategory, TicketPriority, TicketType } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
 
-const selectCls = "h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 appearance-none cursor-pointer";
+const selectCls = "h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 appearance-none cursor-pointer";
 
 export default function CreateTicketDialog() {
   const { isCreateDialogOpen, closeCreateDialog, buildAppContext } = useSupportContext();
@@ -122,7 +122,7 @@ export default function CreateTicketDialog() {
 
   return (
     <Dialog open={isCreateDialogOpen} onOpenChange={(open) => !open && closeCreateDialog()}>
-      <DialogContent className="sm:max-w-lg bg-slate-900 border-slate-700 text-white">
+      <DialogContent className="sm:max-w-lg bg-background border-border text-foreground">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Новая заявка</DialogTitle>
         </DialogHeader>
@@ -130,12 +130,12 @@ export default function CreateTicketDialog() {
         <div className="space-y-4 mt-2">
           {/* Тема */}
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Тема *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Тема *</label>
             <Input
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="Кратко опишите проблему"
-              className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+              className="bg-card border-border text-foreground placeholder:text-muted-foreground"
               autoFocus
             />
           </div>
@@ -143,7 +143,7 @@ export default function CreateTicketDialog() {
           {/* Описание + голос */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-slate-400">Описание</label>
+              <label className="text-xs text-muted-foreground">Описание</label>
               <VoiceInputButton onResult={handleVoiceResult} />
             </div>
             <Textarea
@@ -151,18 +151,18 @@ export default function CreateTicketDialog() {
               onChange={e => setDescription(e.target.value)}
               placeholder="Подробное описание проблемы..."
               rows={4}
-              className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 resize-none"
+              className="bg-card border-border text-foreground placeholder:text-muted-foreground resize-none"
             />
           </div>
 
           {/* Файлы */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-slate-400">Вложения</label>
+              <label className="text-xs text-muted-foreground">Вложения</label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300 transition-colors"
               >
                 <Paperclip className="h-3 w-3" />
                 Прикрепить
@@ -189,25 +189,25 @@ export default function CreateTicketDialog() {
             {files.length > 0 && (
               <div className="space-y-1">
                 {files.map((file, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-slate-800 rounded px-2 py-1.5 text-xs">
+                  <div key={i} className="flex items-center gap-2 bg-card rounded px-2 py-1.5 text-xs">
                     {file.type.startsWith('image/') ? (
-                      <Image className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
+                      <Image className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
                     ) : (
-                      <FileText className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
+                      <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                     )}
-                    <span className="truncate flex-1 text-slate-300">{file.name}</span>
-                    <span className="text-slate-500 flex-shrink-0">{(file.size / 1024).toFixed(0)} KB</span>
+                    <span className="truncate flex-1 text-foreground/80">{file.name}</span>
+                    <span className="text-muted-foreground flex-shrink-0">{(file.size / 1024).toFixed(0)} KB</span>
                     <button
                       type="button"
                       onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
-                      className="text-slate-500 hover:text-red-400 flex-shrink-0"
+                      className="text-muted-foreground hover:text-red-400 flex-shrink-0"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ))}
                 {files.length >= MAX_FILES_TICKET && (
-                  <div className="text-[10px] text-slate-500">Максимум {MAX_FILES_TICKET} файлов</div>
+                  <div className="text-[10px] text-muted-foreground">Максимум {MAX_FILES_TICKET} файлов</div>
                 )}
               </div>
             )}
@@ -216,7 +216,7 @@ export default function CreateTicketDialog() {
           {/* Категория + Подкатегория */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Категория</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Категория</label>
               <select
                 value={parentCategory}
                 onChange={e => { setParentCategory(e.target.value); setChildCategory(''); }}
@@ -230,7 +230,7 @@ export default function CreateTicketDialog() {
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Подкатегория</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Подкатегория</label>
               <select
                 value={childCategory}
                 onChange={e => setChildCategory(e.target.value)}
@@ -248,7 +248,7 @@ export default function CreateTicketDialog() {
           {/* Приоритет + Тип */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Приоритет</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Приоритет</label>
               <select
                 value={priority}
                 onChange={e => setPriority(e.target.value as TicketPriority)}
@@ -262,7 +262,7 @@ export default function CreateTicketDialog() {
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">Тип</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Тип</label>
               <select
                 value={type}
                 onChange={e => setType(e.target.value as TicketType)}
@@ -282,51 +282,51 @@ export default function CreateTicketDialog() {
               <button
                 type="button"
                 onClick={() => setContextOpen(!contextOpen)}
-                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/80 transition-colors"
               >
                 <ChevronDown className={`h-3 w-3 transition-transform ${contextOpen ? '' : '-rotate-90'}`} />
                 Контекст приложения
               </button>
               {contextOpen && (
-                <div className="mt-2 rounded-md bg-slate-800/50 border border-slate-700/50 p-3 space-y-2 text-xs text-slate-400">
+                <div className="mt-2 rounded-md bg-card/50 border border-border/50 p-3 space-y-2 text-xs text-muted-foreground">
                   {/* Раздел + страница */}
                   <div className="flex items-center gap-1.5">
-                    <Route className="h-3 w-3 text-blue-400" />
-                    <span><span className="text-slate-500">{appContext.section} →</span> {appContext.routeName || appContext.route}</span>
+                    <Route className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                    <span><span className="text-muted-foreground">{appContext.section} →</span> {appContext.routeName || appContext.route}</span>
                   </div>
 
                   {/* Сеть */}
                   {appContext.networkName && (
                     <div className="flex items-center gap-1.5">
-                      <Monitor className="h-3 w-3 text-green-400" />
-                      <span>Сеть: <span className="text-white">{appContext.networkName}</span></span>
+                      <Monitor className="h-3 w-3 text-green-600 dark:text-green-400" />
+                      <span>Сеть: <span className="text-foreground">{appContext.networkName}</span></span>
                     </div>
                   )}
 
                   {/* ТТ */}
                   {appContext.tradingPointId && appContext.tradingPointId !== 'all' && (
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="h-3 w-3 text-amber-400" />
-                      <span>ТТ: <span className="text-white">{appContext.tradingPointName || appContext.tradingPointId}</span></span>
+                      <MapPin className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                      <span>ТТ: <span className="text-foreground">{appContext.tradingPointName || appContext.tradingPointId}</span></span>
                     </div>
                   )}
 
                   {/* URL-фильтры */}
                   {appContext.urlParams && Object.keys(appContext.urlParams).length > 0 && (
-                    <div className="text-slate-500 font-mono text-[10px]">
+                    <div className="text-muted-foreground font-mono text-[10px]">
                       Фильтры: {Object.entries(appContext.urlParams).map(([k, v]) => `${k}=${v}`).join(', ')}
                     </div>
                   )}
 
                   {/* Данные страницы */}
                   {appContext.pageData && Object.keys(appContext.pageData).length > 0 && (
-                    <div className="border-t border-slate-700/50 pt-1.5 text-slate-500 font-mono text-[10px] break-all">
+                    <div className="border-t border-border/50 pt-1.5 text-muted-foreground font-mono text-[10px] break-all">
                       {JSON.stringify(appContext.pageData, null, 0)}
                     </div>
                   )}
 
                   {/* Размер экрана */}
-                  <div className="text-slate-600 text-[10px]">
+                  <div className="text-muted-foreground text-[10px]">
                     Экран: {appContext.screenSize}
                   </div>
                 </div>

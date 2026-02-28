@@ -43,15 +43,15 @@ export function LastDataTransfer({ className = '' }: LastDataTransferProps) {
   if (isMobile) {
     // Мобильная версия - компактный формат
     return (
-      <span className={`text-slate-400 text-xs ${className}`}>
+      <span className={`text-muted-foreground text-xs ${className}`}>
         {lastUpdate.toLocaleTimeString('ru-RU', {
           hour: '2-digit',
           minute: '2-digit'
         })}
         {diffMinutes < 11 ? (
-          <span className="text-green-400 ml-1.5">✓</span>
+          <span className="text-green-600 dark:text-green-400 ml-1.5">✓</span>
         ) : (
-          <span className="text-red-400 ml-1.5">⚠ {diffMinutes}м</span>
+          <span className="text-red-600 dark:text-red-400 ml-1.5">⚠ {diffMinutes}м</span>
         )}
       </span>
     );
@@ -59,12 +59,12 @@ export function LastDataTransfer({ className = '' }: LastDataTransferProps) {
 
   // Десктопная версия - полный формат
   return (
-    <p className={`text-slate-400 text-sm mt-1 ${className}`}>
+    <p className={`text-muted-foreground text-sm mt-1 ${className}`}>
       Последняя передача данных: {lastUpdate.toLocaleString('ru-RU')}
       {diffMinutes < 11 ? (
-        <span className="text-green-400 ml-2">(✓ актуально)</span>
+        <span className="text-green-600 dark:text-green-400 ml-2">(✓ актуально)</span>
       ) : (
-        <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>
+        <span className="text-red-600 dark:text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>
       )}
     </p>
   );

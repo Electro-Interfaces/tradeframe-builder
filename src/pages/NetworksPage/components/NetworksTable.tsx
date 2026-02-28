@@ -33,21 +33,21 @@ export function NetworksTable({
             className={`rounded-lg border p-3 cursor-pointer transition-colors ${
               selectedNetworkId === network.id
                 ? 'bg-blue-600/20 border-blue-500'
-                : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                : 'bg-card border-border hover:bg-secondary'
             }`}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-white">{network.name}</div>
+                <div className="font-medium text-foreground">{network.name}</div>
                 {network.description && (
-                  <div className="text-xs text-slate-400 mt-0.5 truncate">{network.description}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 truncate">{network.description}</div>
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 text-slate-400 hover:text-white"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                   onClick={(e) => { e.stopPropagation(); onEdit(network); }}
                   disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
                 >
@@ -56,7 +56,7 @@ export function NetworksTable({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 text-slate-400 hover:text-red-400"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
                   onClick={(e) => { e.stopPropagation(); onDelete(network); }}
                   disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
                 >
@@ -66,14 +66,14 @@ export function NetworksTable({
             </div>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {network.external_id && (
-                <span className="text-xs bg-blue-900/50 text-blue-300 px-1.5 py-0.5 rounded font-mono">
+                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded font-mono">
                   {network.external_id}
                 </span>
               )}
-              <Badge variant="secondary" className="bg-slate-600 text-slate-200 text-xs">
+              <Badge variant="secondary" className="bg-secondary text-foreground text-xs">
                 {network.type}
               </Badge>
-              <span className="text-xs text-slate-400">Точек: {network.pointsCount}</span>
+              <span className="text-xs text-muted-foreground">Точек: {network.pointsCount}</span>
             </div>
           </div>
         ))}
@@ -82,51 +82,51 @@ export function NetworksTable({
   }
 
   return (
-    <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+    <div className="overflow-x-auto w-full rounded-lg border border-border">
       <table className="w-full text-sm min-w-full table-fixed">
-        <thead className="bg-slate-700">
+        <thead className="bg-secondary">
           <tr>
-            <th className="px-6 py-4 text-left text-slate-200 font-medium w-[8%]">API ID</th>
-            <th className="px-6 py-4 text-left text-slate-200 font-medium w-[35%]">НАЗВАНИЕ</th>
-            <th className="px-6 py-4 text-left text-slate-200 font-medium w-[12%]">ТИП</th>
-            <th className="px-6 py-4 text-right text-slate-200 font-medium w-[12%]">ТОЧЕК</th>
-            <th className="px-6 py-4 text-right text-slate-200 font-medium w-[18%]">ОБНОВЛЕНО</th>
-            <th className="px-6 py-4 text-right text-slate-200 font-medium w-[15%]">ДЕЙСТВИЯ</th>
+            <th className="px-6 py-4 text-left text-foreground font-medium w-[8%]">API ID</th>
+            <th className="px-6 py-4 text-left text-foreground font-medium w-[35%]">НАЗВАНИЕ</th>
+            <th className="px-6 py-4 text-left text-foreground font-medium w-[12%]">ТИП</th>
+            <th className="px-6 py-4 text-right text-foreground font-medium w-[12%]">ТОЧЕК</th>
+            <th className="px-6 py-4 text-right text-foreground font-medium w-[18%]">ОБНОВЛЕНО</th>
+            <th className="px-6 py-4 text-right text-foreground font-medium w-[15%]">ДЕЙСТВИЯ</th>
           </tr>
         </thead>
-        <tbody className="bg-slate-800">
+        <tbody className="bg-card">
           {networks.map((network) => (
             <tr
               key={network.id}
               onClick={() => onSelect(network.id)}
-              className={`border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors ${
+              className={`border-b border-border cursor-pointer hover:bg-secondary transition-colors ${
                 selectedNetworkId === network.id ? 'bg-blue-600/20 border-blue-500' : ''
               }`}
             >
               <td className="px-4 md:px-6 py-4">
-                <span className="text-xs bg-blue-900/50 text-blue-300 px-2 py-1 rounded font-mono">
+                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-1 rounded font-mono">
                   {network.external_id || 'не задан'}
                 </span>
               </td>
               <td className="px-4 md:px-6 py-4">
                 <div>
-                  <div className="font-medium text-white text-base">{network.name}</div>
-                  <div className="text-sm text-slate-400">{network.description}</div>
+                  <div className="font-medium text-foreground text-base">{network.name}</div>
+                  <div className="text-sm text-muted-foreground">{network.description}</div>
                 </div>
               </td>
               <td className="px-4 md:px-6 py-4">
-                <Badge variant="secondary" className="bg-slate-600 text-slate-200">
+                <Badge variant="secondary" className="bg-secondary text-foreground">
                   {network.type}
                 </Badge>
               </td>
-              <td className="px-6 py-4 text-right text-white font-medium">{network.pointsCount}</td>
-              <td className="px-6 py-4 text-right text-slate-400">Сегодня</td>
+              <td className="px-6 py-4 text-right text-foreground font-medium">{network.pointsCount}</td>
+              <td className="px-6 py-4 text-right text-muted-foreground">Сегодня</td>
               <td className="px-6 py-4 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEdit(network);
@@ -138,7 +138,7 @@ export function NetworksTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete(network);

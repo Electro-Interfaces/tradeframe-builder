@@ -22,20 +22,20 @@ export function ReconciliationKPICards({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Corp Card */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-2">
-            <CreditCard className="h-5 w-5 text-purple-400" />
-            <span className="text-slate-400 text-sm">Corp</span>
+            <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <span className="text-muted-foreground text-sm">Corp</span>
           </div>
-          <div className="text-2xl font-bold text-white">
+          <div className="text-2xl font-bold text-foreground">
             {(summary.totalCorpLiters || 0).toFixed(1)} л
           </div>
-          <div className="text-xs text-slate-500 mt-2 space-y-0.5">
+          <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
             {fuelTotals.map(f => {
               const hasDiscrepancy = hasFuelDiscrepancy(f.corp, f.tf, f.shift);
               return (
-                <div key={`corp-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-400' : ''}`}>
+                <div key={`corp-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-600 dark:text-red-400' : ''}`}>
                   <span>{f.name}:</span>
                   <span>{(f.corp || 0).toFixed(1)}</span>
                 </div>
@@ -46,20 +46,20 @@ export function ReconciliationKPICards({
       </Card>
 
       {/* TF Card */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-2">
-            <Fuel className="h-5 w-5 text-blue-400" />
-            <span className="text-slate-400 text-sm">TF</span>
+            <Fuel className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <span className="text-muted-foreground text-sm">TF</span>
           </div>
-          <div className="text-2xl font-bold text-white">
+          <div className="text-2xl font-bold text-foreground">
             {(summary.totalTfLiters || 0).toFixed(1)} л
           </div>
-          <div className="text-xs text-slate-500 mt-2 space-y-0.5">
+          <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
             {fuelTotals.map(f => {
               const hasDiscrepancy = hasFuelDiscrepancy(f.corp, f.tf, f.shift);
               return (
-                <div key={`tf-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-400' : ''}`}>
+                <div key={`tf-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-600 dark:text-red-400' : ''}`}>
                   <span>{f.name}:</span>
                   <span>{(f.tf || 0).toFixed(1)}</span>
                 </div>
@@ -70,20 +70,20 @@ export function ReconciliationKPICards({
       </Card>
 
       {/* Shift Card */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-2">
-            <Clock className="h-5 w-5 text-green-400" />
-            <span className="text-slate-400 text-sm">Смена</span>
+            <Clock className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <span className="text-muted-foreground text-sm">Смена</span>
           </div>
-          <div className="text-2xl font-bold text-white">
+          <div className="text-2xl font-bold text-foreground">
             {(summary.totalShiftLiters || 0).toFixed(1)} л
           </div>
-          <div className="text-xs text-slate-500 mt-2 space-y-0.5">
+          <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
             {fuelTotals.map(f => {
               const hasDiscrepancy = hasFuelDiscrepancy(f.corp, f.tf, f.shift);
               return (
-                <div key={`shift-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-400' : ''}`}>
+                <div key={`shift-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-600 dark:text-red-400' : ''}`}>
                   <span>{f.name}:</span>
                   <span>{(f.shift || 0).toFixed(1)}</span>
                 </div>
@@ -94,20 +94,20 @@ export function ReconciliationKPICards({
       </Card>
 
       {/* Status Card */}
-      <Card className={`border-slate-700 ${summary.hasErrors ? 'bg-red-900/30' : 'bg-emerald-900/30'}`}>
+      <Card className={`border-border ${summary.hasErrors ? 'bg-red-100 dark:bg-red-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'}`}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-2">
             {summary.hasErrors ? (
-              <XCircle className="h-5 w-5 text-red-400" />
+              <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
             ) : (
-              <CheckCircle2 className="h-5 w-5 text-green-400" />
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
             )}
-            <span className="text-slate-400 text-sm">Статус</span>
+            <span className="text-muted-foreground text-sm">Статус</span>
           </div>
-          <div className={`text-2xl font-bold ${summary.hasErrors ? 'text-red-400' : 'text-green-400'}`}>
+          <div className={`text-2xl font-bold ${summary.hasErrors ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
             {summary.hasErrors ? 'Есть расхождения' : 'Всё сходится'}
           </div>
-          <div className="text-xs text-slate-500 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             {summary.matched} совпало, {summary.onlyCorp + summary.onlyTf + summary.mismatch} расхождений
           </div>
           {onShowRecommendations && (
@@ -115,9 +115,9 @@ export function ReconciliationKPICards({
               variant="outline"
               size="sm"
               onClick={onShowRecommendations}
-              className="mt-3 w-full bg-slate-800/50 border-slate-600 hover:bg-slate-700 text-slate-300"
+              className="mt-3 w-full bg-card/50 border-border hover:bg-secondary text-foreground/80"
             >
-              <Lightbulb className="h-4 w-4 mr-2 text-yellow-400" />
+              <Lightbulb className="h-4 w-4 mr-2 text-yellow-600 dark:text-yellow-400" />
               Рекомендации
             </Button>
           )}

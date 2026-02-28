@@ -70,7 +70,7 @@ const handleViewportChange = () => {
 
 **Safari iOS (строки 212-225):**
 ```typescript
-'📱 Установка TradeFrame PWA на iPhone/iPad:\n\n' +
+'📱 Установка TradeControl PWA на iPhone/iPad:\n\n' +
 '1. Убедитесь, что используете Safari (не Chrome или другой браузер)\n' +
 '2. Нажмите кнопку "Поделиться" (□↗) в нижней панели Safari\n' +
 '3. Прокрутите список действий и найдите "На экран \"Домой\""\n' +
@@ -83,7 +83,7 @@ const handleViewportChange = () => {
 ```typescript
 '🌐 Chrome PWA установка:\n\n' +
 '• Кликните на иконку "Установить" в адресной строке (если есть)\n' +
-'• Или меню Chrome (⋮) → "Установить TradeFrame..."\n' +
+'• Или меню Chrome (⋮) → "Установить TradeControl..."\n' +
 '• Или меню Chrome (⋮) → "Сохранить и поделиться" → "Установить приложение"'
 ```
 
@@ -256,7 +256,7 @@ export class IOSPersistence {
 
   private static openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('TradeFramePersistence', 1);
+      const request = indexedDB.open('TradeControlPersistence', 1);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
@@ -324,7 +324,7 @@ export function ChromeInstallGuide() {
       <h3>Как установить приложение в Chrome:</h3>
       <ol>
         <li>Нажмите на иконку ⋮ (меню) в правом верхнем углу</li>
-        <li>Выберите "Установить TradeFrame..."</li>
+        <li>Выберите "Установить TradeControl..."</li>
         <li>Или поищите иконку установки 📥 в адресной строке</li>
       </ol>
       <p className="text-xs text-slate-400 mt-2">

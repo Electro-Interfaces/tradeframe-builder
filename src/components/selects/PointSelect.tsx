@@ -115,8 +115,8 @@ export function PointSelect({ value, onValueChange, className, disabled, network
       <PopoverTrigger asChild>
         <button 
           className={cn(
-            "flex items-center justify-between w-full px-3 py-2 text-sm bg-slate-700 border border-slate-600 text-white rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]",
-            disabled && "opacity-50 cursor-not-allowed hover:bg-slate-700",
+            "flex items-center justify-between w-full px-3 py-2 text-sm bg-secondary border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]",
+            disabled && "opacity-50 cursor-not-allowed hover:bg-secondary",
             className
           )}
           disabled={disabled}
@@ -137,7 +137,7 @@ export function PointSelect({ value, onValueChange, className, disabled, network
           {tradingPoints.length > 1 && (
             <li
               key="all"
-              className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded-md cursor-pointer border-b border-slate-700 mb-1"
+              className="flex items-center gap-2 px-2 py-1.5 hover:bg-card rounded-md cursor-pointer border-b border-border mb-1"
               onClick={() => handleSelect("all")}
             >
               <span
@@ -155,23 +155,23 @@ export function PointSelect({ value, onValueChange, className, disabled, network
           {tradingPoints.map((point) => (
             <li
               key={point.id}
-              className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded-md cursor-pointer"
+              className="flex items-center gap-2 px-2 py-1.5 hover:bg-card rounded-md cursor-pointer"
               onClick={() => handleSelect(point.id)}
             >
               <span 
                 className={cn(
                   "h-2 w-2 rounded-full",
-                  !point.isBlocked ? "bg-emerald-400" : "bg-slate-500"
+                  !point.isBlocked ? "bg-emerald-400" : "bg-muted-foreground"
                 )} 
                 aria-hidden 
               />
               <div className="min-w-0 flex-1 flex items-center gap-2">
                 <span>
                   {point.name}
-                  {point.description && <span className="text-slate-400"> - {point.description}</span>}
+                  {point.description && <span className="text-muted-foreground"> - {point.description}</span>}
                 </span>
                 {point.external_id && (
-                  <span className="text-xs text-blue-400 font-mono shrink-0">({point.external_id})</span>
+                  <span className="text-xs text-blue-600 dark:text-blue-400 font-mono shrink-0">({point.external_id})</span>
                 )}
               </div>
             </li>

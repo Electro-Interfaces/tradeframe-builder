@@ -1,4 +1,4 @@
-# 🧪 План создания тестовой среды TradeFrame Builder
+# 🧪 План создания тестовой среды TradeControl Builder
 
 **Дата создания:** 2025-10-17
 **Версия:** 1.0
@@ -208,7 +208,7 @@ BACKEND_PORT=3002
 ### Структура на локальной машине
 
 ```
-D:\Users\magsp\ELSYPLUS\TradeFrame/
+D:\Users\magsp\ELSYPLUS\TradeControl/
 ├── src/                         # Исходный код (общий)
 ├── server/                      # Backend proxy (общий)
 ├── public/                      # Статические файлы (общие)
@@ -452,7 +452,7 @@ server {
 ### Создание тестовой базы Supabase
 
 1. **Создать новый проект в Supabase:**
-   - Название: `TradeFrame Testing`
+   - Название: `TradeControl Testing`
    - Region: Тот же, что и production
    - Database Password: Сохранить в безопасном месте
 
@@ -518,7 +518,7 @@ sudo systemctl reload nginx
 ### Фаза 2: База данных (20 мин)
 
 **Шаг 2.1: Создать Supabase проект**
-- Dashboard → New Project → TradeFrame Testing
+- Dashboard → New Project → TradeControl Testing
 
 **Шаг 2.2: Экспорт схемы из production**
 ```bash
@@ -542,7 +542,7 @@ sudo systemctl reload nginx
 
 **Шаг 3.1: Создать .env.test локально**
 ```bash
-# В D:\Users\magsp\ELSYPLUS\TradeFrame\
+# В D:\Users\magsp\ELSYPLUS\TradeControl\
 # Скопировать .env.production → .env.test
 # Изменить все переменные на test значения
 ```
@@ -566,7 +566,7 @@ sudo systemctl reload nginx
 
 **Шаг 4.1: Сборка локально**
 ```bash
-cd D:\Users\magsp\ELSYPLUS\TradeFrame
+cd D:\Users\magsp\ELSYPLUS\TradeControl
 npm run build:test
 ```
 
@@ -670,7 +670,7 @@ echo "🧪 Starting deployment to TESTING environment..."
 # Configuration
 SERVER="root@194.135.36.195"
 REMOTE_DIR="/var/www/www-root/data/www/test.dataworker.ru"
-LOCAL_DIR="D:/Users/magsp/ELSYPLUS/TradeFrame"
+LOCAL_DIR="D:/Users/magsp/ELSYPLUS/TradeControl"
 
 # Colors
 GREEN='\033[0;32m'

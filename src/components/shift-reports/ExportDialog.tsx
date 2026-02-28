@@ -153,7 +153,7 @@ export function ExportDialog({
                   </Button>
                 )}
               </div>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 Система автоматически проверит наличие файлов и выгрузит только новые отчеты
               </p>
             </div>

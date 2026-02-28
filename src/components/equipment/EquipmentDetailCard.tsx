@@ -74,9 +74,9 @@ const getStatusIcon = (status: EquipmentStatus) => {
     case 'online': return <CheckCircle2 className="w-4 h-4 text-green-600" />;
     case 'offline': return <AlertCircle className="w-4 h-4 text-yellow-600" />;
     case 'error': return <XCircle className="w-4 h-4 text-red-600" />;
-    case 'disabled': return <PowerOff className="w-4 h-4 text-gray-600" />;
-    case 'archived': return <Archive className="w-4 h-4 text-slate-600" />;
-    default: return <Info className="w-4 h-4 text-gray-600" />;
+    case 'disabled': return <PowerOff className="w-4 h-4 text-muted-foreground" />;
+    case 'archived': return <Archive className="w-4 h-4 text-muted-foreground" />;
+    default: return <Info className="w-4 h-4 text-muted-foreground" />;
   }
 };
 
@@ -93,12 +93,12 @@ const getStatusText = (status: EquipmentStatus) => {
 
 const getStatusColor = (status: EquipmentStatus) => {
   switch (status) {
-    case 'online': return 'bg-emerald-500';
+    case 'online': return 'bg-emerald-600';
     case 'offline': return 'bg-yellow-500';
     case 'error': return 'bg-red-500';
-    case 'disabled': return 'bg-gray-500';
-    case 'archived': return 'bg-slate-500';
-    default: return 'bg-gray-500';
+    case 'disabled': return 'bg-muted-foreground';
+    case 'archived': return 'bg-muted-foreground';
+    default: return 'bg-muted-foreground';
   }
 };
 
@@ -108,7 +108,7 @@ const getEventIcon = (eventType: string) => {
     case 'updated': return <Settings className="w-4 h-4 text-orange-600" />;
     case 'status_changed': return <Power className="w-4 h-4 text-green-600" />;
     case 'command_executed': return <Settings className="w-4 h-4 text-purple-600" />;
-    default: return <Info className="w-4 h-4 text-gray-600" />;
+    default: return <Info className="w-4 h-4 text-muted-foreground" />;
   }
 };
 
@@ -578,7 +578,7 @@ export function EquipmentDetailCard({
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           {/* Базовые характеристики */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-semibold text-slate-700">Базовые характеристики</h4>
+                            <h4 className="text-sm font-semibold text-foreground">Базовые характеристики</h4>
                             <div className="space-y-3">
                               <div>
                                 <Label className="text-sm font-medium">Тип топлива</Label>
@@ -652,7 +652,7 @@ export function EquipmentDetailCard({
 
                           {/* Физические параметры */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-semibold text-slate-700">Физические параметры</h4>
+                            <h4 className="text-sm font-semibold text-foreground">Физические параметры</h4>
                             <div className="space-y-3">
                               <div>
                                 <Label className="text-sm font-medium">Температура (°C)</Label>
@@ -698,7 +698,7 @@ export function EquipmentDetailCard({
 
                           {/* Статус и местоположение */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-semibold text-slate-700">Статус и местоположение</h4>
+                            <h4 className="text-sm font-semibold text-foreground">Статус и местоположение</h4>
                             <div className="space-y-3">
                               <div>
                                 <Label className="text-sm font-medium">Статус</Label>
@@ -745,7 +745,7 @@ export function EquipmentDetailCard({
 
                           {/* Пороговые значения */}
                           <div className="space-y-4">
-                            <h4 className="text-sm font-semibold text-slate-700">Пороговые значения</h4>
+                            <h4 className="text-sm font-semibold text-foreground">Пороговые значения</h4>
                             <div className="space-y-3">
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
@@ -810,7 +810,7 @@ export function EquipmentDetailCard({
                         {/* Режим просмотра - без изменений */}
                         {/* Базовые характеристики */}
                         <div className="space-y-4">
-                          <h4 className="text-sm font-semibold text-slate-700">Базовые характеристики</h4>
+                          <h4 className="text-sm font-semibold text-foreground">Базовые характеристики</h4>
                           <div className="space-y-3">
                             <div>
                               <Label className="text-sm font-medium text-muted-foreground">
@@ -852,7 +852,7 @@ export function EquipmentDetailCard({
 
                         {/* Физические параметры */}
                         <div className="space-y-4">
-                          <h4 className="text-sm font-semibold text-slate-700">Физические параметры</h4>
+                          <h4 className="text-sm font-semibold text-foreground">Физические параметры</h4>
                           <div className="space-y-3">
                             <div>
                               <Label className="text-sm font-medium text-muted-foreground">
@@ -886,7 +886,7 @@ export function EquipmentDetailCard({
 
                         {/* Статус и местоположение */}
                         <div className="space-y-4">
-                          <h4 className="text-sm font-semibold text-slate-700">Статус и местоположение</h4>
+                          <h4 className="text-sm font-semibold text-foreground">Статус и местоположение</h4>
                           <div className="space-y-3">
                             <div>
                               <Label className="text-sm font-medium text-muted-foreground">
@@ -926,7 +926,7 @@ export function EquipmentDetailCard({
 
                         {/* Пороговые значения и уведомления */}
                         <div className="space-y-4">
-                          <h4 className="text-sm font-semibold text-slate-700">Пороговые значения</h4>
+                          <h4 className="text-sm font-semibold text-foreground">Пороговые значения</h4>
                           <div className="space-y-3">
                             {equipment.params.thresholds && (
                               <>

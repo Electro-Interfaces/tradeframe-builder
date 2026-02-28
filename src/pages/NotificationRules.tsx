@@ -248,13 +248,13 @@ export default function NotificationRules() {
 
   const getPriorityBadge = (priority: NotificationRule['priority']) => {
     const variants = {
-      info: { label: "Информация", color: "bg-slate-600 text-slate-200" },
-      warning: { label: "Предупреждение", color: "bg-slate-600 text-slate-200" },
-      critical: { label: "Критическое", color: "bg-slate-700 text-slate-300" }
+      info: { label: "Информация", color: "bg-secondary text-foreground" },
+      warning: { label: "Предупреждение", color: "bg-secondary text-foreground" },
+      critical: { label: "Критическое", color: "bg-secondary text-foreground/80" }
     };
     
     const config = variants[priority];
-    return <Badge variant="secondary" className={`${config.color} border-slate-600`}>{config.label}</Badge>;
+    return <Badge variant="secondary" className={`${config.color} border-border`}>{config.label}</Badge>;
   };
 
   const handleCreate = () => {
@@ -368,10 +368,10 @@ export default function NotificationRules() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full report-full-width">
           <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-            <h1 className="text-2xl font-semibold text-white">Правила оповещений</h1>
-            <p className="text-slate-400 mt-2">Создавайте и управляйте правилами автоматических оповещений для торговых сетей</p>
+            <h1 className="text-2xl font-semibold text-foreground">Правила оповещений</h1>
+            <p className="text-muted-foreground mt-2">Создавайте и управляйте правилами автоматических оповещений для торговых сетей</p>
           </div>
-          <div className="bg-slate-800 mb-6 w-full mx-4 md:mx-6 lg:mx-8">
+          <div className="bg-card mb-6 w-full mx-4 md:mx-6 lg:mx-8">
             <div className="px-4 md:px-6 py-4">
               <EmptyState 
                 title="Выберите торговую сеть" 
@@ -392,8 +392,8 @@ export default function NotificationRules() {
         <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Правила оповещений</h1>
-              <p className="text-slate-400 mt-2">
+              <h1 className="text-2xl font-semibold text-foreground">Правила оповещений</h1>
+              <p className="text-muted-foreground mt-2">
                 Правила оповещений для сети: {selectedNetwork?.name}
                 {selectedTradingPoint && ` - Точка: ${selectedTradingPoint.name}`}
               </p>
@@ -403,14 +403,14 @@ export default function NotificationRules() {
         </div>
 
         {/* Панель правил оповещений */}
-        <div className="bg-slate-800 mb-6 w-full mx-4 md:mx-6 lg:mx-8">
+        <div className="bg-card mb-6 w-full mx-4 md:mx-6 lg:mx-8">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">🔔</span>
+                  <span className="text-foreground text-sm">🔔</span>
                 </div>
-                <h2 className="text-lg font-semibold text-white">Правила оповещений</h2>
+                <h2 className="text-lg font-semibold text-foreground">Правила оповещений</h2>
               </div>
               <Button 
                 onClick={handleCreate}
@@ -428,18 +428,18 @@ export default function NotificationRules() {
                     placeholder="Поиск правил оповещений..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                    className="bg-secondary border-border text-foreground placeholder-muted-foreground"
                   />
                 </div>
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="border-slate-600 text-white hover:bg-slate-700"
+                  className="border-border text-foreground hover:bg-secondary"
                 >
                   <Filter className="h-4 w-4 mr-2" />
                   Фильтры
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="ml-2 bg-slate-600 text-slate-200">
+                    <Badge variant="secondary" className="ml-2 bg-secondary text-foreground">
                       {activeFiltersCount}
                     </Badge>
                   )}
@@ -448,17 +448,17 @@ export default function NotificationRules() {
 
               {/* Панель фильтров */}
               {showFilters && (
-                <Card className="bg-slate-700 border-slate-600">
+                <Card className="bg-secondary border-border">
                   <CardContent className="pt-6">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-white">Фильтры</h3>
+                        <h3 className="text-sm font-medium text-foreground">Фильтры</h3>
                         {activeFiltersCount > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={clearAllFilters}
-                            className="text-slate-400 hover:text-white"
+                            className="text-muted-foreground hover:text-foreground"
                           >
                             <X className="h-4 w-4 mr-1" />
                             Очистить
@@ -469,14 +469,14 @@ export default function NotificationRules() {
                       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {/* Фильтр по статусу */}
                         <div>
-                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                          <label className="text-xs font-medium text-foreground/80 mb-2 block">
                             Статус
                           </label>
                           <Select
                             value={filters.status}
                             onValueChange={(value) => updateFilter("status", value)}
                           >
-                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                            <SelectTrigger className="bg-secondary border-border text-foreground">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -489,14 +489,14 @@ export default function NotificationRules() {
 
                         {/* Фильтр по приоритету */}
                         <div>
-                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                          <label className="text-xs font-medium text-foreground/80 mb-2 block">
                             Приоритет
                           </label>
                           <Select
                             value={filters.priority}
                             onValueChange={(value) => updateFilter("priority", value)}
                           >
-                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                            <SelectTrigger className="bg-secondary border-border text-foreground">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -510,14 +510,14 @@ export default function NotificationRules() {
 
                         {/* Фильтр по пользователю */}
                         <div>
-                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                          <label className="text-xs font-medium text-foreground/80 mb-2 block">
                             Пользователь
                           </label>
                           <Select
                             value={filters.userId}
                             onValueChange={(value) => updateFilter("userId", value)}
                           >
-                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                            <SelectTrigger className="bg-secondary border-border text-foreground">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -533,14 +533,14 @@ export default function NotificationRules() {
 
                         {/* Фильтр по типу триггера */}
                         <div>
-                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                          <label className="text-xs font-medium text-foreground/80 mb-2 block">
                             Тип события
                           </label>
                           <Select
                             value={filters.triggerType}
                             onValueChange={(value) => updateFilter("triggerType", value)}
                           >
-                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                            <SelectTrigger className="bg-secondary border-border text-foreground">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -555,14 +555,14 @@ export default function NotificationRules() {
 
                         {/* Фильтр по срабатываниям */}
                         <div>
-                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                          <label className="text-xs font-medium text-foreground/80 mb-2 block">
                             Срабатывания
                           </label>
                           <Select
                             value={filters.hasTriggered}
                             onValueChange={(value) => updateFilter("hasTriggered", value)}
                           >
-                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                            <SelectTrigger className="bg-secondary border-border text-foreground">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -581,7 +581,7 @@ export default function NotificationRules() {
 
             {/* Результаты поиска */}
             {(searchQuery || activeFiltersCount > 0) && (
-              <div className="px-6 py-2 text-sm text-slate-400 border-t border-slate-600">
+              <div className="px-6 py-2 text-sm text-muted-foreground border-t border-border">
                 Найдено правил: {filteredRules.length} из {rules.length}
                 {searchQuery && (
                   <span> по запросу "{searchQuery}"</span>
@@ -618,50 +618,50 @@ export default function NotificationRules() {
           <>
             {/* Десктоп: таблица на всю ширину */}
             <div className="hidden md:block w-full mx-4 md:mx-6 lg:mx-8">
-          <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+          <div className="overflow-x-auto w-full rounded-lg border border-border">
             <table className="w-full text-sm min-w-full table-fixed">
-              <thead className="bg-slate-700">
+              <thead className="bg-secondary">
                 <tr>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '22%'}}>НАЗВАНИЕ ПРАВИЛА</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '18%'}}>ТРИГГЕР</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ПОЛЬЗОВАТЕЛЬ</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>КАНАЛЫ</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '13%'}}>ПОСЛЕДНЕЕ СРАБАТЫВАНИЕ</th>
-                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
+                  <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '22%'}}>НАЗВАНИЕ ПРАВИЛА</th>
+                  <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '18%'}}>ТРИГГЕР</th>
+                  <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '15%'}}>ПОЛЬЗОВАТЕЛЬ</th>
+                  <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '12%'}}>КАНАЛЫ</th>
+                  <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '10%'}}>СТАТУС</th>
+                  <th className="px-6 py-4 text-left text-foreground font-medium" style={{width: '13%'}}>ПОСЛЕДНЕЕ СРАБАТЫВАНИЕ</th>
+                  <th className="px-6 py-4 text-right text-foreground font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
                 </tr>
               </thead>
-              <tbody className="bg-slate-800">
+              <tbody className="bg-card">
                 {filteredRules.map((rule) => (
                   <tr
                     key={rule.id}
-                    className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                    className="border-b border-border cursor-pointer hover:bg-secondary transition-colors"
                   >
                     <td className="px-4 md:px-6 py-4">
                       <div>
-                        <div className="font-medium text-white text-base">{rule.name}</div>
-                        <div className="text-sm text-slate-400 mb-1">{rule.description}</div>
+                        <div className="font-medium text-foreground text-base">{rule.name}</div>
+                        <div className="text-sm text-muted-foreground mb-1">{rule.description}</div>
                         <div className="mt-1">{getPriorityBadge(rule.priority)}</div>
                       </div>
                     </td>
                     <td className="px-4 md:px-6 py-4">
-                      <span className="text-slate-200 text-sm">{rule.trigger.label}</span>
+                      <span className="text-foreground text-sm">{rule.trigger.label}</span>
                     </td>
                     <td className="px-4 md:px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-xs font-medium">
+                          <span className="text-foreground text-xs font-medium">
                             {rule.userName.split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
-                        <span className="text-slate-200 text-sm">{rule.userName}</span>
+                        <span className="text-foreground text-sm">{rule.userName}</span>
                       </div>
                     </td>
                     <td className="px-4 md:px-6 py-4">
                       {getChannelIcons(rule.channels)}
                     </td>
                     <td className="px-4 md:px-6 py-4">
-                      <Badge className="bg-slate-600 text-slate-200">
+                      <Badge className="bg-secondary text-foreground">
                         {rule.isActive ? "Активно" : "Приостановлено"}
                       </Badge>
                     </td>
@@ -669,10 +669,10 @@ export default function NotificationRules() {
                       <div className="flex items-center gap-2">
                         {rule.lastTriggered && (
                           <div className={`w-2 h-2 rounded-full ${
-                            rule.lastTriggered.status === 'sent' ? 'bg-slate-400' : 'bg-slate-500'
+                            rule.lastTriggered.status === 'sent' ? 'bg-muted-foreground' : 'bg-muted-foreground'
                           }`} />
                         )}
-                        <span className="text-sm text-slate-200">{formatLastTriggered(rule.lastTriggered)}</span>
+                        <span className="text-sm text-foreground">{formatLastTriggered(rule.lastTriggered)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -680,7 +680,7 @@ export default function NotificationRules() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                           onClick={() => handleEdit(rule)}
                         >
                           <Edit className="h-4 w-4" />
@@ -688,7 +688,7 @@ export default function NotificationRules() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                           onClick={() => handleClone(rule)}
                         >
                           <Copy className="h-4 w-4" />
@@ -696,7 +696,7 @@ export default function NotificationRules() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                           onClick={() => toggleRuleStatus(rule.id)}
                         >
                           {rule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -704,7 +704,7 @@ export default function NotificationRules() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                           onClick={() => {
                             setSelectedRule(rule);
                             setIsHistoryDialogOpen(true);
@@ -715,7 +715,7 @@ export default function NotificationRules() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
                           onClick={() => handleDeleteConfirm(rule.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -734,41 +734,41 @@ export default function NotificationRules() {
               {filteredRules.map((rule) => (
                 <div
                   key={rule.id}
-                  className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
+                  className="bg-secondary rounded-lg p-4 hover:bg-secondary transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-white text-base mb-1">{rule.name}</div>
-                      <div className="text-sm text-slate-400 mb-2">{rule.description}</div>
+                      <div className="font-medium text-foreground text-base mb-1">{rule.name}</div>
+                      <div className="text-sm text-muted-foreground mb-2">{rule.description}</div>
                       <div className="flex flex-col gap-2 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">Пользователь:</span>
+                          <span className="text-muted-foreground">Пользователь:</span>
                           <div className="flex items-center gap-2">
                             <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-white text-xs font-medium">
+                              <span className="text-foreground text-xs font-medium">
                                 {rule.userName.split(' ').map(n => n[0]).join('')}
                               </span>
                             </div>
-                            <span className="text-slate-200">{rule.userName}</span>
+                            <span className="text-foreground">{rule.userName}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">Триггер:</span>
-                          <span className="text-slate-200">{rule.trigger.label}</span>
+                          <span className="text-muted-foreground">Триггер:</span>
+                          <span className="text-foreground">{rule.trigger.label}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">Каналы:</span>
+                          <span className="text-muted-foreground">Каналы:</span>
                           {getChannelIcons(rule.channels)}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">Статус:</span>
-                          <Badge className="bg-slate-600 text-slate-200">
+                          <span className="text-muted-foreground">Статус:</span>
+                          <Badge className="bg-secondary text-foreground">
                             {rule.isActive ? "Активно" : "Приостановлено"}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">Последнее:</span>
-                          <span className="text-slate-200">{formatLastTriggered(rule.lastTriggered)}</span>
+                          <span className="text-muted-foreground">Последнее:</span>
+                          <span className="text-foreground">{formatLastTriggered(rule.lastTriggered)}</span>
                         </div>
                         <div className="mt-1">{getPriorityBadge(rule.priority)}</div>
                       </div>
@@ -777,7 +777,7 @@ export default function NotificationRules() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+                        className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => handleEdit(rule)}
                       >
                         <Edit className="h-4 w-4" />
@@ -785,7 +785,7 @@ export default function NotificationRules() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+                        className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => handleClone(rule)}
                       >
                         <Copy className="h-4 w-4" />
@@ -793,7 +793,7 @@ export default function NotificationRules() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+                        className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => toggleRuleStatus(rule.id)}
                       >
                         {rule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -801,7 +801,7 @@ export default function NotificationRules() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-9 w-9 p-0 text-slate-400 hover:text-red-400"
+                        className="h-9 w-9 p-0 text-muted-foreground hover:text-red-400"
                         onClick={() => handleDeleteConfirm(rule.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -823,7 +823,7 @@ export default function NotificationRules() {
             setSelectedRule(null);
           }
         }}>
-          <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
+          <DialogContent className="bg-card border-border w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
             <DialogHeader>
               <DialogTitle>
                 {selectedRule ? "Редактировать правило оповещения" : "Создать правило оповещения"}
@@ -844,7 +844,7 @@ export default function NotificationRules() {
 
         {/* History Dialog */}
         <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
+          <DialogContent className="bg-card border-border w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
             <DialogHeader>
               <DialogTitle>История срабатываний: {selectedRule?.name}</DialogTitle>
             </DialogHeader>

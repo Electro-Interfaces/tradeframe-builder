@@ -203,7 +203,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     // Инструкции для разных браузеров
     if (isOpera && isMobile) {
       alert(
-        '📱 Для установки TradeFrame на домашний экран в Opera:\n\n' +
+        '📱 Для установки TradeControl на домашний экран в Opera:\n\n' +
         '1. Нажмите кнопку меню (⋮) в правом нижнем углу браузера\n' +
         '2. Выберите "Добавить на главный экран" или "Установить"\n' +
         '3. Подтвердите установку\n\n' +
@@ -211,14 +211,14 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       );
     } else if (isIOS && isSafari) {
       alert(
-        '📱 Установка TradeFrame PWA на iPhone/iPad:\n\n' +
+        '📱 Установка TradeControl PWA на iPhone/iPad:\n\n' +
         '1. Убедитесь, что используете Safari (не Chrome или другой браузер)\n' +
         '2. Нажмите кнопку "Поделиться" (□↗) в нижней панели Safari\n' +
         '3. Прокрутите список действий и найдите "На экран \"Домой\""\n' +
         '4. Нажмите "На экран \"Домой\""\n' +
         '5. Отредактируйте название приложения при необходимости\n' +
         '6. Нажмите "Добавить" в правом верхнем углу\n\n' +
-        '✨ После установки TradeFrame будет работать как полноценное приложение с:\n' +
+        '✨ После установки TradeControl будет работать как полноценное приложение с:\n' +
         '• Собственной иконкой на главном экране\n' +
         '• Запуском в полноэкранном режиме\n' +
         '• Работой без интернета (в режиме офлайн)'
@@ -238,7 +238,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
         alert(
           '🌐 Chrome PWA установка:\n\n' +
           '• Кликните на иконку "Установить" в адресной строке (если есть)\n' +
-          '• Или меню Chrome (⋮) → "Установить TradeFrame..."\n' +
+          '• Или меню Chrome (⋮) → "Установить TradeControl..."\n' +
           '• Или меню Chrome (⋮) → "Сохранить и поделиться" → "Установить приложение"\n\n' +
           'Если опции нет, проверьте:\n' +
           '- Откройте chrome://apps и убедитесь что PWA не установлено\n' +
@@ -251,7 +251,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
           '• Кликните на иконку "Установить" в адресной строке (если есть)\n' +
           '• Или нажмите кнопку меню (≡) в верхней части браузера\n' +
           '• Выберите "Установить приложение" или "Установить сайт как приложение"\n\n' +
-          '✨ После установки TradeFrame будет работать как:\n' +
+          '✨ После установки TradeControl будет работать как:\n' +
           '• Отдельное приложение с собственным окном\n' +
           '• Иконка на домашнем экране Android\n' +
           '• Работа без интернета (офлайн режим)\n\n' +
@@ -306,20 +306,20 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
   }
 
   return (
-    <Card className="fixed bottom-4 left-4 right-4 z-50 shadow-2xl border-2 border-green-500/50 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md md:max-w-md md:left-auto md:right-4">
+    <Card className="fixed bottom-4 left-4 right-4 z-50 shadow-2xl border-2 border-green-500/50 bg-gradient-to-r from-background/95 to-card/95 backdrop-blur-md md:max-w-md md:left-auto md:right-4">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
-            <div className="bg-emerald-500/20 p-2 rounded-full">
-              <Smartphone className="h-6 w-6 text-green-400" />
+            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-full">
+              <Smartphone className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-bold text-green-400 mb-1 flex items-center gap-1">
-              📱 Установить TradeFrame
+            <h3 className="text-sm font-bold text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
+              📱 Установить TradeControl
             </h3>
-            <p className="text-xs text-green-200 mb-3 font-medium">
+            <p className="text-xs text-green-700 dark:text-green-200 mb-3 font-medium">
               {(isOpera && isMobile && !isIOS) && !deferredPrompt ? (
                 <>Используйте меню браузера (⋮) → "Добавить на главный экран" для установки приложения</>
               ) : (isIOS && isSafari) && !deferredPrompt ? (
@@ -376,7 +376,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
                 onClick={handleDismiss}
                 size="sm"
                 variant="ghost"
-                className="text-green-300 hover:text-green-200 hover:bg-emerald-900/30"
+                className="text-green-600 dark:text-green-300 hover:text-green-200 hover:bg-emerald-900/30"
               >
                 Позже
               </Button>
@@ -387,7 +387,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
             onClick={handleDismiss}
             size="sm"
             variant="ghost"
-            className="flex-shrink-0 h-6 w-6 p-0 text-green-400 hover:text-green-200 hover:bg-emerald-900/30"
+            className="flex-shrink-0 h-6 w-6 p-0 text-green-600 dark:text-green-400 hover:text-green-200 hover:bg-emerald-900/30"
           >
             <X className="h-4 w-4" />
           </Button>

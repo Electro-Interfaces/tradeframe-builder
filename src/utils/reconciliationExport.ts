@@ -44,7 +44,7 @@ export function exportReconciliationToExcel(result: ReconciliationResult): void 
     [],
     ['ИТОГИ ПО ИСТОЧНИКАМ', 'Литры'],
     ['Corp (TradeCorp)', totalCorp.toFixed(2)],
-    ['TF (TradeFrame)', totalTf.toFixed(2)],
+    ['TF (TradeControl)', totalTf.toFixed(2)],
     ['Смена (Сменный отчёт)', totalShift.toFixed(2)],
     [],
     ['РАСХОЖДЕНИЯ', 'Литры'],

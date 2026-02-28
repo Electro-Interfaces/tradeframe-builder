@@ -23,11 +23,11 @@ export function ReconciliationHeader({
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-blue-600/20 shrink-0">
-          <FileSearch className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
+          <FileSearch className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h1 className="text-lg sm:text-2xl font-semibold text-white">Результаты сверки</h1>
-          <p className="text-slate-400 text-xs sm:text-sm">
+          <h1 className="text-lg sm:text-2xl font-semibold text-foreground">Результаты сверки</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">
             {formatDate(params.dateFrom)} — {formatDate(params.dateTo)}
           </p>
         </div>
@@ -37,7 +37,7 @@ export function ReconciliationHeader({
           variant="outline"
           size="sm"
           onClick={() => exportReconciliationToExcel(result)}
-          className="border-slate-600 text-slate-300 hover:bg-slate-700 flex-1 sm:flex-none"
+          className="border-border text-foreground/80 hover:bg-secondary flex-1 sm:flex-none"
         >
           <Download className="h-4 w-4 sm:mr-2" />
           <span className="hidden sm:inline">Экспорт Excel</span>

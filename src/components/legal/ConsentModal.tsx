@@ -149,35 +149,35 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={false}>
       <DialogContent 
-        className={`${isMobile ? 'w-[95vw] max-w-none' : 'max-w-4xl'} max-h-[90vh] bg-slate-800 border-slate-700 ${className}`}
+        className={`${isMobile ? 'w-[95vw] max-w-none' : 'max-w-4xl'} max-h-[90vh] bg-card border-border ${className}`}
         hideCloseButton={true}
       >
         <DialogHeader className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
+              <Shield className="w-5 h-5 text-foreground" />
             </div>
             <div>
-              <DialogTitle className="text-xl text-white">
+              <DialogTitle className="text-xl text-foreground">
                 Обновление правовых документов
               </DialogTitle>
-              <DialogDescription className="text-slate-300">
+              <DialogDescription className="text-foreground/80">
                 Для продолжения работы необходимо ознакомиться с обновленными документами
               </DialogDescription>
             </div>
           </div>
 
           {/* Индикатор прогресса */}
-          <div className="bg-slate-700/50 rounded-lg p-3">
+          <div className="bg-secondary/50 rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-300">
+              <span className="text-sm text-foreground/80">
                 Прогресс согласия: {completedDocuments.length} из {remainingDocuments.length}
               </span>
               <Badge variant={allCompleted ? "default" : "secondary"} className="text-xs">
                 {allCompleted ? "Завершено" : "В процессе"}
               </Badge>
             </div>
-            <div className="w-full bg-slate-600 rounded-full h-2">
+            <div className="w-full bg-secondary rounded-full h-2">
               <div 
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ 
@@ -193,10 +193,10 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
             {/* Предупреждение */}
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-yellow-400 font-medium">Важно!</h4>
-                  <p className="text-sm text-slate-300 mt-1">
+                  <h4 className="text-yellow-600 dark:text-yellow-400 font-medium">Важно!</h4>
+                  <p className="text-sm text-foreground/80 mt-1">
                     Доступ к системе будет ограничен до тех пор, пока вы не ознакомитесь 
                     и не согласитесь со всеми обновленными документами. Это требование 
                     действующего законодательства.
@@ -210,14 +210,14 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
               const state = consentStates[doc.type] || { read: false, agreed: false, accepting: false };
               
               return (
-                <div key={doc.type} className="bg-slate-700/30 rounded-lg p-4 border border-slate-600">
+                <div key={doc.type} className="bg-secondary/30 rounded-lg p-4 border border-border">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <FileText className="w-4 h-4 text-white" />
+                        <FileText className="w-4 h-4 text-foreground" />
                       </div>
                       <div>
-                        <h3 className="text-white font-medium">{doc.title}</h3>
+                        <h3 className="text-foreground font-medium">{doc.title}</h3>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">
                             Версия {doc.version}
@@ -239,7 +239,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                       onClick={() => handleViewDocument(doc.type)}
                       variant="outline"
                       size="sm"
-                      className="bg-slate-600 border-slate-500 text-slate-200 hover:bg-slate-500"
+                      className="bg-secondary border-border text-foreground hover:bg-muted-foreground"
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       Просмотр
@@ -249,7 +249,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                       onClick={() => handleDownloadDocument(doc.type)}
                       variant="outline"
                       size="sm"
-                      className="bg-slate-600 border-slate-500 text-slate-200 hover:bg-slate-500"
+                      className="bg-secondary border-border text-foreground hover:bg-muted-foreground"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Скачать PDF
@@ -267,7 +267,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                       />
                       <label 
                         htmlFor={`read-${doc.type}`}
-                        className="text-sm text-slate-300 leading-relaxed cursor-pointer"
+                        className="text-sm text-foreground/80 leading-relaxed cursor-pointer"
                       >
                         Я ознакомился(ась) с документом "{doc.title}" версии {doc.version}
                       </label>
@@ -284,7 +284,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                       <label 
                         htmlFor={`agree-${doc.type}`}
                         className={`text-sm leading-relaxed cursor-pointer ${
-                          state.read ? 'text-slate-300' : 'text-slate-500'
+                          state.read ? 'text-foreground/80' : 'text-muted-foreground'
                         }`}
                       >
                         Я согласен(на) с условиями документа "{doc.title}" 
@@ -294,11 +294,11 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                   </div>
 
                   {/* Кнопка принятия согласия */}
-                  <div className="mt-4 pt-4 border-t border-slate-600">
+                  <div className="mt-4 pt-4 border-t border-border">
                     <Button
                       onClick={() => handleAcceptDocument(doc.type)}
                       disabled={!state.read || !state.agreed || state.accepting}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white disabled:bg-slate-600 disabled:text-slate-400"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white disabled:bg-secondary disabled:text-muted-foreground"
                       loading={state.accepting}
                     >
                       {state.accepting ? (
@@ -318,20 +318,20 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
             {/* Завершенные документы */}
             {completedDocuments.length > 0 && (
               <>
-                <Separator className="bg-slate-600" />
+                <Separator className="bg-secondary" />
                 <div>
-                  <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <h4 className="text-foreground font-medium mb-3 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
                     Завершенные согласия ({completedDocuments.length})
                   </h4>
                   <div className="space-y-2">
                     {completedDocuments.map(doc => (
                       <div key={doc.type} className="bg-emerald-500/10 border border-green-500/20 rounded-lg p-3">
                         <div className="flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-400" />
+                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                           <div>
-                            <span className="text-white font-medium">{doc.title}</span>
-                            <span className="text-sm text-slate-300 ml-2">v{doc.version}</span>
+                            <span className="text-foreground font-medium">{doc.title}</span>
+                            <span className="text-sm text-foreground/80 ml-2">v{doc.version}</span>
                           </div>
                         </div>
                       </div>
@@ -347,21 +347,21 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
           <div className="w-full">
             {allCompleted ? (
               <div className="bg-emerald-500/10 border border-green-500/20 rounded-lg p-4">
-                <div className="flex items-center justify-center gap-2 text-green-400">
+                <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="font-medium">Все согласия получены!</span>
                 </div>
-                <p className="text-sm text-slate-300 text-center mt-2">
+                <p className="text-sm text-foreground/80 text-center mt-2">
                   Доступ к системе будет восстановлен автоматически.
                 </p>
               </div>
             ) : (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                <div className="flex items-center justify-center gap-2 text-red-400">
+                <div className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400">
                   <Lock className="w-5 h-5" />
                   <span className="font-medium">Доступ ограничен</span>
                 </div>
-                <p className="text-sm text-slate-300 text-center mt-2">
+                <p className="text-sm text-foreground/80 text-center mt-2">
                   Завершите процесс согласия для продолжения работы с системой.
                 </p>
               </div>

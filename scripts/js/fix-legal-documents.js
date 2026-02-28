@@ -67,7 +67,7 @@ async function createLegalDocuments() {
           document_type_id: tosType.id,
           version: '1.0',
           title: 'Условия использования',
-          content: 'Базовые условия использования системы TradeFrame Builder.',
+          content: 'Базовые условия использования системы TradeControl Builder.',
           is_active: true
         })
         .select()

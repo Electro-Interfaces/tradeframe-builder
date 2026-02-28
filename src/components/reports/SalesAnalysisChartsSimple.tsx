@@ -43,10 +43,10 @@ const FuelChart = () => {
             }}
           />
           {/* Центральный круг */}
-          <div className="absolute inset-5 bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-700">
-            <div className="text-center text-white">
+          <div className="absolute inset-5 bg-card rounded-full flex items-center justify-center border-2 border-border">
+            <div className="text-center text-foreground">
               <div className="text-base font-bold">100%</div>
-              <div className="text-xs text-slate-400">Топливо</div>
+              <div className="text-xs text-muted-foreground">Топливо</div>
             </div>
           </div>
         </div>
@@ -60,8 +60,8 @@ const FuelChart = () => {
                 style={{ backgroundColor: item.color }}
               ></div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-white truncate">{item.name}</div>
-                <div className="text-xs text-slate-400 truncate">{item.value}% • {item.amount.toLocaleString()} ₽</div>
+                <div className="text-sm font-medium text-foreground truncate">{item.name}</div>
+                <div className="text-xs text-muted-foreground truncate">{item.value}% • {item.amount.toLocaleString()} ₽</div>
               </div>
             </div>
           ))}
@@ -90,10 +90,10 @@ const PaymentChart = () => {
             }}
           />
           {/* Центральный круг */}
-          <div className="absolute inset-5 bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-700">
-            <div className="text-center text-white">
+          <div className="absolute inset-5 bg-card rounded-full flex items-center justify-center border-2 border-border">
+            <div className="text-center text-foreground">
               <div className="text-base font-bold">100%</div>
-              <div className="text-xs text-slate-400">Оплата</div>
+              <div className="text-xs text-muted-foreground">Оплата</div>
             </div>
           </div>
         </div>
@@ -107,8 +107,8 @@ const PaymentChart = () => {
                 style={{ backgroundColor: item.color }}
               ></div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-white truncate">{item.name}</div>
-                <div className="text-xs text-slate-400 truncate">{item.value}% • {item.amount.toLocaleString()} ₽</div>
+                <div className="text-sm font-medium text-foreground truncate">{item.name}</div>
+                <div className="text-xs text-muted-foreground truncate">{item.value}% • {item.amount.toLocaleString()} ₽</div>
               </div>
             </div>
           ))}
@@ -136,19 +136,19 @@ const TrendChart = () => {
                 }}
               >
                 {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap border border-slate-600 z-10">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background text-foreground text-xs rounded px-2 py-1 whitespace-nowrap border border-border z-10">
                   <div>{item.revenue.toLocaleString()} ₽</div>
-                  <div className="text-slate-400">{item.transactions} транз.</div>
+                  <div className="text-muted-foreground">{item.transactions} транз.</div>
                 </div>
               </div>
-              <div className="text-xs text-slate-400 mt-2 text-center">{item.period}</div>
+              <div className="text-xs text-muted-foreground mt-2 text-center">{item.period}</div>
             </div>
           </div>
         ))}
       </div>
       
       {/* Ось Y */}
-      <div className="absolute left-0 top-4 h-48 flex flex-col justify-between text-xs text-slate-500">
+      <div className="absolute left-0 top-4 h-48 flex flex-col justify-between text-xs text-muted-foreground">
         <span>{(maxRevenue / 1000).toFixed(0)}k</span>
         <span>{(maxRevenue / 2000).toFixed(0)}k</span>
         <span>0</span>
@@ -169,11 +169,11 @@ const MetricsGrid = () => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {metrics.map((metric, index) => (
-        <div key={index} className="bg-slate-700 rounded-lg p-4 text-center hover:bg-slate-600 transition-colors">
+        <div key={index} className="bg-secondary rounded-lg p-4 text-center hover:bg-secondary transition-colors">
           <div className="text-2xl mb-2">{metric.icon}</div>
-          <div className="text-white font-semibold">{metric.value}</div>
-          <div className="text-slate-400 text-sm mb-1">{metric.label}</div>
-          <div className={`text-xs font-medium ${metric.trend.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
+          <div className="text-foreground font-semibold">{metric.value}</div>
+          <div className="text-muted-foreground text-sm mb-1">{metric.label}</div>
+          <div className={`text-xs font-medium ${metric.trend.startsWith('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
             {metric.trend}
           </div>
         </div>
@@ -193,9 +193,9 @@ export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoin
       {/* Основные графики */}
       <div className="w-full">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="bg-slate-800 border-slate-700 overflow-hidden">
+        <Card className="bg-card border-border overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-white flex items-center gap-2 text-base lg:text-lg">
+            <CardTitle className="text-foreground flex items-center gap-2 text-base lg:text-lg">
               <span>⛽</span>
               Продажи по видам топлива
             </CardTitle>
@@ -205,9 +205,9 @@ export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoin
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700 overflow-hidden">
+        <Card className="bg-card border-border overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-white flex items-center gap-2 text-base lg:text-lg">
+            <CardTitle className="text-foreground flex items-center gap-2 text-base lg:text-lg">
               <span>📊</span>
               Динамика продаж
             </CardTitle>
@@ -217,9 +217,9 @@ export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoin
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700 overflow-hidden">
+        <Card className="bg-card border-border overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-white flex items-center gap-2 text-base lg:text-lg">
+            <CardTitle className="text-foreground flex items-center gap-2 text-base lg:text-lg">
               <span>💳</span>
               Продажи по видам оплаты
             </CardTitle>

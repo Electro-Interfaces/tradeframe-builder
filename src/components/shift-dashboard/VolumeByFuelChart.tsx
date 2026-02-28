@@ -47,26 +47,26 @@ const CustomTooltip = ({ active, payload }: any) => {
   const data = payload[0].payload as FuelVolumeItem;
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-lg">
-      <div className="text-sm font-medium text-white mb-2">
+    <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+      <div className="text-sm font-medium text-foreground mb-2">
         {data.fuelName}
       </div>
       <div className="space-y-1 text-xs">
         <div className="flex justify-between gap-4">
-          <span className="text-slate-300">Объем</span>
-          <span className="text-white font-medium">
+          <span className="text-foreground/80">Объем</span>
+          <span className="text-foreground font-medium">
             {new Intl.NumberFormat('ru-RU').format(data.volume)} л
           </span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-slate-300">Выручка</span>
-          <span className="text-white font-medium">
+          <span className="text-foreground/80">Выручка</span>
+          <span className="text-foreground font-medium">
             {new Intl.NumberFormat('ru-RU').format(data.revenue)} ₽
           </span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-slate-300">Доля</span>
-          <span className="text-white font-medium">
+          <span className="text-foreground/80">Доля</span>
+          <span className="text-foreground font-medium">
             {data.percentOfTotal.toFixed(1)}%
           </span>
         </div>
@@ -78,16 +78,16 @@ const CustomTooltip = ({ active, payload }: any) => {
 export function VolumeByFuelChart({ data, isLoading, className }: VolumeByFuelChartProps) {
   if (isLoading) {
     return (
-      <div className={cn('bg-slate-800 rounded-xl p-5 border border-slate-700', className)}>
-        <div className="h-6 w-40 bg-slate-700 rounded animate-pulse mb-4" />
-        <div className="h-[300px] bg-slate-700/50 rounded animate-pulse" />
+      <div className={cn('bg-card rounded-xl p-5 border border-border', className)}>
+        <div className="h-6 w-40 bg-secondary rounded animate-pulse mb-4" />
+        <div className="h-[300px] bg-secondary/50 rounded animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className={cn('bg-slate-800 rounded-xl p-5 border border-slate-700', className)}>
-      <h3 className="text-lg font-semibold text-white mb-4">Объем по топливам</h3>
+    <div className={cn('bg-card rounded-xl p-5 border border-border', className)}>
+      <h3 className="text-lg font-semibold text-foreground mb-4">Объем по топливам</h3>
 
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -96,20 +96,20 @@ export function VolumeByFuelChart({ data, isLoading, className }: VolumeByFuelCh
             layout="vertical"
             margin={{ top: 10, right: 10, left: 80, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={true} vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={true} vertical={false} />
             <XAxis
               type="number"
               tickFormatter={(value) => formatVolume(value)}
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
-              axisLine={{ stroke: '#475569' }}
-              tickLine={{ stroke: '#475569' }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              axisLine={{ stroke: 'hsl(var(--border))' }}
+              tickLine={{ stroke: 'hsl(var(--border))' }}
             />
             <YAxis
               type="category"
               dataKey="fuelName"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
-              axisLine={{ stroke: '#475569' }}
-              tickLine={{ stroke: '#475569' }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              axisLine={{ stroke: 'hsl(var(--border))' }}
+              tickLine={{ stroke: 'hsl(var(--border))' }}
               width={70}
             />
             <Tooltip content={<CustomTooltip />} />
@@ -123,14 +123,14 @@ export function VolumeByFuelChart({ data, isLoading, className }: VolumeByFuelCh
       </div>
 
       {/* Легенда */}
-      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-700">
+      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
         {data.map((fuel) => (
           <div key={fuel.fuelCode} className="flex items-center gap-2">
             <div
               className="w-3 h-3 rounded"
               style={{ backgroundColor: fuel.color || '#3b82f6' }}
             />
-            <span className="text-xs text-slate-300">
+            <span className="text-xs text-foreground/80">
               {fuel.fuelName}: {fuel.percentOfTotal.toFixed(1)}%
             </span>
           </div>

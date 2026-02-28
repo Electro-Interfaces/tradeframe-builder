@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Transaction } from '@/services/stsApi';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -12,16 +12,17 @@ interface StationRevenueTrendChartProps {
   isMobile?: boolean;
 }
 
-// Цвета для разных станций (те же что в StationRevenueChart)
 const STATION_COLORS = [
-  '#3b82f6', // blue-500
-  '#8b5cf6', // violet-500
-  '#06b6d4', // cyan-500
-  '#f59e0b', // amber-500
-  '#10b981', // emerald-500
-  '#ef4444', // red-500
-  '#ec4899', // pink-500
-  '#f97316', // orange-500
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#06b6d4', // cyan
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#ef4444', // red
+  '#ec4899', // pink
+  '#f97316', // orange
+  '#14b8a6', // teal
+  '#a855f7', // purple
 ];
 
 export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> = ({
@@ -29,81 +30,69 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
   className = '',
   isMobile = false
 }) => {
-  const { chartData, stations } = useMemo(() => {
-    // Группируем транзакции по датам и станциям
+  const { chartData, stations, stationTotals } = useMemo(() => {
     const dateStationMap = new Map<string, Map<string, number>>();
     const allStations = new Set<string>();
 
     transactions.forEach(transaction => {
       if (!transaction.date) return;
-
       const dateKey = format(parseISO(transaction.date), 'yyyy-MM-dd');
       const stationKey = transaction.stationName || `Станция ${transaction.stationNumber || 'N/A'}`;
 
       if (!dateStationMap.has(dateKey)) {
         dateStationMap.set(dateKey, new Map());
       }
-
       const stationMap = dateStationMap.get(dateKey)!;
-      const currentRevenue = stationMap.get(stationKey) || 0;
-      stationMap.set(stationKey, currentRevenue + (transaction.total || 0));
-
+      stationMap.set(stationKey, (stationMap.get(stationKey) || 0) + (transaction.total || 0));
       allStations.add(stationKey);
     });
 
-    // Сортируем даты
     const sortedDates = Array.from(dateStationMap.keys()).sort();
 
-    // Подсчитываем общую выручку по станциям для сортировки
-    const stationTotals = new Map<string, number>();
+    // Общие итоги по станциям
+    const totals = new Map<string, number>();
     allStations.forEach(station => {
       let total = 0;
       dateStationMap.forEach(stationMap => {
         total += stationMap.get(station) || 0;
       });
-      stationTotals.set(station, total);
+      totals.set(station, total);
     });
 
-    // Сортируем станции по общей выручке (по убыванию)
+    // Сортируем: наибольшая выручка снизу стека (рисуется первой)
     const sortedStations = Array.from(allStations).sort(
-      (a, b) => (stationTotals.get(b) || 0) - (stationTotals.get(a) || 0)
+      (a, b) => (totals.get(b) || 0) - (totals.get(a) || 0)
     );
 
-    // Преобразуем в формат для графика
     const data = sortedDates.map(date => {
       const item: any = {
         date,
         displayDate: format(parseISO(date), 'dd MMM', { locale: ru })
       };
-
       const stationMap = dateStationMap.get(date)!;
       sortedStations.forEach(station => {
-        item[station] = Math.round((stationMap.get(station) || 0) * 100) / 100;
+        item[station] = Math.round(stationMap.get(station) || 0);
       });
-
       return item;
     });
 
-    return {
-      chartData: data,
-      stations: sortedStations
-    };
+    return { chartData: data, stations: sortedStations, stationTotals: totals };
   }, [transactions]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}М`;
+    if (value >= 1000) return `${Math.round(value / 1000)}к`;
+    return String(value);
   };
 
-  // Генерируем config для всех станций
+  const formatFull = (value: number) =>
+    new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value);
+
   const chartConfig = useMemo(() => {
     const config: Record<string, { label: string; color: string }> = {};
     stations.forEach((station, index) => {
       config[station] = {
-        label: station,
+        label: station.replace('Станция ', 'АЗС '),
         color: STATION_COLORS[index % STATION_COLORS.length],
       };
     });
@@ -112,15 +101,15 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
 
   if (chartData.length === 0) {
     return (
-      <Card className={`bg-slate-800 border-slate-600 ${className}`}>
+      <Card className={`bg-card border-border ${className}`}>
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <span className="text-2xl">📈</span>
             Динамика выручки по станциям
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground">
             Нет данных для отображения
           </div>
         </CardContent>
@@ -129,66 +118,67 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
   }
 
   return (
-    <Card className={`bg-slate-800 border-slate-600 ${className}`}>
+    <Card className={`bg-card border-border ${className}`}>
       <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : ''}>
-        <CardTitle className={`text-white flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+        <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
           <span className={isMobile ? 'text-lg' : 'text-2xl'}>📈</span>
           {isMobile ? 'Динамика выручки' : 'Динамика выручки по станциям'}
         </CardTitle>
-        <p className={`text-slate-400 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-          Тренды изменения выручки {isMobile ? '' : 'по дням '}для каждой АЗС
+        <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+          Вклад каждой АЗС в общую выручку по дням
         </p>
       </CardHeader>
       <CardContent className={isMobile ? 'px-3 pb-3' : ''}>
         <ChartContainer config={chartConfig} className={isMobile ? 'h-64 w-full' : 'h-80 w-full'}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={isMobile ? { top: 10, right: 10, left: 10, bottom: 10 } : { top: 20, right: 30, left: 20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <AreaChart
+              data={chartData}
+              margin={isMobile
+                ? { top: 10, right: 10, left: 10, bottom: 10 }
+                : { top: 20, right: 30, left: 20, bottom: 20 }
+              }
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis
                 dataKey="displayDate"
-                stroke="#94a3b8"
-                tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
+                stroke="hsl(var(--muted-foreground))"
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 10 : 12 }}
               />
               <YAxis
-                stroke="#94a3b8"
-                tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
+                stroke="hsl(var(--muted-foreground))"
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 10 : 12 }}
                 tickFormatter={formatCurrency}
-                width={isMobile ? 60 : 80}
+                width={isMobile ? 45 : 65}
               />
               <ChartTooltip
                 content={({ active, payload, label }) => {
                   if (!active || !payload || payload.length === 0) return null;
-
                   const total = payload.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
-
                   return (
-                    <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 shadow-lg max-w-xs">
-                      <p className="font-semibold text-white mb-2">{label}</p>
+                    <div className="bg-background border border-border rounded-lg p-3 shadow-lg max-w-xs">
+                      <p className="font-semibold text-foreground mb-2">{label}</p>
                       <div className="space-y-1 text-sm max-h-60 overflow-y-auto">
-                        {payload
+                        {[...payload]
                           .filter(item => Number(item.value) > 0)
                           .sort((a, b) => Number(b.value) - Number(a.value))
                           .map((item, index) => (
                             <div key={index} className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: item.color }}
-                                />
-                                <span className="text-slate-300 text-xs">
-                                  {String(item.name).replace('Станция ', 'АЗС ')}:
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                                <span className="text-foreground/80 text-xs">
+                                  {String(item.name).replace('Станция ', 'АЗС ')}
                                 </span>
                               </div>
-                              <span className="text-white font-semibold">
-                                {formatCurrency(Number(item.value))} ₽
+                              <span className="text-foreground font-semibold">
+                                {formatFull(Number(item.value))} ₽
                               </span>
                             </div>
                           ))}
                         {payload.length > 1 && (
-                          <div className="border-t border-slate-700 mt-2 pt-2 flex items-center justify-between gap-3">
-                            <span className="text-slate-400 font-semibold text-xs">Всего:</span>
-                            <span className="text-blue-400 font-bold">
-                              {formatCurrency(total)} ₽
+                          <div className="border-t border-border mt-2 pt-2 flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground font-semibold text-xs">Всего:</span>
+                            <span className="text-blue-600 dark:text-blue-400 font-bold">
+                              {formatFull(total)} ₽
                             </span>
                           </div>
                         )}
@@ -197,54 +187,59 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
                   );
                 }}
               />
-              <Legend
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="line"
-                formatter={(value) => (
-                  <span className="text-slate-300 text-sm">
-                    {String(value).replace('Станция ', 'АЗС ')}
-                  </span>
-                )}
-              />
-              {stations.map((station) => (
-                <Line
+              {/* Стек: крупнейшие станции снизу */}
+              {[...stations].reverse().map((station) => (
+                <Area
                   key={station}
                   type="monotone"
                   dataKey={station}
+                  stackId="revenue"
                   stroke={chartConfig[station]?.color || '#94a3b8'}
-                  strokeWidth={2}
-                  dot={{ fill: chartConfig[station]?.color, r: 4 }}
-                  activeDot={{ r: 6 }}
+                  strokeWidth={1}
+                  fill={chartConfig[station]?.color || '#94a3b8'}
+                  fillOpacity={0.7}
                 />
               ))}
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </ChartContainer>
 
-        {/* Статистика по трендам */}
+        {/* Легенда — компактная */}
+        <div className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 ${isMobile ? 'mt-2' : 'mt-3'}`}>
+          {stations.map((station, i) => (
+            <div key={station} className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: STATION_COLORS[i % STATION_COLORS.length] }} />
+              <span className="text-xs text-muted-foreground">
+                {station.replace('Станция ', 'АЗС ')}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Статистика */}
         <div className={`grid grid-cols-2 md:grid-cols-4 ${isMobile ? 'mt-3 gap-2' : 'mt-4 gap-3'}`}>
-          <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
-            <div className={`text-slate-400 mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Период</div>
-            <div className={`font-semibold text-white ${isMobile ? 'text-sm' : 'text-lg'}`}>
+          <div className={`bg-secondary/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+            <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Период</div>
+            <div className={`font-semibold text-foreground ${isMobile ? 'text-sm' : 'text-lg'}`}>
               {chartData.length} {chartData.length === 1 ? 'день' : 'дней'}
             </div>
           </div>
-          <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
-            <div className={`text-slate-400 mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Станций</div>
-            <div className={`font-semibold text-white ${isMobile ? 'text-base' : 'text-lg'}`}>{stations.length}</div>
+          <div className={`bg-secondary/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+            <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Станций</div>
+            <div className={`font-semibold text-foreground ${isMobile ? 'text-base' : 'text-lg'}`}>{stations.length}</div>
           </div>
           {stations.length > 0 && (
             <>
-              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
-                <div className={`text-slate-400 mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Лидер тренда</div>
-                <div className={`font-semibold text-emerald-400 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>
+              <div className={`bg-secondary/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Лидер</div>
+                <div className={`font-semibold text-emerald-600 dark:text-emerald-400 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>
                   {stations[0].replace('Станция ', 'АЗС ')}
                 </div>
               </div>
-              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
-                <div className={`text-slate-400 mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Средняя выручка/день</div>
-                <div className={`font-semibold text-blue-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  {formatCurrency(
+              <div className={`bg-secondary/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Средняя выручка/день</div>
+                <div className={`font-semibold text-blue-600 dark:text-blue-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  {formatFull(
                     chartData.reduce((sum, day) => {
                       const dayTotal = stations.reduce((s, st) => s + (day[st] || 0), 0);
                       return sum + dayTotal;

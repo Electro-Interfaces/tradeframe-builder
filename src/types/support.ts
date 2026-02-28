@@ -236,14 +236,14 @@ export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
 };
 
 export const TICKET_STATUS_COLORS: Record<TicketStatus, string> = {
-  new: 'bg-slate-700/50 text-slate-300 border-slate-600',
-  in_progress: 'bg-slate-700/50 text-slate-300 border-slate-600',
-  waiting_customer: 'bg-slate-700/50 text-slate-300 border-slate-600',
-  escalated: 'bg-slate-700/50 text-slate-300 border-slate-600',
-  resolved: 'bg-slate-700/50 text-slate-300 border-slate-600',
-  closed: 'bg-slate-700/50 text-slate-300 border-slate-600',
-  cancelled: 'bg-slate-700/50 text-slate-300 border-slate-600',
-  reopened: 'bg-slate-700/50 text-slate-300 border-slate-600',
+  new: 'bg-secondary/50 text-foreground/80 border-border',
+  in_progress: 'bg-secondary/50 text-foreground/80 border-border',
+  waiting_customer: 'bg-secondary/50 text-foreground/80 border-border',
+  escalated: 'bg-secondary/50 text-foreground/80 border-border',
+  resolved: 'bg-secondary/50 text-foreground/80 border-border',
+  closed: 'bg-secondary/50 text-foreground/80 border-border',
+  cancelled: 'bg-secondary/50 text-foreground/80 border-border',
+  reopened: 'bg-secondary/50 text-foreground/80 border-border',
 };
 
 export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
@@ -254,7 +254,7 @@ export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
 };
 
 export const TICKET_PRIORITY_COLORS: Record<TicketPriority, string> = {
-  low: 'text-slate-400',
+  low: 'text-muted-foreground',
   medium: 'text-blue-400',
   high: 'text-amber-400',
   critical: 'text-red-400',

@@ -327,16 +327,16 @@ export default function Receipts() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full px-4 md:px-6 lg:px-8">
           <div className="mb-6 pt-4">
-            <h1 className="text-2xl font-semibold text-white">Поступления топлива</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Поступления топлива</h1>
           </div>
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 md:p-6">
+          <div className="bg-card rounded-lg border border-border p-4 md:p-6">
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 Выберите торговую сеть для просмотра поступлений
               </AlertDescription>
             </Alert>
-            <Card className="p-6 mt-6 bg-slate-700 border-slate-600">
+            <Card className="p-6 mt-6 bg-secondary border-border">
               <Label htmlFor="network-select">Торговая сеть</Label>
               <Select onValueChange={(value) => setSystemId(parseInt(value))}>
                 <SelectTrigger id="network-select" className="mt-2">
@@ -382,13 +382,13 @@ export default function Receipts() {
               opacity: Math.min(pullDistance / PULL_THRESHOLD, 1)
             }}
           >
-            <div className="bg-slate-800/90 backdrop-blur-sm rounded-full p-3 shadow-lg border border-slate-700">
+            <div className="bg-card/90 backdrop-blur-sm rounded-full p-3 shadow-lg border border-border">
               {pullState === 'refreshing' ? (
-                <RefreshCw className="h-5 w-5 text-blue-400 animate-spin" />
+                <RefreshCw className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
               ) : pullDistance >= PULL_THRESHOLD ? (
-                <RefreshCw className="h-5 w-5 text-green-400" />
+                <RefreshCw className="h-5 w-5 text-green-600 dark:text-green-400" />
               ) : (
-                <RefreshCw className="h-5 w-5 text-slate-400" />
+                <RefreshCw className="h-5 w-5 text-muted-foreground" />
               )}
             </div>
           </div>
@@ -396,7 +396,7 @@ export default function Receipts() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Поступления топлива</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Поступления топлива</h1>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -414,13 +414,13 @@ export default function Receipts() {
 
         {/* Панель фильтров */}
         <div className="mb-6">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
               <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50 transition-colors">
+                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-slate-400" />
-                    <span className="font-medium text-white">Фильтры</span>
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-foreground">Фильтры</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -441,20 +441,20 @@ export default function Receipts() {
                         refetch();
                       }}
                       disabled={isLoading}
-                      className="border-slate-600 text-white hover:bg-slate-700"
+                      className="border-border text-foreground hover:bg-secondary"
                     >
                       <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                     </Button>
-                    {filtersOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                    {filtersOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="p-4 border-t border-slate-700">
+                <div className="p-4 border-t border-border">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Дата от */}
                     <div>
-                      <Label htmlFor="date-from" className="text-xs text-slate-400">Дата от</Label>
+                      <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
                       <Input
                         id="date-from"
                         type="date"
@@ -466,7 +466,7 @@ export default function Receipts() {
 
                     {/* Дата до */}
                     <div>
-                      <Label htmlFor="date-to" className="text-xs text-slate-400">Дата до</Label>
+                      <Label htmlFor="date-to" className="text-xs text-muted-foreground">Дата до</Label>
                       <Input
                         id="date-to"
                         type="date"
@@ -478,7 +478,7 @@ export default function Receipts() {
 
                     {/* Номер ТТН */}
                     <div>
-                      <Label htmlFor="ttn" className="text-xs text-slate-400">Номер ТТН</Label>
+                      <Label htmlFor="ttn" className="text-xs text-muted-foreground">Номер ТТН</Label>
                       <Input
                         id="ttn"
                         type="text"
@@ -491,7 +491,7 @@ export default function Receipts() {
 
                     {/* Нефтебаза */}
                     <div>
-                      <Label htmlFor="base" className="text-xs text-slate-400">Нефтебаза</Label>
+                      <Label htmlFor="base" className="text-xs text-muted-foreground">Нефтебаза</Label>
                       <Select value={baseId || undefined} onValueChange={setBaseId}>
                         <SelectTrigger id="base" className="mt-1">
                           <SelectValue placeholder="Все" />
@@ -509,7 +509,7 @@ export default function Receipts() {
 
                     {/* Номер смены */}
                     <div>
-                      <Label htmlFor="shift-number" className="text-xs text-slate-400">Номер смены</Label>
+                      <Label htmlFor="shift-number" className="text-xs text-muted-foreground">Номер смены</Label>
                       <Input
                         id="shift-number"
                         type="number"
@@ -530,9 +530,9 @@ export default function Receipts() {
         {flatReceipts.length > 0 && (
           <div className="mb-6">
             <div className="flex justify-between items-center px-2 mb-2">
-              <h3 className={`text-slate-300 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
+              <h3 className={`text-foreground/80 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
               {selectedKpiFuels.size > 0 && (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   {selectedKpiFuels.size} {selectedKpiFuels.size === 1 ? 'выбран' : 'выбрано'}
                 </span>
               )}
@@ -575,17 +575,17 @@ export default function Receipts() {
         )}
 
         {/* Таблица */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 md:p-6">
+        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-foreground">
               Журнал поступлений
-              <span className="text-slate-400 ml-2 font-normal text-sm">
+              <span className="text-muted-foreground ml-2 font-normal text-sm">
                 ({filteredReceipts.length})
               </span>
             </h2>
           </div>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-background border-border">
         {isLoading ? (
           <div className="p-6 space-y-4">
             <Skeleton className="h-8 w-full" />
@@ -612,14 +612,14 @@ export default function Receipts() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-slate-400">Дата и время</TableHead>
-                <TableHead className="text-slate-400">ТТ</TableHead>
-                <TableHead className="text-slate-400">Смена</TableHead>
-                <TableHead className="text-slate-400">ТТН</TableHead>
-                <TableHead className="text-slate-400">Топливо</TableHead>
-                <TableHead className="text-right text-slate-400">Объем (л)</TableHead>
-                <TableHead className="text-right text-slate-400">Масса (кг)</TableHead>
-                <TableHead className="text-right text-slate-400">Отклонение (кг)</TableHead>
+                <TableHead className="text-muted-foreground">Дата и время</TableHead>
+                <TableHead className="text-muted-foreground">ТТ</TableHead>
+                <TableHead className="text-muted-foreground">Смена</TableHead>
+                <TableHead className="text-muted-foreground">ТТН</TableHead>
+                <TableHead className="text-muted-foreground">Топливо</TableHead>
+                <TableHead className="text-right text-muted-foreground">Объем (л)</TableHead>
+                <TableHead className="text-right text-muted-foreground">Масса (кг)</TableHead>
+                <TableHead className="text-right text-muted-foreground">Отклонение (кг)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -634,32 +634,32 @@ export default function Receipts() {
                 return (
                   <TableRow
                     key={receiptId}
-                    className="cursor-pointer hover:bg-slate-700/50 transition-colors border-slate-700"
+                    className="cursor-pointer hover:bg-secondary/50 transition-colors border-border"
                     onClick={() => handleSelectReceipt(receipt)}
                   >
-                    <TableCell className="text-slate-300">
+                    <TableCell className="text-foreground/80">
                       {format(new Date(receipt.dt), 'dd.MM.yyyy HH:mm', { locale: ru })}
                     </TableCell>
-                    <TableCell className="text-slate-300">{receipt.stationNumber}</TableCell>
-                    <TableCell className="text-slate-300">{receipt.shiftNumber}</TableCell>
-                    <TableCell className="font-mono text-slate-300">{receipt.ttn}</TableCell>
+                    <TableCell className="text-foreground/80">{receipt.stationNumber}</TableCell>
+                    <TableCell className="text-foreground/80">{receipt.shiftNumber}</TableCell>
+                    <TableCell className="font-mono text-foreground/80">{receipt.ttn}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-slate-700 text-white border-slate-600">
+                      <Badge variant="outline" className="bg-secondary text-foreground border-border">
                         {receipt.service.service_name}
                       </Badge>
                     </TableCell>
 
                     {/* Документальные данные */}
-                    <TableCell className="text-right font-mono text-slate-300">
+                    <TableCell className="text-right font-mono text-foreground/80">
                       {docVolume.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-slate-300">
+                    <TableCell className="text-right font-mono text-foreground/80">
                       {docAmount.toFixed(2)}
                     </TableCell>
 
                     {/* Отклонение по массе */}
                     <TableCell className="text-right font-mono">
-                      <span className={cn(amountDiff >= 0 ? 'text-green-400' : 'text-red-400')}>
+                      <span className={cn(amountDiff >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
                         {amountDiff > 0 ? '+' : ''}{amountDiff.toFixed(2)}
                       </span>
                     </TableCell>

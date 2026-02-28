@@ -1,6 +1,6 @@
-# 🛠️ TradeFrame Builder - Инструменты разработки
+# 🛠️ TradeControl Builder - Инструменты разработки
 
-Коллекция инструментов для разработки и отладки TradeFrame Builder.
+Коллекция инструментов для разработки и отладки TradeControl Builder.
 
 ## 📋 Доступные инструменты
 
@@ -97,7 +97,7 @@ node tools/sql-direct.js tables
 # Покажет какие таблицы доступны для чтения/записи
 ```
 
-## 📚 База данных TradeFrame Builder
+## 📚 База данных TradeControl Builder
 
 ### Основные таблицы
 

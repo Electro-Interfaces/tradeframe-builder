@@ -83,7 +83,7 @@ export default function FuelInventory() {
   // Вспомогательные функции
   // Цветовая индикация по уровню заполнения резервуара
   const getProgressColor = (fillPercent: number) => {
-    if (fillPercent >= 20) return 'bg-emerald-500';  // >= 20% - зеленый (норма)
+    if (fillPercent >= 20) return 'bg-emerald-600';  // >= 20% - зеленый (норма)
     if (fillPercent >= 10) return 'bg-yellow-500'; // 10-20% - желтый (внимание)
     return 'bg-red-500';                            // < 10% - красный (критический)
   };
@@ -99,13 +99,13 @@ export default function FuelInventory() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 px-4 md:px-0">
         {/* Заголовок */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-100">Остатки</h1>
-              <p className="text-slate-400 mt-1">
+              <h1 className="text-3xl font-bold text-foreground">Остатки</h1>
+              <p className="text-muted-foreground mt-1">
                 Книжные остатки по всем резервуарам на основании данных сменных отчетов
               </p>
             </div>
@@ -124,22 +124,22 @@ export default function FuelInventory() {
 
         {/* Индикатор прогресса загрузки смен - показываем только при активной загрузке */}
         {loading && loadingProgress.total > 0 && (
-          <Card className="bg-blue-900/20 border-blue-700">
+          <Card className="bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700">
             <CardContent className="py-4">
               <div className="flex items-center gap-4">
-                <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
+                <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
                 <div className="flex-1">
-                  <p className="text-blue-400 font-medium mb-2">
+                  <p className="text-blue-600 dark:text-blue-400 font-medium mb-2">
                     Загрузка сменных отчетов: {loadingProgress.loaded} / {loadingProgress.total}
                   </p>
-                  <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500 transition-all duration-300"
                       style={{ width: `${(loadingProgress.loaded / loadingProgress.total) * 100}%` }}
                     ></div>
                   </div>
                 </div>
-                <div className="text-blue-400 font-mono text-sm">
+                <div className="text-blue-600 dark:text-blue-400 font-mono text-sm">
                   {Math.round((loadingProgress.loaded / loadingProgress.total) * 100)}%
                 </div>
               </div>
@@ -149,9 +149,9 @@ export default function FuelInventory() {
 
         {/* Сообщение об ошибке */}
         {error && (
-          <Card className="bg-red-900/20 border-red-700">
+          <Card className="bg-red-100 dark:bg-red-900/20 border-red-300 dark:border-red-700">
             <CardContent className="py-4">
-              <p className="text-red-400">{error}</p>
+              <p className="text-red-600 dark:text-red-400">{error}</p>
             </CardContent>
           </Card>
         )}
@@ -165,13 +165,13 @@ export default function FuelInventory() {
         />
 
         {/* Таблица/Карточки остатков */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
             <div className={`flex ${isMobile ? 'flex-col gap-3' : 'flex-row justify-between items-center'}`}>
-              <CardTitle className="text-white">Остатки по резервуарам</CardTitle>
+              <CardTitle className="text-foreground">Остатки по резервуарам</CardTitle>
               {/* Фильтр по виду топлива */}
               <Select value={selectedFuel} onValueChange={setSelectedFuel}>
-                <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-slate-900`}>
+                <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background`}>
                   <SelectValue placeholder="Все виды топлива" />
                 </SelectTrigger>
                 <SelectContent>
@@ -190,7 +190,7 @@ export default function FuelInventory() {
               /* Мобильный вид - карточки */
               <div className="space-y-3">
                 {sortedInventory.length === 0 && !loading ? (
-                  <div className="text-center py-8 text-slate-400">
+                  <div className="text-center py-8 text-muted-foreground">
                     Нет данных для отображения
                   </div>
                 ) : (
@@ -201,38 +201,38 @@ export default function FuelInventory() {
 
                 {/* Итоговая карточка для мобильных */}
                 {totals && (
-                  <Card className="bg-slate-900/70 border-slate-600 border-2">
+                  <Card className="bg-background/70 border-border border-2">
                     <CardContent className="p-4 space-y-2">
-                      <div className="text-sm font-semibold text-white mb-3">
+                      <div className="text-sm font-semibold text-foreground mb-3">
                         ИТОГО ({totals.tankCount} {totals.tankCount === 1 ? 'резервуар' : totals.tankCount < 5 ? 'резервуара' : 'резервуаров'})
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-slate-800 rounded p-2">
-                          <div className="text-[10px] text-slate-400 mb-0.5">Начальный</div>
-                          <div className="text-sm font-mono text-slate-300 font-semibold">
+                        <div className="bg-card rounded p-2">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">Начальный</div>
+                          <div className="text-sm font-mono text-foreground/80 font-semibold">
                             {formatNumber(totals.volumeBegin)} л
                           </div>
                         </div>
-                        <div className="bg-slate-800 rounded p-2">
-                          <div className="text-[10px] text-slate-400 mb-0.5">Книжный</div>
-                          <div className="text-sm font-mono text-white font-bold">
+                        <div className="bg-card rounded p-2">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">Книжный</div>
+                          <div className="text-sm font-mono text-foreground font-bold">
                             {formatNumber(totals.volumeBook)} л
                           </div>
                         </div>
-                        <div className="bg-emerald-900/20 rounded p-2 border border-green-700/30">
-                          <div className="text-[10px] text-green-400 mb-0.5">Поступления</div>
-                          <div className="text-sm font-mono text-green-400 font-semibold">
+                        <div className="bg-emerald-100 dark:bg-emerald-900/20 rounded p-2 border border-green-300 dark:border-green-700/30">
+                          <div className="text-[10px] text-green-600 dark:text-green-400 mb-0.5">Поступления</div>
+                          <div className="text-sm font-mono text-green-600 dark:text-green-400 font-semibold">
                             +{formatNumber(totals.volumeReceipts)} л
                           </div>
                         </div>
-                        <div className="bg-blue-900/20 rounded p-2 border border-blue-700/30">
-                          <div className="text-[10px] text-blue-400 mb-0.5">Реализация</div>
-                          <div className="text-sm font-mono text-blue-400 font-semibold">
+                        <div className="bg-blue-100 dark:bg-blue-900/20 rounded p-2 border border-blue-300 dark:border-blue-700/30">
+                          <div className="text-[10px] text-blue-600 dark:text-blue-400 mb-0.5">Реализация</div>
+                          <div className="text-sm font-mono text-blue-600 dark:text-blue-400 font-semibold">
                             -{formatNumber(totals.volumeSales)} л
                           </div>
                         </div>
                       </div>
-                      <div className="text-xs text-slate-400 text-right mt-2">
+                      <div className="text-xs text-muted-foreground text-right mt-2">
                         Заполнение: {((totals.volumeBook / totals.capacity) * 100).toFixed(1)}%
                       </div>
                     </CardContent>
@@ -241,38 +241,38 @@ export default function FuelInventory() {
               </div>
             ) : (
               /* Десктопный вид - таблица */
-              <div className="rounded-md border border-slate-700">
+              <div className="rounded-md border border-border">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-slate-800/50 border-slate-700">
-                      <TableHead className="text-slate-300">
+                    <TableRow className="hover:bg-card/50 border-border">
+                      <TableHead className="text-foreground/80">
                         <button
                           onClick={() => handleSort('station')}
-                          className="flex items-center gap-1 hover:text-white transition-colors"
+                          className="flex items-center gap-1 hover:text-foreground transition-colors"
                         >
                           ТТ
                           {getSortIcon('station')}
                         </button>
                       </TableHead>
-                      <TableHead className="text-slate-300">Резервуар</TableHead>
-                      <TableHead className="text-slate-300">
+                      <TableHead className="text-foreground/80">Резервуар</TableHead>
+                      <TableHead className="text-foreground/80">
                         <button
                           onClick={() => handleSort('fuel')}
-                          className="flex items-center gap-1 hover:text-white transition-colors"
+                          className="flex items-center gap-1 hover:text-foreground transition-colors"
                         >
                           Топливо
                           {getSortIcon('fuel')}
                         </button>
                       </TableHead>
-                      <TableHead className="text-center text-slate-300">ТТН</TableHead>
-                      <TableHead className="text-center text-slate-300">Смены</TableHead>
-                      <TableHead className="text-right text-slate-300">Нач. остаток</TableHead>
-                      <TableHead className="text-right text-slate-300">Поступления</TableHead>
-                      <TableHead className="text-right text-slate-300">Реализация</TableHead>
-                      <TableHead className="text-right text-slate-300">
+                      <TableHead className="text-center text-foreground/80">ТТН</TableHead>
+                      <TableHead className="text-center text-foreground/80">Смены</TableHead>
+                      <TableHead className="text-right text-foreground/80">Нач. остаток</TableHead>
+                      <TableHead className="text-right text-foreground/80">Поступления</TableHead>
+                      <TableHead className="text-right text-foreground/80">Реализация</TableHead>
+                      <TableHead className="text-right text-foreground/80">
                         <button
                           onClick={() => handleSort('volumeBook')}
-                          className="flex items-center gap-1 hover:text-white transition-colors ml-auto"
+                          className="flex items-center gap-1 hover:text-foreground transition-colors ml-auto"
                         >
                           Книжный остаток
                           {getSortIcon('volumeBook')}
@@ -283,35 +283,35 @@ export default function FuelInventory() {
                   <TableBody>
                     {/* Итоговая строка ПЕРВОЙ */}
                     {totals && sortedInventory.length > 0 && (
-                      <TableRow className="bg-slate-800/70 border-b-2 border-slate-600 hover:bg-slate-800">
-                        <TableCell colSpan={3} className="text-slate-100 font-semibold">
+                      <TableRow className="bg-card/70 border-b-2 border-border hover:bg-card">
+                        <TableCell colSpan={3} className="text-foreground font-semibold">
                           ИТОГО ({totals.tankCount} резерв.)
                         </TableCell>
-                        <TableCell className="text-center font-mono text-blue-400 font-semibold">
+                        <TableCell className="text-center font-mono text-blue-600 dark:text-blue-400 font-semibold">
                           {totals.receiptCount}
                         </TableCell>
-                        <TableCell className="text-center font-mono text-purple-400 font-semibold">
+                        <TableCell className="text-center font-mono text-purple-600 dark:text-purple-400 font-semibold">
                           {totals.shiftCount}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-slate-300 font-semibold">
+                        <TableCell className="text-right font-mono text-foreground/80 font-semibold">
                           {formatNumber(totals.volumeBegin)} л
                         </TableCell>
-                        <TableCell className="text-right font-mono text-green-400 font-semibold">
+                        <TableCell className="text-right font-mono text-green-600 dark:text-green-400 font-semibold">
                           +{formatNumber(totals.volumeReceipts)} л
                         </TableCell>
-                        <TableCell className="text-right font-mono text-blue-400 font-semibold">
+                        <TableCell className="text-right font-mono text-blue-600 dark:text-blue-400 font-semibold">
                           -{formatNumber(totals.volumeSales)} л
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="space-y-1">
-                            <div className="font-mono text-slate-100 font-bold">
+                            <div className="font-mono text-foreground font-bold">
                               {formatNumber(totals.volumeBook)} л
                             </div>
                             <div className="flex items-center gap-2 justify-end">
-                              <span className="text-xs text-slate-400 font-semibold">
+                              <span className="text-xs text-muted-foreground font-semibold">
                                 {((totals.volumeBook / totals.capacity) * 100).toFixed(1)}%
                               </span>
-                              <div className="w-24 h-2 bg-slate-700 rounded-full overflow-hidden">
+                              <div className="w-24 h-2 bg-secondary rounded-full overflow-hidden">
                                 <div
                                   className={`h-full ${getProgressColor((totals.volumeBook / totals.capacity) * 100)}`}
                                   style={{ width: `${(totals.volumeBook / totals.capacity) * 100}%` }}
@@ -324,37 +324,37 @@ export default function FuelInventory() {
                     )}
 
                     {sortedInventory.map((tank, idx) => (
-                      <TableRow key={idx} className="hover:bg-slate-700/30 border-slate-700">
-                        <TableCell className="text-slate-100">
+                      <TableRow key={idx} className="hover:bg-secondary/30 border-border">
+                        <TableCell className="text-foreground">
                           {tank.stationName || `АЗС ${tank.station}`}
                         </TableCell>
-                        <TableCell className="text-slate-100">Р{tank.tankNumber}</TableCell>
+                        <TableCell className="text-foreground">Р{tank.tankNumber}</TableCell>
                         <TableCell>
-                          <span className="text-slate-100">{tank.fuelName}</span>
+                          <span className="text-foreground">{tank.fuelName}</span>
                         </TableCell>
-                        <TableCell className="text-center font-mono text-blue-400">
+                        <TableCell className="text-center font-mono text-blue-600 dark:text-blue-400">
                           {tank.receiptCount || 0}
                         </TableCell>
-                        <TableCell className="text-center font-mono text-purple-400">
+                        <TableCell className="text-center font-mono text-purple-600 dark:text-purple-400">
                           {tank.shiftCount || 0}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-slate-400">
+                        <TableCell className="text-right font-mono text-muted-foreground">
                           {formatNumber(tank.volumeBegin)} л
                         </TableCell>
-                        <TableCell className="text-right font-mono text-green-400">
+                        <TableCell className="text-right font-mono text-green-600 dark:text-green-400">
                           +{formatNumber(tank.volumeReceipts)} л
                         </TableCell>
-                        <TableCell className="text-right font-mono text-blue-400">
+                        <TableCell className="text-right font-mono text-blue-600 dark:text-blue-400">
                           -{formatNumber(tank.volumeSales)} л
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="space-y-1">
-                            <div className="font-mono text-slate-100 font-semibold">
+                            <div className="font-mono text-foreground font-semibold">
                               {formatNumber(tank.volumeBook)} л
                             </div>
                             <div className="flex items-center gap-2 justify-end">
-                              <span className="text-xs text-slate-400">{tank.fillPercent.toFixed(1)}%</span>
-                              <div className="w-24 h-2 bg-slate-700 rounded-full overflow-hidden">
+                              <span className="text-xs text-muted-foreground">{tank.fillPercent.toFixed(1)}%</span>
+                              <div className="w-24 h-2 bg-secondary rounded-full overflow-hidden">
                                 <div
                                   className={`h-full ${getProgressColor(tank.fillPercent)}`}
                                   style={{ width: `${tank.fillPercent}%` }}
@@ -368,7 +368,7 @@ export default function FuelInventory() {
 
                     {sortedInventory.length === 0 && !loading && (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-slate-400">
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                           Нет данных для отображения
                         </TableCell>
                       </TableRow>

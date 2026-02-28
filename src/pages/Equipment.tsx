@@ -150,10 +150,10 @@ export default function Equipment() {
         />
 
         {/* Терминальное оборудование */}
-        <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+        <Card className="bg-card border border-border rounded-lg shadow-lg">
           <CardHeader className={`${isMobile ? 'px-3 py-2.5' : 'px-6 py-4'}`}>
-            <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-base' : 'text-xl'}`}>
-              <Settings className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-blue-400`} />
+            <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : 'text-xl'}`}>
+              <Settings className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-blue-600 dark:text-blue-400`} />
               Терминальное оборудование
             </CardTitle>
           </CardHeader>
@@ -181,11 +181,11 @@ export default function Equipment() {
                     <div key={`pos-block-${posNum}`} className={isMobile ? 'space-y-2' : 'space-y-4'}>
                       {/* Заголовок поста */}
                       <div className={`flex items-center gap-2 ${isMobile ? 'px-1' : 'px-2'}`}>
-                        <div className={`h-px flex-1 bg-slate-600`} />
-                        <span className={`text-slate-400 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <div className={`h-px flex-1 bg-secondary`} />
+                        <span className={`text-muted-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           Пост {posNum}
                         </span>
-                        <div className={`h-px flex-1 bg-slate-600`} />
+                        <div className={`h-px flex-1 bg-secondary`} />
                       </div>
 
                       {/* Устройства поста */}

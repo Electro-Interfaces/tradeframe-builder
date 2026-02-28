@@ -100,7 +100,7 @@
   <div class="container">
     <div class="header">
       <h1>⚡ Quick Mobile Test</h1>
-      <p>Быстрая диагностика TradeFrame на мобильном устройстве</p>
+      <p>Быстрая диагностика TradeControl на мобильном устройстве</p>
       <div id="device-info" style="font-size: 12px; margin-top: 10px; opacity: 0.8;"></div>
     </div>
 
@@ -116,7 +116,7 @@
     </div>
 
     <div class="footer">
-      <p>Создано для диагностики проблем загрузки TradeFrame</p>
+      <p>Создано для диагностики проблем загрузки TradeControl</p>
       <p>Версия: 1.0 | Дата: <span id="current-date"></span></p>
     </div>
   </div>
@@ -278,9 +278,9 @@ ${featureList}`, status === 'success' ? '✅' : '⚠️');
 
       await sleep(500);
 
-      // Test 5: Try to load main TradeFrame app
+      // Test 5: Try to load main TradeControl app
       try {
-        addResult('🚀 Тест загрузки TradeFrame', 'warning', 'Попытка загрузки основного приложения...', '🔄');
+        addResult('🚀 Тест загрузки TradeControl', 'warning', 'Попытка загрузки основного приложения...', '🔄');
         
         const testFrame = document.createElement('iframe');
         testFrame.style.display = 'none';
@@ -365,7 +365,7 @@ URL: ${result.url}`;
           testResults[testResults.length - 1].details = `Ошибка загрузки: ${error.message}`;
         }
       } catch (e) {
-        addResult('🚀 Тест загрузки TradeFrame', 'error', `Критическая ошибка: ${e.message}`, '❌');
+        addResult('🚀 Тест загрузки TradeControl', 'error', `Критическая ошибка: ${e.message}`, '❌');
       }
 
       await sleep(500);

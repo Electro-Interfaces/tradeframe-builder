@@ -94,7 +94,7 @@ export default function ReconciliationPage() {
   // Если есть результат - показываем его
   if (result) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background">
         <div className="w-full px-4 md:px-6 lg:px-8 py-6 space-y-6">
           <ReconciliationResults
             result={result}
@@ -107,26 +107,26 @@ export default function ReconciliationPage() {
 
   // Начальный экран
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background">
       <div className="w-full px-4 md:px-6 lg:px-8 py-6 space-y-6">
         {/* Заголовок страницы */}
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-blue-600/20">
-                <FileSearch className="h-6 w-6 text-blue-400" />
+                <FileSearch className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h1 className="text-2xl font-semibold text-white">Сверка корп. процессинга</h1>
+              <h1 className="text-2xl font-semibold text-foreground">Сверка корп. процессинга</h1>
             </div>
-            <p className="text-slate-400">
-              Трёхсторонняя сверка транзакций: Corp, TradeFrame, Сменные отчёты
+            <p className="text-muted-foreground">
+              Трёхсторонняя сверка транзакций: Corp, TradeControl, Сменные отчёты
             </p>
           </div>
         </div>
 
         {/* Ошибка */}
         {error && (
-          <Alert variant="destructive" className="bg-red-900/20 border-red-700 text-red-400">
+          <Alert variant="destructive" className="bg-red-100 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Ошибка</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -135,45 +135,45 @@ export default function ReconciliationPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
           {/* Карточка запуска сверки */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <FileSearch className="h-5 w-5 text-blue-400" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <FileSearch className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 Запуск сверки
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Сверка данных по корпоративным картам между тремя источниками с 100% совпадением литров.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Источники данных */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
+                <div className="bg-background/50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <CreditCard className="h-4 w-4 text-purple-400" />
-                    <h4 className="font-medium text-white text-xs">Corp</h4>
+                    <CreditCard className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <h4 className="font-medium text-foreground text-xs">Corp</h4>
                   </div>
-                  <ul className="text-xs text-slate-400 space-y-0.5">
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
                     <li>Процессинг</li>
                     <li>TradeCorp API</li>
                   </ul>
                 </div>
-                <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
+                <div className="bg-background/50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <Building2 className="h-4 w-4 text-blue-400" />
-                    <h4 className="font-medium text-white text-xs">TF</h4>
+                    <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <h4 className="font-medium text-foreground text-xs">TF</h4>
                   </div>
-                  <ul className="text-xs text-slate-400 space-y-0.5">
-                    <li>TradeFrame</li>
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
+                    <li>TradeControl</li>
                     <li>/v2/transactions</li>
                   </ul>
                 </div>
-                <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
+                <div className="bg-background/50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <Clock className="h-4 w-4 text-green-400" />
-                    <h4 className="font-medium text-white text-xs">Смена</h4>
+                    <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <h4 className="font-medium text-foreground text-xs">Смена</h4>
                   </div>
-                  <ul className="text-xs text-slate-400 space-y-0.5">
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
                     <li>Сменные отчёты</li>
                     <li>shift_report</li>
                   </ul>
@@ -202,7 +202,7 @@ export default function ReconciliationPage() {
                 </Button>
 
                 {apiStatus === 'ok' && (
-                  <Badge variant="outline" className="bg-emerald-900/30 text-green-400 border-green-700">
+                  <Badge variant="outline" className="bg-emerald-100 dark:bg-emerald-900/30 text-green-600 dark:text-green-400 border-green-300 dark:border-green-700">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     API доступен
                   </Badge>
@@ -212,32 +212,32 @@ export default function ReconciliationPage() {
           </Card>
 
           {/* Алгоритм сверки */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-lg text-white">Алгоритм сверки</CardTitle>
+              <CardTitle className="text-lg text-foreground">Алгоритм сверки</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-slate-900/50 rounded-lg p-4 space-y-2 border border-slate-700/50">
+              <div className="bg-background/50 rounded-lg p-4 space-y-2 border border-border/50">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-xs font-bold">1</div>
-                  <h4 className="font-medium text-white">Corp ↔ TF (построчно)</h4>
+                  <div className="w-6 h-6 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-600 dark:text-purple-400 text-xs font-bold">1</div>
+                  <h4 className="font-medium text-foreground">Corp ↔ TF (построчно)</h4>
                 </div>
-                <p className="text-sm text-slate-400 pl-8">
+                <p className="text-sm text-muted-foreground pl-8">
                   Сопоставление по станции, времени (±1 мин), топливу и литрам
                 </p>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-4 space-y-2 border border-slate-700/50">
+              <div className="bg-background/50 rounded-lg p-4 space-y-2 border border-border/50">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 text-xs font-bold">2</div>
-                  <h4 className="font-medium text-white">Суммы ↔ Смена</h4>
+                  <div className="w-6 h-6 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold">2</div>
+                  <h4 className="font-medium text-foreground">Суммы ↔ Смена</h4>
                 </div>
-                <p className="text-sm text-slate-400 pl-8">
+                <p className="text-sm text-muted-foreground pl-8">
                   Агрегация по сменам и сравнение с данными сменного отчёта
                 </p>
               </div>
 
               {/* Подсказка */}
-              <div className="flex items-center gap-2 pt-2 text-xs text-slate-500">
+              <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
                 <ArrowRight className="h-3 w-3" />
                 <span>Любое расхождение по литрам = ошибка</span>
               </div>

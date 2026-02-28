@@ -26,75 +26,83 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-slate-700 hover:bg-slate-800">
-            <TableHead className="text-slate-300 min-w-[120px]">ТТ</TableHead>
-            <TableHead className="text-slate-300 min-w-[120px]">Номер купона</TableHead>
-            <TableHead className="text-slate-300 min-w-[140px]">Дата создания</TableHead>
-            <TableHead className="text-slate-300 min-w-[100px]">Тип топлива</TableHead>
-            <TableHead className="text-slate-300 min-w-[100px]">Цена за литр</TableHead>
-            <TableHead className="text-slate-300 min-w-[120px]">Остаток (л)</TableHead>
-            <TableHead className="text-slate-300 min-w-[100px]">Остаток (₽)</TableHead>
-            <TableHead className="text-slate-300 min-w-[100px]">Статус</TableHead>
-            <TableHead className="text-slate-300 min-w-[80px]">Тип</TableHead>
-            <TableHead className="text-slate-300 min-w-[100px]">Автор</TableHead>
-            <TableHead className="text-slate-300 min-w-[140px]">Комментарий</TableHead>
-            <TableHead className="text-slate-300 min-w-[120px]">Смена</TableHead>
-            <TableHead className="text-slate-300 min-w-[100px]">Действия</TableHead>
+          <TableRow className="border-border hover:bg-card">
+            <TableHead className="text-foreground/80 min-w-[120px]">ТТ</TableHead>
+            <TableHead className="text-foreground/80 min-w-[120px]">Номер купона</TableHead>
+            <TableHead className="text-foreground/80 min-w-[140px]">Дата создания</TableHead>
+            <TableHead className="text-foreground/80 min-w-[100px]">Тип топлива</TableHead>
+            <TableHead className="text-foreground/80 min-w-[100px]">Цена за литр</TableHead>
+            <TableHead className="text-foreground/80 min-w-[120px]">Остаток (л)</TableHead>
+            <TableHead className="text-foreground/80 min-w-[100px]">Остаток (₽)</TableHead>
+            <TableHead className="text-foreground/80 min-w-[100px]">Статус</TableHead>
+            <TableHead className="text-foreground/80 min-w-[80px]">Тип</TableHead>
+            <TableHead className="text-foreground/80 min-w-[100px]">Автор</TableHead>
+            <TableHead className="text-foreground/80 min-w-[140px]">Комментарий</TableHead>
+            <TableHead className="text-foreground/80 min-w-[120px]">Смена</TableHead>
+            <TableHead className="text-foreground/80 min-w-[100px]">Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {coupons.map((coupon) => (
-            <TableRow key={coupon.number} className={`border-slate-700 hover:bg-slate-800 ${coupon.isOptimistic ? 'bg-amber-900/20 border-l-2 border-l-amber-500' : ''}`}>
-              <TableCell className="text-slate-300 text-sm min-w-[120px]">
+            <TableRow key={coupon.number} className={`border-border hover:bg-card ${coupon.isOptimistic ? 'bg-amber-100 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : ''}`}>
+              <TableCell className="text-foreground/80 text-sm min-w-[120px]">
                 <span>{coupon.stationName || `ТТ ${coupon.stationCode}`}</span>
               </TableCell>
-              <TableCell className="text-slate-300 font-mono text-sm min-w-[120px]">
+              <TableCell className="text-foreground/80 font-mono text-sm min-w-[120px]">
                 <div className="flex flex-col">
                   <span>{coupon.number}</span>
                   {coupon.isOptimistic ? (
-                    <span className="text-amber-400 text-xs flex items-center gap-1 animate-pulse">
+                    <span className="text-amber-600 dark:text-amber-400 text-xs flex items-center gap-1 animate-pulse">
                       ⏳ Ожидает подтверждения
                     </span>
                   ) : coupon.state.id === 0 && coupon.qty_used === 0 ? (
-                    <span className="text-yellow-400 text-xs flex items-center gap-1">
+                    <span className="text-yellow-600 dark:text-yellow-400 text-xs flex items-center gap-1">
                       🔄 Не использован
                     </span>
                   ) : null}
                 </div>
               </TableCell>
-              <TableCell className="text-slate-300 text-sm min-w-[140px]">
+              <TableCell className="text-foreground/80 text-sm min-w-[140px]">
                 <div className="flex flex-col">
                   <span className="font-mono">{formatCouponDate(coupon.dt)}</span>
-                  <span className="text-xs text-slate-400 font-mono">
+                  <span className="text-xs text-muted-foreground font-mono">
                     {formatCouponTime(coupon.dt)}
                   </span>
                 </div>
               </TableCell>
-              <TableCell className="text-slate-300 text-sm min-w-[100px] text-center">
+              <TableCell className="text-foreground/80 text-sm min-w-[100px] text-center">
                 <div className="flex flex-col items-center">
-                  <span className="font-semibold text-blue-300">
+                  <span className="font-semibold text-foreground">
                     {coupon.service.service_name}
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-muted-foreground">
                     {coupon.qty_used > 0
                       ? `Исп: ${coupon.qty_used.toFixed(1)}л`
                       : 'Не использован'}
                   </span>
                 </div>
               </TableCell>
-              <TableCell className="text-slate-300 text-sm min-w-[100px] text-right">
+              <TableCell className="text-foreground/80 text-sm min-w-[100px] text-right">
                 <span className="font-mono">{coupon.price.toFixed(2)} ₽</span>
               </TableCell>
-              <TableCell className="text-slate-300 text-sm min-w-[120px] text-right font-bold">
+              <TableCell className="text-foreground/80 text-sm min-w-[120px] text-right font-bold">
                 <div className="flex flex-col items-end">
-                  <span className="text-blue-400 font-bold">{coupon.rest_qty.toFixed(1)} л</span>
-                  <span className="text-xs text-slate-400">
+                  <span className={`font-bold ${
+                    coupon.rest_qty < 0 ? 'text-red-500 dark:text-red-400' :
+                    coupon.rest_qty === 0 ? 'text-muted-foreground' :
+                    'text-emerald-600 dark:text-emerald-400'
+                  }`}>{coupon.rest_qty.toFixed(1)} л</span>
+                  <span className="text-xs text-muted-foreground">
                     из {coupon.qty_total.toFixed(1)} л
                   </span>
                 </div>
               </TableCell>
-              <TableCell className="text-slate-300 text-sm min-w-[100px] text-right font-bold">
-                <span className="text-blue-400">{coupon.rest_summ.toFixed(2)} ₽</span>
+              <TableCell className="text-foreground/80 text-sm min-w-[100px] text-right font-bold">
+                <span className={
+                  coupon.rest_summ < 0 ? 'text-red-500 dark:text-red-400' :
+                  coupon.rest_summ === 0 ? 'text-muted-foreground' :
+                  'text-emerald-600 dark:text-emerald-400'
+                }>{coupon.rest_summ.toFixed(2)} ₽</span>
               </TableCell>
               <TableCell className="min-w-[100px]">
                 <CouponStatusBadge stateName={coupon.state.name} />
@@ -103,35 +111,35 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                 {coupon.type ? (
                   <Badge className={`text-[10px] px-1.5 py-0.5 ${
                     coupon.type.id === 0
-                      ? 'bg-slate-600 text-slate-200 hover:bg-slate-500'
+                      ? 'bg-secondary text-foreground hover:bg-muted-foreground'
                       : 'bg-blue-600 text-white hover:bg-blue-500'
                   }`}>
                     {coupon.type.name}
                   </Badge>
                 ) : (
-                  <span className="text-slate-500 text-xs">—</span>
+                  <span className="text-muted-foreground text-xs">—</span>
                 )}
               </TableCell>
-              <TableCell className="text-slate-300 text-sm min-w-[100px]">
+              <TableCell className="text-foreground/80 text-sm min-w-[100px]">
                 {coupon.user ? (
                   <span className="text-xs">{coupon.user.name}</span>
                 ) : (
-                  <span className="text-slate-500 text-xs">—</span>
+                  <span className="text-muted-foreground text-xs">—</span>
                 )}
               </TableCell>
-              <TableCell className="text-slate-300 text-sm min-w-[140px]">
+              <TableCell className="text-foreground/80 text-sm min-w-[140px]">
                 {coupon.comment ? (
                   <span className="text-xs truncate max-w-[140px] block" title={coupon.comment}>
                     {coupon.comment}
                   </span>
                 ) : (
-                  <span className="text-slate-500 text-xs">—</span>
+                  <span className="text-muted-foreground text-xs">—</span>
                 )}
               </TableCell>
-              <TableCell className="text-slate-300 text-sm min-w-[120px]">
+              <TableCell className="text-foreground/80 text-sm min-w-[120px]">
                 <div className="flex flex-col">
                   <span className="text-xs">Смена #{coupon.shift}</span>
-                  <span className="text-xs text-slate-400">Операция #{coupon.opernum}</span>
+                  <span className="text-xs text-muted-foreground">Операция #{coupon.opernum}</span>
                 </div>
               </TableCell>
               <TableCell className="min-w-[100px]">
@@ -145,7 +153,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                       description: `Номер купона ${coupon.number} скопирован`
                     });
                   }}
-                  className="text-slate-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
@@ -156,7 +164,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
       </Table>
 
       {coupons.length === 0 && (
-        <div className="text-center py-8 text-slate-400">
+        <div className="text-center py-8 text-muted-foreground">
           {loading ? (
             <div className="flex items-center justify-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -169,12 +177,12 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 py-6 border-t border-slate-700 mt-4">
+        <div className="flex items-center justify-center gap-4 py-6 border-t border-border mt-4">
           <Button
             variant="outline"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="border-border text-foreground/80 hover:bg-secondary"
           >
             ← Предыдущая страница
           </Button>
@@ -201,7 +209,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                   className={
                     currentPage === pageNum
                       ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+                      : 'border-border text-foreground/80 hover:bg-secondary'
                   }
                 >
                   {pageNum}
@@ -214,7 +222,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
             variant="outline"
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="border-border text-foreground/80 hover:bg-secondary"
           >
             Следующая страница →
           </Button>
