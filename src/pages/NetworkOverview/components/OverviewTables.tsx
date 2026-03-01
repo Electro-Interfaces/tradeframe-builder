@@ -50,8 +50,8 @@ export function OverviewTables({
               <thead>
                 <tr className="border-b border-border">
                   <th className={`text-left py-3 text-foreground font-medium ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>Топливо</th>
-                  <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
-                  <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
+                  <th className={`text-right py-3 text-foreground font-medium whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
+                  <th className={`text-right py-3 text-foreground font-medium whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
                   <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}><Activity className="w-4 h-4 ml-auto" /></th>
                 </tr>
               </thead>
@@ -59,11 +59,11 @@ export function OverviewTables({
                 {fuelTypeStats.map((fuel) => (
                   <tr key={fuel.type} className="border-b border-border hover:bg-secondary transition-colors duration-200">
                     <td className={`py-3 text-foreground font-medium ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>{fuel.type}</td>
-                    <td className={`py-3 text-right text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      {fuel.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
+                    <td className={`py-3 text-right text-foreground whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      {isMobile ? Math.round(fuel.revenue).toLocaleString('ru-RU') : fuel.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}&nbsp;₽
                     </td>
-                    <td className={`py-3 text-right text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      {fuel.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л
+                    <td className={`py-3 text-right text-foreground whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      {isMobile ? Math.round(fuel.volume).toLocaleString('ru-RU') : fuel.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}&nbsp;л
                     </td>
                     <td className={`py-3 text-right text-foreground/80 ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
                       {fuel.operations}
@@ -73,11 +73,11 @@ export function OverviewTables({
                 {/* Итоговая строка для топлива */}
                 <tr className="border-t-2 border-primary/30 bg-primary/10">
                   <td className={`py-3 text-primary font-bold ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>Итого</td>
-                  <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                  <td className={`py-3 text-right text-primary font-bold whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    {Math.round(totalRevenue).toLocaleString('ru-RU')}&nbsp;₽
                   </td>
-                  <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    {Math.round(totalVolume).toLocaleString('ru-RU')} л
+                  <td className={`py-3 text-right text-primary font-bold whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    {Math.round(totalVolume).toLocaleString('ru-RU')}&nbsp;л
                   </td>
                   <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
                     {filteredTransactionsCount}
@@ -104,8 +104,8 @@ export function OverviewTables({
                 <thead>
                   <tr className="border-b border-border">
                     <th className={`text-left py-3 text-foreground font-medium ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>Вид</th>
-                    <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
-                    <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
+                    <th className={`text-right py-3 text-foreground font-medium whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
+                    <th className={`text-right py-3 text-foreground font-medium whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
                     <th className={`text-right py-3 text-foreground font-medium ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}><Activity className="w-4 h-4 ml-auto" /></th>
                   </tr>
                 </thead>
@@ -120,13 +120,13 @@ export function OverviewTables({
                     return (
                     <tr key={payment.type} className="border-b border-border hover:bg-secondary transition-colors duration-200">
                       <td className={`py-3 text-foreground font-medium ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>{shortName}</td>
-                      <td className={`py-3 text-right text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                        {payment.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
+                      <td className={`py-3 text-right text-foreground whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        {isMobile ? Math.round(payment.revenue).toLocaleString('ru-RU') : payment.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}&nbsp;₽
                       </td>
-                      <td className={`py-3 text-right text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                        {payment.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л
+                      <td className={`py-3 text-right text-foreground whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        {isMobile ? Math.round(payment.volume).toLocaleString('ru-RU') : payment.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}&nbsp;л
                       </td>
-                      <td className={`py-3 text-right text-foreground/80 font-medium ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
+                      <td className={`py-3 text-right text-foreground/80 font-medium whitespace-nowrap ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
                         {payment.operations}
                       </td>
                     </tr>
@@ -135,11 +135,11 @@ export function OverviewTables({
                   {/* Итоговая строка для способов оплаты */}
                   <tr className="border-t-2 border-primary/30 bg-primary/10">
                     <td className={`py-3 text-primary font-bold ${isMobile ? 'text-xs pl-3' : 'text-sm pl-6'}`}>Итого</td>
-                    <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                    <td className={`py-3 text-right text-primary font-bold whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      {Math.round(totalRevenue).toLocaleString('ru-RU')}&nbsp;₽
                     </td>
-                    <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      {Math.round(totalVolume).toLocaleString('ru-RU')} л
+                    <td className={`py-3 text-right text-primary font-bold whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      {Math.round(totalVolume).toLocaleString('ru-RU')}&nbsp;л
                     </td>
                     <td className={`py-3 text-right text-primary font-bold ${isMobile ? 'text-xs pr-3' : 'text-sm pr-6'}`}>
                       {filteredTransactionsCount}
