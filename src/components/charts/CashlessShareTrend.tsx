@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -57,20 +57,17 @@ const LINE_COLORS = {
 export function CashlessShareTrend({ transactions, className }: ClientMixTrendProps) {
   const isMobile = useIsMobile();
   const [tooltipDismissed, setTooltipDismissed] = useState(false);
-  const dismissTimer = useRef<number>();
+  const lastInteraction = useRef<number>(0);
 
-  const handleTouchStart = useCallback(() => {
+  useEffect(() => {
     if (!isMobile) return;
-    clearTimeout(dismissTimer.current);
-    setTooltipDismissed(false);
-  }, [isMobile]);
-
-  const handleTouchEnd = useCallback(() => {
-    if (!isMobile) return;
-    clearTimeout(dismissTimer.current);
-    dismissTimer.current = window.setTimeout(() => {
-      setTooltipDismissed(true);
-    }, 3000);
+    const interval = setInterval(() => {
+      if (lastInteraction.current > 0 && Date.now() - lastInteraction.current > 3000) {
+        setTooltipDismissed(true);
+        lastInteraction.current = 0;
+      }
+    }, 500);
+    return () => clearInterval(interval);
   }, [isMobile]);
 
   const { chartData, avgCorpShare, trendType, trendPct } = useMemo(() => {
@@ -167,7 +164,6 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
         </div>
       </CardHeader>
       <CardContent className={isMobile ? 'px-2 pb-3' : ''}>
-        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
           <ComposedChart
             data={chartData}
@@ -176,6 +172,7 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
                 ? { top: 5, right: 5, left: 0, bottom: 5 }
                 : { top: 20, right: 20, left: 20, bottom: 20 }
             }
+            onMouseMove={isMobile ? () => { lastInteraction.current = Date.now(); setTooltipDismissed(false); } : undefined}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
@@ -196,9 +193,9 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
               ticks={[0, 25, 50, 75, 100]}
             />
             <Tooltip
+              {...(isMobile && tooltipDismissed ? { active: false } : {})}
               content={({ active, payload }) => {
                 if (!active || !payload || payload.length === 0) return null;
-                if (isMobile && tooltipDismissed) return null;
                 const d = payload[0]?.payload as DayPoint;
                 if (!d) return null;
                 return (
@@ -279,7 +276,6 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
             />
           </ComposedChart>
         </ResponsiveContainer>
-        </div>
         {/* Легенда */}
         <div className={`flex items-center justify-center flex-wrap gap-x-4 gap-y-1 ${isMobile ? 'mt-1' : 'mt-3'}`}>
           <div className="flex items-center gap-1.5">
