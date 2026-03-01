@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { networksService } from "@/services/networksService";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { Network } from "@/types/network";
@@ -252,15 +252,12 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedTradingPoint]);
 
-  // Обертка для setSelectedNetwork, которая сбрасывает торговую точку при смене сети
-  const handleSetSelectedNetwork = (networkId: string) => {
-    // Проверяем, есть ли у пользователя ограничения по сетям (через scope)
+  const handleSetSelectedNetwork = useCallback((networkId: string) => {
     const hasNetworkRestrictions = user?.roles?.some(role =>
       role.scope === 'network' && role.scopeValues && role.scopeValues.length > 0
     );
 
     if (user && hasNetworkRestrictions) {
-      // Собираем все разрешенные сети из всех ролей
       const allowedNetworkIds = new Set<string>();
       user.roles?.forEach(role => {
         if (role.scope === 'network' && role.scopeValues) {
@@ -268,24 +265,15 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      // Проверяем, разрешена ли выбранная сеть
       if (allowedNetworkIds.has(networkId)) {
         setSelectedNetworkId(networkId);
-        if (selectedTradingPoint) {
-          setSelectedTradingPoint("");
-        }
-      } else {
-        // Не меняем сеть, остаемся на текущей
-      }
-    } else {
-      // Для пользователей без ограничений - обычная логика
-      setSelectedNetworkId(networkId);
-      // Сбрасываем торговую точку при смене сети
-      if (selectedTradingPoint) {
         setSelectedTradingPoint("");
       }
+    } else {
+      setSelectedNetworkId(networkId);
+      setSelectedTradingPoint("");
     }
-  };
+  }, [user]);
 
   // Persist to localStorage
   useEffect(() => {
@@ -308,17 +296,15 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedTradingPoint]);
 
-  const isAllTradingPoints = selectedTradingPoint === "all";
-
-  const value: SelectionContextValue = {
+  const value = useMemo<SelectionContextValue>(() => ({
     selectedNetwork,
     setSelectedNetwork: handleSetSelectedNetwork,
     selectedTradingPoint,
     setSelectedTradingPoint,
     selectedStation,
-    isAllTradingPoints,
+    isAllTradingPoints: selectedTradingPoint === "all",
     isInitialized,
-  };
+  }), [selectedNetwork, handleSetSelectedNetwork, selectedTradingPoint, selectedStation, isInitialized]);
 
   return (
     <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>

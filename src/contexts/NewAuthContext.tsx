@@ -2,7 +2,7 @@
  * Новый чистый AuthContext с использованием authService и permissionService
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { authService, type AppUser, type UserRole } from '../services/auth/authService';
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
 import { auditLogService } from '../services/auditLogService';
@@ -311,7 +311,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   /**
    * Вход в систему
    */
-  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<void> => {
+  const login = useCallback(async (email: string, password: string, rememberMe: boolean = false): Promise<void> => {
     setLoading(true);
 
     try {
@@ -348,12 +348,12 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   /**
    * Выход из системы
    */
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       // Логируем выход перед очисткой данных
       if (user?.email) {
@@ -375,12 +375,12 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     // Очищаем также сессионные данные
     sessionStorage.removeItem('current_user_email');
     sessionStorage.removeItem('auth_timestamp');
-  };
+  }, [user]);
 
   /**
    * Обновление имени пользователя
    */
-  const updateUserName = async (newName: string): Promise<void> => {
+  const updateUserName = useCallback(async (newName: string): Promise<void> => {
     if (!user) {
       throw new Error('Нет авторизованного пользователя');
     }
@@ -402,12 +402,12 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     } catch (error: any) {
       throw new Error(error.message || 'Не удалось обновить имя пользователя');
     }
-  };
+  }, [user]);
 
   /**
    * Изменение пароля пользователя
    */
-  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<void> => {
     if (!user) {
       throw new Error('Нет авторизованного пользователя');
     }
@@ -418,36 +418,30 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     } catch (error: any) {
       throw new Error(error.message || 'Не удалось изменить пароль');
     }
-  };
+  }, [user]);
 
   /**
    * Проверка разрешения
    */
-  const hasPermission = (permission: string): boolean => {
+  const hasPermission = useCallback((permission: string): boolean => {
     if (!user) return false;
     return permissionService.hasPermission(user, permission);
-  };
+  }, [user]);
 
-  /**
-   * Проверка админских прав
-   */
-  const isAdmin = (): boolean => {
+  const isAdmin = useCallback((): boolean => {
     if (!user) return false;
     return permissionService.isAdmin(user);
-  };
+  }, [user]);
 
-  /**
-   * Проверка суперадминских прав
-   */
-  const isSuperAdmin = (): boolean => {
+  const isSuperAdmin = useCallback((): boolean => {
     if (!user) return false;
     return permissionService.isSuperAdmin(user);
-  };
+  }, [user]);
 
   /**
    * Видимость меню
    */
-  const getMenuVisibility = (): MenuVisibility => {
+  const getMenuVisibility = useCallback((): MenuVisibility => {
     if (!user) {
       return {
         admin: false,
@@ -458,43 +452,39 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       };
     }
     return permissionService.getMenuVisibility(user);
-  };
+  }, [user]);
 
-  /**
-   * Получение отображаемого имени роли
-   */
-  const getRoleDisplayName = (): string => {
+  const getRoleDisplayName = useCallback((): string => {
     if (!user) return 'Гость';
     return permissionService.getRoleDisplayName(user.role);
-  };
+  }, [user]);
 
-  // Специфические проверки для обратной совместимости
-  const canManageTanks = (): boolean => {
+  const canManageTanks = useCallback((): boolean => {
     if (!user) return false;
     return permissionService.canManageTanks(user);
-  };
+  }, [user]);
 
-  const canCalibrate = (): boolean => {
+  const canCalibrate = useCallback((): boolean => {
     if (!user) return false;
     return permissionService.canCalibrate(user);
-  };
+  }, [user]);
 
-  const canManagePrices = (): boolean => {
+  const canManagePrices = useCallback((): boolean => {
     if (!user) return false;
     return permissionService.canManagePrices(user);
-  };
+  }, [user]);
 
-  const canManageUsers = (): boolean => {
+  const canManageUsers = useCallback((): boolean => {
     if (!user) return false;
     return permissionService.canManageUsers(user);
-  };
+  }, [user]);
 
-  const canViewReports = (): boolean => {
+  const canViewReports = useCallback((): boolean => {
     if (!user) return false;
     return permissionService.canViewReports(user);
-  };
+  }, [user]);
 
-  const value: AuthContextType = {
+  const value = useMemo<AuthContextType>(() => ({
     user,
     loading,
     login,
@@ -510,8 +500,8 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     canManageUsers,
     canViewReports,
     getMenuVisibility,
-    getRoleDisplayName
-  };
+    getRoleDisplayName,
+  }), [user, loading, login, logout, updateUserName, changePassword, hasPermission, isAdmin, isSuperAdmin, canManageTanks, canCalibrate, canManagePrices, canManageUsers, canViewReports, getMenuVisibility, getRoleDisplayName]);
 
   return (
     <AuthContext.Provider value={value}>

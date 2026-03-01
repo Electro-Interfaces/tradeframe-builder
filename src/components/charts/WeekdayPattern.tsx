@@ -2,20 +2,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useIsMobile } from '@/hooks/use-mobile';
-
-interface Transaction {
-  id?: number;
-  startTime?: string;
-  timestamp?: string;
-  createdAt?: string;
-  date?: string;
-  total?: number;
-  actualAmount?: number;
-  totalCost?: number;
-  volume?: number;
-  actualQuantity?: number;
-  quantity?: number;
-}
+import { type ChartTransaction as Transaction, getRevenue, getVolume, getTxDate } from '@/utils/transactionChartUtils';
 
 interface WeekdayPatternProps {
   transactions: Transaction[];
@@ -24,21 +11,6 @@ interface WeekdayPatternProps {
 
 const WEEKDAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const WEEKDAY_FULL = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-
-function getRevenue(tx: Transaction): number {
-  return tx.total || tx.actualAmount || tx.totalCost || 0;
-}
-
-function getVolume(tx: Transaction): number {
-  return tx.volume || tx.actualQuantity || tx.quantity || 0;
-}
-
-function getTxDate(tx: Transaction): Date | null {
-  const raw = tx.startTime || tx.timestamp || tx.createdAt || tx.date;
-  if (!raw) return null;
-  const d = new Date(raw);
-  return isNaN(d.getTime()) ? null : d;
-}
 
 /** Преобразует JS getDay() (0=Вс) в индекс Пн=0..Вс=6 */
 function toWeekdayIndex(jsDay: number): number {

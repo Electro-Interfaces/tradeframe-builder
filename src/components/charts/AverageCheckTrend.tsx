@@ -5,21 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { classifyPayment } from '@/utils/paymentUtils';
-
-interface Transaction {
-  id?: number;
-  startTime?: string;
-  timestamp?: string;
-  createdAt?: string;
-  date?: string;
-  total?: number;
-  actualAmount?: number;
-  totalCost?: number;
-  volume?: number;
-  actualQuantity?: number;
-  quantity?: number;
-  paymentMethod?: string;
-}
+import { type ChartTransaction as Transaction, getRevenue, getTxDate, linearRegression } from '@/utils/transactionChartUtils';
 
 /** Частный клиент = НЕ корпоративный (fuel_card, corporate, coupon) */
 function isRetail(tx: Transaction): boolean {
@@ -39,38 +25,6 @@ interface DayPoint {
   avgCheck: number;
   operations: number;
   trend?: number;
-}
-
-function getRevenue(tx: Transaction): number {
-  return tx.total || tx.actualAmount || tx.totalCost || 0;
-}
-
-function getTxDate(tx: Transaction): Date | null {
-  const raw = tx.startTime || tx.timestamp || tx.createdAt || tx.date;
-  if (!raw) return null;
-  const d = new Date(raw);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-/** Линейная регрессия: возвращает slope и intercept */
-function linearRegression(points: { x: number; y: number }[]): { slope: number; intercept: number } {
-  const n = points.length;
-  if (n < 2) return { slope: 0, intercept: points[0]?.y ?? 0 };
-
-  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-  for (const p of points) {
-    sumX += p.x;
-    sumY += p.y;
-    sumXY += p.x * p.y;
-    sumXX += p.x * p.x;
-  }
-
-  const denom = n * sumXX - sumX * sumX;
-  if (denom === 0) return { slope: 0, intercept: sumY / n };
-
-  const slope = (n * sumXY - sumX * sumY) / denom;
-  const intercept = (sumY - slope * sumX) / n;
-  return { slope, intercept };
 }
 
 export function AverageCheckTrend({ transactions, className }: AverageCheckTrendProps) {

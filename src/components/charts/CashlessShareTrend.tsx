@@ -8,18 +8,7 @@ import {
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { classifyPayment } from '@/utils/paymentUtils';
-
-interface Transaction {
-  id?: number;
-  startTime?: string;
-  timestamp?: string;
-  createdAt?: string;
-  date?: string;
-  total?: number;
-  actualAmount?: number;
-  totalCost?: number;
-  paymentMethod?: string;
-}
+import { type ChartTransaction as Transaction, getRevenue, getTxDate, linearRegression } from '@/utils/transactionChartUtils';
 
 interface ClientMixTrendProps {
   transactions: Transaction[];
@@ -53,28 +42,6 @@ function toGroup(paymentMethod: string | undefined): ClientGroup {
   if (cat === 'card') return 'card';
   if (cat === 'online') return 'online';
   return 'cash';
-}
-
-function getRevenue(tx: Transaction): number {
-  return tx.total || tx.actualAmount || tx.totalCost || 0;
-}
-
-function getTxDate(tx: Transaction): Date | null {
-  const raw = tx.startTime || tx.timestamp || tx.createdAt || tx.date;
-  if (!raw) return null;
-  const d = new Date(raw);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function linearRegression(points: { x: number; y: number }[]): { slope: number; intercept: number } {
-  const n = points.length;
-  if (n < 2) return { slope: 0, intercept: points[0]?.y ?? 0 };
-  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-  for (const p of points) { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x; }
-  const denom = n * sumXX - sumX * sumX;
-  if (denom === 0) return { slope: 0, intercept: sumY / n };
-  const slope = (n * sumXY - sumX * sumY) / denom;
-  return { slope, intercept: (sumY - slope * sumX) / n };
 }
 
 function pct(v: number, total: number): number {

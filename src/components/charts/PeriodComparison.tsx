@@ -2,22 +2,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-
-interface Transaction {
-  id?: number;
-  startTime?: string;
-  timestamp?: string;
-  createdAt?: string;
-  date?: string;
-  total?: number;
-  actualAmount?: number;
-  totalCost?: number;
-  volume?: number;
-  actualQuantity?: number;
-  quantity?: number;
-  fuelType?: string;
-  paymentMethod?: string;
-}
+import { type ChartTransaction as Transaction, getRevenue, getVolume, getTxDate } from '@/utils/transactionChartUtils';
 
 interface PeriodStats {
   revenue: number;
@@ -40,21 +25,6 @@ interface PeriodComparisonProps {
   dateFrom: string;
   dateTo: string;
   className?: string;
-}
-
-function getRevenue(tx: Transaction): number {
-  return tx.total || tx.actualAmount || tx.totalCost || 0;
-}
-
-function getVolume(tx: Transaction): number {
-  return tx.volume || tx.actualQuantity || tx.quantity || 0;
-}
-
-function getTxDate(tx: Transaction): Date | null {
-  const raw = tx.startTime || tx.timestamp || tx.createdAt || tx.date;
-  if (!raw) return null;
-  const d = new Date(raw);
-  return isNaN(d.getTime()) ? null : d;
 }
 
 /** Подсчёт уникальных дней в наборе дат, разбитых на будни/выходные */
