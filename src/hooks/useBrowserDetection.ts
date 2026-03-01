@@ -431,13 +431,10 @@ function applyUCBrowserFixes() {
 
 function applyWebViewFixes() {
   // Общие фиксы для WebView
-  
+
   // Отключаем выделение текста
   document.onselectstart = () => false;
   document.oncontextmenu = () => false;
-  
-  // Оптимизируем touch events
-  document.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-  }, { passive: false });
+
+  // НЕ блокируем touchmove — это убивает скролл в Telegram WebView и других
 }

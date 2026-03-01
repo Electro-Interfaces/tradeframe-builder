@@ -157,10 +157,9 @@ if (typeof window !== 'undefined') {
                        target.closest('.overflow-y-scroll') ||
                        target.closest('[data-pull-to-refresh]'); // Новое: не блокируем контейнеры с PTR
 
-    // Блокируем только если движение вниз превышает порог
+    // Блокируем только pull-to-refresh браузера (движение вниз при scrollTop=0)
     if (scrollTop === 0 && deltaY > MIN_PULL_THRESHOLD && !isInSidebar) {
       e.preventDefault();
-      e.stopPropagation();
     }
   }, { passive: false });
 }
