@@ -145,10 +145,9 @@ function PaymentCard({ title, revenue, volume, byFuel, icon, iconBg, isLoading, 
                   {volumeOnly ? (
                     <span className="text-blue-600 dark:text-blue-400">{formatVolume(fuel.volume)} л</span>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-foreground/80">{formatCurrency(fuel.revenue)} ₽</span>
-                      <span className="text-muted-foreground">|</span>
-                      <span className="text-blue-600 dark:text-blue-400">{formatVolume(fuel.volume)} л</span>
+                    <div className="text-right">
+                      <div className="text-foreground/80">{formatCurrency(fuel.revenue)} ₽</div>
+                      <div className="text-blue-600 dark:text-blue-400">{formatVolume(fuel.volume)} л</div>
                     </div>
                   )}
                 </div>
@@ -168,14 +167,14 @@ function PaymentCard({ title, revenue, volume, byFuel, icon, iconBg, isLoading, 
                 <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(revenue)}</span>
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">₽</span>
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-baseline gap-1 min-w-0">
+                  <span className="text-base sm:text-lg font-bold text-foreground truncate">{formatCurrency(revenue)}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">₽</span>
                 </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-sm sm:text-base text-blue-600 dark:text-blue-400">{formatVolume(volume)}</span>
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
+                <div className="flex items-baseline gap-1 min-w-0">
+                  <span className="text-sm sm:text-base text-blue-600 dark:text-blue-400 truncate">{formatVolume(volume)}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">л</span>
                 </div>
               </div>
             )}
@@ -201,7 +200,7 @@ function TotalCard({
   isLoading?: boolean;
 }) {
   return (
-    <div className="bg-gradient-to-br from-blue-900/50 to-card rounded-xl p-3 sm:p-4 border border-blue-300 dark:border-blue-700/50">
+    <div className="bg-gradient-to-br from-blue-50 dark:from-blue-900/50 to-card rounded-xl p-3 sm:p-4 border border-blue-300 dark:border-blue-700/50">
       <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
         <Fuel className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
         <span className="text-xs sm:text-sm font-bold text-foreground">{title}</span>
@@ -213,14 +212,14 @@ function TotalCard({
           <div className="h-5 sm:h-6 w-20 sm:w-28 bg-secondary rounded animate-pulse" />
         </div>
       ) : (
-        <div className="space-y-0.5 sm:space-y-1">
-          <div className="flex items-baseline gap-1 sm:gap-2">
-            <span className="text-lg sm:text-2xl font-bold text-foreground">{formatCurrency(revenue)}</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">₽</span>
+        <div className="space-y-0.5 sm:space-y-1 min-w-0">
+          <div className="flex items-baseline gap-1 sm:gap-2 min-w-0">
+            <span className="text-base sm:text-2xl font-bold text-foreground truncate">{formatCurrency(revenue)}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">₽</span>
           </div>
-          <div className="flex items-baseline gap-1 sm:gap-2">
-            <span className="text-base sm:text-xl text-blue-600 dark:text-blue-400">{formatVolume(volume)}</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">л</span>
+          <div className="flex items-baseline gap-1 sm:gap-2 min-w-0">
+            <span className="text-sm sm:text-xl text-blue-600 dark:text-blue-400 truncate">{formatVolume(volume)}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">л</span>
           </div>
         </div>
       )}
@@ -374,9 +373,9 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
         <div className={cn(
           'grid gap-2 sm:gap-3',
           paymentMethods.length <= 3 ? 'grid-cols-2 sm:grid-cols-3' :
-          paymentMethods.length <= 5 ? 'grid-cols-2 sm:grid-cols-5' :
-          paymentMethods.length <= 6 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' :
-          'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7',
+          paymentMethods.length <= 5 ? 'grid-cols-2 md:grid-cols-3 xl:grid-cols-5' :
+          paymentMethods.length <= 6 ? 'grid-cols-2 md:grid-cols-3 xl:grid-cols-6' :
+          'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7',
         )}>
           {paymentMethods.map((method) => (
             <PaymentCard

@@ -243,7 +243,9 @@ async function proxyRequest(req, res) {
     })();
 
     if (method === 'GET') {
-      inflightRequests.set(cacheKey, fetchPromise.then(r => r.data));
+      // Сохраняем промис с .catch() чтобы избежать unhandled rejection при ошибке STS API
+      const dedupePromise = fetchPromise.then(r => r.data).catch(() => { /* handled below via await fetchPromise */ });
+      inflightRequests.set(cacheKey, dedupePromise);
     }
 
     try {

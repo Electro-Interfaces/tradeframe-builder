@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { DailyDataPoint } from '@/types/shift-dashboard';
 
 interface RevenueByDayChartProps {
@@ -79,42 +80,54 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function RevenueByDayChart({ data, isLoading, className }: RevenueByDayChartProps) {
+  const isMobile = useIsMobile();
+
   if (isLoading) {
     return (
-      <div className={cn('bg-card rounded-xl p-5 border border-border', className)}>
-        <div className="h-6 w-40 bg-secondary rounded animate-pulse mb-4" />
-        <div className="h-[300px] bg-secondary/50 rounded animate-pulse" />
+      <div className={cn('bg-card rounded-xl p-3 sm:p-5 border border-border', className)}>
+        <div className="h-5 sm:h-6 w-32 sm:w-40 bg-secondary rounded animate-pulse mb-3 sm:mb-4" />
+        <div className="h-[200px] sm:h-[300px] bg-secondary/50 rounded animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className={cn('bg-card rounded-xl p-5 border border-border', className)}>
-      <h3 className="text-lg font-semibold text-foreground mb-4">Выручка по дням</h3>
+    <div className={cn('bg-card rounded-xl p-3 sm:p-5 border border-border', className)}>
+      <h3 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Выручка по дням</h3>
 
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+      <div className="h-[200px] sm:h-[300px]">
+        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+          <BarChart
+            data={data}
+            margin={isMobile
+              ? { top: 5, right: 5, left: -10, bottom: 0 }
+              : { top: 10, right: 10, left: 0, bottom: 0 }
+            }
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 9 : 12 }}
               axisLine={{ stroke: 'hsl(var(--border))' }}
               tickLine={{ stroke: 'hsl(var(--border))' }}
+              interval={isMobile ? 1 : 0}
             />
             <YAxis
               tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 9 : 12 }}
               axisLine={{ stroke: 'hsl(var(--border))' }}
               tickLine={{ stroke: 'hsl(var(--border))' }}
+              width={isMobile ? 30 : undefined}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{ paddingTop: '20px' }}
-              iconType="square"
-              formatter={(value) => <span className="text-foreground/80 text-sm">{value}</span>}
-            />
+            {!isMobile && (
+              <Legend
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="square"
+                formatter={(value) => <span className="text-foreground/80 text-sm">{value}</span>}
+              />
+            )}
             <Bar
               dataKey="cashRevenue"
               name="Наличные"
@@ -150,6 +163,24 @@ export function RevenueByDayChart({ data, isLoading, className }: RevenueByDayCh
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Мобильная легенда */}
+      {isMobile && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 pt-3 border-t border-border">
+          {[
+            { name: 'Наличные', color: '#22c55e' },
+            { name: 'Карты', color: '#3b82f6' },
+            { name: 'СБП', color: '#8b5cf6' },
+            { name: 'Топл. карты', color: '#f97316' },
+            { name: 'Корп.', color: '#ef4444' },
+          ].map((item) => (
+            <div key={item.name} className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded" style={{ backgroundColor: item.color }} />
+              <span className="text-[10px] text-muted-foreground">{item.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

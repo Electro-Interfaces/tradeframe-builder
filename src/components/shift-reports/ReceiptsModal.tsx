@@ -16,25 +16,27 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { stsProxyClient } from '@/services/stsProxyClient';
+import { getBackendOrigin } from '@/utils/backendUrl';
 
-interface PosInfo {
+interface V2PosInfo {
   number: number;
   cash_sum: number;
   bank_sum: number;
   dt_info: string;
 }
 
-interface StationInfo {
+interface V2StationInfo {
   system: number;
   station: number;
-  pos: PosInfo[];
+  pos: V2PosInfo[];
 }
 
 interface ReceiptsModalProps {
   isOpen: boolean;
   onClose: () => void;
   systemId: number;
+  /** Номера станций из справочника (только реальные, без тестовых) */
+  stations: number[];
   stationNames?: Record<number, string>;
 }
 
@@ -65,29 +67,49 @@ const formatDate = (dateStr: string): string => {
   });
 };
 
-export function ReceiptsModal({ isOpen, onClose, systemId, stationNames = {} }: ReceiptsModalProps) {
+export function ReceiptsModal({ isOpen, onClose, systemId, stations, stationNames = {} }: ReceiptsModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ReceiptData[]>([]);
 
+  /** Простой fetch без ретраев — 500 от STS API не имеет смысла ретраить */
+  const fetchV2Info = async (station: number): Promise<V2StationInfo[] | null> => {
+    try {
+      const baseUrl = getBackendOrigin();
+      const url = `${baseUrl}/api/sts/v2/info?system=${systemId}&station=${station}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) return null;
+      return res.json();
+    } catch {
+      return null;
+    }
+  };
+
   const loadData = async () => {
-    if (!systemId) return;
+    if (!systemId || stations.length === 0) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await stsProxyClient.get<StationInfo[]>('/v2/info', { system: systemId });
+      // Запрашиваем /v2/info только для станций из справочника (параллельно)
+      const v2Results = await Promise.all(
+        stations.map(async (station) => {
+          const result = await fetchV2Info(station);
+          return { station, result };
+        })
+      );
 
-      const receiptsData: ReceiptData[] = response
-        .filter(station => station.pos && station.pos.length > 0)
-        .map(station => {
-          // Суммируем cash_sum и bank_sum по всем постам станции
+      const receiptsData: ReceiptData[] = v2Results
+        .map(({ station, result }) => {
+          if (!result?.[0]) return null;
+
+          const stationData = result[0];
           let totalCashSum = 0;
           let totalBankSum = 0;
           let latestDtInfo = '';
 
-          for (const pos of station.pos) {
+          for (const pos of stationData.pos || []) {
             totalCashSum += pos.cash_sum || 0;
             totalBankSum += pos.bank_sum || 0;
             if (pos.dt_info && (!latestDtInfo || new Date(pos.dt_info) > new Date(latestDtInfo))) {
@@ -96,28 +118,34 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stationNames = {} }: 
           }
 
           return {
-            station: station.station,
-            stationName: stationNames[station.station] || `Станция ${station.station}`,
+            station: stationData.station,
+            stationName: stationNames[stationData.station] || `Станция ${stationData.station}`,
             cashSum: totalCashSum,
             bankSum: totalBankSum,
             lastUpdate: latestDtInfo,
           };
         })
+        .filter((item): item is ReceiptData => item !== null)
         .sort((a, b) => a.station - b.station);
 
       setData(receiptsData);
-    } catch (err) {
-      setError('Ошибка загрузки данных');
+
+      if (receiptsData.length === 0) {
+        setError('Нет данных по станциям');
+      }
+    } catch (err: any) {
+      console.error('[ReceiptsModal] Ошибка загрузки:', err);
+      setError(`Ошибка загрузки: ${err?.message || 'Неизвестная ошибка'}`);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isOpen && systemId) {
+    if (isOpen && systemId && stations.length > 0) {
       loadData();
     }
-  }, [isOpen, systemId]);
+  }, [isOpen, systemId, stations.length]);
 
   // Подсчёт станций с ненулевыми суммами
   const stationsWithReceipts = data.filter(d => d.cashSum !== 0 || d.bankSum !== 0);

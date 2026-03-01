@@ -240,7 +240,7 @@ export function DashboardPeriodSelector({
       </div>
 
       {/* Отображение выбранного периода - адаптивно */}
-      <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-900/50 to-card rounded-lg border border-blue-300 dark:border-blue-700/30">
+      <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-50 dark:from-blue-900/50 to-card rounded-lg border border-blue-300 dark:border-blue-700/30">
         <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground uppercase tracking-wide">Период</span>
@@ -254,7 +254,7 @@ export function DashboardPeriodSelector({
       </div>
 
       {/* Мобильная версия периода */}
-      <div className="flex sm:hidden items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-900/50 to-card rounded-lg border border-blue-300 dark:border-blue-700/30">
+      <div className="flex sm:hidden items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-50 dark:from-blue-900/50 to-card rounded-lg border border-blue-300 dark:border-blue-700/30">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           <span className="text-xs text-foreground font-medium">{calculateDays(period)} дн.</span>

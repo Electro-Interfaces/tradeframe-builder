@@ -272,7 +272,7 @@ export default function ShiftDashboard() {
         </div>
 
         {/* Селектор периода */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <DashboardPeriodSelector
             period={period}
             labels={labels}
@@ -303,7 +303,7 @@ export default function ShiftDashboard() {
 
         {/* KPI карточки продаж */}
         {data && (
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <DashboardKPIGrid
               kpis={data.kpis}
               trends={data.trends}
@@ -315,7 +315,7 @@ export default function ShiftDashboard() {
 
         {/* KPI карточки поступлений */}
         {data && (
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <ReceiptsKPIGrid
               receipts={data.kpis.receipts}
               isLoading={isLoading}
@@ -325,7 +325,7 @@ export default function ShiftDashboard() {
 
         {/* Инкассация купюроприемников */}
         {data && (
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <CashoutKPIGrid
               cashout={data.kpis.cashout}
               isLoading={isLoading}
@@ -335,7 +335,7 @@ export default function ShiftDashboard() {
 
         {/* Движение наличных (сверка кассы) */}
         {data && (
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <CashFlowKPIGrid
               cashFlow={data.kpis.cashFlow}
               isLoading={isLoading}
@@ -345,7 +345,7 @@ export default function ShiftDashboard() {
 
         {/* Графики */}
         {data && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
             <RevenueByDayChart
               data={data.charts.daily}
               isLoading={isLoading}

@@ -3,7 +3,7 @@
  * Рефакторинг: разделение логики на кастомные хуки
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/contexts/SelectionContext";
@@ -93,6 +93,35 @@ export default function ShiftReportsV2() {
     selectShift,
     closeShiftDetails
   } = useShiftSelection();
+
+  // Станции из справочника для модалки "Чеки"
+  const receiptsStations = useMemo(() => {
+    // Если выбрана одна точка — берём её номер
+    if (tradingPoint && !isAllTradingPoints) {
+      const num = extractStationNumber(tradingPoint);
+      return num ? [num] : [];
+    }
+    // Если все точки — уникальные станции из загруженных смен
+    const stationSet = new Set<number>();
+    for (const s of shifts) {
+      if (s.station) stationSet.add(s.station);
+    }
+    return Array.from(stationSet).sort((a, b) => a - b);
+  }, [tradingPoint, isAllTradingPoints, shifts]);
+
+  const receiptsStationNames = useMemo(() => {
+    const names: Record<number, string> = {};
+    for (const s of shifts) {
+      if (s.station && s.stationName) {
+        names[s.station] = s.stationName;
+      }
+    }
+    if (tradingPoint) {
+      const num = extractStationNumber(tradingPoint);
+      if (num) names[num] = tradingPoint.name || `Станция ${num}`;
+    }
+    return names;
+  }, [shifts, tradingPoint]);
 
   // Обработчик запуска сверки корпоративных карт
   const handleCorpCardsReconciliation = async (params: ReconciliationParams) => {
@@ -382,6 +411,8 @@ export default function ShiftReportsV2() {
           isOpen={isReceiptsModalOpen}
           onClose={() => setIsReceiptsModalOpen(false)}
           systemId={getSystemId(selectedNetwork)}
+          stations={receiptsStations}
+          stationNames={receiptsStationNames}
         />
       </div>
     </MainLayout>

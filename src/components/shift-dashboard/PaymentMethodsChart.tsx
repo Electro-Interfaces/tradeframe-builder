@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Sector } from 'recharts';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { FinancialMetrics } from '@/types/shift-dashboard';
 import { getPaymentColor } from '@/types/shift-dashboard';
 
@@ -68,13 +69,13 @@ const renderActiveShape = (props: any) => {
         outerRadius={outerRadius + 14}
         fill={fill}
       />
-      <text x={cx} y={cy - 10} textAnchor="middle" fill="#fff" className="text-sm font-medium">
+      <text x={cx} y={cy - 10} textAnchor="middle" fill="hsl(var(--foreground))" className="text-xs sm:text-sm font-medium">
         {payload.name}
       </text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-xs">
+      <text x={cx} y={cy + 10} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-[10px] sm:text-xs">
         {formatCurrency(value)} ₽
       </text>
-      <text x={cx} y={cy + 28} textAnchor="middle" fill="#64748b" className="text-xs">
+      <text x={cx} y={cy + 28} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-[10px] sm:text-xs">
         {(percent * 100).toFixed(1)}%
       </text>
     </g>
@@ -122,6 +123,7 @@ const CustomLegend = ({ payload }: any) => {
 };
 
 export function PaymentMethodsChart({ data, isLoading, className }: PaymentMethodsChartProps) {
+  const isMobile = useIsMobile();
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
 
   // Подготавливаем данные для диаграммы — динамически из paymentDetails
@@ -163,22 +165,22 @@ export function PaymentMethodsChart({ data, isLoading, className }: PaymentMetho
   };
 
   return (
-    <div className={cn('bg-card rounded-xl p-4 border border-border', className)}>
-      <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
+    <div className={cn('bg-card rounded-xl p-3 sm:p-4 border border-border', className)}>
+      <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4 uppercase tracking-wide">
         По способам оплаты
       </h3>
 
       {isLoading ? (
-        <div className="h-64 flex items-center justify-center">
+        <div className="h-48 sm:h-64 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : chartDataWithPercent.length === 0 ? (
-        <div className="h-64 flex items-center justify-center text-muted-foreground">
+        <div className="h-48 sm:h-64 flex items-center justify-center text-muted-foreground">
           Нет данных
         </div>
       ) : (
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-48 sm:h-64">
+          <ResponsiveContainer width="100%" height="100%" minHeight={1}>
             <PieChart>
               <Pie
                 activeIndex={activeIndex}
@@ -186,8 +188,8 @@ export function PaymentMethodsChart({ data, isLoading, className }: PaymentMetho
                 data={chartDataWithPercent}
                 cx="50%"
                 cy="50%"
-                innerRadius={50}
-                outerRadius={80}
+                innerRadius={isMobile ? 35 : 50}
+                outerRadius={isMobile ? 60 : 80}
                 paddingAngle={2}
                 dataKey="value"
                 onMouseEnter={onPieEnter}

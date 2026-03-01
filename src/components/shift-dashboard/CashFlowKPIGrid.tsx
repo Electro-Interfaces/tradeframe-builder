@@ -229,7 +229,7 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
           className={cn(
             'rounded-xl p-3 sm:p-4 border transition-colors',
             hasDifference
-              ? 'bg-gradient-to-br from-amber-900/50 to-card border-amber-300 dark:border-amber-700/50'
+              ? 'bg-gradient-to-br from-amber-50 dark:from-amber-900/50 to-card border-amber-300 dark:border-amber-700/50'
               : 'bg-card border-border',
             safeCashFlow.details.length > 0 && 'cursor-pointer hover:border-border'
           )}

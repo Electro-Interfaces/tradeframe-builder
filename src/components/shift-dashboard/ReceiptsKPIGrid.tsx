@@ -132,7 +132,7 @@ function ReceiptsTotalCard({
 
   return (
     <div
-      className="bg-gradient-to-br from-emerald-900/50 to-card rounded-xl p-3 sm:p-4 border border-emerald-300 dark:border-emerald-700/50 cursor-pointer hover:border-emerald-500/70 transition-colors"
+      className="bg-gradient-to-br from-emerald-50 dark:from-emerald-900/50 to-card rounded-xl p-3 sm:p-4 border border-emerald-300 dark:border-emerald-700/50 cursor-pointer hover:border-emerald-500/70 transition-colors"
       onClick={onClick}
     >
       <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
