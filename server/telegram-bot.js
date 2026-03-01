@@ -29,7 +29,6 @@ function initTelegramBot() {
   const botName = process.env.TELEGRAM_BOT_NAME || 'TradeControl Notifications';
 
   if (!token || token === 'YOUR_BOT_TOKEN_HERE') {
-    console.warn('[Telegram Bot] Bot token not configured. Set TELEGRAM_BOT_TOKEN in .env');
     return null;
   }
 
@@ -44,9 +43,6 @@ function initTelegramBot() {
     bot.on('polling_error', (error) => {
       console.error('[Telegram Bot] Polling error:', error.message);
     });
-
-    console.log(`[Telegram Bot] Initialized successfully: ${botName}`);
-    console.log('[Telegram Bot] Polling started');
 
     setupBotHandlers();
 
@@ -67,8 +63,6 @@ function setupBotHandlers() {
   bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const code = match[1]?.trim();
-
-    console.log(`[Telegram Bot] /start received from chat ${chatId}, code: ${code || 'none'}`);
 
     if (!code) {
       // Без кода - просто приветствие
@@ -160,7 +154,6 @@ async function handleAccountLinking(chatId, code, fromUser) {
     // Проверяем срок действия
     const expiresAt = new Date(linkCode.expires_at);
     if (expiresAt < new Date()) {
-      console.log('[Telegram Bot] Code expired:', code);
       await bot.sendMessage(
         chatId,
         '❌ *Код привязки истёк*\n\n' +
@@ -224,8 +217,6 @@ async function handleAccountLinking(chatId, code, fromUser) {
       `Управляйте подписками в настройках: /help`,
       { parse_mode: 'Markdown' }
     );
-
-    console.log(`[Telegram Bot] Account linked: user_id=${linkCode.user_id}, chat_id=${chatId}`);
 
   } catch (error) {
     console.error('[Telegram Bot] Account linking error:', error);
@@ -326,8 +317,6 @@ async function handleUnlink(chatId) {
       { parse_mode: 'Markdown' }
     );
 
-    console.log(`[Telegram Bot] Account unlinked: chat_id=${chatId}`);
-
   } catch (error) {
     console.error('[Telegram Bot] Unlink error:', error);
     await bot.sendMessage(chatId, '❌ Произошла ошибка при отвязке аккаунта');
@@ -360,8 +349,6 @@ async function sendNotification(chatId, notification) {
       `🕐 ${new Date(notification.created_at).toLocaleString('ru-RU')}`;
 
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
-
-    console.log(`[Telegram Bot] Notification sent to chat ${chatId}: ${notification.notification_type}`);
     return true;
 
   } catch (error) {

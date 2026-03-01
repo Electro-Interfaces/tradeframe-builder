@@ -27,7 +27,6 @@ class SafeRender extends Component<Props, State> {
       error.message.includes('removeChild') ||
       error.message.includes('Node')
     )) {
-      console.warn('⚠️ SafeRender: DOM error caught, using fallback render:', error.message);
       return { hasError: true, error };
     }
 
@@ -35,14 +34,8 @@ class SafeRender extends Component<Props, State> {
     throw error;
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Логируем только DOM ошибки
-    if (this.state.hasError) {
-      console.warn('⚠️ SafeRender: Component error details:', {
-        error: error.message,
-        componentStack: errorInfo.componentStack?.substring(0, 200) + '...'
-      });
-    }
+  public componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
+    // DOM error caught, handled by getDerivedStateFromError
   }
 
   public render() {

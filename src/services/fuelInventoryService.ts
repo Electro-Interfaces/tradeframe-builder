@@ -572,7 +572,7 @@ export async function validateBookInventory(params: InventoryParams): Promise<vo
             const status = isValid ? 'СОВПАДАЕТ' : 'РАСХОЖДЕНИЕ';
 
             if (!isValid) {
-              console.warn(`Расхождение: Р${tank.tank} смена #${shift.shift} — расчет: ${calculated.toFixed(2)} л, официально: ${official.toFixed(2)} л, разница: ${diff.toFixed(2)} л`);
+              // Discrepancy detected in tank/shift calculation
             }
           }
         } catch (err) {
@@ -595,6 +595,6 @@ export async function getInventoryHistory(
 ): Promise<InventoryHistory[]> {
   // TODO: Реализовать получение истории с агрегацией по времени
   // Пока возвращаем пустой массив
-  console.warn('⚠️ getInventoryHistory: not implemented yet');
+  // TODO: getInventoryHistory not implemented yet
   return [];
 }

@@ -259,7 +259,7 @@ const LoginPageWithLegal = () => {
         }
 
         } catch (serviceError) {
-          console.warn('⚠️ Legal documents service failed, using default templates:', serviceError);
+          // Legal documents service failed, using default templates
           setLegalDocuments(getDefaultLegalDocuments());
         }
       } catch (error) {
@@ -325,7 +325,6 @@ const LoginPageWithLegal = () => {
             stack: (legalError as Error).stack
           });
           // Не блокируем логин если юридические документы недоступны
-          console.warn('⚠️ Legal documents acceptance failed, but login continues');
         }
       }
 

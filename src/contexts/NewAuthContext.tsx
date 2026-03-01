@@ -3,7 +3,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
-import { authService, type AppUser, type UserRole } from '../services/auth/authService';
+import { authService, type AppUser, type UserRole, type DatabaseUser } from '../services/auth/authService';
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
 import { auditLogService } from '../services/auditLogService';
 import {
@@ -184,7 +184,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       }
 
       // Получаем роли из новой схемы БД
-      const userRoles = (dbUser as any).user_roles || [];
+      const userRoles = dbUser.user_roles || [];
       const primaryRole = userRoles[0]?.role;
 
       let userRole = 'user';
@@ -209,8 +209,8 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
 
       // Формируем массив ролей для отображения в профиле
       const roles: UserRole[] = userRoles
-        .filter((ur: any) => ur.role)
-        .map((ur: any) => {
+        .filter(ur => ur.role)
+        .map(ur => {
           const role = ur.role;
           // ИСПРАВЛЕНО: берем scope_value из user_roles (персональные ограничения),
           // а не scope_values из roles (дефолтные значения роли)

@@ -105,7 +105,7 @@ class PriceHistoryServiceClass {
       console.error('Price History API error:', error);
       
       // Fallback на mock данные при ошибке API
-      console.warn('Falling back to mock price history due to API error');
+      // Falling back to mock price history due to API error
       return this.getMockPriceHistory(filters, pagination);
     }
   }

@@ -10,10 +10,15 @@
  * - Централизованное управление credentials
  */
 
+interface ProxyError extends Error {
+  status?: number;
+  isTimeout?: boolean;
+}
+
 interface StsProxyRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  params?: Record<string, any>;
-  body?: any;
+  params?: Record<string, string | number | boolean>;
+  body?: unknown;
 }
 
 /**
@@ -133,8 +138,7 @@ export async function stsProxyRequest<T>(
             // Игнорируем ошибки парсинга
           }
 
-          const error = new Error(`STS API request failed (${response.status}): ${errorDetails}`) as any;
-          error.status = response.status;
+          const error: ProxyError = Object.assign(new Error(`STS API request failed (${response.status}): ${errorDetails}`), { status: response.status });
 
           // Не повторяем для клиентских ошибок (кроме 401/408/429)
           // 429 = rate limit — повторяем с увеличенной задержкой
@@ -153,8 +157,7 @@ export async function stsProxyRequest<T>(
 
         // Обработка timeout
         if (fetchError.name === 'AbortError') {
-          const timeoutError = new Error(`Request timeout after ${timeout}ms`) as any;
-          timeoutError.isTimeout = true;
+          const timeoutError: ProxyError = Object.assign(new Error(`Request timeout after ${timeout}ms`), { isTimeout: true as const });
           throw timeoutError;
         }
 

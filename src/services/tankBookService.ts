@@ -117,7 +117,7 @@ export function calculateBookReleaseFromTransactions(
   tankNumber: number
 ): number {
   if (!transactions.items || transactions.items.length === 0) {
-    console.warn('⚠️ Нет транзакций в массиве items');
+    // No transactions in items array
     return 0;
   }
 

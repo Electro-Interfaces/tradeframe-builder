@@ -128,8 +128,7 @@ export function logTestResults(results: TestResult[]) {
   
   
   results.forEach(result => {
-    const icon = result.status === 'success' ? '✅' : '❌';
-    console.log(`${icon} ${result.service}: ${result.message}`);
+    // Results logged for service testing
   });
   
   console.groupEnd();

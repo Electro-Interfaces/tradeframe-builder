@@ -226,7 +226,7 @@ export const CacheUtils = {
         }),
       ]);
     } catch (error) {
-      console.warn('⚠️ Не удалось предзагрузить критические данные:', error);
+      // Failed to prefetch critical data
     }
   },
 };

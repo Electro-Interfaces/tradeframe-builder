@@ -9,7 +9,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
 
 if (!supabaseUrl || !serviceRoleKey) {
-  console.warn('⚠️ Supabase credentials not configured in env vars (VITE_SUPABASE_URL, VITE_SUPABASE_SERVICE_ROLE_KEY)');
+  // Supabase credentials not configured in env vars
 }
 
 // Создание service role клиента для админских операций

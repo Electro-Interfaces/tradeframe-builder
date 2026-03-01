@@ -8,30 +8,21 @@ import type { User } from '@/types/auth';
  */
 export const useCurrentUserProfile = () => {
   const { user: authUser } = useNewAuth();
-  
-  console.log('useCurrentUserProfile: Хук инициализирован, authUser:', authUser);
-  
+
   return useQuery<User | null>({
     queryKey: ['currentUserProfile', authUser?.email],
     queryFn: async () => {
-      console.log('useCurrentUserProfile: Запускается queryFn для email:', authUser?.email);
-      
       if (!authUser?.email) {
-        console.log('useCurrentUserProfile: email отсутствует, возвращаем null');
         return null;
       }
-      
-      console.log('useCurrentUserProfile: Загружаем профиль пользователя:', authUser.email);
-      
+
       try {
         // Загружаем пользователя из внешней БД по email
         const externalUser = await externalUsersService.getUserByEmail(authUser.email);
-        
+
         if (externalUser) {
-          console.log('useCurrentUserProfile: Найден пользователь в внешней БД:', externalUser);
           return externalUser;
         } else {
-          console.log('useCurrentUserProfile: Пользователь не найден во внешней БД');
           return null;
         }
       } catch (error) {

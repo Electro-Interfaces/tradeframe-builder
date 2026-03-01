@@ -130,7 +130,7 @@ class EnhancedSupabaseClient {
           ? retryOptions.delay * Math.pow(2, attempt)
           : retryOptions.delay;
         
-        console.warn(`⚠️ Попытка ${attempt + 1} неуспешна, повтор через ${delay}ms:`, result.error.message);
+        // Retry attempt failed, will retry after delay
         await this.sleep(delay);
 
       } catch (error) {

@@ -68,7 +68,6 @@ async function getStsClient(req) {
       timeout: 60000 // 60 секунд таймаут (увеличено для медленных запросов на production)
     });
 
-    console.log('[STS Proxy] Client initialized with URL:', STS_API_URL);
   }
 
   // Проверяем JWT токен: истёк или сменился пользователь
@@ -96,7 +95,6 @@ let tokenUserId = null; // ID пользователя, для которого 
 function updateCurrentUser(req) {
   const userId = req?.headers?.['x-user-id'];
   const userName = req?.headers?.['x-user-name'];
-  console.log('[STS Proxy] User headers:', { userId: userId || 'none', userName: userName || 'none' });
   if (userId || userName) {
     currentUser = {
       id: userId || process.env.STS_USER_ID || '00000000-0000-0000-0000-000000000000',
@@ -124,7 +122,6 @@ async function refreshJwtToken(req) {
   // Обновляем данные пользователя из заголовков запроса
   updateCurrentUser(req);
 
-  console.log('[STS Proxy] Refreshing JWT token via /v2/login, user:', currentUser?.name || 'System');
 
   try {
     let response;
@@ -145,8 +142,6 @@ async function refreshJwtToken(req) {
       user: (currentUser && currentUser.id !== '0') ? currentUser : defaultUser
     };
     response = await loginClient.post('/v2/login', loginBody);
-    console.log('[STS Proxy] JWT token refreshed successfully via v2/login, user:', currentUser?.name || 'System');
-
     // STS API возвращает токен как строку в кавычках, убираем их
     const rawToken = response.data;
     jwtToken = typeof rawToken === 'string' ? rawToken.replace(/"/g, '') : rawToken;
@@ -195,7 +190,6 @@ function getTTL(urlPath) {
 // Middleware для логирования запросов к STS API и измерения времени
 router.use((req, res, next) => {
   req.startTime = Date.now();
-  console.log(`[STS Proxy] ${req.method} ${req.path}`);
   next();
 });
 
@@ -214,8 +208,6 @@ async function proxyRequest(req, res) {
       const cachedData = cache.get(cacheKey);
       if (cachedData !== undefined) {
         cacheStats.hits++;
-        const duration = Date.now() - req.startTime;
-        console.log(`[STS Proxy] 💾 Cache HIT for ${urlPath} (${duration}ms, total hits: ${cacheStats.hits})`);
         return res.status(200).json(cachedData);
       } else {
         cacheStats.misses++;
@@ -226,8 +218,6 @@ async function proxyRequest(req, res) {
     if (method === 'GET' && inflightRequests.has(cacheKey)) {
       try {
         const result = await inflightRequests.get(cacheKey);
-        const duration = Date.now() - req.startTime;
-        console.log(`[STS Proxy] 🔗 Dedup HIT for ${urlPath} (${duration}ms)`);
         return res.status(200).json(result);
       } catch (err) {
         // In-flight запрос упал — пробуем свой
@@ -264,10 +254,6 @@ async function proxyRequest(req, res) {
         const ttl = getTTL(urlPath);
         cache.set(cacheKey, response.data, ttl);
       }
-
-      // Измеряем время выполнения
-      const duration = Date.now() - req.startTime;
-      console.log(`[STS Proxy] ⏱️ ${req.method} ${urlPath} ${duration}ms`);
 
       // Возвращаем ответ клиенту
       res.status(response.status).json(response.data);
@@ -336,8 +322,6 @@ router.post('/_cache/clear', (req, res) => {
     misses: 0,
     lastReset: Date.now()
   };
-
-  console.log('[STS Proxy] 🧹 Cache cleared');
 
   res.json({
     message: 'Cache cleared successfully',
@@ -423,7 +407,6 @@ router.post('/fuel-inventory', async (req, res) => {
     const aggCacheKey = `fuel-inv:${system}:${stationIds}:${dt_beg}:${dt_end}`;
     const cachedResult = cache.get(aggCacheKey);
     if (cachedResult) {
-      console.log(`[Fuel Inventory] 💾 Cache HIT (${Date.now() - startTime}ms)`);
       return res.json(cachedResult);
     }
 
@@ -441,8 +424,6 @@ router.post('/fuel-inventory', async (req, res) => {
       if (allowedSet && !allowedSet.has(String(s.id))) return false;
       return true;
     });
-
-    console.log(`[Fuel Inventory] Processing ${filteredStations.length} stations for system ${system}`);
 
     // Обрабатываем все станции параллельно
     const results = await Promise.all(filteredStations.map(async (station) => {
@@ -616,9 +597,6 @@ router.post('/fuel-inventory', async (req, res) => {
 
     // Кэшируем агрегированный результат на 5 минут
     cache.set(aggCacheKey, inventory, 300);
-
-    const duration = Date.now() - startTime;
-    console.log(`[Fuel Inventory] ✅ Completed: ${inventory.length} tanks from ${filteredStations.length} stations (${duration}ms)`);
 
     res.json(inventory);
   } catch (error) {

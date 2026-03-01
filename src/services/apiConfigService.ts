@@ -222,7 +222,7 @@ export const apiConfigService = {
   getCurrentApiUrl(): string {
     const connection = this.getCurrentConnection();
     if (!connection) {
-      console.warn('⚠️ Активное подключение не найдено, используем mock');
+      // Active connection not found, using mock
       return 'mock';
     }
     return connection.url;

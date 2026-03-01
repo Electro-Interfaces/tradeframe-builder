@@ -331,12 +331,11 @@ export const legalDocumentsService = {
   },
 
   async archiveDocumentVersion(versionId: string): Promise<DocumentVersion> {
-    console.warn('⚠️ archiveDocumentVersion not implemented in Supabase service yet');
     throw new Error('Архивирование версий документов пока не реализовано');
   },
 
   async getAuditLog(filters: AuditLogFilters = {}): Promise<AuditLogEntry[]> {
-    console.warn('⚠️ getAuditLog not implemented in Supabase service yet');
+    // getAuditLog not implemented in Supabase service yet
     return [];
   }
 };

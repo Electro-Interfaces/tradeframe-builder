@@ -23,13 +23,13 @@ export function createSupabaseFromSettings(settings?: DatabaseSettings): Supabas
       // Пытаемся получить настройки из localStorage
       const storedSettings = localStorage.getItem('externalDatabase');
       if (!storedSettings) {
-        console.warn('⚠️ Настройки внешней БД не найдены в localStorage');
+        // External DB settings not found in localStorage
         return null;
       }
       
       const parsedSettings = JSON.parse(storedSettings);
       if (!parsedSettings.url || !parsedSettings.apiKey) {
-        console.warn('⚠️ Некорректные настройки внешней БД');
+        // Invalid external DB settings
         return null;
       }
       

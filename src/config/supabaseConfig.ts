@@ -61,7 +61,7 @@ export async function testSupabaseConnection() {
       // Дополнительная проверка доступности таблиц
       const tablesResult = await supabase.select('equipment_templates', { limit: 1 });
       if (tablesResult.error) {
-        console.warn('⚠️ Table access limited:', tablesResult.error);
+        // Table access limited
         return { success: true, warning: 'Limited table access', details: result.info };
       } else {
         return { success: true, details: result.info };
@@ -87,7 +87,7 @@ export async function getAvailableTables() {
     const result = await supabase.getTables();
     
     if (result.error) {
-      console.warn('⚠️ Could not fetch tables list:', result.error);
+      // Could not fetch tables list
       return { success: false, error: result.error };
     }
     
@@ -110,7 +110,7 @@ export async function checkTableAccess(tableName: string) {
     const result = await supabase.select(tableName, { limit: 1 });
     
     if (result.error) {
-      console.warn(`⚠️ Table '${tableName}' access issue:`, result.error);
+      // Table access issue
       return { accessible: false, error: result.error };
     }
     

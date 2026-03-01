@@ -54,7 +54,6 @@ async function getMstoClient() {
       timeout: 90000 // 90 секунд (MSTO API может быть медленным)
     });
 
-    console.log('[MSTO Proxy] Client initialized with URL:', MSTO_API_URL);
   }
 
   // Проверяем JWT токен
@@ -77,8 +76,6 @@ async function refreshMstoToken() {
     throw new Error('Missing required MSTO credentials: MSTO_USERNAME, MSTO_PASSWORD');
   }
 
-  console.log('[MSTO Proxy] Refreshing JWT token...');
-
   try {
     // MSTO использует POST /session с JSON body
     // ВАЖНО: поле называется "username", НЕ "login"
@@ -95,15 +92,11 @@ async function refreshMstoToken() {
       throw new Error('MSTO API did not return a token');
     }
 
-    console.log('[MSTO Proxy] Logged in as:', response.data?.item?.userId, '(', response.data?.item?.role, ')');
-
     // Токен действителен 24 часа, обновляем за 1 час до истечения
     mstoTokenExpiry = Date.now() + (23 * 60 * 60 * 1000);
 
     // ВАЖНО: MSTO использует заголовок Authorization БЕЗ "Bearer"
     mstoClient.defaults.headers['Authorization'] = mstoToken;
-
-    console.log('[MSTO Proxy] JWT token refreshed successfully');
   } catch (error) {
     console.error('[MSTO Proxy] Failed to refresh JWT token:', error.message);
     if (error.response) {
@@ -145,7 +138,6 @@ function getTTL(urlPath) {
 // Middleware для логирования
 router.use((req, res, next) => {
   req.startTime = Date.now();
-  console.log(`[MSTO Proxy] ${req.method} ${req.path}`);
   next();
 });
 
@@ -167,8 +159,6 @@ async function proxyRequest(req, res, overridePath) {
     if (method === 'GET') {
       const cachedData = cache.get(cacheKey);
       if (cachedData !== undefined) {
-        const duration = Date.now() - req.startTime;
-        console.log(`[MSTO Proxy] 💾 Cache HIT for ${urlPath} (${duration}ms)`);
         return res.status(200).json(cachedData);
       }
     }
@@ -181,8 +171,6 @@ async function proxyRequest(req, res, overridePath) {
       ...(method !== 'GET' && method !== 'HEAD' && { data: body })
     };
 
-    console.log('[MSTO Proxy] Request params:', query);
-
     // Выполняем запрос
     const client = await getMstoClient();
     const response = await client.request(requestConfig);
@@ -191,18 +179,7 @@ async function proxyRequest(req, res, overridePath) {
     if (method === 'GET' && response.status === 200) {
       const ttl = getTTL(urlPath);
       cache.set(cacheKey, response.data, ttl);
-      console.log(`[MSTO Proxy] 💾 Cached response for ${urlPath} (TTL: ${ttl}s)`);
-
-      // DEBUG: Логируем количество транзакций
-      if (urlPath.includes('/transactions')) {
-        const count = response.data?.models?.length || response.data?.length || 0;
-        console.log(`[MSTO Proxy] 📊 Transactions response: totalCount=${response.data?.totalCount || 'N/A'}, models=${count}`);
-      }
     }
-
-    // Измеряем время
-    const duration = Date.now() - req.startTime;
-    console.log(`[MSTO Proxy] ⏱️ Request ${req.method} ${urlPath} completed in ${duration}ms`);
 
     // Возвращаем ответ
     res.status(response.status).json(response.data);
@@ -213,7 +190,6 @@ async function proxyRequest(req, res, overridePath) {
     if (error.response?.status === 401) {
       mstoToken = null;
       mstoTokenExpiry = null;
-      console.log('[MSTO Proxy] Token invalidated due to 401');
     }
 
     if (error.response) {
@@ -258,7 +234,6 @@ router.get('/health', async (req, res) => {
 // === Очистка кэша ===
 router.post('/_cache/clear', (req, res) => {
   cache.flushAll();
-  console.log('[MSTO Proxy] 🧹 Cache cleared');
   res.json({ message: 'Cache cleared successfully' });
 });
 
@@ -342,15 +317,6 @@ function convertTransactionParams(req, res, next) {
     req.query.size = '2000';
   }
 
-  // DEBUG: Логируем преобразованные параметры
-  console.log('[MSTO Proxy] Converted params:', {
-    dateFrom: req.query.dateFrom,
-    dateTo: req.query.dateTo,
-    servicePointId: req.query.servicePointId,
-    operationResult: req.query.operationResult,
-    size: req.query.size
-  });
-
   next();
 }
 
@@ -366,7 +332,6 @@ router.get('/servicePoints', async (req, res) => {
     // Если Access Denied или 403/404 - возвращаем пустой массив
     if (error.response?.status === 403 || error.response?.status === 404 ||
         (error.response?.data && typeof error.response.data === 'string' && error.response.data.includes('Access Denied'))) {
-      console.log('[MSTO Proxy] servicePoints endpoint not available for this account, returning empty array');
       return res.json([]);
     }
     throw error;
@@ -396,7 +361,6 @@ async function getServicePointsMap() {
     });
 
     servicePointsMapExpiry = Date.now() + (2 * 60 * 60 * 1000); // 2 часа
-    console.log(`[MSTO Proxy] ServicePoints map loaded: ${Object.keys(servicePointsMap).length} stations (TTL: 2h)`);
     return servicePointsMap;
   } catch (error) {
     console.error('[MSTO Proxy] Failed to load servicePoints map:', error.message);
@@ -416,7 +380,6 @@ router.get('/transactions', convertTransactionParams, async (req, res) => {
     // Проверяем кэш
     const cachedData = cache.get(cacheKey);
     if (cachedData !== undefined) {
-      console.log(`[MSTO Proxy] 💾 Cache HIT for ${urlPath}`);
       return res.status(200).json(cachedData);
     }
 
@@ -443,9 +406,6 @@ router.get('/transactions', convertTransactionParams, async (req, res) => {
     // Сохраняем в кэш
     const ttl = getTTL(urlPath);
     cache.set(cacheKey, response.data, ttl);
-
-    const count = response.data?.models?.length || 0;
-    console.log(`[MSTO Proxy] 📊 Transactions: ${count} records, servicePointId added`);
 
     res.status(200).json(response.data);
   } catch (error) {
@@ -570,9 +530,7 @@ router.all('*', (req, res) => {
  */
 async function warmupCache() {
   try {
-    console.log('[MSTO Proxy] 🔥 Warming up cache...');
     await getServicePointsMap();
-    console.log('[MSTO Proxy] ✅ Cache warmup completed');
   } catch (error) {
     console.error('[MSTO Proxy] ⚠️ Cache warmup failed:', error.message);
   }

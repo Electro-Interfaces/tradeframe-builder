@@ -93,7 +93,7 @@ const App = () => {
         errorMessage.includes('Failed to fetch') ||
         errorMessage.includes('Importing a module script failed')
       ) {
-        console.warn('🔄 Обнаружена ошибка динамического импорта, перезагружаем страницу...');
+        // Dynamic import error detected, reloading page
 
         // Предотвращаем бесконечную перезагрузку
         const lastReload = sessionStorage.getItem('lastChunkErrorReload');

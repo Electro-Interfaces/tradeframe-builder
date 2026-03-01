@@ -113,7 +113,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       const txTime = tx.startTime || tx.timestamp || tx.createdAt || tx.date;
       
       if (!txTime) {
-        console.warn(`🚫 SalesForecast: Транзакция ${index} без даты:`, tx);
+        // Transaction without date, skipping
         return;
       }
       
@@ -121,7 +121,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       
       // Проверяем валидность даты
       if (isNaN(txDate.getTime())) {
-        console.warn(`🚫 SalesForecast: Невалидная дата в транзакции ${index}:`, txTime, tx);
+        // Invalid date in transaction, skipping
         return;
       }
       

@@ -80,7 +80,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem("tc:selectedNetwork") || "";
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved);
     if (saved && !isUUID) {
-      console.warn(`⚠️ Invalid network ID in localStorage: "${saved}", clearing...`);
+      // Invalid network ID in localStorage, clearing
       localStorage.removeItem("tc:selectedNetwork");
       return "";
     }
@@ -281,7 +281,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       try {
         localStorage.setItem("tc:selectedNetwork", selectedNetworkId || "");
       } catch (e) {
-        console.warn('Не удалось сохранить в localStorage:', e);
+        // Failed to save to localStorage
       }
     }
   }, [selectedNetworkId]);
@@ -291,7 +291,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       try {
         localStorage.setItem("tc:selectedTradingPoint", selectedTradingPoint || "");
       } catch (e) {
-        console.warn('Не удалось сохранить в localStorage:', e);
+        // Failed to save to localStorage
       }
     }
   }, [selectedTradingPoint]);

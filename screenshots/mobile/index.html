@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>TradeControl v2.0.1 — Мобильный аудит (iPhone 14)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+    h1 { text-align: center; padding: 32px 16px 8px; font-size: 24px; }
+    .subtitle { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 32px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; padding: 0 24px 48px; max-width: 1800px; margin: 0 auto; }
+    .card { background: #1e293b; border-radius: 12px; overflow: hidden; border: 1px solid #334155; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .card img { width: 100%; height: auto; display: block; border-bottom: 1px solid #334155; min-height: 200px; background: #0f172a; }
+    .card .label { padding: 12px 16px; font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .card .label .num { color: #3b82f6; font-size: 12px; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; cursor: zoom-out; }
+    .overlay.active { display: flex; }
+    .overlay img { max-height: 95vh; max-width: 95vw; border-radius: 8px; }
+    .overlay .close { position: fixed; top: 16px; right: 24px; font-size: 32px; color: white; cursor: pointer; z-index: 101; }
+    .nav { position: fixed; top: 50%; z-index: 101; font-size: 48px; color: white; cursor: pointer; user-select: none; padding: 16px; }
+    .nav:hover { color: #3b82f6; }
+    .nav.prev { left: 8px; }
+    .nav.next { right: 8px; }
+  </style>
+</head>
+<body>
+  <h1>TradeControl v2.0.1</h1>
+  <p class="subtitle">Мобильный аудит — 30 экранов, iPhone 14 (390x844)</p>
+  <div class="grid" id="grid"></div>
+
+  <div class="overlay" id="overlay" onclick="closeOverlay()">
+    <span class="close" onclick="closeOverlay()">&times;</span>
+    <span class="nav prev" onclick="event.stopPropagation(); navigate(-1)">&lsaquo;</span>
+    <span class="nav next" onclick="event.stopPropagation(); navigate(1)">&rsaquo;</span>
+    <img id="overlayImg" src="" onclick="event.stopPropagation()">
+  </div>
+
+  <script>
+    const screens = [
+      { file: '01-login.png', name: 'Логин' },
+      { file: '02-equipment-home.png', name: 'Главная (Оборудование)' },
+      { file: '03-network-overview.png', name: 'Обзор сети' },
+      { file: '04-operations.png', name: 'Операции' },
+      { file: '05-sales-analysis.png', name: 'Анализ продаж' },
+      { file: '06-network-pricing.png', name: 'Ценообразование сети' },
+      { file: '07-coupons.png', name: 'Купоны' },
+      { file: '08-fuel-inventory.png', name: 'Остатки топлива' },
+      { file: '09-receipts.png', name: 'Чеки' },
+      { file: '10-reconciliation.png', name: 'Сверка процессинга' },
+      { file: '11-online-orders.png', name: 'Онлайн-заказы' },
+      { file: '12-notifications.png', name: 'Уведомления сети' },
+      { file: '13-messages.png', name: 'Сообщения' },
+      { file: '14-broadcast.png', name: 'Рассылки' },
+      { file: '15-prices.png', name: 'Цены на точке' },
+      { file: '16-tanks.png', name: 'Резервуары' },
+      { file: '17-equipment.png', name: 'Оборудование' },
+      { file: '18-shift-reports.png', name: 'Сменные отчёты' },
+      { file: '19-shift-dashboard.png', name: 'Дашборд смены' },
+      { file: '20-users.png', name: 'Пользователи' },
+      { file: '21-roles.png', name: 'Роли' },
+      { file: '22-networks.png', name: 'Сети и точки' },
+      { file: '23-audit-log.png', name: 'Аудит-лог' },
+      { file: '24-legal-docs.png', name: 'Правовые документы' },
+      { file: '25-sts-api.png', name: 'Настройки API СТС' },
+      { file: '26-external-db.png', name: 'Внешняя БД' },
+      { file: '27-notification-settings.png', name: 'Настройки уведомлений' },
+      { file: '28-profile.png', name: 'Профиль' },
+      { file: '29-support-tickets.png', name: 'Заявки поддержки' },
+      { file: '30-support-chat.png', name: 'Чат поддержки' },
+    ];
+
+    let currentIndex = 0;
+    const grid = document.getElementById('grid');
+
+    screens.forEach((s, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<img src="${s.file}" alt="${s.name}"><div class="label"><span>${s.name}</span><span class="num">#${String(i+1).padStart(2,'0')}</span></div>`;
+      card.onclick = () => openOverlay(i);
+      grid.appendChild(card);
+    });
+
+    function openOverlay(index) {
+      currentIndex = index;
+      document.getElementById('overlayImg').src = screens[index].file;
+      document.getElementById('overlay').classList.add('active');
+    }
+
+    function closeOverlay() {
+      document.getElementById('overlay').classList.remove('active');
+    }
+
+    function navigate(dir) {
+      currentIndex = (currentIndex + dir + screens.length) % screens.length;
+      document.getElementById('overlayImg').src = screens[currentIndex].file;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('overlay').classList.contains('active')) return;
+      if (e.key === 'Escape') closeOverlay();
+      if (e.key === 'ArrowLeft') navigate(-1);
+      if (e.key === 'ArrowRight') navigate(1);
+    });
+  </script>
+</body>
+</html>

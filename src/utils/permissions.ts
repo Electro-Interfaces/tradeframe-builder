@@ -141,7 +141,7 @@ export class PermissionChecker {
                  contextValue.startsWith(condition.value)
         
         default:
-          console.warn(`Unknown condition operator: ${condition.operator}`)
+          // Unknown condition operator
           return false
       }
     })
@@ -219,10 +219,9 @@ export class PermissionChecker {
         if (requestedScope === 'network') {
           return !userRole.scope_value || userRole.scope_value === requestedValue
         }
-        // Доступ к торговым точкам своей сети
+        // Доступ к торговым точкам: требуется явная проверка принадлежности к сети
         if (requestedScope === 'trading_point') {
-          // Нужна дополнительная логика для проверки принадлежности точки к сети
-          return true // TODO: реализовать проверку через networksService
+          return false
         }
         return false
       

@@ -11,10 +11,15 @@ import type {
   MSTOTariff
 } from '@/types/mstoReconciliation';
 
+interface ProxyError extends Error {
+  status?: number;
+  isTimeout?: boolean;
+}
+
 interface MstoProxyRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  params?: Record<string, any>;
-  body?: any;
+  params?: Record<string, string | number | boolean>;
+  body?: unknown;
 }
 
 import { getBackendOrigin } from '@/utils/backendUrl';
@@ -79,8 +84,7 @@ export async function mstoProxyRequest<T>(
             // Игнорируем ошибки парсинга
           }
 
-          const error = new Error(`MSTO API request failed (${response.status}): ${errorDetails}`) as any;
-          error.status = response.status;
+          const error: ProxyError = Object.assign(new Error(`MSTO API request failed (${response.status}): ${errorDetails}`), { status: response.status });
 
           // Не повторяем для клиентских ошибок (кроме 401)
           if (response.status >= 400 && response.status < 500 && response.status !== 401) {
@@ -96,8 +100,7 @@ export async function mstoProxyRequest<T>(
         clearTimeout(timeoutId);
 
         if (fetchError.name === 'AbortError') {
-          const timeoutError = new Error(`MSTO request timeout after ${timeout}ms`) as any;
-          timeoutError.isTimeout = true;
+          const timeoutError: ProxyError = Object.assign(new Error(`MSTO request timeout after ${timeout}ms`), { isTimeout: true as const });
           throw timeoutError;
         }
 
@@ -342,7 +345,7 @@ export async function getMstoServicePoints(): Promise<MSTOServicePoint[]> {
   }
 
   if (response && typeof response === 'object' && 'servicePoints' in response) {
-    return (response as any).servicePoints;
+    return (response as { servicePoints: MSTOServicePoint[] }).servicePoints;
   }
 
   return [];
@@ -359,7 +362,7 @@ export async function getMstoTariffs(): Promise<MSTOTariff[]> {
   }
 
   if (response && typeof response === 'object' && 'tariffs' in response) {
-    return (response as any).tariffs;
+    return (response as { tariffs: MSTOTariff[] }).tariffs;
   }
 
   return [];

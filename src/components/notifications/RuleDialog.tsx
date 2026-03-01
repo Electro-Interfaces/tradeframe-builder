@@ -117,9 +117,6 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
   const onSubmit = async (values: RuleFormValues) => {
     setSaving(true);
     try {
-      console.log('[RuleDialog] tenantId:', tenantId);
-      console.log('[RuleDialog] values:', values);
-
       const ruleData: Partial<NotificationRule> = {
         ...(rule?.id && { id: rule.id }), // Добавляем id при редактировании
         tenant_id: tenantId,

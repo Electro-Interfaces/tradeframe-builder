@@ -70,7 +70,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
         const registrations = await navigator.serviceWorker.getRegistrations();
 
         if (registrations.length === 0) {
-          console.log('❌ UpdateChecker: Service Worker не зарегистрирован, попробуем зарегистрировать...');
+          // Service Worker not registered, attempting registration
 
           try {
             const swPath = import.meta.env.PROD ? '/tradeframe-builder/sw.js' : '/sw.js';
@@ -95,12 +95,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
         const registration = await Promise.race([readyPromise, timeoutPromise]) as ServiceWorkerRegistration;
 
         // Дополнительные проверки состояния
-        console.log('🔄 UpdateChecker: Registration state:', {
-          active: !!registration.active,
-          installing: !!registration.installing,
-          waiting: !!registration.waiting,
-          scope: registration.scope
-        });
+        // Registration state checked
 
         // Принудительно проверяем обновления
         await registration.update();
@@ -149,7 +144,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
           });
         }
       } else {
-        console.log('❌ UpdateChecker: Service Worker не поддерживается');
+        // Service Worker not supported
         setUpdateStatus('no-updates');
         setTimeout(() => {
           setUpdateStatus(null);

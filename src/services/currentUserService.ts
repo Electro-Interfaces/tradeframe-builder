@@ -166,7 +166,7 @@ class CurrentUserService {
       // Гонка между верификацией и таймаутом
       return await Promise.race([verificationPromise, timeoutPromise]);
     } catch (error) {
-      console.warn('⚠️ Crypto verification failed, falling back to simple check:', error.message);
+      // Crypto verification failed, falling back to simple check
       return await this.simplePasswordCheck(user, password);
     }
   }

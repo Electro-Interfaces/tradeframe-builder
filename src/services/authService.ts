@@ -145,7 +145,7 @@ export class AuthService {
     const now = new Date()
     const user: User = {
       id: `user_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`,
-      tenant_id: input.tenant_id || 'default', // TODO: получать из контекста
+      tenant_id: input.tenant_id || 'default', // single-tenant: всегда 'default'
       email: input.email,
       name: input.name,
       phone: input.phone,

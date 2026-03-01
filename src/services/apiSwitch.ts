@@ -143,7 +143,7 @@ export const getApiStatus = () => ({
 export const forceHttpMode = () => {
   // @ts-ignore
   window.__FORCE_HTTP_API = true;
-  console.warn('🔄 Принудительно включен HTTP API режим');
+  // Forced HTTP API mode
   location.reload();
 };
 
@@ -153,7 +153,7 @@ export const forceHttpMode = () => {
 export const forceMockMode = () => {
   // @ts-ignore
   window.__FORCE_HTTP_API = false;
-  console.warn('🔄 Принудительно включен MOCK API режим');
+  // Forced MOCK API mode
   location.reload();
 };
 

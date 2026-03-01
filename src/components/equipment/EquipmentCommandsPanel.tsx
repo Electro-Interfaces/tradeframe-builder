@@ -149,7 +149,7 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
             } as EquipmentCommand;
           }
         } catch (error) {
-          console.warn(`Failed to process command ${commandId}:`, error);
+          // Failed to process command
           return null;
         }
       });

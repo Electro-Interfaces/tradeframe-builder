@@ -150,8 +150,6 @@ router.post('/', async (req, res) => {
 
     if (error) throw error;
 
-    console.log(`[Messages API] Message created: ${data.id} by user ${author_id}`);
-
     res.json({ success: true, data });
 
   } catch (error) {
@@ -183,8 +181,6 @@ router.put('/:id', async (req, res) => {
       .single();
 
     if (error) throw error;
-
-    console.log(`[Messages API] Message updated: ${id}`);
 
     res.json({ success: true, data });
 
@@ -226,8 +222,6 @@ router.delete('/:id', async (req, res) => {
       .eq('id', id);
 
     if (error) throw error;
-
-    console.log(`[Messages API] Message deleted: ${id}`);
 
     res.json({ success: true });
 
@@ -329,8 +323,6 @@ router.post('/:id/send', async (req, res) => {
 
     // Запускаем асинхронную отправку
     sendMessageAsync(message, recipientRecords);
-
-    console.log(`[Messages API] Message sending started: ${id}, recipients: ${recipientRecords.length}`);
 
     res.json({
       success: true,
@@ -504,8 +496,6 @@ async function sendMessageAsync(message, recipientRecords) {
       failed_count: failedCount
     })
     .eq('id', message.id);
-
-  console.log(`[Messages API] Message sent: ${message.id}, sent: ${sentCount}, failed: ${failedCount}`);
 }
 
 /**

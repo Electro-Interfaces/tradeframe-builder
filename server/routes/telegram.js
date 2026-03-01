@@ -124,8 +124,6 @@ router.post('/generate-link-code', async (req, res) => {
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'TradeControlDW_Bot';
     const telegramLink = `https://t.me/${botUsername}?start=${linkCode}`;
 
-    console.log(`[Telegram] Generated link code: ${linkCode} for user: ${userId}`);
-
     res.json({
       success: true,
       linkCode,
@@ -158,8 +156,6 @@ router.post('/save-settings', async (req, res) => {
   try {
     const { userId, settings } = req.body;
 
-    console.log('[Telegram] Save settings request:', { userId, settings });
-
     if (!userId || !settings) {
       return res.status(400).json({ error: 'userId and settings are required' });
     }
@@ -171,13 +167,10 @@ router.post('/save-settings', async (req, res) => {
       .eq('user_id', userId)
       .single();
 
-    console.log('[Telegram] Existing settings:', existing, 'Error:', existingError);
-
     let result;
 
     if (existing) {
       // Обновляем существующие настройки
-      console.log('[Telegram] Updating settings...');
       const { data, error } = await supabase
         .from('user_notification_settings')
         .update(settings)
@@ -192,7 +185,6 @@ router.post('/save-settings', async (req, res) => {
       result = data;
     } else {
       // Создаем новые настройки
-      console.log('[Telegram] Creating new settings...');
       const { data, error } = await supabase
         .from('user_notification_settings')
         .insert({
@@ -209,7 +201,6 @@ router.post('/save-settings', async (req, res) => {
       result = data;
     }
 
-    console.log('[Telegram] Settings saved successfully:', result);
     res.json({ success: true, data: result });
 
   } catch (error) {
@@ -360,7 +351,6 @@ router.post('/send-test-notification', async (req, res) => {
     const sent = await sendNotification(settings.telegram_chat_id, testNotification);
 
     if (sent) {
-      console.log(`[Telegram] Test notification sent to user ${userId}`);
       res.json({
         success: true,
         message: 'Test notification sent successfully',
@@ -383,8 +373,6 @@ router.get('/get-rules/:tenantId', async (req, res) => {
   try {
     const { tenantId } = req.params;
 
-    console.log('[Telegram] Get rules request for tenant:', tenantId);
-
     const { data, error } = await supabase
       .from('notification_rules')
       .select('*')
@@ -396,7 +384,6 @@ router.get('/get-rules/:tenantId', async (req, res) => {
       throw error;
     }
 
-    console.log(`[Telegram] Found ${data?.length || 0} rules for tenant ${tenantId}`);
     res.json({ success: true, data: data || [] });
 
   } catch (error) {
@@ -411,8 +398,6 @@ router.get('/get-rules/:tenantId', async (req, res) => {
 router.post('/create-rule', async (req, res) => {
   try {
     const { rule } = req.body;
-
-    console.log('[Telegram] Create rule request:', JSON.stringify(rule, null, 2));
 
     if (!rule) {
       return res.status(400).json({ error: 'rule is required' });
@@ -429,7 +414,6 @@ router.post('/create-rule', async (req, res) => {
       throw error;
     }
 
-    console.log('[Telegram] Rule created successfully:', data.id);
     res.json({ success: true, data });
 
   } catch (error) {

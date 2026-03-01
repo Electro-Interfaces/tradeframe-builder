@@ -28,7 +28,6 @@ class EmailService {
 
     // Проверяем что все параметры указаны
     if (!config.host || !config.auth.user || !config.auth.pass) {
-      console.warn('⚠️ Email сервис не настроен. Укажите SMTP параметры в .env файле');
       this.isConfigured = false;
       return;
     }
@@ -36,7 +35,6 @@ class EmailService {
     try {
       this.transporter = nodemailer.createTransporter(config);
       this.isConfigured = true;
-      console.log('✅ Email транспорт инициализирован');
     } catch (error) {
       console.error('❌ Ошибка инициализации email транспорта:', error);
       this.isConfigured = false;
@@ -94,7 +92,6 @@ class EmailService {
 
     try {
       const info = await this.transporter.sendMail(mailOptions);
-      console.log(`✅ Email отправлен: ${info.messageId}`);
       return {
         success: true,
         messageId: info.messageId,

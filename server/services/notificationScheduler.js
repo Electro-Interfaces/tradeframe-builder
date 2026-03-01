@@ -86,9 +86,7 @@ class NotificationScheduler {
    * Вызывает ТОЛЬКО правила типа bill_acceptor_threshold
    */
   async runBillAcceptorChecks() {
-    console.log('🔍 [Scheduler] Запуск проверки порогов купюроприемника...');
     const result = await notificationEngine.processRulesByType('bill_acceptor_threshold');
-    console.log(`✅ [Scheduler] Проверка купюроприемника завершена. Обработано правил: ${result.processedRules}, отправлено уведомлений: ${result.notificationsSent || 0}`);
     return result;
   }
 
@@ -97,9 +95,7 @@ class NotificationScheduler {
    * Вызывает ТОЛЬКО правила типа equipment_offline
    */
   async runEquipmentOfflineChecks() {
-    console.log('🔍 [Scheduler] Запуск проверки оборудования offline...');
     const result = await notificationEngine.processRulesByType('equipment_offline');
-    console.log(`✅ [Scheduler] Проверка оборудования offline завершена. Обработано правил: ${result.processedRules}, отправлено уведомлений: ${result.notificationsSent || 0}`);
     return result;
   }
 
@@ -108,9 +104,7 @@ class NotificationScheduler {
    * Вызывает ТОЛЬКО правила типа low_fuel_level
    */
   async runLowFuelLevelChecks() {
-    console.log('🔍 [Scheduler] Запуск проверки низкого уровня топлива...');
     const result = await notificationEngine.processRulesByType('low_fuel_level');
-    console.log(`✅ [Scheduler] Проверка низкого уровня топлива завершена. Обработано правил: ${result.processedRules}, отправлено уведомлений: ${result.notificationsSent || 0}`);
     return result;
   }
 
@@ -119,9 +113,7 @@ class NotificationScheduler {
    * Вызывает ТОЛЬКО правила типа terminal_offline
    */
   async runTerminalOfflineChecks() {
-    console.log('🔍 [Scheduler] Запуск проверки работы терминала...');
     const result = await notificationEngine.processRulesByType('terminal_offline');
-    console.log(`✅ [Scheduler] Проверка работы терминала завершена. Обработано правил: ${result.processedRules}, отправлено уведомлений: ${result.notificationsSent || 0}`);
     return result;
   }
 
@@ -130,9 +122,7 @@ class NotificationScheduler {
    * Вызывает ТОЛЬКО правила типа unpunched_receipts
    */
   async runUnpunchedReceiptsChecks() {
-    console.log('🧾 [Scheduler] Запуск проверки непробитых чеков...');
     const result = await notificationEngine.processRulesByType('unpunched_receipts');
-    console.log(`✅ [Scheduler] Проверка непробитых чеков завершена. Обработано правил: ${result.processedRules}, отправлено уведомлений: ${result.notificationsSent || 0}`);
     return result;
   }
 

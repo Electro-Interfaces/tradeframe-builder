@@ -289,7 +289,7 @@ class MobileUtils {
       navigator.vibrate(pattern);
       return true;
     } catch (e) {
-      console.warn('📳 Ошибка вибрации:', e);
+      // Vibration error
       return false;
     }
   }

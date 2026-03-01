@@ -76,13 +76,7 @@ app.use(helmet({
 // Парсинг JSON тела запросов
 app.use(express.json({ limit: '1mb' }));
 
-// Логирование запросов в режиме разработки
-if (NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    next();
-  });
-}
+// Логирование запросов в режиме разработки (disabled — use morgan/pino if needed)
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -142,27 +136,13 @@ app.use((err, req, res, next) => {
 
 // Запуск сервера
 app.listen(PORT, () => {
-  console.log(`Backend Proxy Server started`);
-  console.log(`Environment: ${NODE_ENV}`);
-  console.log(`Port: ${PORT}`);
-  console.log(`Allowed Origins: ${allowedOrigins.join(', ')}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-
   // Запуск планировщика уведомлений (можно отключить через DISABLE_NOTIFICATION_SCHEDULER=true)
-  if (process.env.DISABLE_NOTIFICATION_SCHEDULER === 'true') {
-    console.log('⚠️ Notification Scheduler DISABLED (DISABLE_NOTIFICATION_SCHEDULER=true)');
-  } else {
+  if (process.env.DISABLE_NOTIFICATION_SCHEDULER !== 'true') {
     notificationScheduler.start();
-    console.log('✅ Notification Scheduler started');
   }
 
   // Инициализация Telegram бота
   const bot = initTelegramBot();
-  if (bot) {
-    console.log('✅ Telegram Bot initialized and polling');
-  } else {
-    console.warn('⚠️ Telegram Bot not initialized (check configuration)');
-  }
 
   // Прогрев кэша MSTO (асинхронно, не блокирует запуск)
   if (mstoRoutes.warmupCache) {
@@ -174,13 +154,11 @@ app.listen(PORT, () => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
   notificationScheduler.stop();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
   notificationScheduler.stop();
   process.exit(0);
 });

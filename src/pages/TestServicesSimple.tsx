@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function TestServicesSimple() {
   const handleTest = () => {
-    console.log('Test button clicked');
     alert('Test page is working!');
   };
 

@@ -477,7 +477,7 @@ export const fuelStocksHistoryService = {
       }
     } catch (error) {
       console.error('Fuel stocks history API error:', error);
-      console.warn('Falling back to mock data due to API error');
+      // Falling back to mock data due to API error
     }
 
     // Mock режим или fallback

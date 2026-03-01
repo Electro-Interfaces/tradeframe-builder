@@ -11,10 +11,7 @@ class TelegramService {
     this.isConfigured = !!this.botToken;
     this.baseUrl = `https://api.telegram.org/bot${this.botToken}`;
 
-    if (!this.isConfigured) {
-      console.warn('⚠️ Telegram бот не настроен. Укажите TELEGRAM_BOT_TOKEN в .env файле');
-    } else {
-      console.log('✅ Telegram сервис инициализирован');
+    if (this.isConfigured) {
       this.verifyBot();
     }
   }
@@ -30,7 +27,6 @@ class TelegramService {
     try {
       const response = await axios.get(`${this.baseUrl}/getMe`);
       if (response.data.ok) {
-        console.log(`✅ Telegram бот подключен: @${response.data.result.username}`);
         return { success: true, bot: response.data.result };
       }
       return { success: false, error: 'Не удалось подключиться к боту' };
@@ -73,7 +69,6 @@ class TelegramService {
       });
 
       if (response.data.ok) {
-        console.log(`✅ Telegram сообщение отправлено в чат ${chatId}`);
         return {
           success: true,
           messageId: response.data.result.message_id
@@ -359,7 +354,6 @@ ${emoji} <b>${levelText}</b>
       });
 
       if (response.data.ok) {
-        console.log(`✅ Telegram webhook установлен: ${webhookUrl}`);
         return { success: true };
       }
 
@@ -388,7 +382,6 @@ ${emoji} <b>${levelText}</b>
       const response = await axios.post(`${this.baseUrl}/deleteWebhook`);
 
       if (response.data.ok) {
-        console.log('✅ Telegram webhook удален');
         return { success: true };
       }
 

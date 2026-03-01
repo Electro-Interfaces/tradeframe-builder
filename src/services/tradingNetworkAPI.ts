@@ -229,7 +229,7 @@ class TradingNetworkAPIService {
       const swaggerDoc = await stsProxyClient.get<any>('/docs/swagger.json', {});
       return this.parseSwaggerMethods(swaggerDoc);
     } catch (error) {
-      console.warn('Не удалось получить Swagger документацию, используем известные методы:', error);
+      // Failed to fetch Swagger docs, using known methods
       return this.getKnownAPIMethods();
     }
   }

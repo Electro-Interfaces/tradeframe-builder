@@ -192,8 +192,6 @@ class NotificationEngine {
       const timeSinceLastNotification = now - lastSentTime;
 
       if (timeSinceLastNotification < suppressDurationMs) {
-        const hoursRemaining = ((suppressDurationMs - timeSinceLastNotification) / (1000 * 60 * 60)).toFixed(1);
-        console.log(`   ℹ️ Пропуск уведомления (дедупликация): осталось ${hoursRemaining}ч до следующего`);
         return false;
       }
 
@@ -259,7 +257,6 @@ class NotificationEngine {
         case 'unpunched_receipts':
           return await this.checkUnpunchedReceipts(rule);
         default:
-          console.warn(`⚠️ Неизвестный тип правила: ${rule.type}`);
           return { success: false, error: 'Unknown rule type' };
       }
     } catch (error) {
@@ -842,7 +839,6 @@ class NotificationEngine {
 
       // ✅ ПРОВЕРКА ПОРОГА БЛОКИРОВКИ (800 литров) - абсолютный порог
       // Если уровень ниже 800л - отправляем критическое уведомление о блокировке
-      console.log(`   🔍 Проверка блокировки: ${station.station_name} | Резервуар №${station.tank_number} (${station.fuel_type}) | Объём: ${station.current_volume.toFixed(2)} л | noSensor: ${station.no_sensor_data} | Порог: ${BLOCK_THRESHOLD_LITERS} л`);
       if (station.current_volume < BLOCK_THRESHOLD_LITERS) {
         const shouldNotifyBlock = await this.shouldSendNotification(rule, 'fuel_block_threshold', {
           stationCode: station.station_code,
@@ -1030,8 +1026,6 @@ class NotificationEngine {
    */
   async checkTerminalOffline(rule) {
     try {
-      console.log('🔍 Проверка работы терминала...');
-
       const maxDelayMinutes = rule.rule_config?.maxDelayMinutes || 12;
       let notificationsSent = 0;
 
@@ -1051,7 +1045,6 @@ class NotificationEngine {
       const stations = tenant.settings?.stations || [];
 
       if (!stations || stations.length === 0) {
-        console.log('⚠️ Нет станций для проверки');
         return { success: true, notificationsSent: 0 };
       }
 
@@ -1065,13 +1058,10 @@ class NotificationEngine {
         const stationCode = station.code || station.external_id;
         const stationName = station.name || `АЗС ${stationCode}`;
 
-        console.log(`📍 Проверка станции: ${stationName} (${stationCode})`);
-
         // Получаем данные терминала
         const terminalInfo = await this.getTerminalInfo(networkId, stationCode);
 
         if (!terminalInfo || !terminalInfo.pos || !terminalInfo.pos[0]) {
-          console.log(`⚠️ Не удалось получить данные терминала для станции ${stationCode}`);
           continue;
         }
 
@@ -1079,7 +1069,6 @@ class NotificationEngine {
         const lastUpdate = posData.dt_info;
 
         if (!lastUpdate) {
-          console.log(`⚠️ Нет данных о времени последнего обновления для станции ${stationCode}`);
           continue;
         }
 
@@ -1089,12 +1078,8 @@ class NotificationEngine {
         const delayMs = now - lastUpdateDate;
         const delayMinutes = Math.floor(delayMs / 60000);
 
-        console.log(`   ⏰ Последнее обновление: ${lastUpdateDate.toLocaleString('ru-RU')}`);
-        console.log(`   ⏱️  Задержка: ${delayMinutes} мин`);
-
         // Проверяем превышение порога
         if (delayMinutes > maxDelayMinutes) {
-          console.log(`   ⚠️ Задержка превышает порог (${maxDelayMinutes} мин)!`);
 
           // Проверяем, не отправляли ли мы недавно уведомление об этой проблеме
           const shouldSend = await this.shouldSendTerminalOfflineNotification(
@@ -1113,15 +1098,10 @@ class NotificationEngine {
               maxDelayMinutes
             );
             notificationsSent++;
-          } else {
-            console.log(`   ℹ️ Уведомление уже было отправлено недавно`);
           }
-        } else {
-          console.log(`   ✅ Задержка в пределах нормы`);
         }
       }
 
-      console.log(`✅ Проверка завершена. Отправлено уведомлений: ${notificationsSent}`);
       return { success: true, notificationsSent };
 
     } catch (error) {
@@ -1196,8 +1176,6 @@ class NotificationEngine {
    */
   async checkUnpunchedReceipts(rule) {
     try {
-      console.log('🧾 Проверка непробитых чеков...');
-
       // Получаем тенанта
       const { data: tenant, error: tenantError } = await this.supabase
         .from('tenants')
@@ -1215,7 +1193,6 @@ class NotificationEngine {
       const stations = tenant.settings?.stations || [];
 
       if (!stations || stations.length === 0) {
-        console.log('⚠️ Нет станций для проверки');
         return { success: true, notificationsSent: 0 };
       }
 
@@ -1258,13 +1235,8 @@ class NotificationEngine {
 
       // Если нет непробитых чеков - ничего не делаем
       if (stationsWithReceipts.length === 0) {
-        console.log('✅ Непробитых чеков не обнаружено');
         return { success: true, notificationsSent: 0 };
       }
-
-      console.log(`📋 Найдено станций с непробитыми чеками: ${stationsWithReceipts.length}`);
-      console.log(`   💵 Наличные: ${totalCash.toLocaleString('ru-RU')} ₽`);
-      console.log(`   💳 Безнал: ${totalBank.toLocaleString('ru-RU')} ₽`);
 
       // Проверяем дедупликацию (не отправлять слишком часто)
       const shouldSend = await this.shouldSendNotification(rule, 'unpunched_receipts', {
@@ -1272,7 +1244,6 @@ class NotificationEngine {
       });
 
       if (!shouldSend) {
-        console.log('   ℹ️ Уведомление уже было отправлено недавно');
         return { success: true, notificationsSent: 0 };
       }
 
@@ -1287,7 +1258,6 @@ class NotificationEngine {
       );
 
       if (notification) {
-        console.log('✅ Уведомление о непробитых чеках отправлено');
         return { success: true, notificationsSent: 1 };
       }
 

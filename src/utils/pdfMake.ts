@@ -19,15 +19,12 @@ const createMockPdfMake = (): PdfMakeInstance => ({
   fonts: {},
   createPdf: () => ({
     download: () => {
-      console.warn('PDF download not available - pdfmake not installed');
       alert('PDF экспорт недоступен в данном окружении');
     },
     open: () => {
-      console.warn('PDF open not available - pdfmake not installed');
       alert('PDF экспорт недоступен в данном окружении');
     },
     getBuffer: () => {
-      console.warn('PDF getBuffer not available - pdfmake not installed');
     },
   }),
 });
@@ -52,7 +49,7 @@ export async function loadPdfMake(): Promise<PdfMakeInstance> {
     cachedPdfMake = pdfMakeInstance;
     return pdfMakeInstance;
   } catch (error) {
-    console.warn('pdfmake not available in this environment:', error);
+    // pdfmake not available in this environment
     cachedPdfMake = createMockPdfMake();
     return cachedPdfMake;
   }

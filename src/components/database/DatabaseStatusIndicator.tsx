@@ -34,14 +34,8 @@ export const DatabaseStatusIndicator: React.FC = () => {
         return;
       }
 
-      console.log('DatabaseStatusIndicator: Testing connection with:', { 
-        url: parsed.url, 
-        hasApiKey: !!parsed.apiKey 
-      });
-
       // Тестируем подключение
       const testResult = await externalUsersService.testConnection();
-      console.log('DatabaseStatusIndicator: Test result:', testResult);
       
       setStatus({
         connected: testResult.success,

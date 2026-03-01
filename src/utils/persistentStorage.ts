@@ -89,8 +89,7 @@ class PersistentStorageClass {
       
       // Проверка версии для совместимости
       if (storageData.metadata.version !== PersistentStorageClass.VERSION) {
-        console.warn(`⚠️ Версия данных отличается: ${storageData.metadata.version} vs ${PersistentStorageClass.VERSION}`);
-        // Здесь можно добавить миграцию данных между версиями
+        // Version mismatch - migration may be needed
       }
 
       return storageData.data;
@@ -128,7 +127,7 @@ class PersistentStorageClass {
       
       // Проверка версии для совместимости
       if (storageData.metadata.version !== this.VERSION) {
-        console.warn(`⚠️ Версия данных отличается: ${storageData.metadata.version} vs ${this.VERSION}`);
+        // Version mismatch detected
       }
 
       return storageData.data;

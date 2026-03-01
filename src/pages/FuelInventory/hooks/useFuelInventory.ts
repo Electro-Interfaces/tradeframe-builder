@@ -87,7 +87,7 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         data = await getInventoryFromServer(params);
       } catch (serverErr) {
         // Fallback на клиентскую агрегацию
-        console.warn('Server aggregation failed, falling back to client-side:', serverErr);
+        // Server aggregation failed, falling back to client-side
         setLoadingProgress({ loaded: 0, total: 0 });
 
         try {

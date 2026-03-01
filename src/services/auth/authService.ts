@@ -6,7 +6,7 @@
 import { auditLogService } from '../auditLogService';
 import { getBackendOrigin } from '@/utils/backendUrl';
 
-interface DatabaseUser {
+export interface DatabaseUser {
   id: string;
   email: string;
   name: string;
@@ -15,12 +15,15 @@ interface DatabaseUser {
   pwd_salt: string;
   pwd_hash: string;
   user_roles: Array<{
+    scope_value?: string | string[];
     role: {
       id: number;
       name: string;
       code: string;
+      scope?: string;
+      scope_values?: string[];
       permissions: string[];
-    }
+    };
   }>;
   created_at: string;
   updated_at: string;
@@ -65,7 +68,7 @@ class AuthService {
   private getSupabaseKey(): string {
     const key = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
     if (!key) {
-      console.warn('⚠️ VITE_SUPABASE_SERVICE_ROLE_KEY не задан в окружении');
+      // VITE_SUPABASE_SERVICE_ROLE_KEY not set
       return '';
     }
     return key;

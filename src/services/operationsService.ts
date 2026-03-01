@@ -74,7 +74,7 @@ class OperationsServiceUpdated {
       console.error('Operations API error:', error);
       
       // Fallback на mock данные при ошибке API
-      console.warn('Falling back to mock operations due to API error');
+      // Falling back to mock operations due to API error
       return this.getMockOperations(filters, pagination);
     }
   }

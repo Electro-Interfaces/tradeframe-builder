@@ -115,7 +115,7 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
         year: 'numeric'
       }).format(validDate);
     } catch (error) {
-      console.warn('Invalid date value:', date);
+      // Invalid date value
       return 'Нет данных';
     }
   };

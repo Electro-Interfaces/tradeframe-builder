@@ -26,8 +26,6 @@ router.all('/*', async (req, res) => {
 
     const url = `${SUPABASE_URL}/${endpoint}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
 
-    console.log(`[Supabase Proxy] ${req.method} ${url}`);
-
     // Подготовка заголовков для Supabase
     const headers = {
       'apikey': SUPABASE_SERVICE_KEY,

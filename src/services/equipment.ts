@@ -1105,7 +1105,7 @@ export const mockEquipmentAPI = {
         componentsCount = componentsResponse.total;
       } catch (error) {
         // Игнорируем ошибки при загрузке компонентов
-        console.warn(`Failed to load components count for equipment ${eq.id}:`, error);
+        // Failed to load components count
       }
 
       return {

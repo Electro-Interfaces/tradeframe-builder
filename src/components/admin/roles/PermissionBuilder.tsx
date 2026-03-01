@@ -70,7 +70,6 @@ export function PermissionBuilder() {
 
   const togglePermission = (section: string, resource: string, action: PermissionAction) => {
     if (!selectedRole) {
-      console.log('❌ No selected role');
       return;
     }
 

@@ -388,7 +388,7 @@ class ExternalUsersService {
             method: 'DELETE'
           });
         } catch (roleError) {
-          console.warn(`⚠️ Ошибка при удалении ролей для пользователя ${userId}:`, roleError);
+          // Failed to delete roles for user
         }
       }
 

@@ -87,7 +87,7 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
         const equipmentItems = equipmentService.mapTerminalInfoToEquipment(terminalInfoData, tradingPoint.name);
         setEquipment(equipmentItems);
       } else {
-        console.warn('Не удалось загрузить информацию о терминале:', terminalInfoResult.reason);
+        // Failed to load terminal info
         setTerminalInfo(null);
         setEquipment([]);
       }
@@ -96,7 +96,7 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
       if (tanksResult.status === 'fulfilled') {
         setTanks(tanksResult.value);
       } else {
-        console.warn('Не удалось загрузить резервуары:', tanksResult.reason);
+        // Failed to load tanks
         setTanks([]);
       }
 

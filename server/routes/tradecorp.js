@@ -32,7 +32,6 @@ async function getTradecorpClient() {
       timeout: 60000
     });
 
-    console.log('[TradeCorp Proxy] Client initialized with URL:', TRADECORP_API_URL);
   }
 
   // Проверяем токен
@@ -44,8 +43,6 @@ async function getTradecorpClient() {
 }
 
 async function refreshProcessingToken() {
-  console.log('[TradeCorp Proxy] Refreshing processing token...');
-
   try {
     // Авторизация на processing API
     const response = await tradecorpClient.post('/v2', {
@@ -67,8 +64,6 @@ async function refreshProcessingToken() {
     tokenExpiry = Date.now() + (55 * 60 * 1000);
 
     tradecorpClient.defaults.headers['Authorization'] = `Bearer ${processingToken}`;
-
-    console.log('[TradeCorp Proxy] Processing token refreshed successfully');
   } catch (error) {
     console.error('[TradeCorp Proxy] Failed to refresh token:', error.message);
     throw new Error('Failed to authenticate with TradeCorp API');
@@ -78,7 +73,6 @@ async function refreshProcessingToken() {
 // Middleware для логирования
 router.use((req, res, next) => {
   req.startTime = Date.now();
-  console.log(`[TradeCorp Proxy] ${req.method} ${req.path}`);
   next();
 });
 
@@ -99,8 +93,6 @@ router.post('/transactions', async (req, res) => {
     // Форматируем даты с временем (TradeCorp требует формат YYYY-MM-DD HH:MM:SS)
     const dateFromFormatted = `${dateFrom} 00:00:00`;
     const dateToFormatted = `${dateTo} 23:59:59`;
-
-    console.log('[TradeCorp Proxy] Date range:', { dateFromFormatted, dateToFormatted });
 
     // Формируем фильтр для JSON-RPC запроса
     // Operation IDs: 603=заправка, 614=возврат, 504=пополнение, 505=списание, 508=перевод, 511=корректировка
@@ -133,28 +125,13 @@ router.post('/transactions', async (req, res) => {
       }
     };
 
-    console.log('[TradeCorp Proxy] Requesting transactions:', JSON.stringify(body, null, 2));
-
     const response = await client.post('/v1', body);
-
-    console.log('[TradeCorp Proxy] Raw API response:', {
-      hasError: !!response.data.error,
-      error: response.data.error || null,
-      resultLength: response.data.result?.length,
-      resultSample: response.data.result?.[0] || null
-    });
 
     if (response.data.error) {
       throw new Error(response.data.error.message || 'TradeCorp API Error');
     }
 
-    const duration = Date.now() - req.startTime;
     const transactions = response.data.result || [];
-    console.log(`[TradeCorp Proxy] Got ${transactions.length} transactions in ${duration}ms`);
-
-    if (transactions.length > 0) {
-      console.log('[TradeCorp Proxy] First transaction sample:', JSON.stringify(transactions[0], null, 2));
-    }
 
     // Преобразуем данные: TradeCorp возвращает cost в КОПЕЙКАХ, quantity в СОТЫХ ДОЛЯХ литра
     const normalizedTransactions = transactions.map(tx => ({
@@ -289,9 +266,6 @@ router.post('/transactions/summary', async (req, res) => {
     Object.values(summary.byStation).forEach(s => {
       s.cost = Math.round(s.cost * 100) / 100;
     });
-
-    const duration = Date.now() - req.startTime;
-    console.log(`[TradeCorp Proxy] Summary calculated in ${duration}ms`);
 
     res.json({
       success: true,

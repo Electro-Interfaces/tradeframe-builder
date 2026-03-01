@@ -480,7 +480,7 @@ class STSApiService {
       try {
         if (attempt > 0) {
           const delay = attempt * 3000; // 3с, 6с
-          console.warn(`STS API: Повтор ${attempt}/${MAX_RETRIES} через ${delay/1000}с — ${endpoint}`);
+          // Retry attempt
           await new Promise(r => setTimeout(r, delay));
         }
 
@@ -495,7 +495,7 @@ class STSApiService {
 
           // 502/503/504 — временные ошибки, повторяем
           if ([502, 503, 504].includes(response.status) && attempt < MAX_RETRIES) {
-            console.warn(`⚠️ STS API: HTTP ${response.status} на ${endpoint}, повтор...`);
+            // Temporary HTTP error, retrying
             lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
             continue;
           }
@@ -578,7 +578,7 @@ class STSApiService {
       } catch (fetchError: any) {
         // Timeout и сетевые ошибки — повторяем
         if (attempt < MAX_RETRIES && (fetchError?.name === 'TimeoutError' || fetchError?.name === 'AbortError' || fetchError?.message?.includes('fetch'))) {
-          console.warn(`⚠️ STS API: ${fetchError.name || 'Network error'} на ${endpoint}, повтор...`);
+          // Network error, retrying
           lastError = fetchError;
           continue;
         }
@@ -809,7 +809,6 @@ class STSApiService {
         return data.pumps.map(this.mapApiPumpToPump);
       }
       
-      console.warn('🔍 STS API: Неожиданный формат данных ТРК');
       return [];
     } catch (error) {
       console.error('🔍 STS API: Ошибка получения ТРК:', error);
@@ -832,7 +831,6 @@ class STSApiService {
         return data.sales.map(this.mapApiSaleToSale);
       }
       
-      console.warn('🔍 STS API: Неожиданный формат данных продаж');
       return [];
     } catch (error) {
       console.error('🔍 STS API: Ошибка получения продаж:', error);
@@ -1051,7 +1049,6 @@ class STSApiService {
         return data.prices.map(this.mapApiPriceToPrice);
       }
       
-      console.warn('🔍 STS API: Неожиданный формат данных цен');
       return [];
     } catch (error) {
       console.error('🔍 STS API: Ошибка получения цен:', error);
@@ -1163,7 +1160,6 @@ class STSApiService {
         return normalizeTransactions(data.transactions);
       }
 
-      console.warn('🔍 STS API: Неожиданный формат данных транзакций:', data);
       return [];
     } catch (error) {
       console.error('🔍 STS API: Ошибка получения транзакций:', error);
@@ -1683,7 +1679,7 @@ class STSApiService {
       });
 
       if (unmappedFuelTypes.length > 0) {
-        console.warn('⚠️ STS API: Неизвестные виды топлива:', unmappedFuelTypes);
+        // unmapped fuel types detected
       }
 
       if (Object.keys(pricesObject).length === 0) {
@@ -1786,7 +1782,7 @@ class STSApiService {
         // Если ответ - объект, ищем массив в различных возможных полях
         priceData = data.data || data.items || data.prices || data.schedule || [];
         if (!Array.isArray(priceData)) {
-          console.warn('⚠️ STS API: Не найден массив в ответе, создаем пустой');
+          // No array found in response, using empty array
           priceData = [];
         }
       }

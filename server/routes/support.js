@@ -163,7 +163,6 @@ function checkSdkConfig(req, res, next) {
   }
 
   const userInfo = getUserInfoFromHeaders(req);
-  console.log('[Support] Headers:', { userId: userInfo.userId, email: userInfo.userEmail, role: userInfo.userRole });
   if (!userInfo.userId) {
     return res.status(400).json({
       error: 'Заголовок X-TF-User-Id обязателен',

@@ -212,11 +212,6 @@ export default function STSApiSettings() {
       body = generateDefaultRequestBody(method, config);
     }
     
-    console.log('Построили тело запроса для', method.path, ':', {
-      body: body,
-      requiredFields: method.requestBody?.content?.['application/json']?.schema?.required || [],
-      allFields: Object.keys(method.requestBody?.content?.['application/json']?.schema?.properties || {})
-    });
     return body;
   };
 
@@ -396,7 +391,6 @@ export default function STSApiSettings() {
           const value = getQueryParamValue(param.name, param.schema, config);
           if (value !== undefined) {
             url.searchParams.set(param.name, value.toString());
-            console.log(`Добавили обязательный query параметр: ${param.name}=${value}`);
           }
         }
       });
@@ -409,12 +403,10 @@ export default function STSApiSettings() {
     if (path.includes('points') || path.includes('stations')) {
       if (config.networkId && !url.searchParams.has('system')) {
         url.searchParams.set('system', config.networkId);
-        console.log('Добавили параметр system:', config.networkId);
       }
       
       if (config.tradingPointId && !url.searchParams.has('station')) {
         url.searchParams.set('station', config.tradingPointId);
-        console.log('Добавили параметр station:', config.tradingPointId);
       }
     }
   };
