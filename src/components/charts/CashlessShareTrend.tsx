@@ -49,9 +49,9 @@ function pct(v: number, total: number): number {
 }
 
 const LINE_COLORS = {
-  cash: '#f59e0b',   // янтарный — наличные
-  card: '#22d3ee',   // бирюзовый — карты / СБП
-  online: '#10b981', // зелёный — онлайн заказы
+  cash: '#f97316',   // оранжевый — наличные (контраст к синему фону)
+  card: '#06b6d4',   // голубой насыщенный — карты / СБП
+  online: '#059669', // тёмно-зелёный — онлайн заказы
 };
 
 export function CashlessShareTrend({ transactions, className }: ClientMixTrendProps) {
@@ -220,7 +220,7 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
               stroke="#3b82f6"
               strokeWidth={2}
               fill="#3b82f6"
-              fillOpacity={0.4}
+              fillOpacity={isMobile ? 0.25 : 0.4}
             />
             <Area
               type="monotone"
@@ -229,35 +229,35 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
               stroke="#8b5cf6"
               strokeWidth={2}
               fill="#8b5cf6"
-              fillOpacity={0.5}
+              fillOpacity={isMobile ? 0.3 : 0.5}
             />
             {/* Линии внутри: доли составляющих частных */}
             <Line
               type="monotone"
               dataKey="cashPct"
               stroke={LINE_COLORS.cash}
-              strokeWidth={isMobile ? 1.5 : 2}
-              strokeDasharray="6 3"
+              strokeWidth={isMobile ? 2.5 : 2}
+              strokeDasharray={isMobile ? undefined : "6 3"}
               dot={false}
-              activeDot={{ r: isMobile ? 3 : 4, fill: LINE_COLORS.cash }}
+              activeDot={{ r: isMobile ? 4 : 4, fill: LINE_COLORS.cash }}
             />
             <Line
               type="monotone"
               dataKey="cardPct"
               stroke={LINE_COLORS.card}
-              strokeWidth={isMobile ? 1.5 : 2}
-              strokeDasharray="6 3"
+              strokeWidth={isMobile ? 2.5 : 2}
+              strokeDasharray={isMobile ? undefined : "6 3"}
               dot={false}
-              activeDot={{ r: isMobile ? 3 : 4, fill: LINE_COLORS.card }}
+              activeDot={{ r: isMobile ? 4 : 4, fill: LINE_COLORS.card }}
             />
             <Line
               type="monotone"
               dataKey="onlinePct"
               stroke={LINE_COLORS.online}
-              strokeWidth={isMobile ? 1.5 : 2}
-              strokeDasharray="6 3"
+              strokeWidth={isMobile ? 2.5 : 2}
+              strokeDasharray={isMobile ? undefined : "6 3"}
               dot={false}
-              activeDot={{ r: isMobile ? 3 : 4, fill: LINE_COLORS.online }}
+              activeDot={{ r: isMobile ? 4 : 4, fill: LINE_COLORS.online }}
             />
           </ComposedChart>
         </ResponsiveContainer>
