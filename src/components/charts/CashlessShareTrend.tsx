@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -56,6 +56,7 @@ const LINE_COLORS = {
 
 export function CashlessShareTrend({ transactions, className }: ClientMixTrendProps) {
   const isMobile = useIsMobile();
+  const [tooltipDismissed, setTooltipDismissed] = useState(false);
 
   const { chartData, avgCorpShare, trendType, trendPct } = useMemo(() => {
     if (!transactions || transactions.length === 0) {
@@ -159,6 +160,7 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
                 ? { top: 5, right: 5, left: 0, bottom: 5 }
                 : { top: 20, right: 20, left: 20, bottom: 20 }
             }
+            onClick={() => { if (isMobile && tooltipDismissed) setTooltipDismissed(false); }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
@@ -181,6 +183,7 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
             <Tooltip
               content={({ active, payload }) => {
                 if (!active || !payload || payload.length === 0) return null;
+                if (isMobile && tooltipDismissed) return null;
                 const d = payload[0]?.payload as DayPoint;
                 if (!d) return null;
                 return (
@@ -192,7 +195,21 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
                     padding: '10px 14px',
                     fontSize: isMobile ? '12px' : '14px',
                     minWidth: 210,
+                    position: 'relative',
                   }}>
+                    {isMobile && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setTooltipDismissed(true); }}
+                        style={{
+                          position: 'absolute', top: 4, right: 8,
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: 'hsl(var(--muted-foreground))', fontSize: '18px', lineHeight: 1,
+                          padding: '2px 4px',
+                        }}
+                      >
+                        x
+                      </button>
+                    )}
                     <p style={{ fontWeight: 600, marginBottom: 6 }}>{d.displayDate}</p>
                     <p style={{ color: '#3b82f6', fontWeight: 500, marginBottom: 2 }}>
                       Частные {d.retailShare}%
