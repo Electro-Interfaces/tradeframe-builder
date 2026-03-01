@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Thermometer, Gauge, Droplets, Fuel, LineChart, Settings, Lock, AlertTriangle } from "lucide-react";
+import { getFuelColor } from "@/types/shift-dashboard";
 
 /**
  * Порог блокировки отпуска топлива (литры)
@@ -135,7 +136,10 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
               </p>
             </div>
           </div>
-          <Badge className={`font-bold rounded-lg shadow-md ${isBlocked ? 'bg-gradient-to-r from-red-600 to-red-700 border-red-500/50' : 'bg-gradient-to-r from-secondary to-secondary border-border/50'} text-white border shadow-border/25 transition-all flex-shrink-0 whitespace-nowrap ${isMobile ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'}`}>
+          <Badge
+            className={`font-bold rounded-lg shadow-md text-white border border-transparent transition-all flex-shrink-0 whitespace-nowrap ${isBlocked ? 'bg-gradient-to-r from-red-600 to-red-700' : ''} ${isMobile ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'}`}
+            style={isBlocked ? undefined : { backgroundColor: getFuelColor(tank.fuelType || '') }}
+          >
             {tank.fuelType}
           </Badge>
         </div>
