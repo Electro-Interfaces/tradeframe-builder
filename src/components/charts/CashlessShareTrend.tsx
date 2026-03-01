@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -57,6 +57,21 @@ const LINE_COLORS = {
 export function CashlessShareTrend({ transactions, className }: ClientMixTrendProps) {
   const isMobile = useIsMobile();
   const [tooltipDismissed, setTooltipDismissed] = useState(false);
+  const dismissTimer = useRef<number>();
+
+  const handleTouchStart = useCallback(() => {
+    if (!isMobile) return;
+    clearTimeout(dismissTimer.current);
+    setTooltipDismissed(false);
+  }, [isMobile]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isMobile) return;
+    clearTimeout(dismissTimer.current);
+    dismissTimer.current = window.setTimeout(() => {
+      setTooltipDismissed(true);
+    }, 3000);
+  }, [isMobile]);
 
   const { chartData, avgCorpShare, trendType, trendPct } = useMemo(() => {
     if (!transactions || transactions.length === 0) {
@@ -152,6 +167,7 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
         </div>
       </CardHeader>
       <CardContent className={isMobile ? 'px-2 pb-3' : ''}>
+        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
           <ComposedChart
             data={chartData}
@@ -160,7 +176,6 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
                 ? { top: 5, right: 5, left: 0, bottom: 5 }
                 : { top: 20, right: 20, left: 20, bottom: 20 }
             }
-            onClick={() => { if (isMobile && tooltipDismissed) setTooltipDismissed(false); }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
@@ -195,21 +210,7 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
                     padding: '10px 14px',
                     fontSize: isMobile ? '12px' : '14px',
                     minWidth: 210,
-                    position: 'relative',
                   }}>
-                    {isMobile && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setTooltipDismissed(true); }}
-                        style={{
-                          position: 'absolute', top: 4, right: 8,
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          color: 'hsl(var(--muted-foreground))', fontSize: '18px', lineHeight: 1,
-                          padding: '2px 4px',
-                        }}
-                      >
-                        x
-                      </button>
-                    )}
                     <p style={{ fontWeight: 600, marginBottom: 6 }}>{d.displayDate}</p>
                     <p style={{ color: '#3b82f6', fontWeight: 500, marginBottom: 2 }}>
                       Частные {d.retailShare}%
@@ -278,6 +279,7 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
             />
           </ComposedChart>
         </ResponsiveContainer>
+        </div>
         {/* Легенда */}
         <div className={`flex items-center justify-center flex-wrap gap-x-4 gap-y-1 ${isMobile ? 'mt-1' : 'mt-3'}`}>
           <div className="flex items-center gap-1.5">
