@@ -106,3 +106,14 @@ D:Users*
 
 # Vitest
 coverage/
+
+# Prevent junk files in root
+/*.sql
+/test-*.html
+/debug-*.html
+/mobile-*.html
+/clear-*.html
+/*.txt
+!robots.txt
+bun.lockb
+~$*
