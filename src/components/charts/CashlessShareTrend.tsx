@@ -231,38 +231,34 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
               fill="#8b5cf6"
               fillOpacity={0.5}
             />
-            {/* Линии внутри: доли составляющих частных (скрыты на мобильном) */}
-            {!isMobile && (
-              <>
-                <Line
-                  type="monotone"
-                  dataKey="cashPct"
-                  stroke={LINE_COLORS.cash}
-                  strokeWidth={2}
-                  strokeDasharray="6 3"
-                  dot={false}
-                  activeDot={{ r: 4, fill: LINE_COLORS.cash }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="cardPct"
-                  stroke={LINE_COLORS.card}
-                  strokeWidth={2}
-                  strokeDasharray="6 3"
-                  dot={false}
-                  activeDot={{ r: 4, fill: LINE_COLORS.card }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="onlinePct"
-                  stroke={LINE_COLORS.online}
-                  strokeWidth={2}
-                  strokeDasharray="6 3"
-                  dot={false}
-                  activeDot={{ r: 4, fill: LINE_COLORS.online }}
-                />
-              </>
-            )}
+            {/* Линии внутри: доли составляющих частных */}
+            <Line
+              type="monotone"
+              dataKey="cashPct"
+              stroke={LINE_COLORS.cash}
+              strokeWidth={isMobile ? 1.5 : 2}
+              strokeDasharray="6 3"
+              dot={false}
+              activeDot={{ r: isMobile ? 3 : 4, fill: LINE_COLORS.cash }}
+            />
+            <Line
+              type="monotone"
+              dataKey="cardPct"
+              stroke={LINE_COLORS.card}
+              strokeWidth={isMobile ? 1.5 : 2}
+              strokeDasharray="6 3"
+              dot={false}
+              activeDot={{ r: isMobile ? 3 : 4, fill: LINE_COLORS.card }}
+            />
+            <Line
+              type="monotone"
+              dataKey="onlinePct"
+              stroke={LINE_COLORS.online}
+              strokeWidth={isMobile ? 1.5 : 2}
+              strokeDasharray="6 3"
+              dot={false}
+              activeDot={{ r: isMobile ? 3 : 4, fill: LINE_COLORS.online }}
+            />
           </ComposedChart>
         </ResponsiveContainer>
         {/* Легенда */}
@@ -271,22 +267,18 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
             <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#3b82f6' }} />
             <span className="text-xs text-muted-foreground">Частные</span>
           </div>
-          {!isMobile && (
-            <>
-              <div className="flex items-center gap-1.5">
-                <svg width="14" height="10"><line x1="0" y1="5" x2="14" y2="5" stroke={LINE_COLORS.cash} strokeWidth="2" strokeDasharray="3 2" /></svg>
-                <span className="text-xs text-muted-foreground">Наличные</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <svg width="14" height="10"><line x1="0" y1="5" x2="14" y2="5" stroke={LINE_COLORS.card} strokeWidth="2" strokeDasharray="3 2" /></svg>
-                <span className="text-xs text-muted-foreground">Карты / СБП</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <svg width="14" height="10"><line x1="0" y1="5" x2="14" y2="5" stroke={LINE_COLORS.online} strokeWidth="2" strokeDasharray="3 2" /></svg>
-                <span className="text-xs text-muted-foreground">Онлайн</span>
-              </div>
-            </>
-          )}
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="10"><line x1="0" y1="5" x2="14" y2="5" stroke={LINE_COLORS.cash} strokeWidth="2" strokeDasharray="3 2" /></svg>
+            <span className="text-xs text-muted-foreground">Наличные</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="10"><line x1="0" y1="5" x2="14" y2="5" stroke={LINE_COLORS.card} strokeWidth="2" strokeDasharray="3 2" /></svg>
+            <span className="text-xs text-muted-foreground">Карты</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="10"><line x1="0" y1="5" x2="14" y2="5" stroke={LINE_COLORS.online} strokeWidth="2" strokeDasharray="3 2" /></svg>
+            <span className="text-xs text-muted-foreground">Онлайн</span>
+          </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#8b5cf6' }} />
             <span className="text-xs text-muted-foreground">Корпоративные</span>
