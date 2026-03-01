@@ -85,7 +85,7 @@ VITE_SUPABASE_URL=https://ваш-проект.supabase.co
 VITE_SUPABASE_ANON_KEY=ваш_anon_key
 ```
 
-### Docker конфигурация (TODO - приоритет 1)
+### Docker конфигурация (пример)
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -97,7 +97,7 @@ EXPOSE 3000
 CMD ["npm", "run", "preview"]
 ```
 
-### CI/CD Pipeline (TODO - приоритет 1)
+### CI/CD Pipeline (пример — деплой через GitHub Actions)
 ```yaml
 # .github/workflows/deploy.yml
 name: Deploy

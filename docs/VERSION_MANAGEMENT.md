@@ -5,7 +5,7 @@
 Версия приложения управляется из **одного места**: `src/config/version.ts`
 
 ```typescript
-export const APP_VERSION = '1.5.25';
+export const APP_VERSION = '2.0.2';
 ```
 
 ## 🔄 Автоматическая синхронизация
@@ -21,7 +21,7 @@ export const APP_VERSION = '1.5.25';
    - `<meta name="cache-buster">` - cache-buster с датой
    - `const APP_VERSION` - версия для мобильного скрипта
    - `<link rel="manifest">` - версия в query параметре
-   - `<p>v1.5.25</p>` - версия на экране загрузки
+   - `<p>v2.0.2</p>` - версия на экране загрузки
 
 ### Скрипт синхронизации
 
