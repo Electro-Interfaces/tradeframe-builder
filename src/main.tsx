@@ -135,34 +135,8 @@ if (typeof window !== 'undefined') {
 
 // GitHub Pages routing - обработается в App.tsx
 
-// Pull-to-refresh protection - предотвращает случайное обновление браузера
-if (typeof window !== 'undefined') {
-  let startY = 0;
-  const MIN_PULL_THRESHOLD = 30; // Минимальное расстояние для блокировки (30px)
-
-  document.addEventListener('touchstart', (e) => {
-    startY = e.touches[0].clientY;
-  }, { passive: false });
-
-  document.addEventListener('touchmove', (e) => {
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - startY;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const target = e.target as Element;
-
-    // Исключаем элементы с собственным скроллом или pull-to-refresh
-    const isInSidebar = target.closest('[role="dialog"]') ||
-                       target.closest('.mobile-sidebar') ||
-                       target.closest('[data-radix-dialog-content]') ||
-                       target.closest('.overflow-y-scroll') ||
-                       target.closest('[data-pull-to-refresh]'); // Новое: не блокируем контейнеры с PTR
-
-    // Блокируем только pull-to-refresh браузера (движение вниз при scrollTop=0)
-    if (scrollTop === 0 && deltaY > MIN_PULL_THRESHOLD && !isInSidebar) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-}
+// Pull-to-refresh protection — реализовано через CSS overscroll-behavior-y: contain
+// в index.html и mobile.css (не требует JS-блокировки touchmove)
 
 // Глобальная обработка ошибок insertBefore для всех браузеров
 window.addEventListener('error', (e) => {
