@@ -257,18 +257,17 @@ export function AnalysisDialog({
         activeTable = undefined;
       }
 
-      // 2. Получаем историю резервуара за период
+      // 2. Получаем историю резервуара за период (фильтрация по tank на стороне STS API)
+      const tankNumber = parseInt(tankId, 10);
       const historyParams = {
         system: selectedNetwork.external_id,
         station: tradingPointExternalId,
+        tank: tankNumber,
         dt_beg: `${analysisStartDate} 00:00:00`,
         dt_end: `${analysisEndDate} 23:59:59`
       };
 
-      const history = await getTankHistory(historyParams);
-
-      const tankNumber = parseInt(tankId, 10);
-      const tankHistory = history.filter(r => r.number === tankNumber);
+      const tankHistory = await getTankHistory(historyParams);
 
       if (tankHistory.length === 0) {
         throw new Error('Нет данных истории резервуара за выбранный период');

@@ -211,6 +211,7 @@ export type AnalysisPeriod = '24h' | '7d' | '30d' | 'custom';
 export interface TankHistoryParams {
   system: number;           // Код системы
   station: number;          // Номер ТТ
+  tank?: number;            // Номер резервуара (фильтрация на стороне STS API)
   dt_beg?: string;          // Начальная дата
   dt_end?: string;          // Конечная дата
 }

@@ -2,7 +2,7 @@
  * Диалог детального анализа резервуара с графиками
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -110,19 +110,24 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
       const params = {
         system: parseInt(selectedNetwork.external_id),
         station: parseInt(selectedStation.external_id),
+        tank: tankNumber,
         dt_beg: dates.dt_beg,
         dt_end: dates.dt_end
       };
 
       setLoadingStage('Загрузка данных с сервера...');
 
+      // Код топлива из STS данных резервуара (маппинг tank в транзакциях ≠ физическим резервуарам)
+      const fuelCode = tank.stsData?.fuelCode ?? 0;
+
       // Параллельно загружаем историю резервуара, транзакции и поступления
       const [historyResult, bookData] = await Promise.all([
-        getTankAnalysis(params, tankNumber, period).then(result => {
+        getTankAnalysis(params, tankNumber).then(result => {
           setLoadingProgress(prev => ({ ...prev, tankHistory: true }));
+          // Если fuelCode не был в stsData, берём из первой записи history
           return result;
         }),
-        getBookData(params, tankNumber).then(result => {
+        getBookData(params, tankNumber, fuelCode).then(result => {
           setLoadingProgress(prev => ({ ...prev, transactions: true, receipts: true }));
           return result;
         })
@@ -130,11 +135,21 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
       setLoadingStage('Обработка данных...');
 
+      // Если fuelCode не был доступен из stsData, пересчитываем bookRelease с fuel из history
+      let finalBookRelease = bookData.bookRelease;
+      if (!fuelCode && historyResult.history.length > 0) {
+        const historyFuelCode = historyResult.history[0].fuel;
+        if (historyFuelCode) {
+          const { calculateBookReleaseFromTransactions } = await import('@/services/tankBookService');
+          finalBookRelease = calculateBookReleaseFromTransactions(bookData.transactions, historyFuelCode);
+        }
+      }
+
       setHistory(historyResult.history);
       setStats(historyResult.stats);
       setTransactions(bookData.transactions);
       setReceipts(bookData.receipts);
-      setBookRelease(bookData.bookRelease);
+      setBookRelease(finalBookRelease);
       setBookReceipts(bookData.bookReceipts);
 
     } catch (err) {
@@ -153,56 +168,31 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
     }
   }, [open, period, selectedStation?.external_id]);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // НОВАЯ ЛОГИКА: Используем оптимизированные функции из tankAnalysisCalculations.ts
-  // ═══════════════════════════════════════════════════════════════════
-
   const tankNumber = typeof tank.id === 'number' ? tank.id : parseInt(tank.id.toString());
+  // Код топлива для фильтрации транзакций (из stsData или из первой записи history)
+  const fuelCode = tank.stsData?.fuelCode || (history.length > 0 ? history[0].fuel : 0);
 
-  // Нормализуем данные (фильтрация по резервуару, датам, парсинг, сортировка)
-  const normalizedTransactions = normalizeTransactions(
-    transactions,
-    tankNumber,
-    periodDates?.dt_beg,
-    periodDates?.dt_end
-  );
-  const normalizedReceipts = normalizeReceipts(
-    receipts,
-    tankNumber,
-    periodDates?.dt_beg,
-    periodDates?.dt_end
-  );
+  // Мемоизация тяжёлых вычислений — пересчёт только при изменении данных
+  const { chartData, minusaChartData, computedStats } = useMemo(() => {
+    if (!history.length) {
+      return { chartData: [], minusaChartData: [], computedStats: stats };
+    }
 
-  // Вычисляем начальные значения
-  const initialValues = calculateInitialValues(
-    history[0],
-    normalizedTransactions,
-    normalizedReceipts
-  );
+    const normTx = normalizeTransactions(transactions, fuelCode, periodDates?.dt_beg, periodDates?.dt_end);
+    const normRcp = normalizeReceipts(receipts, tankNumber, periodDates?.dt_beg, periodDates?.dt_end);
+    const initVals = calculateInitialValues(history[0], normTx, normRcp);
+    const chart = calculateChartData(history, normTx, normRcp, initVals);
+    const volumeBookStats = recalculateVolumeBookStats(chart);
+    const minusa = chart.map(point => ({
+      ...point,
+      minusa: point.releaseBook - point.releaseActual
+    }));
 
-  // Вычисляем данные для графиков с ПРАВИЛЬНЫМ учетом поступлений
-  const chartData = calculateChartData(
-    history,
-    normalizedTransactions,
-    normalizedReceipts,
-    initialValues
-  );
+    // Создаём новый объект stats с обновлённым volumeBook (без мутации)
+    const updatedStats = stats ? { ...stats, volumeBook: volumeBookStats } : stats;
 
-  // Пересчитываем статистику книжного остатка на основе chartData
-  const volumeBookStats = recalculateVolumeBookStats(chartData);
-  if (stats) {
-    stats.volumeBook = volumeBookStats;
-  }
-
-  // Логирование итоговых значений графика
-
-  // 📊 График "Погрешность" - используем те же точки что и chartData
-  // Для каждой точки вычисляем: Книжная реализация - Фактическая реализация
-  const minusaChartData = chartData.map(point => ({
-    ...point,
-    // Погрешность = Книжная - Фактическая
-    minusa: point.releaseBook - point.releaseActual
-  }));
+    return { chartData: chart, minusaChartData: minusa, computedStats: updatedStats };
+  }, [history, transactions, receipts, stats, tankNumber, fuelCode, periodDates?.dt_beg, periodDates?.dt_end]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -246,7 +236,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         </div>
 
         {/* Статистика */}
-        {stats && (
+        {computedStats && (
           <div className="mb-4 overflow-x-auto">
             <div className="bg-card border border-border rounded-lg overflow-hidden min-w-[600px]">
               <table className="w-full text-sm">
@@ -264,14 +254,14 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                   {/* Остатки */}
                   <tr className="hover:bg-secondary/50">
                     <td className="py-2 px-3 text-foreground/80">Фактический остаток</td>
-                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.volume.current.toFixed(2)} л</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.volume.min.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.volume.max.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.volume.avg.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{computedStats.volume.current.toFixed(2)} л</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.volume.min.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.volume.max.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.volume.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
-                      {stats.volume.current > stats.volume.avg ? (
+                      {computedStats.volume.current > computedStats.volume.avg ? (
                         <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
-                      ) : stats.volume.current < stats.volume.avg ? (
+                      ) : computedStats.volume.current < computedStats.volume.avg ? (
                         <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
                         <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
@@ -280,14 +270,14 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                   </tr>
                   <tr className="hover:bg-secondary/50">
                     <td className="py-2 px-3 text-foreground/80">Книжный остаток</td>
-                    <td className="py-2 px-3 text-right font-semibold text-foreground">{(stats.volumeBook?.current || 0).toFixed(2)} л</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{(stats.volumeBook?.min || 0).toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{(stats.volumeBook?.max || 0).toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{(stats.volumeBook?.avg || 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{(computedStats.volumeBook?.current || 0).toFixed(2)} л</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{(computedStats.volumeBook?.min || 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{(computedStats.volumeBook?.max || 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{(computedStats.volumeBook?.avg || 0).toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
-                      {(stats.volumeBook?.current || 0) > (stats.volumeBook?.avg || 0) ? (
+                      {(computedStats.volumeBook?.current || 0) > (computedStats.volumeBook?.avg || 0) ? (
                         <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
-                      ) : (stats.volumeBook?.current || 0) < (stats.volumeBook?.avg || 0) ? (
+                      ) : (computedStats.volumeBook?.current || 0) < (computedStats.volumeBook?.avg || 0) ? (
                         <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
                         <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
@@ -298,14 +288,14 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                   {/* Физические параметры */}
                   <tr className="hover:bg-secondary/50">
                     <td className="py-2 px-3 text-foreground/80">Температура</td>
-                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.temperature.current.toFixed(2)} °C</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.temperature.min.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.temperature.max.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.temperature.avg.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{computedStats.temperature.current.toFixed(2)} °C</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.temperature.min.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.temperature.max.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.temperature.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
-                      {stats.temperature.current > stats.temperature.avg ? (
+                      {computedStats.temperature.current > computedStats.temperature.avg ? (
                         <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
-                      ) : stats.temperature.current < stats.temperature.avg ? (
+                      ) : computedStats.temperature.current < computedStats.temperature.avg ? (
                         <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
                         <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
@@ -314,14 +304,14 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                   </tr>
                   <tr className="hover:bg-secondary/50">
                     <td className="py-2 px-3 text-foreground/80">Плотность</td>
-                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.density.current.toFixed(2)} кг/м³</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.density.min.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.density.max.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.density.avg.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{computedStats.density.current.toFixed(2)} кг/м³</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.density.min.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.density.max.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.density.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
-                      {stats.density.current > stats.density.avg ? (
+                      {computedStats.density.current > computedStats.density.avg ? (
                         <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
-                      ) : stats.density.current < stats.density.avg ? (
+                      ) : computedStats.density.current < computedStats.density.avg ? (
                         <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
                         <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
@@ -330,14 +320,14 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                   </tr>
                   <tr className="hover:bg-secondary/50">
                     <td className="py-2 px-3 text-foreground/80">Уровень воды</td>
-                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.waterLevel.current.toFixed(2)} см</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.waterLevel.min.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.waterLevel.max.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.waterLevel.avg.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{computedStats.waterLevel.current.toFixed(2)} см</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.waterLevel.min.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.waterLevel.max.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.waterLevel.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">
-                      {stats.waterLevel.current > stats.waterLevel.avg ? (
+                      {computedStats.waterLevel.current > computedStats.waterLevel.avg ? (
                         <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
-                      ) : stats.waterLevel.current < stats.waterLevel.avg ? (
+                      ) : computedStats.waterLevel.current < computedStats.waterLevel.avg ? (
                         <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto" />
                       ) : (
                         <Minus className="w-4 h-4 text-muted-foreground mx-auto" />
@@ -348,10 +338,10 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                   {/* Реализация */}
                   <tr className="hover:bg-secondary/50">
                     <td className="py-2 px-3 text-foreground/80">Фактическая реализация</td>
-                    <td className="py-2 px-3 text-right font-semibold text-foreground">{stats.release.total.toFixed(2)} л</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{computedStats.release.total.toFixed(2)} л</td>
                     <td className="py-2 px-3 text-right text-muted-foreground">-</td>
                     <td className="py-2 px-3 text-right text-muted-foreground">-</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{stats.release.avg.toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{computedStats.release.avg.toFixed(2)}</td>
                     <td className="py-2 px-3 text-center">-</td>
                   </tr>
                   <tr className="hover:bg-secondary/50">
@@ -380,7 +370,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                     <td className="py-2 px-3 text-foreground/80 font-semibold">Разница реализации (факт - транзакции)</td>
                     <td className="py-2 px-3 text-right font-bold">
                       {(() => {
-                        const difference = stats.release.total - (bookRelease || 0);
+                        const difference = computedStats.release.total - (bookRelease || 0);
                         const isPositive = difference >= 0;
                         return (
                           <span className={isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
@@ -394,7 +384,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                     <td className="py-2 px-3 text-right text-muted-foreground">-</td>
                     <td className="py-2 px-3 text-center">
                       {(() => {
-                        const difference = stats.release.total - (bookRelease || 0);
+                        const difference = computedStats.release.total - (bookRelease || 0);
                         return difference >= 0 ? (
                           <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" />
                         ) : (

@@ -56,7 +56,7 @@ interface InitialValues {
  */
 export function normalizeTransactions(
   transactions: TransactionV2Response | null,
-  tankNumber: number,
+  fuelCode: number,
   dt_beg?: string,
   dt_end?: string
 ): NormalizedTransaction[] {
@@ -66,8 +66,9 @@ export function normalizeTransactions(
   const filterStartTime = dt_beg ? new Date(dt_beg).getTime() : -Infinity;
   const filterEndTime = dt_end ? new Date(dt_end).getTime() : Infinity;
 
+  // Фильтрация по коду топлива (fuel), не по tank — маппинг tank в транзакциях ≠ физ. резервуарам
   return transactions.items
-    .filter(item => item.tank === tankNumber)
+    .filter(item => item.fuel === fuelCode)
     .map(item => ({
       time: new Date(item.dt || '').getTime(),
       quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity

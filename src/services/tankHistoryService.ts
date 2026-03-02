@@ -19,6 +19,10 @@ export async function getTankHistory(params: TankHistoryParams): Promise<TankHis
     station: params.station
   };
 
+  if (params.tank != null) {
+    queryParams.tank = params.tank;
+  }
+
   if (params.dt_beg) {
     queryParams.dt_beg = params.dt_beg;
   }
@@ -68,6 +72,10 @@ export function getPeriodDates(period: AnalysisPeriod, customStart?: Date, custo
       endDate = customEnd;
       break;
   }
+
+  // Округляем endDate до текущей минуты (секунды = 00)
+  // Это делает ключ кеша на бэкенде стабильным в пределах минуты
+  endDate.setSeconds(0, 0);
 
   // Формат для SQL Server: YYYY-MM-DD HH:MM:SS
   const formatDate = (date: Date): string => {
@@ -123,6 +131,21 @@ export function calculateStats(history: TankHistoryRecord[]): TankHistoryStats {
     return firstVolumeEnd - volumeEnd; // Разница от начала периода
   });
 
+  // Фактическая реализация за период: суммируем с учётом сброса при смене
+  // release.volume — накопленный отпуск за смену, обнуляется при открытии новой
+  // Когда значение падает (новая смена), предыдущее максимальное — это итог предыдущей смены
+  let totalRelease = 0;
+  let prevRelease = releases[0];
+  for (let i = 1; i < releases.length; i++) {
+    if (releases[i] < prevRelease) {
+      // Сброс счётчика → предыдущая смена завершена, добавляем её итог
+      totalRelease += prevRelease;
+    }
+    prevRelease = releases[i];
+  }
+  // Добавляем текущее значение последней (незакрытой) смены
+  totalRelease += prevRelease;
+
   return {
     volume: {
       min: Math.min(...volumes),
@@ -155,8 +178,8 @@ export function calculateStats(history: TankHistoryRecord[]): TankHistoryStats {
       current: parseFloat(lastRecord.water.level)
     },
     release: {
-      total: parseFloat(lastRecord.release.volume),
-      avg: releases.reduce((a, b) => a + b, 0) / releases.length
+      total: totalRelease,
+      avg: totalRelease / Math.max(1, history.length)
     },
     releaseBook: {
       total: firstVolumeEnd - lastVolumeEnd, // Общая реализация за период
@@ -177,23 +200,14 @@ export function filterByTankNumber(history: TankHistoryRecord[], tankNumber: num
  */
 export async function getTankAnalysis(
   params: TankHistoryParams,
-  tankNumber: number,
-  period: AnalysisPeriod = '24h',
-  customStart?: Date,
-  customEnd?: Date
+  tankNumber: number
 ): Promise<{ history: TankHistoryRecord[]; stats: TankHistoryStats }> {
-  // Вычисляем даты периода
-  const dates = getPeriodDates(period, customStart, customEnd);
-
-  // Получаем историю
-  const allHistory = await getTankHistory({
+  // Используем даты из params (уже вычислены вызывающим кодом)
+  // Получаем историю конкретного резервуара (фильтрация на стороне STS API)
+  const tankHistory = await getTankHistory({
     ...params,
-    dt_beg: dates.dt_beg,
-    dt_end: dates.dt_end
+    tank: tankNumber
   });
-
-  // Фильтруем по номеру резервуара
-  const tankHistory = filterByTankNumber(allHistory, tankNumber);
 
   // Вычисляем статистику
   const stats = calculateStats(tankHistory);

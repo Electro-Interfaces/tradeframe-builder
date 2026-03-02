@@ -11,6 +11,8 @@ import type { TransactionV2Response, ReceiptResponse } from '@/types/tanks';
 export interface BookDataParams {
   system: number;
   station: number;
+  tank?: number;            // Номер резервуара (для receipts API)
+  fuel?: number;            // Код топлива (для фильтрации транзакций по виду топлива)
   dt_beg?: string;
   dt_end?: string;
 }
@@ -24,7 +26,10 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
     number: params.station
   };
 
-  // ИСПРАВЛЕНО: API v2/transactions использует date_from и date_to вместо dt_beg и dt_end
+  // НЕ передаём tank в API — маппинг tank в транзакциях не совпадает с физическими резервуарами.
+  // Фильтрация по fuel делается клиентски в calculateBookReleaseFromTransactions.
+
+  // API v2/transactions использует date_from и date_to вместо dt_beg и dt_end
   if (params.dt_beg) {
     queryParams.date_from = params.dt_beg;
   }
@@ -72,6 +77,10 @@ export async function getReceipts(params: BookDataParams): Promise<ReceiptRespon
     number: params.station
   };
 
+  if (params.tank != null) {
+    queryParams.tank = params.tank;
+  }
+
   if (params.dt_beg) {
     queryParams.dt_beg = params.dt_beg;
   }
@@ -110,22 +119,22 @@ export async function getReceipts(params: BookDataParams): Promise<ReceiptRespon
 }
 
 /**
- * Рассчитать книжную реализацию по транзакциям для конкретного резервуара
+ * Рассчитать книжную реализацию по транзакциям для конкретного вида топлива.
+ * Фильтрация по fuel (не по tank!) — маппинг tank в транзакциях не совпадает с физическими резервуарами.
  */
 export function calculateBookReleaseFromTransactions(
   transactions: TransactionV2Response,
-  tankNumber: number
+  fuelCode: number
 ): number {
   if (!transactions.items || transactions.items.length === 0) {
-    // No transactions in items array
     return 0;
   }
 
-  // Фильтруем транзакции по номеру резервуара и суммируем quantity
-  const tankTransactions = transactions.items.filter(item => item.tank === tankNumber);
+  // Фильтруем транзакции по коду топлива и суммируем quantity
+  const fuelTransactions = transactions.items.filter(item => item.fuel === fuelCode);
 
   // API возвращает quantity как строку, конвертируем в число
-  const totalRelease = tankTransactions.reduce((sum, item) => {
+  const totalRelease = fuelTransactions.reduce((sum, item) => {
     const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
     return sum + (isNaN(quantity) ? 0 : quantity);
   }, 0);
@@ -192,21 +201,24 @@ export function calculateReceiptsForTank(
  */
 export async function getBookData(
   params: BookDataParams,
-  tankNumber: number
+  tankNumber: number,
+  fuelCode: number
 ): Promise<{
   transactions: TransactionV2Response;
   receipts: ReceiptResponse;
   bookRelease: number;
   bookReceipts: number;
 }> {
-  // Параллельно запрашиваем транзакции и поступления
+  // Транзакции: БЕЗ tank (маппинг не совпадает с физ. резервуарами), фильтрация по fuel клиентски
+  // Поступления: с tank (receipts API маппинг совпадает с физическими резервуарами)
+  const receiptsParams = { ...params, tank: tankNumber };
   const [transactions, receipts] = await Promise.all([
     getTransactions(params),
-    getReceipts(params)
+    getReceipts(receiptsParams)
   ]);
 
-  // Вычисляем книжную реализацию и поступления с фильтрацией по датам
-  const bookRelease = calculateBookReleaseFromTransactions(transactions, tankNumber);
+  // Книжная реализация: фильтрация по коду топлива (fuel), не по tank
+  const bookRelease = calculateBookReleaseFromTransactions(transactions, fuelCode);
   const bookReceipts = calculateReceiptsForTank(receipts, tankNumber, params.dt_beg, params.dt_end);
 
   return {
