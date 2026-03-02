@@ -578,15 +578,24 @@ function parseOrderJson(order: OnlineOrder): any {
 function getOrderTimeline(order: OnlineOrder, apiDetails: MSTOOrderDetailsResponse | null) {
   // Если есть данные из API - используем timeline оттуда
   if (apiDetails?.timeline && apiDetails.timeline.length > 0) {
-    return apiDetails.timeline.map((event: MSTOTimelineEvent) => ({
-      time: formatTime(event.time),
-      event: event.label,
-      description: event.details || '',
-      status: event.isError ? 'pending' as const :
-              event.event === 'finish' ? 'completed' as const :
-              event.event.includes('action') ? 'completed' as const : 'completed' as const,
-      isError: event.isError
-    }));
+    return apiDetails.timeline.map((event: MSTOTimelineEvent) => {
+      let details = event.details || '';
+
+      // Для finish-события: убираем "/ 0.00 руб" если MSTO вернул resultSum=0
+      if (event.event === 'finish' && details) {
+        details = details.replace(/\s*\/\s*0[.,]00\s*руб\.?/, '');
+      }
+
+      return {
+        time: formatTime(event.time),
+        event: event.label,
+        description: details,
+        status: event.isError ? 'pending' as const :
+                event.event === 'finish' ? 'completed' as const :
+                event.event.includes('action') ? 'completed' as const : 'completed' as const,
+        isError: event.isError
+      };
+    });
   }
 
   // Fallback: парсим из JSON локально

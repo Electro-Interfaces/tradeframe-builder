@@ -142,7 +142,18 @@ router.use((req, res, next) => {
 });
 
 /**
+ * Сброс JWT токена и повторная авторизация
+ */
+async function invalidateAndRefreshToken() {
+  mstoToken = null;
+  mstoTokenExpiry = null;
+  // Принудительно обновляем токен
+  await refreshMstoToken();
+}
+
+/**
  * Универсальный обработчик для проксирования запросов
+ * При 401 автоматически обновляет JWT и повторяет запрос
  * @param {Object} req - Express request
  * @param {Object} res - Express response
  * @param {string} [overridePath] - Переопределенный путь (если отличается от req.path)
@@ -171,9 +182,22 @@ async function proxyRequest(req, res, overridePath) {
       ...(method !== 'GET' && method !== 'HEAD' && { data: body })
     };
 
-    // Выполняем запрос
-    const client = await getMstoClient();
-    const response = await client.request(requestConfig);
+    // Выполняем запрос с retry на 401
+    let response;
+    try {
+      const client = await getMstoClient();
+      response = await client.request(requestConfig);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        // Токен невалиден — обновляем и повторяем
+        console.log('[MSTO Proxy] 401 received, refreshing token and retrying...');
+        await invalidateAndRefreshToken();
+        const client = await getMstoClient();
+        response = await client.request(requestConfig);
+      } else {
+        throw error;
+      }
+    }
 
     // Сохраняем в кэш только GET запросы
     if (method === 'GET' && response.status === 200) {
@@ -185,12 +209,6 @@ async function proxyRequest(req, res, overridePath) {
     res.status(response.status).json(response.data);
   } catch (error) {
     console.error(`[MSTO Proxy Error] ${error.message}`);
-
-    // Если 401 - сбрасываем токен для повторной авторизации
-    if (error.response?.status === 401) {
-      mstoToken = null;
-      mstoTokenExpiry = null;
-    }
 
     if (error.response) {
       console.error('[MSTO Proxy Error] Response data:', error.response.data);
@@ -235,6 +253,23 @@ router.get('/health', async (req, res) => {
 router.post('/_cache/clear', (req, res) => {
   cache.flushAll();
   res.json({ message: 'Cache cleared successfully' });
+});
+
+// === Принудительное обновление JWT токена ===
+router.post('/_token/refresh', async (req, res) => {
+  try {
+    await invalidateAndRefreshToken();
+    res.json({
+      message: 'Token refreshed successfully',
+      tokenValid: !!mstoToken,
+      tokenExpiry: mstoTokenExpiry ? new Date(mstoTokenExpiry).toISOString() : null
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Token refresh failed',
+      message: error.message
+    });
+  }
 });
 
 // === Endpoints для MSTO API ===
@@ -386,9 +421,22 @@ router.get('/transactions', convertTransactionParams, async (req, res) => {
     // Загружаем маппинг станций
     const spMap = await getServicePointsMap();
 
-    // Выполняем запрос
-    const client = await getMstoClient();
-    const response = await client.get(urlPath, { params: query });
+    // Выполняем запрос с retry на 401
+    let response;
+    try {
+      const client = await getMstoClient();
+      response = await client.get(urlPath, { params: query });
+    } catch (error) {
+      if (error.response?.status === 401) {
+        // Токен невалиден — обновляем и повторяем
+        console.log('[MSTO Proxy] 401 on /transactions, refreshing token and retrying...');
+        await invalidateAndRefreshToken();
+        const client = await getMstoClient();
+        response = await client.get(urlPath, { params: query });
+      } else {
+        throw error;
+      }
+    }
 
     // Добавляем servicePointId к каждой транзакции
     if (response.data?.models && Array.isArray(response.data.models)) {
