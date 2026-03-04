@@ -370,7 +370,7 @@ export type TankLocationType = 'underground' | 'surface';
 export type LevelSensorType = 'radar' | 'float' | 'capacitive' | 'hydrostatic' | 'other';
 
 // Метод калибровки
-export type CalibrationMethod = 'geometric' | 'mathematical' | 'combined';
+export type CalibrationMethod = 'least_squares' | 'moving_average' | 'direct_interpolation';
 
 // Источник опорной точки
 export type ReferenceSource = 'geometry' | 'current_table' | 'manual';
@@ -538,6 +538,10 @@ export interface TankCalibrationSettings {
   calibration_status: 'never' | 'in_progress' | 'completed' | 'failed';
   last_calibration_date?: string;
 
+  // Фильтр выбросов
+  outlier_filter_enabled?: boolean;
+  outlier_filter_sigma?: number;
+
   // Источник опорной точки
   reference_source: ReferenceSource;
   manual_reference_volume?: number;
@@ -582,13 +586,16 @@ export const DEFAULT_CALIBRATION_SETTINGS: Omit<TankCalibrationSettings, 'tank_i
   sensor_blind_zone_top_mm: 100,
   critical_water_level_mm: 50,
 
-  calibration_method: 'combined',
+  calibration_method: 'direct_interpolation',
   calibration_step_mm: 10,
   bias_offset_percent: 0.002,
 
   nozzles_count: 1,
 
   calibration_status: 'never',
+
+  outlier_filter_enabled: true,
+  outlier_filter_sigma: 2.0,
 
   reference_source: 'geometry',
   manual_reference_volume: 0

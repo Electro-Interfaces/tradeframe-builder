@@ -9,11 +9,12 @@ import { useToast } from '@/hooks/use-toast';
 import type { TerminalInfo, TerminalEquipmentItem } from '@/types/equipment';
 import type { Tank } from '@/types/tanks';
 import { stsApiService } from '@/services/stsApi';
-import { tradingPointsService } from '@/services/tradingPointsService';
 
 interface UseEquipmentOptions {
   networkId?: string;
   tradingPointId?: string;
+  /** Объект станции из SelectionContext — если передан, пропускаем дублирующий запрос к Supabase */
+  station?: { external_id?: string; name?: string } | null;
   autoLoad?: boolean;
   showToasts?: boolean;
 }
@@ -34,7 +35,7 @@ interface UseEquipmentReturn {
  * Хук для загрузки и управления терминальным оборудованием
  */
 export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentReturn {
-  const { networkId, tradingPointId, autoLoad = true, showToasts = true } = options;
+  const { networkId, tradingPointId, station, autoLoad = true, showToasts = true } = options;
   const { toast } = useToast();
 
   const [terminalInfo, setTerminalInfo] = useState<TerminalInfo | null>(null);
@@ -54,11 +55,31 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
 
     setLoading(true);
     setError(null);
+    // Очищаем данные предыдущей станции сразу — не показываем устаревшие данные
+    setTerminalInfo(null);
+    setEquipment([]);
+    setTanks([]);
 
     try {
-      // Получаем торговую точку для external_id
-      const tradingPoint = await tradingPointsService.getById(tradingPointId);
-      if (!tradingPoint?.external_id) {
+      // Получаем external_id станции: из переданного объекта или парсим из tradingPointId
+      // Формат tradingPointId: "networkCode-azs-stationCode"
+      let stationExternalId: string | undefined;
+      let stationName: string | undefined;
+
+      if (station?.external_id) {
+        // Быстрый путь: данные уже есть из SelectionContext
+        stationExternalId = station.external_id;
+        stationName = station.name;
+      } else {
+        // Fallback: парсим из строки tradingPointId
+        const parts = tradingPointId.split('-azs-');
+        if (parts.length === 2 && parts[1]) {
+          stationExternalId = parts[1];
+          stationName = `АЗС №${parts[1]}`;
+        }
+      }
+
+      if (!stationExternalId) {
         // Тихо игнорируем - не критично
         setTerminalInfo(null);
         setEquipment([]);
@@ -69,7 +90,7 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
 
       const contextParams = {
         networkId: networkId,
-        tradingPointId: tradingPoint.external_id
+        tradingPointId: stationExternalId
       };
 
       // ✅ ОПТИМИЗАЦИЯ: Параллельная загрузка данных вместо последовательной
@@ -84,7 +105,7 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
         const terminalInfoData = terminalInfoResult.value;
         setTerminalInfo(terminalInfoData);
         // Передаем название станции из селектора для отображения в карточке
-        const equipmentItems = equipmentService.mapTerminalInfoToEquipment(terminalInfoData, tradingPoint.name);
+        const equipmentItems = equipmentService.mapTerminalInfoToEquipment(terminalInfoData, stationName);
         setEquipment(equipmentItems);
       } else {
         // Failed to load terminal info
@@ -131,7 +152,7 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
     } finally {
       setLoading(false);
     }
-  }, [networkId, tradingPointId, showToasts, toast]);
+  }, [networkId, tradingPointId, station, showToasts, toast]);
 
   /**
    * Обновление данных (алиас для loadEquipment)

@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Banknote, CheckCircle2, AlertCircle, AlertTriangle, Settings, Loader2, Save, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import type { TerminalEquipmentItem, CashoutRecord } from '@/types/equipment';
 import type { BillAcceptorThresholds } from '@/types/tradingpoint';
 import {
   checkBillAcceptorThresholds
 } from '@/utils/billAcceptorThresholds';
-import { CashoutHistoryDialog } from './CashoutHistoryDialog';
+
+const CashoutHistoryDialog = lazy(() => import('./CashoutHistoryDialog').then(m => ({ default: m.CashoutHistoryDialog })));
 
 interface BillAcceptorCardProps {
   billAcceptor: TerminalEquipmentItem;
@@ -135,11 +136,13 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             </Badge>
 
             {/* Кнопка журнала инкассации */}
-            <CashoutHistoryDialog
-              cashoutRecords={cashoutRecords}
-              loading={cashoutLoading}
-              isMobile={isMobile}
-            />
+            <Suspense fallback={null}>
+              <CashoutHistoryDialog
+                cashoutRecords={cashoutRecords}
+                loading={cashoutLoading}
+                isMobile={isMobile}
+              />
+            </Suspense>
 
             {/* Кнопка настройки порогов */}
             <Button
@@ -166,11 +169,13 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
         {isMobile && (
           <div className="flex gap-2">
             {/* Кнопка журнала инкассации */}
-            <CashoutHistoryDialog
-              cashoutRecords={cashoutRecords}
-              loading={cashoutLoading}
-              isMobile={isMobile}
-            />
+            <Suspense fallback={null}>
+              <CashoutHistoryDialog
+                cashoutRecords={cashoutRecords}
+                loading={cashoutLoading}
+                isMobile={isMobile}
+              />
+            </Suspense>
 
             {/* Кнопка настройки порогов */}
             <Button

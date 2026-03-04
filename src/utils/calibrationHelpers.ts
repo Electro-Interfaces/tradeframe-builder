@@ -6,13 +6,13 @@
 import type {
   CalibrationFuelType,
   LevelSensorType,
-  CalibrationSettings
+  TankCalibrationSettings
 } from '@/types/tanks';
 
 /**
  * Расчет объема резервуара по геометрическим размерам (литры)
  */
-export function calculateTankVolume(settings: CalibrationSettings): number {
+export function calculateTankVolume(settings: TankCalibrationSettings): number {
   const shape = settings.tank_shape_type;
   const diameter = settings.tank_diameter_mm;
   const length = settings.tank_length_mm;

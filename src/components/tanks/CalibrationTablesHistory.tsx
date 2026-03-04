@@ -8,6 +8,8 @@ import { getCalibrationTables, downloadCalibrationTable, applyCalibrationTable, 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -22,6 +24,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Download,
   MoreVertical,
@@ -39,19 +59,30 @@ interface CalibrationTablesHistoryProps {
   tankId: string;
 }
 
+type ConfirmAction = 'apply' | 'delete' | null;
+
 export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryProps) {
   const [tables, setTables] = useState<CalibrationTable[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
+  // Состояние для AlertDialog (apply / delete)
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [confirmTableId, setConfirmTableId] = useState<string | null>(null);
+
+  // Состояние для Dialog с вводом причины (reject)
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectTableId, setRejectTableId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+
   const loadTables = async () => {
     try {
       setIsLoading(true);
       const data = await getCalibrationTables(tankId);
       setTables(data);
-    } catch (error) {
-      console.error('Failed to load calibration tables:', error);
+    } catch {
+      // Бэкенд-эндпоинт не реализован — таблицы не загрузятся
     } finally {
       setIsLoading(false);
     }
@@ -61,10 +92,10 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
     loadTables();
   }, [tankId]);
 
-  const handleDownload = async (tableId: string, format: 'csv' | 'json') => {
+  const handleDownload = async (tableId: string, fmt: 'csv' | 'json') => {
     try {
       setActionInProgress(tableId);
-      await downloadCalibrationTable(tableId, format);
+      await downloadCalibrationTable(tableId, fmt);
     } catch (error) {
       console.error('Download failed:', error);
     } finally {
@@ -84,48 +115,52 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
     }
   };
 
-  const handleReject = async (tableId: string) => {
-    const reason = prompt('Укажите причину отклонения:');
-    if (!reason) return;
+  // Открываем Dialog для ввода причины отклонения
+  const openRejectDialog = (tableId: string) => {
+    setRejectTableId(tableId);
+    setRejectReason('');
+    setRejectDialogOpen(true);
+  };
 
+  const handleRejectConfirm = async () => {
+    if (!rejectTableId || !rejectReason.trim()) return;
+    setRejectDialogOpen(false);
     try {
-      setActionInProgress(tableId);
-      await rejectCalibrationTable(tableId, reason);
+      setActionInProgress(rejectTableId);
+      await rejectCalibrationTable(rejectTableId, rejectReason.trim());
       await loadTables();
     } catch (error) {
       console.error('Reject failed:', error);
     } finally {
       setActionInProgress(null);
+      setRejectTableId(null);
+      setRejectReason('');
     }
   };
 
-  const handleApply = async (tableId: string) => {
-    if (!confirm('Применить эту калибровочную таблицу? Она станет активной для резервуара.')) {
-      return;
-    }
-
-    try {
-      setActionInProgress(tableId);
-      await applyCalibrationTable(tableId);
-      await loadTables();
-    } catch (error) {
-      console.error('Apply failed:', error);
-    } finally {
-      setActionInProgress(null);
-    }
+  // Открываем AlertDialog для подтверждения apply / delete
+  const openConfirmDialog = (action: ConfirmAction, tableId: string) => {
+    setConfirmAction(action);
+    setConfirmTableId(tableId);
   };
 
-  const handleDelete = async (tableId: string) => {
-    if (!confirm('Удалить эту калибровочную таблицу?')) {
-      return;
-    }
+  const handleConfirmAction = async () => {
+    if (!confirmTableId || !confirmAction) return;
+    const action = confirmAction;
+    const tableId = confirmTableId;
+    setConfirmAction(null);
+    setConfirmTableId(null);
 
     try {
       setActionInProgress(tableId);
-      await deleteCalibrationTable(tableId);
+      if (action === 'apply') {
+        await applyCalibrationTable(tableId);
+      } else if (action === 'delete') {
+        await deleteCalibrationTable(tableId);
+      }
       await loadTables();
     } catch (error) {
-      console.error('Delete failed:', error);
+      console.error(`${action} failed:`, error);
     } finally {
       setActionInProgress(null);
     }
@@ -161,6 +196,17 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
     );
   }
 
+  const confirmMessages: Record<string, { title: string; description: string }> = {
+    apply: {
+      title: 'Применить калибровочную таблицу?',
+      description: 'Таблица станет активной для резервуара. Предыдущая активная таблица будет заменена.',
+    },
+    delete: {
+      title: 'Удалить калибровочную таблицу?',
+      description: 'Это действие необратимо. Таблица будет удалена из истории.',
+    },
+  };
+
   const TableActions = ({ table: t }: { table: CalibrationTable }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -187,20 +233,20 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Утвердить
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleReject(t.id)}>
+            <DropdownMenuItem onClick={() => openRejectDialog(t.id)}>
               <XCircle className="w-4 h-4 mr-2" />
               Отклонить
             </DropdownMenuItem>
           </>
         )}
         {t.status === 'approved' && !t.is_active && (
-          <DropdownMenuItem onClick={() => handleApply(t.id)}>
+          <DropdownMenuItem onClick={() => openConfirmDialog('apply', t.id)}>
             <PlayCircle className="w-4 h-4 mr-2" />
             Применить
           </DropdownMenuItem>
         )}
         {!t.is_active && t.status !== 'approved' && (
-          <DropdownMenuItem onClick={() => handleDelete(t.id)} className="text-red-600 dark:text-red-400">
+          <DropdownMenuItem onClick={() => openConfirmDialog('delete', t.id)} className="text-red-600 dark:text-red-400">
             <Trash2 className="w-4 h-4 mr-2" />
             Удалить
           </DropdownMenuItem>
@@ -209,110 +255,154 @@ export function CalibrationTablesHistory({ tankId }: CalibrationTablesHistoryPro
     </DropdownMenu>
   );
 
-  if (isMobile) {
-    return (
-      <div className="space-y-3">
-        {tables.map((table) => (
-          <Card key={table.id} className={table.is_active ? 'bg-card/50' : ''}>
-            <div className="p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold">v{table.version}</span>
-                  {table.is_active && <Badge variant="default" className="text-xs">Активна</Badge>}
-                  {getStatusBadge(table.status)}
-                </div>
-                <TableActions table={table} />
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground text-xs">Период</span>
-                  <div>{format(new Date(table.analysis_start_date), 'dd.MM.yy', { locale: ru })} — {format(new Date(table.analysis_end_date), 'dd.MM.yy', { locale: ru })}</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">Создана</span>
-                  <div>{format(new Date(table.created_at), 'dd.MM.yy HH:mm', { locale: ru })}</div>
-                </div>
-                {table.statistics && (
-                  <>
-                    <div>
-                      <span className="text-muted-foreground text-xs">Точек</span>
-                      <div className="font-semibold">{table.statistics.data_points_used}</div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-xs">R²</span>
-                      <div className="font-semibold">{table.statistics.r_squared?.toFixed(3)}</div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <Card>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Версия</TableHead>
-              <TableHead>Статус</TableHead>
-              <TableHead>Период анализа</TableHead>
-              <TableHead>Статистика</TableHead>
-              <TableHead>Создана</TableHead>
-              <TableHead className="text-right">Действия</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tables.map((table) => (
-              <TableRow key={table.id} className={table.is_active ? 'bg-card/50' : ''}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
+    <>
+      {/* AlertDialog для подтверждения apply/delete */}
+      <AlertDialog open={confirmAction !== null} onOpenChange={(open) => { if (!open) { setConfirmAction(null); setConfirmTableId(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmAction ? confirmMessages[confirmAction].title : ''}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmAction ? confirmMessages[confirmAction].description : ''}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction}>
+              {confirmAction === 'delete' ? 'Удалить' : 'Применить'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog для ввода причины отклонения */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Отклонение калибровочной таблицы</DialogTitle>
+            <DialogDescription>Укажите причину отклонения таблицы.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="reject-reason">Причина отклонения</Label>
+            <Input
+              id="reject-reason"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Укажите причину..."
+              className="mt-2"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Отмена</Button>
+            <Button variant="destructive" onClick={handleRejectConfirm} disabled={!rejectReason.trim()}>
+              Отклонить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Контент */}
+      {isMobile ? (
+        <div className="space-y-3">
+          {tables.map((table) => (
+            <Card key={table.id} className={table.is_active ? 'bg-card/50' : ''}>
+              <div className="p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold">v{table.version}</span>
-                    {table.is_active && (
-                      <Badge variant="default" className="text-xs">Активна</Badge>
-                    )}
+                    {table.is_active && <Badge variant="default" className="text-xs">Активна</Badge>}
+                    {getStatusBadge(table.status)}
                   </div>
-                </TableCell>
-                <TableCell>{getStatusBadge(table.status)}</TableCell>
-                <TableCell>
-                  <div className="text-sm">
-                    <div>{format(new Date(table.analysis_start_date), 'dd.MM.yyyy', { locale: ru })}</div>
-                    <div className="text-muted-foreground">
-                      {format(new Date(table.analysis_end_date), 'dd.MM.yyyy', { locale: ru })}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {table.statistics && (
-                    <div className="text-sm space-y-1">
-                      <div className="flex justify-between gap-4">
-                        <span className="text-muted-foreground">Точек:</span>
-                        <span className="font-semibold">{table.statistics.data_points_used}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span className="text-muted-foreground">R²:</span>
-                        <span className="font-semibold">{table.statistics.r_squared?.toFixed(3)}</span>
-                      </div>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm">
-                    {format(new Date(table.created_at), 'dd.MM.yyyy HH:mm', { locale: ru })}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
                   <TableActions table={table} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Период</span>
+                    <div>{format(new Date(table.analysis_start_date), 'dd.MM.yy', { locale: ru })} — {format(new Date(table.analysis_end_date), 'dd.MM.yy', { locale: ru })}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Создана</span>
+                    <div>{format(new Date(table.created_at), 'dd.MM.yy HH:mm', { locale: ru })}</div>
+                  </div>
+                  {table.statistics && (
+                    <>
+                      <div>
+                        <span className="text-muted-foreground text-xs">Точек</span>
+                        <div className="font-semibold">{table.statistics.data_points_used}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs">R²</span>
+                        <div className="font-semibold">{table.statistics.r_squared?.toFixed(3)}</div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Версия</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Период анализа</TableHead>
+                  <TableHead>Статистика</TableHead>
+                  <TableHead>Создана</TableHead>
+                  <TableHead className="text-right">Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tables.map((table) => (
+                  <TableRow key={table.id} className={table.is_active ? 'bg-card/50' : ''}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">v{table.version}</span>
+                        {table.is_active && (
+                          <Badge variant="default" className="text-xs">Активна</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(table.status)}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{format(new Date(table.analysis_start_date), 'dd.MM.yyyy', { locale: ru })}</div>
+                        <div className="text-muted-foreground">
+                          {format(new Date(table.analysis_end_date), 'dd.MM.yyyy', { locale: ru })}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {table.statistics && (
+                        <div className="text-sm space-y-1">
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Точек:</span>
+                            <span className="font-semibold">{table.statistics.data_points_used}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">R²:</span>
+                            <span className="font-semibold">{table.statistics.r_squared?.toFixed(3)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {format(new Date(table.created_at), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <TableActions table={table} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+    </>
   );
 }

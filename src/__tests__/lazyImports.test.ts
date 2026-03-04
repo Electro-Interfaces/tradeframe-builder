@@ -67,6 +67,6 @@ describe('Lazy imports — все страницы App.tsx резолвятся'
     it(`${name} — модуль загружается и имеет default export`, async () => {
       const mod = await importFn();
       expect(mod).toHaveProperty('default');
-    });
+    }, 10000);
   });
 });

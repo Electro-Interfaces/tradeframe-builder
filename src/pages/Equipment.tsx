@@ -3,6 +3,7 @@
  * Отрефакторенная версия с использованием хуков и компонентов
  */
 
+import { lazy, Suspense } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -14,15 +15,16 @@ import { useThresholds } from "@/hooks/useThresholds";
 import { useCashoutHistory } from "@/hooks/useCashoutHistory";
 import { EquipmentCard } from "@/components/equipment/EquipmentCard";
 import { BillAcceptorCard } from "@/components/equipment/BillAcceptorCard";
-import { FuelLevelThresholdsCard } from "@/components/equipment/FuelLevelThresholdsCard";
 import { EquipmentHeader } from "@/components/equipment/EquipmentHeader";
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/PageStates";
 import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
 import { SelectTradingPointMessage } from "@/components/common/SelectTradingPointMessage";
 import { PULL_TO_REFRESH_CONFIG } from "@/config/pullToRefresh";
 
+const FuelLevelThresholdsCard = lazy(() => import("@/components/equipment/FuelLevelThresholdsCard").then(m => ({ default: m.FuelLevelThresholdsCard })));
+
 export default function Equipment() {
-  const { selectedNetwork, selectedTradingPoint, isInitialized } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, selectedStation, isInitialized } = useSelection();
   const isMobile = useIsMobile();
 
   // Хук для управления пороговыми значениями
@@ -46,6 +48,7 @@ export default function Equipment() {
   } = useEquipment({
     networkId: selectedNetwork?.external_id,
     tradingPointId: selectedTradingPoint,
+    station: selectedStation,
     autoLoad: true,
     showToasts: !isMobile
   });
@@ -212,14 +215,16 @@ export default function Equipment() {
 
                 {/* Пороги уровня топлива */}
                 {tanks.length > 0 && (
-                  <FuelLevelThresholdsCard
-                    tanks={tanks}
-                    isMobile={isMobile}
-                    thresholds={fuelLevelThresholds}
-                    onSaveThresholds={saveFuelLevelThresholds}
-                    networkId={selectedNetwork?.external_id}
-                    stationCode={selectedTradingPoint}
-                  />
+                  <Suspense fallback={<LoadingState message="Загрузка порогов..." />}>
+                    <FuelLevelThresholdsCard
+                      tanks={tanks}
+                      isMobile={isMobile}
+                      thresholds={fuelLevelThresholds}
+                      onSaveThresholds={saveFuelLevelThresholds}
+                      networkId={selectedNetwork?.external_id}
+                      stationCode={selectedTradingPoint}
+                    />
+                  </Suspense>
                 )}
               </div>
             ) : (
@@ -246,14 +251,16 @@ export default function Equipment() {
 
                 {/* Пороги уровня топлива */}
                 {tanks.length > 0 && (
-                  <FuelLevelThresholdsCard
-                    tanks={tanks}
-                    isMobile={isMobile}
-                    thresholds={fuelLevelThresholds}
-                    onSaveThresholds={saveFuelLevelThresholds}
-                    networkId={selectedNetwork?.external_id}
-                    stationCode={selectedTradingPoint}
-                  />
+                  <Suspense fallback={<LoadingState message="Загрузка порогов..." />}>
+                    <FuelLevelThresholdsCard
+                      tanks={tanks}
+                      isMobile={isMobile}
+                      thresholds={fuelLevelThresholds}
+                      onSaveThresholds={saveFuelLevelThresholds}
+                      networkId={selectedNetwork?.external_id}
+                      stationCode={selectedTradingPoint}
+                    />
+                  </Suspense>
                 )}
               </div>
             )}

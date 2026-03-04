@@ -253,7 +253,8 @@ export function AnalysisDialog({
       try {
         const currentTables = await getCalibrationTables(tankId);
         activeTable = currentTables.find(t => t.is_active && t.status === 'applied');
-      } catch (error) {
+      } catch {
+        // Бэкенд-эндпоинт не реализован — анализ продолжится без сравнения с активной таблицей
         activeTable = undefined;
       }
 
@@ -323,6 +324,7 @@ export function AnalysisDialog({
         let totalDiffPercent = 0;
         let maxDiff = 0;
         let maxDiffPercent = 0;
+        let validCount = 0;
 
         const geometricMap = new Map(
           geometricTableResult.table.map(point => [point.level_mm, point.volume_liters])
@@ -354,13 +356,17 @@ export function AnalysisDialog({
                   const level2 = sortedCurrentLevels[i + 1];
                   const vol1 = currentMap.get(level1)!;
                   const vol2 = currentMap.get(level2)!;
-                  const t = (level_mm - level1) / (level2 - level1);
+                  const denom = level2 - level1;
+                  if (denom === 0) { current_volume = vol1; break; }
+                  const t = (level_mm - level1) / denom;
                   current_volume = vol1 + t * (vol2 - vol1);
                   break;
                 }
               }
             }
           }
+          // Защита от NaN (может возникнуть при NaN в таблице датчика)
+          if (current_volume !== null && isNaN(current_volume)) current_volume = null;
 
           let trk_volume: number | null = null;
           const sortedCalculatedLevels = Array.from(calculatedMap.keys()).sort((a, b) => a - b);
@@ -380,13 +386,17 @@ export function AnalysisDialog({
                   const level2 = sortedCalculatedLevels[i + 1];
                   const vol1 = calculatedMap.get(level1)!;
                   const vol2 = calculatedMap.get(level2)!;
-                  const t = (level_mm - level1) / (level2 - level1);
+                  const denom = level2 - level1;
+                  if (denom === 0) { trk_volume = vol1; break; }
+                  const t = (level_mm - level1) / denom;
                   trk_volume = vol1 + t * (vol2 - vol1);
                   break;
                 }
               }
             }
           }
+          // Защита от NaN
+          if (trk_volume !== null && isNaN(trk_volume)) trk_volume = null;
 
           const difference = current_volume !== null ? geometric_volume - current_volume : 0;
           const differencePercent = current_volume !== null && current_volume > 0
@@ -407,15 +417,16 @@ export function AnalysisDialog({
             totalDiffPercent += Math.abs(differencePercent);
             maxDiff = Math.max(maxDiff, Math.abs(difference));
             maxDiffPercent = Math.max(maxDiffPercent, Math.abs(differencePercent));
+            validCount++;
           }
         }
 
-        if (comparison.length > 0) {
+        if (validCount > 0) {
           statistics = {
             max_difference: maxDiff,
-            avg_difference: totalDiff / comparison.length,
+            avg_difference: totalDiff / validCount,
             max_difference_percent: maxDiffPercent,
-            avg_difference_percent: totalDiffPercent / comparison.length,
+            avg_difference_percent: totalDiffPercent / validCount,
           };
         }
       }
@@ -568,29 +579,29 @@ export function AnalysisDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="linear_regression">Линейная регрессия</SelectItem>
-                    <SelectItem value="least_squares">Метод наименьших квадратов (МНК)</SelectItem>
+                    <SelectItem value="direct_interpolation">Прямая интерполяция (рекомендуется)</SelectItem>
+                    <SelectItem value="least_squares">МНК — кубическая регрессия</SelectItem>
                     <SelectItem value="moving_average">Скользящее среднее</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="bg-card/50 border border-border rounded-md p-2.5">
                   <p className="text-xs text-foreground/80">
-                    {settings.calibration_method === 'linear_regression' && (
-                      <>
-                        <span className="font-semibold text-blue-600 dark:text-blue-400">Линейная регрессия:</span> Строит линейную зависимость между уровнем и объемом.
-                        Быстрый и простой метод, подходит для резервуаров с простой геометрией.
-                      </>
-                    )}
                     {settings.calibration_method === 'least_squares' && (
                       <>
-                        <span className="font-semibold text-green-600 dark:text-green-400">МНК:</span> Минимизирует сумму квадратов отклонений.
-                        Наиболее точный метод, учитывает все точки данных. Рекомендуется для коммерческого учета.
+                        <span className="font-semibold text-green-600 dark:text-green-400">МНК:</span> Квадратичная аппроксимация (y=ax²+bx+c).
+                        Хорошо описывает S-кривую цилиндра. Рекомендуется для коммерческого учёта.
                       </>
                     )}
                     {settings.calibration_method === 'moving_average' && (
                       <>
                         <span className="font-semibold text-orange-600 dark:text-orange-400">Скользящее среднее:</span> Сглаживает колебания данных усреднением.
                         Устойчив к выбросам, хорош для данных с шумом и частыми колебаниями.
+                      </>
+                    )}
+                    {settings.calibration_method === 'direct_interpolation' && (
+                      <>
+                        <span className="font-semibold text-purple-600 dark:text-purple-400">Прямая интерполяция:</span> Кусочно-линейная между реальными точками.
+                        Максимальная точность при качественных данных.
                       </>
                     )}
                   </p>

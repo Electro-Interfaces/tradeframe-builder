@@ -23,19 +23,19 @@ export interface BookDataParams {
 export async function getTransactions(params: BookDataParams): Promise<TransactionV2Response> {
   const queryParams: Record<string, any> = {
     system: params.system,
-    number: params.station
+    station: params.station
   };
 
   // НЕ передаём tank в API — маппинг tank в транзакциях не совпадает с физическими резервуарами.
   // Фильтрация по fuel делается клиентски в calculateBookReleaseFromTransactions.
 
-  // API v2/transactions использует date_from и date_to вместо dt_beg и dt_end
+  // API v2/transactions принимает dt_beg/dt_end (формат: YYYY-MM-DD HH:MM:SS)
   if (params.dt_beg) {
-    queryParams.date_from = params.dt_beg;
+    queryParams.dt_beg = params.dt_beg;
   }
 
   if (params.dt_end) {
-    queryParams.date_to = params.dt_end;
+    queryParams.dt_end = params.dt_end;
   }
 
   try {
@@ -74,7 +74,7 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
 export async function getReceipts(params: BookDataParams): Promise<ReceiptResponse> {
   const queryParams: Record<string, any> = {
     system: params.system,
-    number: params.station
+    station: params.station
   };
 
   if (params.tank != null) {

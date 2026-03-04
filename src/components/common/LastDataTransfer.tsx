@@ -12,13 +12,14 @@ interface LastDataTransferProps {
 }
 
 export function LastDataTransfer({ className = '' }: LastDataTransferProps) {
-  const { selectedNetwork, selectedTradingPoint } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, selectedStation } = useSelection();
   const isMobile = useIsMobile();
 
   // Загружаем информацию о терминале
   const { terminalInfo, loading } = useEquipment({
     networkId: selectedNetwork?.external_id,
     tradingPointId: selectedTradingPoint,
+    station: selectedStation,
     autoLoad: true,
     showToasts: false
   });

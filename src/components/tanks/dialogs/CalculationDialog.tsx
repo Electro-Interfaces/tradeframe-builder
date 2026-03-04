@@ -1,11 +1,26 @@
 /**
  * Диалог расчета калибровочной таблицы
  * Извлечено из TankCalibrationSettings.tsx
+ *
+ * Использует клиентский алгоритм calculateCalibrationTable из calibrationAlgorithm.ts
+ * (бэкенд-эндпоинт POST /:tankId/calculate не реализован)
  */
 
 import { useState } from 'react';
-import type { CalibrationSettings, CalibrationMethod, CalculateCalibrationTableResult } from '@/types/tanks';
-import { calculateCalibrationTable, downloadCalibrationTable } from '@/services/calibrationTableService';
+import type {
+  TankCalibrationSettings as CalibrationSettings,
+  CalibrationMethod,
+  CalculateCalibrationTableResult,
+  CalibrationTablePoint,
+  ReceiptItem
+} from '@/types/tanks';
+import {
+  calculateCalibrationTable as runCalibrationAlgorithm,
+  type CalibrationCalculationResult
+} from '@/utils/calibrationAlgorithm';
+import { getTankHistory } from '@/services/tankHistoryService';
+import { getTransactions, getReceipts } from '@/services/tankBookService';
+import { useSelection } from '@/contexts/SelectionContext';
 import { CalibrationTablesHistory } from '../CalibrationTablesHistory';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -37,6 +52,33 @@ interface CalculationDialogProps {
   handleNumberInput: (key: keyof CalibrationSettings, value: string, isInteger?: boolean) => void;
 }
 
+/** Скачать таблицу как CSV/JSON файл (клиентская генерация) */
+function downloadTableFile(table: CalibrationTablePoint[], format: 'csv' | 'json') {
+  let content: string;
+  let mimeType: string;
+  const filename = `calibration_table_${new Date().toISOString().slice(0, 10)}.${format}`;
+
+  if (format === 'csv') {
+    const header = 'level_mm,volume_liters';
+    const rows = table.map(p => `${p.level_mm},${p.volume_liters}`);
+    content = [header, ...rows].join('\n');
+    mimeType = 'text/csv;charset=utf-8;';
+  } else {
+    content = JSON.stringify(table, null, 2);
+    mimeType = 'application/json;charset=utf-8;';
+  }
+
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
 export function CalculationDialog({
   open,
   onOpenChange,
@@ -45,11 +87,13 @@ export function CalculationDialog({
   updateSetting,
   handleNumberInput
 }: CalculationDialogProps) {
+  const { selectedNetwork, selectedTradingPoint } = useSelection();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [calculationNotes, setCalculationNotes] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationResult, setCalculationResult] = useState<CalculateCalibrationTableResult | null>(null);
+  const [calculatedTable, setCalculatedTable] = useState<CalibrationTablePoint[] | null>(null);
 
   const handleCalculate = async () => {
     if (!startDate || !endDate) {
@@ -68,16 +112,94 @@ export function CalculationDialog({
       return;
     }
 
+    if (!selectedNetwork || !selectedTradingPoint) {
+      setCalculationResult({
+        success: false,
+        error: 'Необходимо выбрать сеть и торговую точку',
+      });
+      return;
+    }
+
     setIsCalculating(true);
     setCalculationResult(null);
+    setCalculatedTable(null);
 
     try {
-      const result = await calculateCalibrationTable({
-        tank_id: tankId,
-        period: { start_date: startDate, end_date: endDate },
-        notes: calculationNotes,
+      // Получаем external_id торговой точки
+      let tradingPointExternalId: string | null = null;
+      try {
+        const { tradingPointsService } = await import('@/services/tradingPointsService');
+        const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
+        tradingPointExternalId = tradingPoint?.external_id || null;
+      } catch {
+        throw new Error('Ошибка загрузки данных торговой точки');
+      }
+
+      if (!selectedNetwork.external_id || !tradingPointExternalId) {
+        throw new Error(`Отсутствует external_id: сеть=${selectedNetwork.external_id}, точка=${tradingPointExternalId}`);
+      }
+
+      const tankNumber = parseInt(tankId, 10);
+
+      // Загружаем историю резервуара
+      const tankHistory = await getTankHistory({
+        system: selectedNetwork.external_id,
+        station: tradingPointExternalId,
+        tank: tankNumber,
+        dt_beg: `${startDate} 00:00:00`,
+        dt_end: `${endDate} 23:59:59`
       });
-      setCalculationResult(result);
+
+      if (tankHistory.length === 0) {
+        throw new Error('Нет данных истории резервуара за выбранный период');
+      }
+
+      // Загружаем транзакции (отпуски ТРК)
+      const transactionsResponse = await getTransactions({
+        system: selectedNetwork.external_id,
+        station: tradingPointExternalId,
+        dt_beg: `${startDate} 00:00:00`,
+        dt_end: `${endDate} 23:59:59`
+      });
+      const transactions = transactionsResponse.items || [];
+
+      // Загружаем поступления
+      let receipts: ReceiptItem[] = [];
+      try {
+        const receiptsResponse = await getReceipts({
+          system: selectedNetwork.external_id,
+          station: tradingPointExternalId,
+          dt_beg: `${startDate} 00:00:00`,
+          dt_end: `${endDate} 23:59:59`
+        });
+        receipts = receiptsResponse.shifts?.flatMap(shift => shift.receipt || []) || [];
+      } catch {
+        // Продолжаем без поступлений
+      }
+
+      // Клиентский расчёт
+      const result: CalibrationCalculationResult = runCalibrationAlgorithm(
+        tankHistory,
+        transactions,
+        settings,
+        tankNumber,
+        receipts
+      );
+
+      setCalculatedTable(result.table);
+      setCalculationResult({
+        success: true,
+        table: result.table,
+        statistics: {
+          data_points_total: result.data_points_count,
+          data_points_filtered: result.data_points_count - result.filtered_points_count,
+          data_points_used: result.filtered_points_count,
+          average_deviation_percent: result.quality_metrics?.rmse ?? 0,
+          max_deviation_percent: result.quality_metrics?.max_error ?? 0,
+          r_squared: result.quality_metrics?.r_squared ?? 0,
+        },
+        diagnostics: result.diagnostics,
+      });
     } catch (error) {
       console.error('Calculation error:', error);
       setCalculationResult({
@@ -89,13 +211,9 @@ export function CalculationDialog({
     }
   };
 
-  const handleDownloadTable = async (format: 'csv' | 'json') => {
-    if (!calculationResult?.calibration_id) return;
-    try {
-      await downloadCalibrationTable(calculationResult.calibration_id, format);
-    } catch (error) {
-      console.error('Download error:', error);
-    }
+  const handleDownloadTable = (format: 'csv' | 'json') => {
+    if (!calculatedTable || calculatedTable.length === 0) return;
+    downloadTableFile(calculatedTable, format);
   };
 
   return (
@@ -176,21 +294,21 @@ export function CalculationDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="linear_regression">Линейная регрессия</SelectItem>
-                    <SelectItem value="least_squares">Метод наименьших квадратов (МНК)</SelectItem>
+                    <SelectItem value="direct_interpolation">Прямая интерполяция (рекомендуется)</SelectItem>
+                    <SelectItem value="least_squares">МНК — кубическая регрессия</SelectItem>
                     <SelectItem value="moving_average">Скользящее среднее</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="bg-card/50 border border-border rounded-md p-2.5">
                   <p className="text-xs text-foreground/80">
-                    {settings.calibration_method === 'linear_regression' && (
-                      <><span className="font-semibold text-blue-600 dark:text-blue-400">Линейная регрессия:</span> Строит линейную зависимость между уровнем и объемом. Быстрый и простой метод, подходит для резервуаров с простой геометрией.</>
-                    )}
                     {settings.calibration_method === 'least_squares' && (
-                      <><span className="font-semibold text-green-600 dark:text-green-400">МНК:</span> Минимизирует сумму квадратов отклонений. Наиболее точный метод, учитывает все точки данных. Рекомендуется для коммерческого учета.</>
+                      <><span className="font-semibold text-green-600 dark:text-green-400">МНК:</span> Квадратичная аппроксимация (y=ax²+bx+c). Хорошо описывает S-кривую цилиндра. Рекомендуется для коммерческого учёта.</>
                     )}
                     {settings.calibration_method === 'moving_average' && (
                       <><span className="font-semibold text-orange-600 dark:text-orange-400">Скользящее среднее:</span> Сглаживает колебания данных усреднением. Устойчив к выбросам, хорош для данных с шумом и частыми колебаниями.</>
+                    )}
+                    {settings.calibration_method === 'direct_interpolation' && (
+                      <><span className="font-semibold text-purple-600 dark:text-purple-400">Прямая интерполяция:</span> Кусочно-линейная между реальными точками. Максимальная точность при качественных данных.</>
                     )}
                   </p>
                 </div>
@@ -286,11 +404,11 @@ export function CalculationDialog({
                         <span className="font-semibold text-foreground">{calculationResult.statistics.data_points_filtered}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Среднее откл.:</span>
-                        <span className="font-semibold text-foreground">{calculationResult.statistics.average_deviation_percent?.toFixed(2)}%</span>
+                        <span className="text-muted-foreground">RMSE:</span>
+                        <span className="font-semibold text-foreground">{calculationResult.statistics.average_deviation_percent?.toFixed(1)} л</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">R2:</span>
+                        <span className="text-muted-foreground">R²:</span>
                         <span className="font-semibold text-foreground">{calculationResult.statistics.r_squared?.toFixed(4)}</span>
                       </div>
                       {calculationResult.table && (
@@ -299,21 +417,6 @@ export function CalculationDialog({
                           <span className="font-semibold text-foreground">{calculationResult.table.length}</span>
                         </div>
                       )}
-                    </div>
-                  )}
-                  {calculationResult.comparison?.has_previous && (
-                    <div className="mb-4 p-3 bg-card/50 rounded">
-                      <p className="text-sm font-semibold mb-2">Сравнение с активной таблицей:</p>
-                      <div className="text-sm space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Среднее отличие:</span>
-                          <span className="font-semibold">{calculationResult.comparison.average_difference_percent?.toFixed(2)}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Макс. отличие:</span>
-                          <span className="font-semibold">{calculationResult.comparison.max_difference_percent?.toFixed(2)}%</span>
-                        </div>
-                      </div>
                     </div>
                   )}
                   <div className="flex gap-2">

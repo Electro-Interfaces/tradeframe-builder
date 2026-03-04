@@ -4,14 +4,12 @@
  * ОПТИМИЗИРОВАНО: Добавлена мемоизация для производительности
  */
 
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Gauge, RefreshCw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
-import { useNewAuth } from "@/contexts/NewAuthContext";
-import { permissionService } from "@/services/auth/permissionService";
 import { useTanks } from "@/hooks/useTanks";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { TankCard } from "@/components/tanks/TankCard";
@@ -22,21 +20,17 @@ import { LastDataTransfer } from "@/components/common/LastDataTransfer";
 import type { Tank } from "@/types/tanks";
 
 // Мемоизированный компонент списка резервуаров
-const TanksList = memo(({ tanks, isMobile, canManageTanks }: { tanks: Tank[]; isMobile: boolean; canManageTanks: boolean }) => (
+const TanksList = memo(({ tanks, isMobile }: { tanks: Tank[]; isMobile: boolean }) => (
   <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
     {tanks.map((tank) => (
-      <TankCard key={tank.id} tank={tank} isMobile={isMobile} canManageTanks={canManageTanks} />
+      <TankCard key={tank.id} tank={tank} isMobile={isMobile} />
     ))}
   </div>
 ));
 
 export default function Tanks() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
-  const { user } = useNewAuth();
   const isMobile = useIsMobile();
-
-  // Проверяем права на управление резервуарами (админы и роли с canCalibrate)
-  const canManageTanks = user ? (permissionService.isSuperAdmin(user) || permissionService.canCalibrate(user)) : false;
 
   // Хук для загрузки резервуаров
   const { tanks, loading, error, refreshTanks } = useTanks({
@@ -133,7 +127,7 @@ export default function Tanks() {
             </div>
           </div>
         ) : (
-          <TanksList tanks={tanks} isMobile={isMobile} canManageTanks={canManageTanks} />
+          <TanksList tanks={tanks} isMobile={isMobile} />
         )}
       </div>
     </MainLayout>

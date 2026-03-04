@@ -3,6 +3,7 @@ import {
   TankCalibrationSettings as CalibrationSettings,
   DEFAULT_CALIBRATION_SETTINGS,
   CalibrationFuelType,
+  CalibrationMethod,
   TankShapeType,
   TankLocationType,
   LevelSensorType,
@@ -577,6 +578,46 @@ export function TankCalibrationSettingsComponent({
                       Допустимое колебание показаний для фильтрации выбросов (может быть отрицательным, точность до 0.001%)
                     </p>
                   </div>
+                </div>
+
+                {/* Метод интерполяции */}
+                <div className="space-y-2 pt-4 border-t border-border">
+                  <Label htmlFor="calibration_method">Метод интерполяции</Label>
+                  <Select
+                    value={settings.calibration_method}
+                    onValueChange={(value) => updateSetting('calibration_method', value as CalibrationMethod)}
+                  >
+                    <SelectTrigger id="calibration_method">
+                      <SelectValue placeholder="Выберите метод" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct_interpolation">Прямая интерполяция (рекомендуется)</SelectItem>
+                      <SelectItem value="least_squares">МНК — кубическая регрессия</SelectItem>
+                      <SelectItem value="moving_average">Скользящее среднее</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {settings.calibration_method === 'least_squares' && 'Квадратичная аппроксимация (y=ax²+bx+c). Хорошо описывает S-кривую цилиндра, рекомендуется для коммерческого учёта.'}
+                    {settings.calibration_method === 'moving_average' && 'Сглаживает колебания усреднением. Устойчив к выбросам, хорош для зашумлённых данных.'}
+                    {settings.calibration_method === 'direct_interpolation' && 'Кусочно-линейная интерполяция между реальными точками. Максимальная точность при качественных данных.'}
+                  </p>
+                </div>
+
+                {/* Шаг калибровки */}
+                <div className="space-y-2">
+                  <Label htmlFor="calibration_step_mm">Шаг калибровки (мм)</Label>
+                  <Input
+                    id="calibration_step_mm"
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    value={settings.calibration_step_mm || ''}
+                    onChange={(e) => handleNumberInput('calibration_step_mm', e.target.value, true)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Шаг уровня для генерации строк таблицы. Меньший шаг = больше точек и выше точность. Типовые: 5, 10, 20 мм.
+                  </p>
                 </div>
               </CardContent>
             </Card>

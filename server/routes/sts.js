@@ -65,7 +65,7 @@ async function getStsClient(req) {
       headers: {
         'Content-Type': 'application/json'
       },
-      timeout: 60000 // 60 секунд таймаут (увеличено для медленных запросов на production)
+      timeout: 95000 // 95 секунд таймаут (должен быть >= frontend retry timeout 90 сек)
     });
 
   }
@@ -157,6 +157,34 @@ async function refreshJwtToken(req) {
     console.error('[STS Proxy] Failed to refresh JWT token:', error.message);
     throw new Error('Failed to authenticate with STS API');
   }
+}
+
+// Маппинг POST-операций → какие GET-кэши сбрасывать
+const CACHE_INVALIDATION_MAP = {
+  '/v1/prices': ['/v1/pos/prices', '/v1/schedule/prices', '/v1/prices'],
+  '/v1/control/restart': ['/v2/info', '/v1/info'],
+  '/v1/control/shift_open': ['/v2/info', '/v1/info', '/v1/shifts'],
+  '/v1/control/shift_close': ['/v2/info', '/v1/info', '/v1/shifts'],
+  '/v1/control/coupon': ['/v1/coupons', '/v1/coupons_manual'],
+};
+
+// Сброс кэша по префиксам после POST-операций
+function invalidateCache(urlPath) {
+  const prefixes = CACHE_INVALIDATION_MAP[urlPath];
+  if (!prefixes) return 0;
+
+  let deleted = 0;
+  const allKeys = cache.keys();
+  for (const key of allKeys) {
+    if (prefixes.some(prefix => key.startsWith(prefix))) {
+      cache.del(key);
+      deleted++;
+    }
+  }
+  if (deleted > 0) {
+    console.log(`[STS Cache] Invalidated ${deleted} keys after POST ${urlPath}`);
+  }
+  return deleted;
 }
 
 // Генерация ключа кэша из URL и параметров
@@ -255,6 +283,11 @@ async function proxyRequest(req, res) {
       if (method === 'GET' && response.status === 200) {
         const ttl = getTTL(urlPath);
         cache.set(cacheKey, response.data, ttl);
+      }
+
+      // Сбрасываем связанный кэш после успешных POST-операций
+      if (method === 'POST' && response.status >= 200 && response.status < 300) {
+        invalidateCache(urlPath);
       }
 
       // Возвращаем ответ клиенту
@@ -360,10 +393,8 @@ router.get('/v1/schedule/prices/:station_number', (req, res) => proxyRequest(req
 router.get('/v1/pos/prices/:station_number', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для управления ===
-router.post('/v1/control/terminal/open', (req, res) => proxyRequest(req, res));
-router.post('/v1/control/terminal/close', (req, res) => proxyRequest(req, res));
-router.post('/v1/control/shift/open', (req, res) => proxyRequest(req, res));
-router.post('/v1/control/shift/close', (req, res) => proxyRequest(req, res));
+router.post('/v1/control/shift_open', (req, res) => proxyRequest(req, res));
+router.post('/v1/control/shift_close', (req, res) => proxyRequest(req, res));
 
 // === Internal STS API request with caching (for server-side aggregation) ===
 async function stsInternalRequest(urlPath, params, userHeaders) {

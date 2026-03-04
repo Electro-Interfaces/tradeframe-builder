@@ -134,6 +134,8 @@ export function calculateStats(history: TankHistoryRecord[]): TankHistoryStats {
   // Фактическая реализация за период: суммируем с учётом сброса при смене
   // release.volume — накопленный отпуск за смену, обнуляется при открытии новой
   // Когда значение падает (новая смена), предыдущее максимальное — это итог предыдущей смены
+  // ВАЖНО: releases[0] — накопление ДО начала периода (смена могла начаться раньше), вычитаем
+  const initialRelease = releases[0];
   let totalRelease = 0;
   let prevRelease = releases[0];
   for (let i = 1; i < releases.length; i++) {
@@ -145,6 +147,8 @@ export function calculateStats(history: TankHistoryRecord[]): TankHistoryStats {
   }
   // Добавляем текущее значение последней (незакрытой) смены
   totalRelease += prevRelease;
+  // Вычитаем накопление до начала периода (первая запись уже содержит отпуск за прошлую часть смены)
+  totalRelease -= initialRelease;
 
   return {
     volume: {

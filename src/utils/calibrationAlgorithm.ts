@@ -32,25 +32,6 @@ interface CalibrationDataPoint {
   temperature?: number;   // Температура (опционально)
 }
 
-/**
- * Поступление топлива для обработки
- */
-interface ProcessedReceipt {
-  time: number;           // Временная метка
-  volume: number;         // Объем поступления в литрах
-  tankNumber: number;     // Номер резервуара
-}
-
-/**
- * Сегмент данных между поступлениями
- */
-interface DataSegment {
-  startTime: number;
-  endTime: number;
-  startVolume: number;
-  startLevel: number;
-  points: CalibrationDataPoint[];
-}
 
 /**
  * Диагностическая информация для отладки
@@ -324,7 +305,7 @@ export function buildGeometricCalibrationTable(
     table,
     data_points_count: table.length,
     filtered_points_count: table.length,
-    method_used: 'geometric' as CalibrationMethod,
+    method_used: 'direct_interpolation',
     quality_metrics: {
       r_squared: 1.0,
       rmse: 0,
@@ -440,10 +421,10 @@ export function calculateCalibrationTable(
   }
 
   // 3. Построение калибровочной таблицы с привязкой к опорной точке
-  const table = buildCalibrationTable(filteredPoints, settings, diagnostics.referencePoint);
+  const table = buildCalibrationTable(filteredPoints, settings, diagnostics.referencePoint, diagnostics.warnings);
 
   // 4. Вычисление метрик качества
-  const quality_metrics = calculateQualityMetrics(filteredPoints, table, settings.calibration_method);
+  const quality_metrics = calculateQualityMetrics(filteredPoints, table, settings.calibration_method, diagnostics.warnings);
 
   return {
     table,
@@ -557,6 +538,7 @@ function calculateFromSingleReferencePoint(
   // Находим опорную точку - просто МАКСИМАЛЬНЫЙ уровень в периоде
   let referencePoint: { time: number; level_mm: number; volume: number; temperature?: number } | null = null;
   let maxLevel = -1;
+  let refSourceUsed = 'geometry';
 
   for (const record of parsedHistory) {
     // Проверяем слепую зону
@@ -564,7 +546,6 @@ function calculateFromSingleReferencePoint(
 
     // Просто ищем максимальный уровень
     if (record.level_mm > maxLevel) {
-      maxLevel = record.level_mm;
       maxLevel = record.level_mm;
 
       let referenceVolume = 0;
@@ -607,9 +588,7 @@ function calculateFromSingleReferencePoint(
         temperature: record.temperature
       };
 
-      // Сохраняем информацию об использованном источнике для диагностики (только для финальной точки)
-      // Но так как мы в цикле, это будет перезаписываться. 
-      // Мы добавим это в diagnostics после цикла, когда определимся с финальной точкой.
+      refSourceUsed = sourceUsed;
     }
   }
 
@@ -627,8 +606,12 @@ function calculateFromSingleReferencePoint(
     return [];
   }
 
+  const sourceLabel = refSourceUsed === 'manual' ? 'вручную'
+    : refSourceUsed === 'current_table' ? 'из таблицы'
+    : refSourceUsed === 'geometry_fallback' ? 'геометрия (фоллбек)'
+    : 'геометрия';
   diagnostics.warnings.push(
-    `⭐ Опорная точка: уровень ${refLevelMm.toFixed(0)} мм (физ.), объём ${refVolume.toFixed(0)} л (геометрия)`
+    `⭐ Опорная точка: уровень ${refLevelMm.toFixed(0)} мм (физ.), объём ${refVolume.toFixed(0)} л (${sourceLabel})`
   );
 
   diagnostics.referencePoint = {
@@ -793,219 +776,6 @@ function calculateFromSingleReferencePoint(
   return result;
 }
 
-/**
- * Создание сегментов между поступлениями
- */
-function createSegmentsBetweenReceipts(
-  sortedHistory: TankHistoryRecord[],
-  receipts: ProcessedReceipt[],
-  settings: TankCalibrationSettings
-): DataSegment[] {
-
-  const segments: DataSegment[] = [];
-  const restTimeMs = settings.tank_rest_time_minutes * 60 * 1000;
-
-  let currentSegmentStart = 0;
-
-  for (const receipt of receipts) {
-    // Найти точки ДО поступления
-    const pointsBeforeReceipt = sortedHistory.filter((r, idx) => {
-      const time = new Date(r.dt).getTime();
-      return idx >= currentSegmentStart && time < receipt.time;
-    });
-
-    if (pointsBeforeReceipt.length > 0) {
-      const firstPoint = pointsBeforeReceipt[0];
-      const lastPoint = pointsBeforeReceipt[pointsBeforeReceipt.length - 1];
-
-      segments.push({
-        startTime: new Date(firstPoint.dt).getTime(),
-        endTime: new Date(lastPoint.dt).getTime(),
-        startVolume: parseFloat(firstPoint.volume),
-        startLevel: parseFloat(firstPoint.level) * 10,
-        points: pointsBeforeReceipt.map(r => ({
-          level_mm: parseFloat(r.level) * 10,
-          volume_liters: parseFloat(r.volume),
-          timestamp: new Date(r.dt).getTime(),
-          temperature: parseFloat(r.temperature)
-        }))
-      });
-    }
-
-    // Найти первую стабильную точку ПОСЛЕ поступления (с учётом времени покоя)
-    const stableTimeAfterReceipt = receipt.time + restTimeMs;
-    const startAfterReceipt = sortedHistory.findIndex(r => {
-      const time = new Date(r.dt).getTime();
-      return time >= stableTimeAfterReceipt;
-    });
-
-    if (startAfterReceipt >= 0) {
-      currentSegmentStart = startAfterReceipt;
-    }
-  }
-
-  // Добавить последний сегмент (после последнего поступления)
-  const remainingHistory = sortedHistory.slice(currentSegmentStart);
-  if (remainingHistory.length > 0) {
-    const firstPoint = remainingHistory[0];
-    const lastPoint = remainingHistory[remainingHistory.length - 1];
-
-    segments.push({
-      startTime: new Date(firstPoint.dt).getTime(),
-      endTime: new Date(lastPoint.dt).getTime(),
-      startVolume: parseFloat(firstPoint.volume),
-      startLevel: parseFloat(firstPoint.level) * 10,
-      points: remainingHistory.map(r => ({
-        level_mm: parseFloat(r.level) * 10,
-        volume_liters: parseFloat(r.volume),
-        timestamp: new Date(r.dt).getTime(),
-        temperature: parseFloat(r.temperature)
-      }))
-    });
-  }
-
-  return segments;
-}
-
-/**
- * Обработка сегмента - расчёт объёмов с учётом отпусков
- */
-function processSegment(
-  segment: DataSegment,
-  transactions: { time: number; quantity: number }[],
-  settings: TankCalibrationSettings,
-  diagnostics: CalibrationDiagnostics
-): CalibrationDataPoint[] {
-
-  const result: CalibrationDataPoint[] = [];
-
-  // Фильтруем транзакции для этого сегмента
-  const segmentTransactions = transactions.filter(
-    tx => tx.time >= segment.startTime && tx.time <= segment.endTime
-  );
-
-  // Стартовые значения
-  let cumulativeRelease = 0;
-  let lastProcessedTime = segment.startTime;
-
-  for (const point of segment.points) {
-    // Проверка на слепую зону
-    if (isInBlindZone(point.level_mm, settings)) {
-      diagnostics.blindZonesFiltered++;
-      continue;
-    }
-
-    // Суммируем все отпуски между последней обработанной точкой и текущей
-    for (const tx of segmentTransactions) {
-      if (tx.time > lastProcessedTime && tx.time <= point.timestamp) {
-        cumulativeRelease += tx.quantity;
-      }
-    }
-
-    // Рассчитываем скорректированный объём
-    let calculatedVolume = segment.startVolume - cumulativeRelease;
-
-    // Температурная коррекция (приведение к базовой температуре)
-    if (point.temperature && !isNaN(point.temperature)) {
-      calculatedVolume = normalizeVolumeToBaseTemperature(calculatedVolume, point.temperature, settings);
-      diagnostics.temperatureCorrectionApplied = true;
-    }
-
-    // Коррекция на мёртвый остаток
-    const adjustedVolume = adjustForDeadStock(calculatedVolume, settings);
-
-    // Проверка на отрицательный объём (индикатор ошибки)
-    if (adjustedVolume < 0) {
-      diagnostics.warnings.push(
-        `Отрицательный объём (${adjustedVolume.toFixed(1)} л) на уровне ${point.level_mm} мм - возможно пропущено поступление`
-      );
-      continue; // Пропускаем ошибочную точку
-    }
-
-    result.push({
-      level_mm: point.level_mm,
-      volume_liters: adjustedVolume,
-      timestamp: point.timestamp,
-      temperature: point.temperature
-    });
-
-    lastProcessedTime = point.timestamp;
-  }
-
-  return result;
-}
-
-/**
- * Обработка без поступлений (fallback для старого алгоритма)
- */
-function processSegmentWithoutReceipts(
-  sortedHistory: TankHistoryRecord[],
-  transactions: { time: number; quantity: number }[],
-  settings: TankCalibrationSettings,
-  diagnostics: CalibrationDiagnostics
-): CalibrationDataPoint[] {
-
-  // Находим лучшую стартовую точку - после значительного повышения уровня
-  // (что может указывать на незарегистрированное поступление)
-  let bestStartIndex = 0;
-  let maxLevelJump = 0;
-
-  for (let i = 1; i < sortedHistory.length; i++) {
-    const prevLevel = parseFloat(sortedHistory[i - 1].level);
-    const currLevel = parseFloat(sortedHistory[i].level);
-    const levelJump = currLevel - prevLevel;
-
-    // Ищем резкий рост уровня (>5% от диаметра)
-    if (levelJump > settings.tank_diameter_mm * 0.05 / 10) {
-      if (levelJump > maxLevelJump) {
-        maxLevelJump = levelJump;
-        bestStartIndex = i;
-      }
-    }
-  }
-
-  // Если не нашли скачок - начинаем с точки максимального уровня
-  if (bestStartIndex === 0) {
-    let maxLevel = parseFloat(sortedHistory[0].level);
-    for (let i = 1; i < sortedHistory.length; i++) {
-      const level = parseFloat(sortedHistory[i].level);
-      if (!isNaN(level) && level > maxLevel) {
-        maxLevel = level;
-        bestStartIndex = i;
-      }
-    }
-  }
-
-  // Ждём стабилизации уровня
-  const restTimeMs = settings.tank_rest_time_minutes * 60 * 1000;
-  const startTime = new Date(sortedHistory[bestStartIndex].dt).getTime();
-
-  // Находим первую точку после стабилизации
-  let stableStartIndex = bestStartIndex;
-  for (let i = bestStartIndex; i < sortedHistory.length; i++) {
-    const time = new Date(sortedHistory[i].dt).getTime();
-    if (time >= startTime + restTimeMs) {
-      stableStartIndex = i;
-      break;
-    }
-  }
-
-  const segment: DataSegment = {
-    startTime: new Date(sortedHistory[stableStartIndex].dt).getTime(),
-    endTime: new Date(sortedHistory[sortedHistory.length - 1].dt).getTime(),
-    startVolume: parseFloat(sortedHistory[stableStartIndex].volume),
-    startLevel: parseFloat(sortedHistory[stableStartIndex].level) * 10,
-    points: sortedHistory.slice(stableStartIndex).map(r => ({
-      level_mm: parseFloat(r.level) * 10,
-      volume_liters: parseFloat(r.volume),
-      timestamp: new Date(r.dt).getTime(),
-      temperature: parseFloat(r.temperature)
-    }))
-  };
-
-  return processSegment(segment, transactions, settings, diagnostics);
-}
-
 // ============================================================================
 // ФИЛЬТРАЦИЯ ДАННЫХ (УЛУЧШЕННАЯ)
 // ============================================================================
@@ -1027,7 +797,7 @@ function filterDataPointsImproved(
 
   // 1. Фильтр выбросов по σ-методу (относительно ТРЕНДА, не среднего)
   if (settings.outlier_filter_enabled) {
-    filtered = filterOutliersByTrend(filtered, settings.outlier_filter_sigma);
+    filtered = filterOutliersByTrend(filtered, settings.outlier_filter_sigma ?? 2.0);
   }
 
   // 2. Фильтрация резких скачков (относительно локального тренда)
@@ -1123,9 +893,14 @@ function filterByLocalTrend(
     const actualVolume = sorted[i].volume_liters;
 
     // Отклонение в процентах
-    const deviationPercent = expectedVolume !== 0
-      ? Math.abs((actualVolume - expectedVolume) / expectedVolume) * 100
-      : 0;
+    let deviationPercent: number;
+    if (Math.abs(expectedVolume) < 1) {
+      // При околонулевом ожидаемом объёме используем абсолютное сравнение
+      // Порог 10 л — допустимый абсолютный шум для нулевого уровня
+      deviationPercent = Math.abs(actualVolume) > 10 ? maxDeviationPercent + 1 : 0;
+    } else {
+      deviationPercent = Math.abs((actualVolume - expectedVolume) / expectedVolume) * 100;
+    }
 
     if (deviationPercent <= maxDeviationPercent) {
       result.push(sorted[i]);
@@ -1151,7 +926,7 @@ function filterDataPoints(
     const variance = volumes.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / volumes.length;
     const std = Math.sqrt(variance);
 
-    const sigma = settings.outlier_filter_sigma;
+    const sigma = settings.outlier_filter_sigma ?? 2.0;
     const lower_bound = mean - sigma * std;
     const upper_bound = mean + sigma * std;
 
@@ -1176,7 +951,8 @@ function filterDataPoints(
 function buildCalibrationTable(
   points: CalibrationDataPoint[],
   settings: TankCalibrationSettings,
-  referencePoint?: { level_mm: number; volume_liters: number }
+  referencePoint?: { level_mm: number; volume_liters: number },
+  warnings?: string[]
 ): CalibrationTablePoint[] {
 
   const validPoints = points.filter(p =>
@@ -1196,6 +972,14 @@ function buildCalibrationTable(
   const max_level = Math.max(...levels);
 
   const step = settings.calibration_step_mm || 100;
+
+  if (step <= 0) {
+    throw new Error('calibration_step_mm должен быть > 0');
+  }
+  if (max_level <= 0) {
+    throw new Error('Максимальный уровень данных должен быть > 0');
+  }
+
   const table: CalibrationTablePoint[] = [];
   const start_level = Math.floor(min_level / step) * step;
 
@@ -1214,10 +998,17 @@ function buildCalibrationTable(
 
   for (let level = start_level; level <= max_level; level += step) {
     const volume = interpolateVolume(level, validPoints, settings.calibration_method);
+    const interpolatedVolume = volume + offset;
+
+    if (interpolatedVolume < 0 && warnings) {
+      warnings.push(
+        `⚠️ Отрицательный интерполированный объём (${interpolatedVolume.toFixed(1)} л) на уровне ${level} мм — обнулён`
+      );
+    }
 
     table.push({
       level_mm: level,
-      volume_liters: Math.max(0, volume + offset)  // Применяем смещение
+      volume_liters: Math.max(0, interpolatedVolume)
     });
   }
 
@@ -1238,9 +1029,6 @@ function interpolateVolume(
 ): number {
 
   switch (method) {
-    case 'linear_regression':
-      return linearRegressionInterpolate(level, points);
-
     case 'least_squares':
       return leastSquaresInterpolate(level, points);
 
@@ -1251,7 +1039,8 @@ function interpolateVolume(
       return directInterpolate(level, points);
 
     default:
-      return linearRegressionInterpolate(level, points);
+      // Fallback для устаревших значений (например 'linear_regression')
+      return leastSquaresInterpolate(level, points);
   }
 }
 
@@ -1307,8 +1096,7 @@ function leastSquaresInterpolate(
 
   const n = validPoints.length;
 
-  // Если точек мало, используем линейную регрессию
-  if (n < 6) {
+  if (n < 4) {
     return linearRegressionInterpolate(level, validPoints);
   }
 
@@ -1319,57 +1107,79 @@ function leastSquaresInterpolate(
   const stdX = Math.sqrt(validPoints.reduce((s, p) => s + (p.level_mm - meanX) ** 2, 0) / n) || 1;
   const stdY = Math.sqrt(validPoints.reduce((s, p) => s + (p.volume_liters - meanY) ** 2, 0) / n) || 1;
 
-  // Нормализованные данные
   const normalized = validPoints.map(p => ({
     x: (p.level_mm - meanX) / stdX,
     y: (p.volume_liters - meanY) / stdY
   }));
 
-  // Формируем систему нормальных уравнений для квадратичной регрессии
-  // y = a*x^2 + b*x + c
-  let S0 = n, S1 = 0, S2 = 0, S3 = 0, S4 = 0;
-  let T0 = 0, T1 = 0, T2 = 0;
+  // КУБИЧЕСКАЯ регрессия: y = a₃x³ + a₂x² + a₁x + a₀
+  // Система нормальных уравнений 4×4 (метод Гаусса)
+  const degree = 3;
+  const size = degree + 1; // 4
+
+  // Суммы степеней x: S[k] = Σ xᵢᵏ
+  const S: number[] = new Array(2 * degree + 1).fill(0);
+  // Правая часть: T[k] = Σ xᵢᵏ * yᵢ
+  const T: number[] = new Array(size).fill(0);
 
   for (const p of normalized) {
-    const x = p.x;
-    const y = p.y;
-    const x2 = x * x;
-    const x3 = x2 * x;
-    const x4 = x2 * x2;
-
-    S1 += x;
-    S2 += x2;
-    S3 += x3;
-    S4 += x4;
-    T0 += y;
-    T1 += x * y;
-    T2 += x2 * y;
+    let xpow = 1;
+    for (let k = 0; k <= 2 * degree; k++) {
+      S[k] += xpow;
+      if (k <= degree) T[k] += xpow * p.y;
+      xpow *= p.x;
+    }
   }
 
-  // Матрица системы:
-  // | S0  S1  S2 | | c |   | T0 |
-  // | S1  S2  S3 | | b | = | T1 |
-  // | S2  S3  S4 | | a |   | T2 |
-
-  // Решение методом Крамера
-  const det = S0 * (S2 * S4 - S3 * S3) - S1 * (S1 * S4 - S3 * S2) + S2 * (S1 * S3 - S2 * S2);
-
-  if (Math.abs(det) < 1e-10) {
-    // Матрица вырождена - используем линейную регрессию
-    return linearRegressionInterpolate(level, validPoints);
+  // Матрица системы (augmented)
+  const A: number[][] = [];
+  for (let row = 0; row < size; row++) {
+    A[row] = [];
+    for (let col = 0; col < size; col++) {
+      A[row][col] = S[row + col];
+    }
+    A[row][size] = T[row];
   }
 
-  const det_c = T0 * (S2 * S4 - S3 * S3) - S1 * (T1 * S4 - S3 * T2) + S2 * (T1 * S3 - S2 * T2);
-  const det_b = S0 * (T1 * S4 - S3 * T2) - T0 * (S1 * S4 - S3 * S2) + S2 * (S1 * T2 - T1 * S2);
-  const det_a = S0 * (S2 * T2 - T1 * S3) - S1 * (S1 * T2 - T1 * S2) + T0 * (S1 * S3 - S2 * S2);
+  // Решение методом Гаусса с частичным выбором ведущего элемента
+  for (let col = 0; col < size; col++) {
+    // Поиск максимального элемента в столбце
+    let maxRow = col;
+    for (let row = col + 1; row < size; row++) {
+      if (Math.abs(A[row][col]) > Math.abs(A[maxRow][col])) maxRow = row;
+    }
+    [A[col], A[maxRow]] = [A[maxRow], A[col]];
 
-  const c_norm = det_c / det;
-  const b_norm = det_b / det;
-  const a_norm = det_a / det;
+    if (Math.abs(A[col][col]) < 1e-12) {
+      return linearRegressionInterpolate(level, validPoints);
+    }
 
-  // Денормализация результата
+    for (let row = col + 1; row < size; row++) {
+      const factor = A[row][col] / A[col][col];
+      for (let j = col; j <= size; j++) {
+        A[row][j] -= factor * A[col][j];
+      }
+    }
+  }
+
+  // Обратный ход
+  const coeffs: number[] = new Array(size).fill(0);
+  for (let row = size - 1; row >= 0; row--) {
+    let sum = A[row][size];
+    for (let col = row + 1; col < size; col++) {
+      sum -= A[row][col] * coeffs[col];
+    }
+    coeffs[row] = sum / A[row][row];
+  }
+
+  // Вычисление: y = a₀ + a₁x + a₂x² + a₃x³
   const x_norm = (level - meanX) / stdX;
-  const y_norm = a_norm * x_norm * x_norm + b_norm * x_norm + c_norm;
+  let y_norm = 0;
+  let xpow = 1;
+  for (let k = 0; k < size; k++) {
+    y_norm += coeffs[k] * xpow;
+    xpow *= x_norm;
+  }
 
   return y_norm * stdY + meanY;
 }
@@ -1511,7 +1321,8 @@ function directInterpolate(
 function calculateQualityMetrics(
   points: CalibrationDataPoint[],
   table: CalibrationTablePoint[],
-  method: CalibrationMethod
+  method: CalibrationMethod,
+  warnings?: string[]
 ): {
   r_squared: number;
   rmse: number;
@@ -1546,8 +1357,18 @@ function calculateQualityMetrics(
       }
     }
 
-    // Экстраполяция за пределами таблицы
-    if (point.level_mm < table[0].level_mm) {
+    // Линейная экстраполяция за пределами таблицы
+    if (point.level_mm < table[0].level_mm && table.length >= 2) {
+      const p1 = table[0];
+      const p2 = table[1];
+      const slope = (p2.volume_liters - p1.volume_liters) / (p2.level_mm - p1.level_mm);
+      predicted = p1.volume_liters + slope * (point.level_mm - p1.level_mm);
+    } else if (point.level_mm > table[table.length - 1].level_mm && table.length >= 2) {
+      const p1 = table[table.length - 2];
+      const p2 = table[table.length - 1];
+      const slope = (p2.volume_liters - p1.volume_liters) / (p2.level_mm - p1.level_mm);
+      predicted = p2.volume_liters + slope * (point.level_mm - p2.level_mm);
+    } else if (point.level_mm < table[0].level_mm) {
       predicted = table[0].volume_liters;
     } else if (point.level_mm > table[table.length - 1].level_mm) {
       predicted = table[table.length - 1].volume_liters;
@@ -1570,6 +1391,12 @@ function calculateQualityMetrics(
   const ssTot = actualValues.reduce((sum, val) => sum + Math.pow(val - meanActual, 2), 0);
   const ssRes = errors.reduce((sum, err) => sum + err * err, 0);
   const rSquared = ssTot > 0 ? 1 - (ssRes / ssTot) : 0;
+
+  if (rSquared < 0 && warnings) {
+    warnings.push(
+      `⚠️ R² отрицательный (${rSquared.toFixed(4)}) — модель хуже среднего значения, проверьте данные`
+    );
+  }
 
   return {
     r_squared: Math.max(0, Math.min(1, rSquared)),

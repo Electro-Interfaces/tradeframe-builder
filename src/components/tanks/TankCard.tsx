@@ -22,7 +22,6 @@ import type { Tank, TankStatus } from "@/types/tanks";
 interface TankCardProps {
   tank: Tank;
   isMobile: boolean;
-  canManageTanks?: boolean;
 }
 
 /**
@@ -41,7 +40,7 @@ function getTankStatus(percentage: number, minLevel: number, criticalLevel: numb
   return 'critical';
 }
 
-const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardProps) => {
+const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showCalibration, setShowCalibration] = useState(false);
   const currentLevel = tank.currentLevelLiters || 0;
@@ -54,31 +53,29 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
   return (
     <Card className={`bg-gradient-to-br from-card to-card rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm ${isBlocked ? 'border-2 border-red-500 ring-2 ring-red-500/30' : 'border border-border/50'}`}>
       <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : 'pb-4'}>
-        {/* Кнопки действий - доступны пользователям с правами управления резервуарами */}
-        {canManageTanks && (
-          <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'} mb-3`}>
-            <Button
-              variant="outline"
-              size={isMobile ? 'sm' : 'default'}
-              className="flex-1 hover:bg-accent/50"
-              onClick={() => setShowAnalysis(true)}
-            >
-              <LineChart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-              {!isMobile && 'Детальный анализ'}
-              {isMobile && 'Анализ'}
-            </Button>
+        {/* Кнопки действий — доступны всем авторизованным пользователям */}
+        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'} mb-3`}>
+          <Button
+            variant="outline"
+            size={isMobile ? 'sm' : 'default'}
+            className="flex-1 hover:bg-accent/50"
+            onClick={() => setShowAnalysis(true)}
+          >
+            <LineChart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+            {!isMobile && 'Детальный анализ'}
+            {isMobile && 'Анализ'}
+          </Button>
 
-            <Button
-              variant="outline"
-              size={isMobile ? 'sm' : 'default'}
-              className="flex-1 hover:bg-accent/50"
-              onClick={() => setShowCalibration(true)}
-            >
-              <Settings className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-              Параметры
-            </Button>
-          </div>
-        )}
+          <Button
+            variant="outline"
+            size={isMobile ? 'sm' : 'default'}
+            className="flex-1 hover:bg-accent/50"
+            onClick={() => setShowCalibration(true)}
+          >
+            <Settings className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+            Параметры
+          </Button>
+        </div>
 
         {/* Баннер блокировки отпуска */}
         {isBlocked && (

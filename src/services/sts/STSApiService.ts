@@ -14,8 +14,8 @@ import type {
   Transaction,
 } from './types';
 
-// Маппинг видов топлива к кодам услуг
-const FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = {
+// Fallback-маппинг видов топлива (используется пока не загружен справочник из API)
+const DEFAULT_FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = {
   'АИ-92': '2',
   'АИ-95': '3',
   'АИ-98': '4',
@@ -24,8 +24,7 @@ const FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = {
   'ДТ Евро': '7'
 };
 
-// Обратный маппинг кодов услуг к видам топлива
-const SERVICE_CODE_TO_FUEL_TYPE: Record<string, string> = {
+const DEFAULT_SERVICE_CODE_TO_FUEL_TYPE: Record<string, string> = {
   '2': 'АИ-92',
   '3': 'АИ-95',
   '4': 'АИ-98',
@@ -34,12 +33,67 @@ const SERVICE_CODE_TO_FUEL_TYPE: Record<string, string> = {
   '7': 'ДТ Евро'
 };
 
+// Динамические маппинги — заполняются из GET /v1/services
+let FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = { ...DEFAULT_FUEL_TYPE_TO_SERVICE_CODE };
+let SERVICE_CODE_TO_FUEL_TYPE: Record<string, string> = { ...DEFAULT_SERVICE_CODE_TO_FUEL_TYPE };
+let servicesLoaded = false;
+let servicesLoadPromise: Promise<void> | null = null;
+
 class STSApiService {
   private config: STSApiConfig | null = null;
   private tokenRefreshPromise: Promise<boolean> | null = null; // Кэш промиса обновления токена
 
   constructor() {
     this.loadConfig();
+  }
+
+  /**
+   * Загружает справочник услуг из GET /v1/services и обновляет маппинги.
+   * Вызывается лениво при первом обращении к маппингу.
+   * При ошибке — используются fallback-значения.
+   */
+  async loadServicesMap(systemId?: string): Promise<void> {
+    if (servicesLoaded) return;
+    if (servicesLoadPromise) return servicesLoadPromise;
+
+    servicesLoadPromise = (async () => {
+      try {
+        const origin = window.location.origin;
+        const url = new URL(`${origin}/api/sts/v1/services`);
+        if (systemId) url.searchParams.set('system', systemId);
+
+        const response = await fetch(url.toString(), {
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (!response.ok) return;
+
+        const services: Array<{ service_code: number; service_name: string }> = await response.json();
+        if (!Array.isArray(services) || services.length === 0) return;
+
+        const fuelToCode: Record<string, string> = {};
+        const codeToFuel: Record<string, string> = {};
+
+        for (const svc of services) {
+          const code = String(svc.service_code);
+          const name = svc.service_name;
+          fuelToCode[name] = code;
+          codeToFuel[code] = name;
+        }
+
+        FUEL_TYPE_TO_SERVICE_CODE = { ...DEFAULT_FUEL_TYPE_TO_SERVICE_CODE, ...fuelToCode };
+        SERVICE_CODE_TO_FUEL_TYPE = { ...DEFAULT_SERVICE_CODE_TO_FUEL_TYPE, ...codeToFuel };
+        servicesLoaded = true;
+        console.log(`[STS] Справочник услуг загружен: ${services.length} записей`);
+      } catch (error) {
+        console.warn('[STS] Не удалось загрузить справочник услуг, используются значения по умолчанию:', error);
+      } finally {
+        servicesLoadPromise = null;
+      }
+    })();
+
+    return servicesLoadPromise;
   }
 
   private loadConfig(): void {
@@ -1426,6 +1480,9 @@ class STSApiService {
     try {
       const endpoint = '/v1/prices';
 
+      // Загружаем справочник услуг если ещё не загружен
+      await this.loadServicesMap(contextParams?.networkId);
+
       // Преобразуем массив цен в объект с кодами услуг согласно спецификации API
       const pricesObject: Record<string, number> = {};
       const unmappedFuelTypes: string[] = [];
@@ -1520,6 +1577,9 @@ class STSApiService {
     try {
       // Обновляем токен перед запросом
       await this.refreshTokenIfNeeded(true);
+
+      // Загружаем справочник услуг если ещё не загружен
+      await this.loadServicesMap(String(networkNumber));
 
       // Если дата не передана, используем 01.09.2025
       const dateFrom = startDate || '2025-09-01T00:00:00';
