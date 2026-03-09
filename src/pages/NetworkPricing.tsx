@@ -8,6 +8,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNetworkPrices } from "@/hooks/useNetworkPrices";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,19 @@ export default function NetworkPricing() {
     networks: selectedNetworks,
     autoLoad: true,
     filterPeriod: selectedPeriod
+  });
+
+  // Pull-to-refresh для мобильных
+  const handleRefreshData = async () => {
+    await refresh();
+  };
+
+  const { pullState, pullDistance, scrollContainerRef } = usePullToRefresh({
+    onRefresh: handleRefreshData,
+    enabled: isMobile,
+    pullThreshold: 80,
+    maxPullDistance: 120,
+    indicatorAppearThreshold: 30
   });
 
   // Loading state пока контекст не инициализирован
@@ -81,7 +95,23 @@ export default function NetworkPricing() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className={`w-full ${isMobile ? 'space-y-3 px-3 py-3' : 'space-y-6 px-4 md:px-6 lg:px-8 py-6'}`}>
+      <div ref={scrollContainerRef} data-pull-to-refresh="true" className={`w-full ${isMobile ? 'space-y-3 px-3 py-3' : 'space-y-6 px-4 md:px-6 lg:px-8 py-6'}`}>
+
+        {/* Pull-to-refresh индикатор */}
+        {isMobile && pullState !== 'idle' && pullDistance >= 30 && (
+          <div className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
+            style={{ transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`, opacity: Math.min(1, (pullDistance - 30) / 40) }}>
+            <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
+              {pullState === 'refreshing' ? (
+                <><RefreshCw className="w-4 h-4 animate-spin text-blue-500" /><span className="text-sm font-medium">Обновление...</span></>
+              ) : pullState === 'canRefresh' ? (
+                <><div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm font-medium text-green-600">Отпустите для обновления</span></>
+              ) : (
+                <><div className="w-4 h-4 border-2 border-border border-t-blue-500 rounded-full" style={{ transform: `rotate(${pullDistance * 3}deg)` }} /><span className="text-sm font-medium">Потяните для обновления</span></>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Заголовок */}
         <div className={`${isMobile ? 'mb-3' : 'mb-6 pt-4'}`}>

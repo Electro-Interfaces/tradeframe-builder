@@ -2,13 +2,17 @@
  * ShiftDashboard - Дашборд аналитики сменных отчетов
  */
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useDashboardPeriod } from "@/hooks/useDashboardPeriod";
 import { useShiftDashboard } from "@/hooks/useShiftDashboard";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { extractStationNumber } from "@/utils/tradingPointUtils";
 import { getSystemId } from "@/config/stsConfig";
+import { PULL_TO_REFRESH_CONFIG } from "@/config/pullToRefresh";
+import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -32,6 +36,7 @@ import { PaymentMethodsChart } from "@/components/shift-dashboard/PaymentMethods
 
 export default function ShiftDashboard() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, selectedTradingPoints } = useSelection();
 
   // Состояние для станций при выборе "все точки"
@@ -132,6 +137,20 @@ export default function ShiftDashboard() {
     enabled: stations.length > 0 && !loadingStations,
   });
 
+  // Обёртка для pull-to-refresh (refetch возвращает Promise из react-query)
+  const refreshData = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
+  // Pull-to-refresh для мобильных
+  const { pullState, pullDistance, scrollContainerRef } = usePullToRefresh({
+    onRefresh: refreshData,
+    enabled: isMobile,
+    pullThreshold: PULL_TO_REFRESH_CONFIG.PULL_THRESHOLD,
+    maxPullDistance: PULL_TO_REFRESH_CONFIG.MAX_PULL_DISTANCE,
+    indicatorAppearThreshold: PULL_TO_REFRESH_CONFIG.INDICATOR_APPEAR_THRESHOLD,
+  });
+
   // Список всех смен для фильтра
   const allShiftsForFilter = useMemo(() => {
     const shifts = (data?.meta as any)?.allShifts || data?.shifts || [];
@@ -170,11 +189,11 @@ export default function ShiftDashboard() {
   if (!selectedStation && !isAllTradingPoints) {
     return (
       <MainLayout fullWidth={true}>
-        <div className="w-full h-full px-4 md:px-6 lg:px-8 py-8">
+        <div className={`w-full h-full py-8 ${isMobile ? 'px-3' : 'px-4 md:px-6 lg:px-8'}`}>
           <div className="flex flex-col items-center justify-center h-64 bg-card rounded-xl border border-border">
             <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
-            <p className="text-lg text-foreground/80 mb-2">Выберите торговую точку</p>
-            <p className="text-sm text-muted-foreground">Для отображения дашборда необходимо выбрать торговую точку</p>
+            <p className={`text-foreground/80 mb-2 ${isMobile ? 'text-base' : 'text-lg'}`}>Выберите торговую точку</p>
+            <p className="text-sm text-muted-foreground text-center px-4">Для отображения дашборда необходимо выбрать торговую точку</p>
           </div>
         </div>
       </MainLayout>
@@ -183,7 +202,18 @@ export default function ShiftDashboard() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
+      <div
+        ref={scrollContainerRef}
+        data-pull-to-refresh="true"
+        className={`w-full h-full relative overflow-x-hidden ${isMobile ? 'px-3' : 'px-4 md:px-6 lg:px-8'}`}
+        style={{
+          transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
+          transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none',
+        }}
+      >
+        {/* Pull-to-refresh индикатор */}
+        {isMobile && <PullToRefreshIndicator pullState={pullState} pullDistance={pullDistance} />}
+
         {/* Заголовок */}
         <div className="mb-4 sm:mb-6 pt-2 sm:pt-4 flex flex-col gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -197,9 +227,8 @@ export default function ShiftDashboard() {
               <span className="hidden sm:inline">Назад к сменам</span>
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-semibold text-foreground truncate">
-                <span className="hidden sm:inline">Дашборд аналитики по сменным отчетам</span>
-                <span className="sm:hidden">Аналитика смен</span>
+              <h1 className={`font-semibold text-foreground truncate ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                {isMobile ? 'Аналитика смен' : 'Дашборд аналитики по сменным отчетам'}
               </h1>
               <div className="flex items-center gap-2">
                 <p className="text-xs sm:text-sm text-muted-foreground truncate">

@@ -28,6 +28,7 @@ import { normalizePaymentMethod } from "@/utils/paymentUtils";
 import { todayString, daysAgoString } from "@/utils/dateUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
@@ -95,8 +96,6 @@ export default function OperationsTransactionsPageSimple() {
     searchQuery: debouncedSearchQuery
   } = debouncedFilters;
 
-  // Определяем режим отображения на основе размера экрана
-  const isMobileForced = isMobile;
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -120,13 +119,6 @@ export default function OperationsTransactionsPageSimple() {
   // Состояние раскрытия фильтров
   const [filtersOpen, setFiltersOpen] = useState(true);
 
-  
-  // Pull-to-refresh состояния
-  const [pullState, setPullState] = useState('idle');
-  const [pullDistance, setPullDistance] = useState(0);
-  const startTouchRef = useRef(null);
-  const rafId = useRef(null);
-  const scrollContainerRef = useRef(null);
   const lastAutoLoadKeyRef = useRef<string | null>(null);
   const currentRequestIdRef = useRef(0);
 
@@ -590,148 +582,22 @@ export default function OperationsTransactionsPageSimple() {
     return filteredOperations.slice(startIndex, endIndex);
   }, [filteredOperations, currentPage, itemsPerPage]);
 
-  // Pull-to-refresh константы и функции
-  const PULL_THRESHOLD = 80;
-  const MAX_PULL_DISTANCE = 120;
-  const INDICATOR_APPEAR_THRESHOLD = 30;
-
-  // Pull-to-refresh функционал
+  // Pull-to-refresh через переиспользуемый хук
   const handleRefreshData = async () => {
     if (selectedNetwork && (isAllTradingPoints || selectedTradingPoint)) {
       await loadFromStsApi(true);
     }
   };
 
-  // Функция для вибрации на поддерживаемых устройствах
-  const triggerHapticFeedback = () => {
-    if ('vibrate' in navigator && isMobileForced) {
-      navigator.vibrate(50);
-    }
-  };
+  const INDICATOR_APPEAR_THRESHOLD = 30;
 
-  // Плавное обновление расстояния с throttling через RAF
-  const updatePullDistance = (distance) => {
-    if (rafId.current) {
-      cancelAnimationFrame(rafId.current);
-    }
-
-    rafId.current = requestAnimationFrame(() => {
-      const clampedDistance = Math.min(distance, MAX_PULL_DISTANCE);
-      setPullDistance(clampedDistance);
-
-      // Обновляем состояние на основе расстояния
-      if (clampedDistance >= PULL_THRESHOLD && pullState !== 'canRefresh' && pullState !== 'refreshing') {
-        setPullState('canRefresh');
-        triggerHapticFeedback();
-      } else if (clampedDistance < PULL_THRESHOLD && pullState === 'canRefresh') {
-        setPullState('pulling');
-      }
-    });
-  };
-
-  const handleTouchStart = (e) => {
-    if (!isMobileForced || pullState === 'refreshing') return;
-
-    // Игнорируем touch события от input элементов (датапикеры, поиск)
-    const target = e.target;
-    if (target && (
-      target.tagName === 'INPUT' ||
-      target.tagName === 'SELECT' ||
-      target.tagName === 'TEXTAREA' ||
-      target.closest('input') ||
-      target.closest('select') ||
-      target.closest('[role="combobox"]') ||
-      target.closest('.date-input') ||
-      target.closest('.search-input')
-    )) {
-      return;
-    }
-
-    const container = scrollContainerRef.current;
-    if (!container || container.scrollTop > 0) return;
-
-    startTouchRef.current = {
-      y: e.touches[0].clientY,
-      time: Date.now()
-    };
-    setPullState('pulling');
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isMobileForced || !startTouchRef.current || pullState === 'refreshing') return;
-
-    // Дополнительная проверка для input элементов
-    const target = e.target;
-    if (target && (
-      target.tagName === 'INPUT' ||
-      target.tagName === 'SELECT' ||
-      target.tagName === 'TEXTAREA' ||
-      target.closest('input') ||
-      target.closest('select')
-    )) {
-      return;
-    }
-
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - startTouchRef.current.y;
-
-    // Только если движение вниз и мы в верху страницы
-    if (deltaY > 0 && container.scrollTop === 0) {
-      e.preventDefault();
-
-      // Применяем эластичность (чем больше тянем, тем медленнее)
-      const elasticity = Math.max(0.5, 1 - (deltaY / MAX_PULL_DISTANCE) * 0.5);
-      const adjustedDistance = deltaY * elasticity;
-
-      updatePullDistance(adjustedDistance);
-    } else if (deltaY <= 0 || container.scrollTop > 0) {
-      // Сбрасываем если движение вверх или начался скролл
-      resetPull();
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    if (!isMobileForced || !startTouchRef.current) return;
-
-    const shouldRefresh = pullState === 'canRefresh';
-
-    if (shouldRefresh) {
-      setPullState('refreshing');
-      triggerHapticFeedback();
-
-      try {
-        await handleRefreshData();
-      } finally {
-        setTimeout(() => {
-          resetPull();
-        }, 300);
-      }
-    } else {
-      resetPull();
-    }
-  };
-
-  const resetPull = () => {
-    setPullState('idle');
-    setPullDistance(0);
-    startTouchRef.current = null;
-    if (rafId.current) {
-      cancelAnimationFrame(rafId.current);
-      rafId.current = null;
-    }
-  };
-
-  // Cleanup RAF при размонтировании компонента
-  useEffect(() => {
-    return () => {
-      if (rafId.current) {
-        cancelAnimationFrame(rafId.current);
-      }
-    };
-  }, []);
+  const { pullState, pullDistance, scrollContainerRef } = usePullToRefresh({
+    onRefresh: handleRefreshData,
+    enabled: isMobile,
+    pullThreshold: 80,
+    maxPullDistance: 120,
+    indicatorAppearThreshold: INDICATOR_APPEAR_THRESHOLD
+  });
 
   // Сброс всех фильтров (включая KPI)
   const handleKpiResetAll = () => {
@@ -819,17 +685,14 @@ export default function OperationsTransactionsPageSimple() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${isMobileForced ? 'pt-4' : 'pt-6'} min-h-screen bg-gradient-to-br from-background via-background to-background`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${isMobile ? 'pt-4' : 'pt-6'} min-h-screen bg-gradient-to-br from-background via-background to-background`}
         style={{
-          transform: isMobileForced && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
+          transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
           transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
         }}
       >
         {/* Стандартный мобильный pull-to-refresh индикатор */}
-        {isMobileForced && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
+        {isMobile && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
           <div
             className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
             style={{
@@ -1025,12 +888,12 @@ export default function OperationsTransactionsPageSimple() {
 
         {/* СТАРЫЙ КОД ФИЛЬТРОВ - УДАЛИТЬ */}
         <div style={{ display: 'none' }}>
-          <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
+          <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
             {/* Верхняя строка - Статус и Поиск */}
-            <div className={`${isMobileForced ? 'space-y-3 mb-4' : 'grid grid-cols-2 gap-6 mb-4'}`}>
+            <div className={`${isMobile ? 'space-y-3 mb-4' : 'grid grid-cols-2 gap-6 mb-4'}`}>
               {/* Статус */}
-              <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
-                {isMobileForced ? (
+              <div className={`${isMobile ? 'flex items-center gap-3 min-w-0' : ''}`}>
+                {isMobile ? (
                   <>
                     <Label htmlFor="status" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">Статус:</Label>
                     <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -1078,8 +941,8 @@ export default function OperationsTransactionsPageSimple() {
               </div>
 
               {/* Поиск */}
-              <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
-                {isMobileForced ? (
+              <div className={`${isMobile ? 'flex items-center gap-3 min-w-0' : ''}`}>
+                {isMobile ? (
                   <>
                     <Label htmlFor="search" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">Поиск:</Label>
                     <Input
@@ -1108,10 +971,10 @@ export default function OperationsTransactionsPageSimple() {
             </div>
 
             {/* Нижняя строка - Даты */}
-            <div className={`${isMobileForced ? 'space-y-3' : 'grid grid-cols-2 gap-6'}`}>
+            <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-2 gap-6'}`}>
               {/* Дата начала */}
-              <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
-                {isMobileForced ? (
+              <div className={`${isMobile ? 'flex items-center gap-3 min-w-0' : ''}`}>
+                {isMobile ? (
                   <>
                     <Label htmlFor="dateFrom" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">С:</Label>
                     <Input
@@ -1142,8 +1005,8 @@ export default function OperationsTransactionsPageSimple() {
               </div>
 
               {/* Дата окончания */}
-              <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
-                {isMobileForced ? (
+              <div className={`${isMobile ? 'flex items-center gap-3 min-w-0' : ''}`}>
+                {isMobile ? (
                   <>
                     <Label htmlFor="dateTo" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">По:</Label>
                     <Input
@@ -1184,10 +1047,10 @@ export default function OperationsTransactionsPageSimple() {
             {/* Карточки по видам топлива — одна строка */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-2">
-                <h3 className={`text-foreground/80 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
+                <h3 className={`text-foreground/80 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
                 <span className="text-xs text-muted-foreground">выберите один или несколько элементов</span>
               </div>
-              <div className={`grid gap-3 ${isMobileForced ? 'grid-cols-2' : ''}`} style={isMobileForced ? undefined : { gridTemplateColumns: `repeat(${Math.min([...new Set(operations.map(op => op.fuelType).filter(Boolean))].length, 6)}, 1fr)` }}>
+              <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : ''}`} style={isMobile ? undefined : { gridTemplateColumns: `repeat(${Math.min([...new Set(operations.map(op => op.fuelType).filter(Boolean))].length, 6)}, 1fr)` }}>
                 {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
                   const filteredFuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
                   const filteredVolume = filteredFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
@@ -1199,7 +1062,7 @@ export default function OperationsTransactionsPageSimple() {
                       key={fuel}
                       fuel={fuel}
                       isSelected={isSelected}
-                      isMobile={isMobileForced}
+                      isMobile={isMobile}
                       volume={filteredVolume}
                       cost={filteredRevenue}
                       transactionCount={filteredFuelOps.length}
@@ -1213,7 +1076,7 @@ export default function OperationsTransactionsPageSimple() {
             {/* Карточки по способам оплаты — топ-4 крупные + остальные мелкие */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-2">
-                <h3 className={`text-foreground/80 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
+                <h3 className={`text-foreground/80 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
                 <span className="text-xs text-muted-foreground">выберите один или несколько элементов</span>
               </div>
               {(() => {
@@ -1254,14 +1117,14 @@ export default function OperationsTransactionsPageSimple() {
                 return (
                   <div className="space-y-3">
                     {/* Топ-4 — крупные карточки */}
-                    <div className={`grid gap-3 ${isMobileForced ? 'grid-cols-2' : 'grid-cols-4'}`}>
+                    <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
                       {topCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
                         <KPIPaymentCard
                           key={key}
                           paymentKey={key}
                           display={display}
                           isSelected={isSelected}
-                          isMobile={isMobileForced}
+                          isMobile={isMobile}
                           volume={filteredVolume}
                           cost={filteredRevenue}
                           transactionCount={filteredPaymentOps.length}
@@ -1300,8 +1163,8 @@ export default function OperationsTransactionsPageSimple() {
             {/* Итоговая карточка */}
             <div className="space-y-2">
               <div className="flex items-center px-2">
-                <h3 className={`text-foreground/80 font-medium ${isMobileForced ? 'text-sm' : 'text-base'} mr-4`}>Итого</h3>
-                {!isMobileForced && (
+                <h3 className={`text-foreground/80 font-medium ${isMobile ? 'text-sm' : 'text-base'} mr-4`}>Итого</h3>
+                {!isMobile && (
                   <span className="text-sm">
                     {(() => {
                       const selectedFuels = Array.from(selectedKpiFuels);
@@ -1324,7 +1187,7 @@ export default function OperationsTransactionsPageSimple() {
                   </span>
                 )}
               </div>
-              <div className={`grid ${isMobileForced ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {(() => {
                     const totalOps = filteredOperations.filter(op => op.status === 'completed');
                     const totalVolume = totalOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
@@ -1340,8 +1203,8 @@ export default function OperationsTransactionsPageSimple() {
                         }`}
                         onClick={hasActiveFilters ? handleKpiResetAll : undefined}
                       >
-                        <CardContent className={`${isMobileForced ? 'p-3' : 'p-4'}`}>
-                          {isMobileForced ? (
+                        <CardContent className={`${isMobile ? 'p-3' : 'p-4'}`}>
+                          {isMobile ? (
                             <div className="relative">
                               <div className="flex items-start justify-between mb-1">
                                 <div className="flex-1">
@@ -1404,16 +1267,16 @@ export default function OperationsTransactionsPageSimple() {
 
         {/* Таблица № */}
         {!loading && !loadingFromSTS && (
-          <Card className={`bg-card border border-border rounded-lg shadow-lg ${isMobileForced ? 'mx-0 mt-1' : ''}`}>
-            <CardHeader className={`${isMobileForced ? 'px-3 py-1.5' : 'pb-4'}`}>
+          <Card className={`bg-card border border-border rounded-lg shadow-lg ${isMobile ? 'mx-0 mt-1' : ''}`}>
+            <CardHeader className={`${isMobile ? 'px-3 py-1.5' : 'pb-4'}`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className={`text-foreground flex items-center gap-2 ${isMobileForced ? 'text-base' : 'text-xl'}`}>
-                    <FileText className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                  <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : 'text-xl'}`}>
+                    <FileText className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
                     Операции
                   </CardTitle>
-                  <p className={`text-muted-foreground ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
-                    {isMobileForced
+                  <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
+                    {isMobile
                       ? <>Показано {paginatedOperations.length} из {filteredOperations.length}{totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}</>
                       : <>Всего операций: {filteredOperations.length}</>
                     }
@@ -1424,8 +1287,8 @@ export default function OperationsTransactionsPageSimple() {
               {/* Пагинация только на мобильном — десктоп использует виртуализированный скролл */}
             </div>
           </CardHeader>
-          <CardContent className={`${isMobileForced ? 'px-0 pb-3' : ''}`}>
-            {isMobileForced ? (
+          <CardContent className={`${isMobile ? 'px-0 pb-3' : ''}`}>
+            {isMobile ? (
               // Mobile compact table layout
               <div>
                 <div className="bg-card overflow-hidden">

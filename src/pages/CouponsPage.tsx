@@ -8,9 +8,10 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
-import { Download, Plus } from 'lucide-react';
+import { Download, Plus, RefreshCw } from 'lucide-react';
 
 // Хуки
 import { useCouponsData } from '@/hooks/useCouponsData';
@@ -51,6 +52,22 @@ export default function CouponsPage() {
     handleKpiResetAll,
     clearAllFilters
   } = useCouponFilters();
+
+  // Pull-to-refresh для мобильных
+  const handleRefreshData = async () => {
+    const systemIds = selectedExternalIds.map(Number).filter(n => !isNaN(n));
+    if (systemIds.length > 0) {
+      await loadCouponsData({ ...filters, system: systemIds[0], systems: systemIds });
+    }
+  };
+
+  const { pullState, pullDistance, scrollContainerRef } = usePullToRefresh({
+    onRefresh: handleRefreshData,
+    enabled: isMobile,
+    pullThreshold: 80,
+    maxPullDistance: 120,
+    indicatorAppearThreshold: 30
+  });
 
   // Статистика и фильтрация
   const { allCoupons, filteredCoupons, uniqueStates, uniqueFuelTypes, fuelStats, computedStats } =
@@ -114,10 +131,28 @@ export default function CouponsPage() {
   return (
     <MainLayout fullWidth={true}>
       <div
+        ref={scrollContainerRef}
+        data-pull-to-refresh="true"
         className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${
           isMobile ? 'pt-4' : 'pt-6'
         } min-h-screen bg-gradient-to-br from-background via-background to-background`}
       >
+        {/* Pull-to-refresh индикатор */}
+        {isMobile && pullState !== 'idle' && pullDistance >= 30 && (
+          <div className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
+            style={{ transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`, opacity: Math.min(1, (pullDistance - 30) / 40) }}>
+            <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
+              {pullState === 'refreshing' ? (
+                <><RefreshCw className="w-4 h-4 animate-spin text-blue-500" /><span className="text-sm font-medium">Обновление...</span></>
+              ) : pullState === 'canRefresh' ? (
+                <><div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm font-medium text-green-600">Отпустите для обновления</span></>
+              ) : (
+                <><div className="w-4 h-4 border-2 border-border border-t-blue-500 rounded-full" style={{ transform: `rotate(${pullDistance * 3}deg)` }} /><span className="text-sm font-medium">Потяните для обновления</span></>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Заголовок */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
