@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { Download, Plus } from 'lucide-react';
 
 // Хуки
@@ -34,6 +35,7 @@ import type { Coupon } from '@/types/coupons';
 export default function CouponsPage() {
   const isMobile = useIsMobile();
   const { selectedTradingPoint, selectedNetwork, selectedStation } = useSelection();
+  const { selectedExternalIds } = useSelectedNetworks();
 
   // Хуки для управления данными и фильтрами
   const { searchResult, loading, error, loadCouponsData, addOptimisticCoupon } = useCouponsData();
@@ -80,14 +82,17 @@ export default function CouponsPage() {
 
   
   // Загрузка данных при изменении сети или точки
-  // ВАЖНО: передаём system напрямую из selectedNetwork, т.к. filters.system
+  // ВАЖНО: передаём system напрямую из selectedExternalIds, т.к. filters.system
   // обновляется асинхронно через отдельный useEffect и может быть устаревшим
   useEffect(() => {
-    if (selectedNetwork?.external_id && !isNaN(Number(selectedNetwork.external_id))) {
-      const systemId = Number(selectedNetwork.external_id);
-      loadCouponsData({ ...filters, system: systemId });
+    if (selectedExternalIds.length > 0) {
+      // Используем первую выбранную сеть для system (API принимает один systemId)
+      const systemId = Number(selectedExternalIds[0]);
+      if (!isNaN(systemId)) {
+        loadCouponsData({ ...filters, system: systemId });
+      }
     }
-  }, [selectedTradingPoint, selectedNetwork]);
+  }, [selectedTradingPoint, selectedExternalIds]);
 
   // Экспорт в Excel
   const handleExport = async () => {

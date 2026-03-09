@@ -5,9 +5,11 @@ import { stsApiService } from "@/services/stsApi";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
 import { todayString, monthsAgoString } from "@/utils/dateUtils";
+import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 
 export function useNetworkOverviewData() {
-  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
+  const { selectedExternalIds } = useSelectedNetworks();
   const { user } = useNewAuth();
   const { toast } = useToast();
 
@@ -75,9 +77,45 @@ export function useNetworkOverviewData() {
     return stationNumbers.size > 0 ? stationNumbers : null;
   }, [user?.roles]);
 
+  // Загрузка транзакций из STS по всем выбранным сетям
+  const fetchTransactionsForNetworks = useCallback(async (
+    from: string, to: string, externalIds: string[], tradingPointId?: string
+  ) => {
+    const results = await Promise.all(
+      externalIds.map(networkId => {
+        const params: { networkId: string; tradingPointId?: string } = { networkId };
+        if (tradingPointId) params.tradingPointId = tradingPointId;
+        return stsApiService.getTransactions(from, to, 0, params).catch(() => [] as any[]);
+      })
+    );
+    return results.flat();
+  }, []);
+
+  // Фильтрация транзакций по мультиселекту точек
+  const filterBySelectedPoints = useCallback(async (txns: any[]) => {
+    if (!isAllTradingPoints || selectedTradingPoints.length === 0 || selectedNetworkIds.length === 0) {
+      return txns;
+    }
+    try {
+      const allPoints = (await Promise.all(
+        selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => []))
+      )).flat();
+      if (selectedTradingPoints.length < allPoints.length) {
+        const allowedExtIds = new Set(
+          allPoints
+            .filter(p => selectedTradingPoints.includes(p.id))
+            .map(p => p.external_id)
+            .filter(Boolean)
+        );
+        return txns.filter(t => allowedExtIds.has(String(t.stationNumber)));
+      }
+    } catch { /* ignore */ }
+    return txns;
+  }, [isAllTradingPoints, selectedTradingPoints, selectedNetworkIds]);
+
   // Функция загрузки транзакций
   const loadTransactions = useCallback(async (signal?: AbortSignal) => {
-    if (!selectedNetwork?.external_id) {
+    if (selectedExternalIds.length === 0) {
       return;
     }
 
@@ -89,43 +127,16 @@ export function useNetworkOverviewData() {
       setTerminalInfo(null);
       setPrices([]);
 
-      const contextParams: { networkId: string; tradingPointId?: string } = {
-        networkId: selectedNetwork.external_id,
-      };
+      const tradingPointId = (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedStation?.external_id)
+        ? selectedStation.external_id
+        : undefined;
 
-      if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedStation?.external_id) {
-        contextParams.tradingPointId = selectedStation.external_id;
-      }
+      // Загружаем транзакции по всем выбранным сетям
+      const stsTransactions = await fetchTransactionsForNetworks(dateFrom, dateTo, selectedExternalIds, tradingPointId);
+      const filtered = await filterBySelectedPoints(stsTransactions);
+      setTransactions(filtered);
 
-      const stsTransactions = await stsApiService.getTransactions(
-        dateFrom,
-        dateTo,
-        0,
-        contextParams
-      );
-
-      // Фильтруем транзакции по мультиселекту
-      let filteredStsTransactions = stsTransactions;
-      if (isAllTradingPoints && selectedTradingPoints.length > 0 && selectedNetwork?.id) {
-        try {
-          const networkPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
-          if (selectedTradingPoints.length < networkPoints.length) {
-            const selectedExternalIds = new Set(
-              networkPoints
-                .filter(p => selectedTradingPoints.includes(p.id))
-                .map(p => p.external_id)
-                .filter(Boolean)
-            );
-            filteredStsTransactions = stsTransactions.filter(t =>
-              selectedExternalIds.has(String(t.stationNumber))
-            );
-          }
-        } catch { /* ignore, show all */ }
-      }
-
-      setTransactions(filteredStsTransactions);
-
-      // Загружаем транзакции предыдущего периода
+      // Предыдущий период
       try {
         const fromDate = new Date(dateFrom);
         const toDate = new Date(dateTo);
@@ -134,77 +145,28 @@ export function useNetworkOverviewData() {
         const prevFrom = new Date(prevTo.getTime() - periodMs);
         const prevFromStr = prevFrom.toISOString().split('T')[0];
         const prevToStr = prevTo.toISOString().split('T')[0];
-        const prevTransactions = await stsApiService.getTransactions(
-          prevFromStr,
-          prevToStr,
-          0,
-          contextParams
-        );
-        // Фильтруем предыдущий период тем же набором станций
-        if (isAllTradingPoints && selectedTradingPoints.length > 0 && selectedNetwork?.id) {
-          try {
-            const networkPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
-            if (selectedTradingPoints.length < networkPoints.length) {
-              const selectedExternalIds = new Set(
-                networkPoints
-                  .filter(p => selectedTradingPoints.includes(p.id))
-                  .map(p => p.external_id)
-                  .filter(Boolean)
-              );
-              setPrevPeriodTransactions(prevTransactions.filter(t =>
-                selectedExternalIds.has(String(t.stationNumber))
-              ));
-            } else {
-              setPrevPeriodTransactions(prevTransactions);
-            }
-          } catch {
-            setPrevPeriodTransactions(prevTransactions);
-          }
-        } else {
-          setPrevPeriodTransactions(prevTransactions);
-        }
+        const prevTxns = await fetchTransactionsForNetworks(prevFromStr, prevToStr, selectedExternalIds, tradingPointId);
+        setPrevPeriodTransactions(await filterBySelectedPoints(prevTxns));
       } catch {
         setPrevPeriodTransactions([]);
       }
 
-      // Загружаем дополнительные данные
-      let additionalDataLoaded: string[] = [];
-      try {
-        if (contextParams.tradingPointId && contextParams.tradingPointId !== 'all' && contextParams.tradingPointId !== '1') {
-          try {
-            const tanksData = await stsApiService.getTanks(contextParams);
-            setTanks(tanksData);
-            if (tanksData.length > 0) additionalDataLoaded.push(`${tanksData.length} резервуаров`);
-          } catch (tanksError) {
-            // Не удалось загрузить резервуары
-          }
-        }
-
-        if (contextParams.tradingPointId && contextParams.tradingPointId !== 'all' && contextParams.tradingPointId !== '1') {
-          try {
-            const terminalData = await stsApiService.getTerminalInfo(contextParams);
-            setTerminalInfo(terminalData);
-            if (terminalData) additionalDataLoaded.push('данные терминала');
-          } catch (terminalError) {
-            // Не удалось загрузить информацию о терминале
-          }
-        }
-
-        if (contextParams.tradingPointId && contextParams.tradingPointId !== 'all' && contextParams.tradingPointId !== '1') {
-          try {
-            const pricesData = await stsApiService.getPrices(contextParams);
-            setPrices(pricesData);
-            if (pricesData.length > 0) additionalDataLoaded.push(`${pricesData.length} цен`);
-          } catch (pricesError) {
-            // Не удалось загрузить цены
-          }
-        }
-
-      } catch (additionalDataError) {
-        // Не прерываем выполнение
+      // Дополнительные данные (только для конкретной станции + основная сеть)
+      if (tradingPointId && tradingPointId !== '1') {
+        const primaryParams = { networkId: selectedExternalIds[0], tradingPointId };
+        try {
+          const tanksData = await stsApiService.getTanks(primaryParams);
+          setTanks(tanksData);
+        } catch { /* ignore */ }
+        try {
+          const terminalData = await stsApiService.getTerminalInfo(primaryParams);
+          setTerminalInfo(terminalData);
+        } catch { /* ignore */ }
+        try {
+          const pricesData = await stsApiService.getPrices(primaryParams);
+          setPrices(pricesData);
+        } catch { /* ignore */ }
       }
-
-      const additionalText = additionalDataLoaded.length > 0 ? `, ${additionalDataLoaded.join(', ')}` : '';
 
     } catch (error: any) {
       if (signal?.aborted) return;
@@ -218,7 +180,7 @@ export function useNetworkOverviewData() {
         setLoading(false);
       }
     }
-  }, [selectedNetwork?.external_id, selectedNetwork?.id, selectedTradingPoint, selectedStation?.external_id, selectedTradingPoints, isAllTradingPoints, dateFrom, dateTo]);
+  }, [selectedExternalIds, selectedTradingPoint, selectedStation?.external_id, selectedTradingPoints, isAllTradingPoints, dateFrom, dateTo, fetchTransactionsForNetworks, filterBySelectedPoints]);
 
   // Инициализация компонента
   useEffect(() => {
@@ -228,7 +190,7 @@ export function useNetworkOverviewData() {
     if (!isInitialized) return;
     setInitializing(false);
 
-    if (!selectedNetwork?.external_id || !isConfigured) return;
+    if (selectedExternalIds.length === 0 || !isConfigured) return;
 
     if (selectedTradingPoint && selectedTradingPoint !== 'all' && !selectedStation?.external_id) return;
 
@@ -243,7 +205,7 @@ export function useNetworkOverviewData() {
     return () => {
       controller.abort();
     };
-  }, [isInitialized, selectedNetwork?.external_id, selectedTradingPoint, selectedStation?.external_id, dateFrom, dateTo, loadTransactions]);
+  }, [isInitialized, selectedExternalIds, selectedTradingPoint, selectedStation?.external_id, dateFrom, dateTo, loadTransactions]);
 
   // Ручное обновление с отменой предыдущего запроса
   const handleManualRefresh = useCallback(() => {

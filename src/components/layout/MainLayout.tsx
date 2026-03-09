@@ -13,7 +13,7 @@ interface MainLayoutProps {
 }
 
 const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) => {
-  const { selectedNetwork, setSelectedNetwork, selectedTradingPoint, selectedTradingPoints, setSelectedTradingPoints, setSelectedTradingPoint } = useSelection();
+  const { selectedNetwork, setSelectedNetwork, selectedNetworkIds, setSelectedNetworkIds, selectedTradingPoint, selectedTradingPoints, setSelectedTradingPoints, setSelectedTradingPoint } = useSelection();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -25,6 +25,10 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
 
   const handleNetworkChange = (value: string) => {
     setSelectedNetwork(value);
+  };
+
+  const handleNetworkIdsChange = (values: string[]) => {
+    setSelectedNetworkIds(values);
   };
 
   const handleTradingPointsChange = (values: string[]) => {
@@ -41,8 +45,10 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
       <div className={`bg-background text-foreground w-full max-w-none ${fullWidth ? 'h-screen' : 'min-h-screen'} ${isMobile ? 'flex flex-col' : ''}`}>
         <Header
           selectedNetwork={selectedNetwork?.id || ""}
+          selectedNetworkIds={selectedNetworkIds}
           selectedTradingPoints={selectedTradingPoints}
           onNetworkChange={handleNetworkChange}
+          onNetworkIdsChange={handleNetworkIdsChange}
           onTradingPointsChange={handleTradingPointsChange}
           onPointClick={handlePointClick}
           onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -73,7 +79,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
                         onValuesChange={handleTradingPointsChange}
                         onPointClick={handlePointClick}
                         disabled={!selectedNetwork}
-                        networkId={selectedNetwork.id}
+                        networkIds={selectedNetworkIds}
                         className="w-full"
                       />
                     </div>

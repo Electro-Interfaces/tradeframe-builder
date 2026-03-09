@@ -125,7 +125,7 @@ export default function OnlineOrdersMonitor() {
   const isMobile = useIsMobile();
 
   // Глобальные селекторы БТО (сеть и торговая точка)
-  const { selectedNetwork, selectedStation: globalSelectedStation, isAllTradingPoints } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedStation: globalSelectedStation, isAllTradingPoints } = useSelection();
 
   // Торговые точки сети (для получения MSTO ID)
   const [networkTradingPoints, setNetworkTradingPoints] = useState<TradingPoint[]>([]);
@@ -165,17 +165,19 @@ export default function OnlineOrdersMonitor() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedFuel, setSelectedFuel] = useState<string>('all');
 
-  // Загружаем торговые точки сети при изменении выбранной сети
+  // Загружаем торговые точки всех выбранных сетей
   useEffect(() => {
-    if (!selectedNetwork?.id) {
+    if (selectedNetworkIds.length === 0) {
       setNetworkTradingPoints([]);
       return;
     }
 
-    tradingPointsService.getByNetworkId(selectedNetwork.id)
-      .then(points => setNetworkTradingPoints(points))
+    Promise.all(
+      selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => [] as TradingPoint[]))
+    )
+      .then(results => setNetworkTradingPoints(results.flat()))
       .catch(() => setNetworkTradingPoints([]));
-  }, [selectedNetwork?.id]);
+  }, [selectedNetworkIds]);
 
   // Сброс фильтра топлива при смене станции/сети
   useEffect(() => {

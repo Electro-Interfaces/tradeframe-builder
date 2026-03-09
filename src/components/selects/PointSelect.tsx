@@ -17,21 +17,35 @@ interface PointSelectProps {
   onPointClick?: (pointId: string) => void;
   className?: string;
   disabled?: boolean;
+  /** Одна сеть (backward compat) */
   networkId?: string;
+  /** Несколько сетей (мультиселект) */
+  networkIds?: string[];
 }
 
-export function PointSelect({ values = [], onValuesChange, onPointClick, className, disabled, networkId }: PointSelectProps) {
+export function PointSelect({ values = [], onValuesChange, onPointClick, className, disabled, networkId, networkIds }: PointSelectProps) {
   const [open, setOpen] = useState(false);
   const { user } = useNewAuth();
 
+  // Эффективный ключ: если передан networkIds — используем его, иначе одиночный networkId
+  const effectiveNetworkIds = networkIds && networkIds.length > 0
+    ? networkIds
+    : networkId ? [networkId] : [];
+
   const { data: allTradingPoints = [] } = useQuery({
-    queryKey: ['tradingPoints', networkId],
+    queryKey: ['tradingPoints', ...effectiveNetworkIds.sort()],
     queryFn: async () => {
       let points: TradingPoint[];
-      if (networkId) {
-        points = await tradingPointsService.getByNetworkId(networkId);
-      } else {
+      if (effectiveNetworkIds.length === 0) {
         points = await tradingPointsService.getAll();
+      } else if (effectiveNetworkIds.length === 1) {
+        points = await tradingPointsService.getByNetworkId(effectiveNetworkIds[0]);
+      } else {
+        // Мультиселект: загружаем станции из всех выбранных сетей
+        const results = await Promise.all(
+          effectiveNetworkIds.map(id => tradingPointsService.getByNetworkId(id))
+        );
+        points = results.flat();
       }
       return points.sort((a, b) => {
         const numA = parseInt(a.external_id || '999999', 10);

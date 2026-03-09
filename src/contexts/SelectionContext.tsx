@@ -8,6 +8,9 @@ import { useNewAuth } from "@/contexts/NewAuthContext";
 type SelectionContextValue = {
   selectedNetwork: Network | null;
   setSelectedNetwork: (networkId: string) => void;
+  // Мультиселект сетей (бренд = несколько компаний)
+  selectedNetworkIds: string[];
+  setSelectedNetworkIds: (ids: string[]) => void;
   selectedTradingPoint: string;
   setSelectedTradingPoint: (v: string) => void;
   selectedStation: TradingPoint | null;
@@ -88,6 +91,19 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       return "";
     }
     return saved;
+  });
+
+  // Мультиселект сетей (бренд = несколько юрлиц)
+  const [selectedNetworkIdsRaw, setSelectedNetworkIdsState] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem("tc:selectedNetworkIds");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch { /* ignore */ }
+    }
+    return [];
   });
 
   const [selectedTradingPoint, setSelectedTradingPointRaw] = useState<string>(() => {
@@ -286,6 +302,24 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Мультиселект сетей: объединяем основную сеть + дополнительные
+  const selectedNetworkIds = useMemo(() => {
+    const ids = new Set<string>(selectedNetworkIdsRaw);
+    if (selectedNetworkId) ids.add(selectedNetworkId);
+    return Array.from(ids);
+  }, [selectedNetworkId, selectedNetworkIdsRaw]);
+
+  const setSelectedNetworkIds = useCallback((ids: string[]) => {
+    setSelectedNetworkIdsState(ids);
+    // Основная сеть (selectedNetwork) = первая из списка
+    if (ids.length > 0 && !ids.includes(selectedNetworkId)) {
+      setSelectedNetworkId(ids[0]);
+    }
+    // Сброс точек при смене набора сетей
+    setSelectedTradingPointRaw("");
+    setSelectedTradingPointsRaw([]);
+  }, [selectedNetworkId]);
+
   const handleSetSelectedNetwork = useCallback((networkId: string) => {
     const hasNetworkRestrictions = user?.roles?.some(role =>
       role.scope === 'network' && role.scopeValues && role.scopeValues.length > 0
@@ -301,15 +335,20 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
       if (allowedNetworkIds.has(networkId)) {
         setSelectedNetworkId(networkId);
-        setSelectedTradingPointRaw("");
-        setSelectedTradingPointsRaw([]);
+        // Сбрасываем точки только если это смена единственной сети (не мультиселект)
+        if (selectedNetworkIdsRaw.length === 0) {
+          setSelectedTradingPointRaw("");
+          setSelectedTradingPointsRaw([]);
+        }
       }
     } else {
       setSelectedNetworkId(networkId);
-      setSelectedTradingPointRaw("");
-      setSelectedTradingPointsRaw([]);
+      if (selectedNetworkIdsRaw.length === 0) {
+        setSelectedTradingPointRaw("");
+        setSelectedTradingPointsRaw([]);
+      }
     }
-  }, [user]);
+  }, [user, selectedNetworkIdsRaw]);
 
   // Persist to localStorage
   useEffect(() => {
@@ -332,7 +371,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedTradingPoint]);
 
-  // Persist мультиселекта
+  // Persist мультиселекта точек
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -343,9 +382,22 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedTradingPoints]);
 
+  // Persist мультиселекта сетей
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem("tc:selectedNetworkIds", JSON.stringify(selectedNetworkIdsRaw));
+      } catch (e) {
+        // Failed to save to localStorage
+      }
+    }
+  }, [selectedNetworkIdsRaw]);
+
   const value = useMemo<SelectionContextValue>(() => ({
     selectedNetwork,
     setSelectedNetwork: handleSetSelectedNetwork,
+    selectedNetworkIds,
+    setSelectedNetworkIds,
     selectedTradingPoint,
     setSelectedTradingPoint,
     selectedStation,
@@ -353,7 +405,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     isInitialized,
     selectedTradingPoints,
     setSelectedTradingPoints,
-  }), [selectedNetwork, handleSetSelectedNetwork, selectedTradingPoint, setSelectedTradingPoint, selectedStation, isInitialized, selectedTradingPoints, setSelectedTradingPoints]);
+  }), [selectedNetwork, handleSetSelectedNetwork, selectedNetworkIds, setSelectedNetworkIds, selectedTradingPoint, setSelectedTradingPoint, selectedStation, isInitialized, selectedTradingPoints, setSelectedTradingPoints]);
 
   return (
     <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>

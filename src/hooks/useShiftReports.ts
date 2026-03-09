@@ -14,11 +14,13 @@ interface UseShiftReportsOptions {
   tradingPoint: any | null;
   networkId: string | null;
   network?: any | null; // Объект сети для получения external_id
+  networkIds?: string[]; // Мультиселект сетей (UUID)
+  networks?: any[]; // Объекты всех выбранных сетей
   isAllTradingPoints: boolean;
   filters: ShiftFilters;
 }
 
-export function useShiftReports({ tradingPoint, networkId, network, isAllTradingPoints, filters }: UseShiftReportsOptions) {
+export function useShiftReports({ tradingPoint, networkId, network, networkIds, networks, isAllTradingPoints, filters }: UseShiftReportsOptions) {
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,15 +59,28 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
   // Загрузка смен
   useEffect(() => {
     const loadShifts = async () => {
-      // Если выбраны "Все торговые точки" - загружаем для всей сети
-      if (isAllTradingPoints && networkId) {
+      // Если выбраны "Все торговые точки" - загружаем для всех выбранных сетей
+      const effectiveNetworkIds = networkIds?.length ? networkIds : (networkId ? [networkId] : []);
+      if (isAllTradingPoints && effectiveNetworkIds.length > 0) {
         try {
           setLoading(true);
           setError(null);
 
-          // Загружаем все торговые точки сети
-          const tradingPointsService = (await import('@/services/tradingPointsService')).default;
-          let tradingPoints = await tradingPointsService.getByNetworkId(networkId);
+          // Строим маппинг networkId → systemId для STS вызовов
+          const networkSystemIds = new Map<string, number>();
+          (networks || []).forEach(n => networkSystemIds.set(n.id, getSystemId(n)));
+
+          // Загружаем все торговые точки из всех выбранных сетей
+          const { tradingPointsService } = await import('@/services/tradingPointsService');
+          type TpWithSystem = any & { _systemId: number };
+          const allPointsRaw = await Promise.all(
+            effectiveNetworkIds.map(async (nId) => {
+              const sysId = networkSystemIds.get(nId) || systemId;
+              const pts = await tradingPointsService.getByNetworkId(nId).catch(() => []);
+              return pts.map((p: any): TpWithSystem => ({ ...p, _systemId: sysId }));
+            })
+          );
+          let tradingPoints: TpWithSystem[] = allPointsRaw.flat();
 
           // Фильтрация по мультиселекту
           if (selectedTradingPoints.length > 0) {
@@ -86,7 +101,7 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
             if (!stationNumber) return [];
 
             const requestParams: any = {
-              system: systemId,
+              system: (tp as any)._systemId || systemId,
               station: stationNumber,
             };
             // Примечание: dt_beg/dt_end не передаем, т.к. API /v1/shifts их игнорирует
@@ -161,7 +176,7 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
     };
 
     loadShifts();
-  }, [tradingPoint, networkId, isAllTradingPoints, allowedStationNumbers, systemId, selectedTradingPoints]);
+  }, [tradingPoint, networkId, networkIds, isAllTradingPoints, allowedStationNumbers, systemId, selectedTradingPoints]);
   // Примечание: filters.dateFrom/dateTo убраны из зависимостей, т.к. фильтрация по датам
   // выполняется на клиенте в filteredShifts, а не на сервере
 

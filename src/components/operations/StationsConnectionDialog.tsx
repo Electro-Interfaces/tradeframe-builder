@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Wifi, WifiOff, RefreshCw, Clock, AlertTriangle } from "lucide-react";
 import { useSelection } from "@/contexts/SelectionContext";
+import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { stsApiService } from "@/services/stsApi";
 import { TradingPoint } from "@/types/tradingpoint";
@@ -24,13 +25,14 @@ interface StationsConnectionDialogProps {
 }
 
 export function StationsConnectionDialog({ open, onOpenChange }: StationsConnectionDialogProps) {
-  const { selectedNetwork } = useSelection();
+  const { selectedNetwork, selectedNetworkIds } = useSelection();
+  const { selectedNetworks } = useSelectedNetworks();
   const [stations, setStations] = useState<StationConnectionInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadStationsConnection = async () => {
-    if (!selectedNetwork?.id) {
+    if (selectedNetworkIds.length === 0) {
       setError("Выберите сеть");
       return;
     }
@@ -39,7 +41,17 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
     setError(null);
 
     try {
-      const tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+      // Загружаем точки из всех выбранных сетей и строим маппинг point -> network external_id
+      const pointToNetworkExtId = new Map<string, string>();
+      const tradingPoints = (await Promise.all(
+        selectedNetworks.map(async (network) => {
+          const points = await tradingPointsService.getByNetworkId(network.id).catch(() => [] as TradingPoint[]);
+          points.forEach(p => {
+            if (network.external_id) pointToNetworkExtId.set(p.id, network.external_id);
+          });
+          return points;
+        })
+      )).flat();
 
       const activePoints = tradingPoints.filter(
         (tp: TradingPoint) => !tp.isBlocked && tp.external_id
@@ -66,8 +78,9 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
 
       const stationPromises = activePoints.map(async (tp: TradingPoint) => {
         try {
+          const networkExtId = pointToNetworkExtId.get(tp.id) || selectedNetwork?.external_id;
           const terminalInfo = await stsApiService.getTerminalInfo({
-            networkId: selectedNetwork.external_id,
+            networkId: networkExtId,
             tradingPointId: tp.external_id
           });
 
@@ -123,7 +136,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
     if (open) {
       loadStationsConnection();
     }
-  }, [open, selectedNetwork?.id]);
+  }, [open, selectedNetworkIds]);
 
   const formatLastConnection = (date: Date | null, short = false) => {
     if (!date) return "Нет данных";
@@ -208,7 +221,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
             Связь со станциями
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-xs sm:text-sm">
-            {selectedNetwork?.name}
+            {selectedNetworks.length > 1 ? `${selectedNetworks.length} сетей` : selectedNetwork?.name}
           </DialogDescription>
         </DialogHeader>
 

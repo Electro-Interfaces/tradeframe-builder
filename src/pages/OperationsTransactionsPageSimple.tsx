@@ -27,9 +27,11 @@ import { exportToExcel, exportToPdf } from "@/services/operationsExportService";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
 import { todayString, daysAgoString } from "@/utils/dateUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
+import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 
 export default function OperationsTransactionsPageSimple() {
-  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
+  const { selectedExternalIds } = useSelectedNetworks();
   const { user } = useNewAuth();
   const isMobile = useIsMobile();
 
@@ -158,13 +160,13 @@ export default function OperationsTransactionsPageSimple() {
 
   // Функция загрузки из STS API
   const loadFromStsApi = async (force = false) => {
-    if (!selectedNetwork?.external_id) {
+    if (selectedExternalIds.length === 0) {
       if (!isMobile) alert('Выберите сеть с настроенным external_id для загрузки из STS API');
       return;
     }
 
     const stationScope = isAllTradingPoints ? 'all' : (selectedTradingPoint || '');
-    const loadKey = `${selectedNetwork.external_id}|${stationScope}|${dateFrom}|${dateTo}`;
+    const loadKey = `${selectedExternalIds.join(',')}|${stationScope}|${dateFrom}|${dateTo}`;
 
     if (!force && lastAutoLoadKeyRef.current === loadKey) {
       return;
@@ -180,29 +182,29 @@ export default function OperationsTransactionsPageSimple() {
 
       // Если выбрано "Все торговые точки"
       if (isAllTradingPoints) {
-        // Загружаем транзакции для всех станций сети через v2 API
-        transactions = await stsApiService.getTransactions(
-          dateFrom,
-          dateTo,
-          0,
-          {
-            networkId: selectedNetwork.external_id
-          }
+        // Загружаем транзакции для всех станций по всем выбранным сетям
+        const results = await Promise.all(
+          selectedExternalIds.map(networkId =>
+            stsApiService.getTransactions(dateFrom, dateTo, 0, { networkId }).catch(() => [] as any[])
+          )
         );
+        transactions = results.flat();
 
         // Фильтруем по мультиселекту
-        if (selectedTradingPoints.length > 0 && selectedNetwork?.id) {
+        if (selectedTradingPoints.length > 0 && selectedNetworkIds.length > 0) {
           try {
-            const networkPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
-            if (selectedTradingPoints.length < networkPoints.length) {
-              const selectedExternalIds = new Set(
-                networkPoints
+            const allNetworkPoints = (await Promise.all(
+              selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => []))
+            )).flat();
+            if (selectedTradingPoints.length < allNetworkPoints.length) {
+              const selectedExtIds = new Set(
+                allNetworkPoints
                   .filter(p => selectedTradingPoints.includes(p.id))
                   .map(p => p.external_id)
                   .filter(Boolean)
               );
               transactions = transactions.filter((t: any) =>
-                selectedExternalIds.has(String(t.stationNumber))
+                selectedExtIds.has(String(t.stationNumber))
               );
             }
           } catch { /* ignore */ }
@@ -216,7 +218,7 @@ export default function OperationsTransactionsPageSimple() {
           tradingPointExternalId = selectedStation.external_id;
           tradingPointName = selectedStation.name;
         } else {
-          const tradingPoint = await tradingPointsService.getById(selectedTradingPoint, selectedNetwork.id);
+          const tradingPoint = await tradingPointsService.getById(selectedTradingPoint, selectedNetwork?.id);
           if (!tradingPoint) {
             throw new Error(`Торговая точка с ID ${selectedTradingPoint} не найдена`);
           }
@@ -228,15 +230,16 @@ export default function OperationsTransactionsPageSimple() {
           throw new Error(`У торговой точки "${tradingPointName || selectedTradingPoint}" отсутствует external_id. Настройте его в разделе администрирования.`);
         }
 
-        transactions = await stsApiService.getTransactions(
-          dateFrom,
-          dateTo,
-          0, // Без лимита — статистика по всем транзакциям за период
-          {
-            networkId: selectedNetwork.external_id,
-            tradingPointId: tradingPointExternalId
-          }
+        // Загружаем по всем выбранным сетям с этой торговой точкой
+        const results = await Promise.all(
+          selectedExternalIds.map(networkId =>
+            stsApiService.getTransactions(dateFrom, dateTo, 0, {
+              networkId,
+              tradingPointId: tradingPointExternalId!
+            }).catch(() => [] as any[])
+          )
         );
+        transactions = results.flat();
       } else {
         setLoadingFromSTS(false);
         return;
@@ -400,10 +403,10 @@ export default function OperationsTransactionsPageSimple() {
     setStsApiConfigured(true);
 
     // Автоматически загружаем данные при выборе сети и торговых точек
-    if (selectedNetwork?.external_id && (isAllTradingPoints || selectedTradingPoint)) {
+    if (selectedExternalIds.length > 0 && (isAllTradingPoints || selectedTradingPoint)) {
       loadFromStsApi();
     }
-  }, [isInitialized, selectedTradingPoint, selectedNetwork, isAllTradingPoints, dateFrom, dateTo]);
+  }, [isInitialized, selectedTradingPoint, selectedExternalIds, isAllTradingPoints, dateFrom, dateTo]);
 
 
   // Уникальные номера постов для фильтра (показывать только если > 1)

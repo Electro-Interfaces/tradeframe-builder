@@ -7,11 +7,13 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useNewAuth } from '@/contexts/NewAuthContext';
+import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { getInventoryFromServer, getInventoryFromShiftReports, aggregateByFuel, type TankInventory, type FuelInventorySummary } from '@/services/fuelInventoryService';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
 export const useFuelInventory = (dateFrom: string, dateTo: string) => {
-  const { selectedNetwork, selectedStation } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedStation } = useSelection();
+  const { selectedNetworks, selectedExternalIds } = useSelectedNetworks();
   const { user } = useNewAuth();
 
   // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
@@ -49,13 +51,13 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
     const allowedStationsArray = allowedStationNumbers ? Array.from(allowedStationNumbers).sort() : null;
     return [
       'fuelInventory',
-      selectedNetwork?.id,
+      [...selectedExternalIds].sort(),
       selectedStation?.id,
       dateFrom,
       dateTo,
       allowedStationsArray
     ];
-  }, [selectedNetwork?.id, selectedStation?.id, dateFrom, dateTo, allowedStationNumbers]);
+  }, [selectedExternalIds, selectedStation?.id, dateFrom, dateTo, allowedStationNumbers]);
 
   // React Query для загрузки данных с кэшированием
   const {
@@ -67,50 +69,56 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
   } = useQuery<TankInventory[], Error>({
     queryKey,
     queryFn: async () => {
-      if (!selectedNetwork) {
+      if (selectedExternalIds.length === 0) {
         throw new Error('Не выбрана торговая сеть');
       }
 
-      const params = {
-        system: parseInt(selectedNetwork.external_id),
-        networkId: selectedNetwork.id,
-        station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
-        dt_beg: formatDateForApi(dateFrom, false),
-        dt_end: formatDateForApi(dateTo, true),
-        allowedStations: allowedStationNumbers,
-      };
+      // Загружаем данные по всем выбранным сетям
+      const allData: TankInventory[] = [];
 
-      let data: TankInventory[];
+      for (const network of selectedNetworks) {
+        if (!network.external_id) continue;
 
-      try {
-        // Серверная агрегация — один POST вместо ~200+ round-trips
-        data = await getInventoryFromServer(params);
-      } catch (serverErr) {
-        // Fallback на клиентскую агрегацию
-        // Server aggregation failed, falling back to client-side
-        setLoadingProgress({ loaded: 0, total: 0 });
+        const params = {
+          system: parseInt(network.external_id),
+          networkId: network.id,
+          station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
+          dt_beg: formatDateForApi(dateFrom, false),
+          dt_end: formatDateForApi(dateTo, true),
+          allowedStations: allowedStationNumbers,
+        };
 
         try {
-          data = await getInventoryFromShiftReports({
-            ...params,
-            onProgress: (loaded, total) => {
-              setLoadingProgress({ loaded, total });
-            }
-          });
+          // Серверная агрегация — один POST вместо ~200+ round-trips
+          const data = await getInventoryFromServer(params);
+          allData.push(...data);
+        } catch (serverErr) {
+          // Fallback на клиентскую агрегацию
           setLoadingProgress({ loaded: 0, total: 0 });
-        } catch (clientErr) {
-          setLoadingProgress({ loaded: 0, total: 0 });
-          throw clientErr;
+
+          try {
+            const data = await getInventoryFromShiftReports({
+              ...params,
+              onProgress: (loaded, total) => {
+                setLoadingProgress({ loaded, total });
+              }
+            });
+            allData.push(...data);
+            setLoadingProgress({ loaded: 0, total: 0 });
+          } catch (clientErr) {
+            setLoadingProgress({ loaded: 0, total: 0 });
+            // Continue with other networks
+          }
         }
       }
 
-      if (data.length === 0) {
+      if (allData.length === 0) {
         throw new Error('Нет данных об остатках топлива');
       }
 
-      return data;
+      return allData;
     },
-    enabled: !!selectedNetwork,
+    enabled: selectedExternalIds.length > 0,
     staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
     gcTime: 10 * 60 * 1000, // 10 минут - хранение в кэше
     retry: 1,

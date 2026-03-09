@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { stsProxyRequest } from '@/services/stsProxyClient';
 import { tradingPointsService } from '@/services/tradingPointsService';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
@@ -27,6 +28,7 @@ export interface FuelChartData {
 
 export const useShiftChartData = (dateFrom: string, dateTo: string, selectedStationFilter: string = 'all') => {
   const { selectedNetwork, selectedStation } = useSelection();
+  const { selectedNetworks, selectedExternalIds } = useSelectedNetworks();
 
   const [chartData, setChartData] = useState<FuelChartData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,16 +40,22 @@ export const useShiftChartData = (dateFrom: string, dateTo: string, selectedStat
   const wasLoadedRef = useRef(false);
 
   const loadChartData = useCallback(async () => {
-    if (!selectedNetwork) return;
+    if (selectedNetworks.length === 0) return;
 
     setLoading(true);
     setLoaded(false);
 
     try {
-      // Получаем список ТТ
-      let tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+      // Получаем список ТТ по всем выбранным сетям, сохраняя связь с systemId
+      const allPointsResults = await Promise.all(
+        selectedNetworks.map(async n => {
+          const points = await tradingPointsService.getByNetworkId(n.id).catch(() => []);
+          return points.map(tp => ({ tp, systemId: parseInt(n.external_id!) }));
+        })
+      );
+      let tradingPointsWithSystem = allPointsResults.flat();
 
-      if (tradingPoints.length === 0) {
+      if (tradingPointsWithSystem.length === 0) {
         setChartData([]);
         setLoading(false);
         setLoaded(true);
@@ -56,21 +64,20 @@ export const useShiftChartData = (dateFrom: string, dateTo: string, selectedStat
 
       // Фильтрация по глобально выбранной ТТ (из хедера)
       if (selectedStation) {
-        tradingPoints = tradingPoints.filter(tp => tp.id === selectedStation.id);
+        tradingPointsWithSystem = tradingPointsWithSystem.filter(({ tp }) => tp.id === selectedStation.id);
       }
       // Или по локальному фильтру в таблице
       else if (selectedStationFilter !== 'all') {
-        tradingPoints = tradingPoints.filter(tp => tp.external_id === selectedStationFilter);
+        tradingPointsWithSystem = tradingPointsWithSystem.filter(({ tp }) => tp.external_id === selectedStationFilter);
       }
 
-      if (tradingPoints.length === 0) {
+      if (tradingPointsWithSystem.length === 0) {
         setChartData([]);
         setLoading(false);
         setLoaded(true);
         return;
       }
 
-      const systemId = parseInt(selectedNetwork.external_id);
       const dtBeg = formatDateForApi(dateFrom, false);
       const dtEnd = formatDateForApi(dateTo, true);
       const periodStart = new Date(dtBeg);
@@ -88,7 +95,7 @@ export const useShiftChartData = (dateFrom: string, dateTo: string, selectedStat
       }>();
 
       // Загружаем данные по каждой ТТ
-      for (const tp of tradingPoints) {
+      for (const { tp, systemId } of tradingPointsWithSystem) {
         const stationId = parseInt(tp.external_id!);
 
         try {
@@ -219,7 +226,7 @@ export const useShiftChartData = (dateFrom: string, dateTo: string, selectedStat
       setLoaded(true);
       wasLoadedRef.current = true;
     }
-  }, [selectedNetwork, selectedStation, dateFrom, dateTo, selectedStationFilter]);
+  }, [selectedNetworks, selectedStation, dateFrom, dateTo, selectedStationFilter]);
 
   // Автоматически перезагружаем графики при смене ТТ (если графики уже были загружены)
   useEffect(() => {

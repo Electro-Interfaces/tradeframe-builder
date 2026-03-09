@@ -11,6 +11,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { stsProxyRequest } from '@/services/stsProxyClient';
 import type { FuelInventorySummary } from '@/services/fuelInventoryService';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
@@ -42,17 +43,18 @@ interface TankHistoryRecord {
 
 export const useChartData = (dateFrom: string, dateTo: string, summaries: FuelInventorySummary[], selectedStationFilter: string = 'all') => {
   const { selectedNetwork } = useSelection();
+  const { selectedNetworks, selectedExternalIds } = useSelectedNetworks();
 
   const [chartsRequested, setChartsRequested] = useState(false);
 
   const queryKey = useMemo(() => [
     'chartData',
-    selectedNetwork?.id,
+    [...selectedExternalIds].sort(),
     dateFrom,
     dateTo,
     summaries.map(s => s.fuelCode).join(','),
     selectedStationFilter
-  ], [selectedNetwork?.id, dateFrom, dateTo, summaries, selectedStationFilter]);
+  ], [selectedExternalIds, dateFrom, dateTo, summaries, selectedStationFilter]);
 
   const {
     data: chartDataByFuel = new Map<number, ChartDataPoint[]>(),
@@ -62,29 +64,34 @@ export const useChartData = (dateFrom: string, dateTo: string, summaries: FuelIn
   } = useQuery<Map<number, ChartDataPoint[]>, Error>({
     queryKey,
     queryFn: async () => {
-      if (!selectedNetwork || summaries.length === 0) {
+      if (selectedNetworks.length === 0 || summaries.length === 0) {
         return new Map<number, ChartDataPoint[]>();
       }
 
       const chartData = new Map<number, ChartDataPoint[]>();
 
-      // Получаем список ТТ
+      // Получаем список ТТ по всем выбранным сетям, сохраняя связь с systemId
       const { tradingPointsService } = await import('@/services/tradingPointsService');
-      let tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+      const allPointsResults = await Promise.all(
+        selectedNetworks.map(async n => {
+          const points = await tradingPointsService.getByNetworkId(n.id).catch(() => []);
+          return points.map(tp => ({ tp, systemId: parseInt(n.external_id!) }));
+        })
+      );
+      let tradingPointsWithSystem = allPointsResults.flat();
 
-      if (tradingPoints.length === 0) {
+      if (tradingPointsWithSystem.length === 0) {
         return new Map<number, ChartDataPoint[]>();
       }
 
       // Фильтрация по выбранной ТТ
       if (selectedStationFilter !== 'all') {
-        tradingPoints = tradingPoints.filter(tp => tp.external_id === selectedStationFilter);
-        if (tradingPoints.length === 0) {
+        tradingPointsWithSystem = tradingPointsWithSystem.filter(({ tp }) => tp.external_id === selectedStationFilter);
+        if (tradingPointsWithSystem.length === 0) {
           return new Map<number, ChartDataPoint[]>();
         }
       }
 
-      const systemId = parseInt(selectedNetwork.external_id);
       const dtBeg = formatDateForApi(dateFrom, false);
       const dtEnd = formatDateForApi(dateTo, true);
 
@@ -98,7 +105,7 @@ export const useChartData = (dateFrom: string, dateTo: string, summaries: FuelIn
       });
 
       // Загружаем историю для каждой ТТ
-      for (const tp of tradingPoints) {
+      for (const { tp, systemId } of tradingPointsWithSystem) {
         const stationId = parseInt(tp.external_id);
 
         try {
@@ -213,7 +220,7 @@ export const useChartData = (dateFrom: string, dateTo: string, summaries: FuelIn
 
       return chartData;
     },
-    enabled: chartsRequested && !!selectedNetwork && summaries.length > 0,
+    enabled: chartsRequested && selectedExternalIds.length > 0 && summaries.length > 0,
     staleTime: 0,
     gcTime: 10 * 60 * 1000,
     retry: 1,

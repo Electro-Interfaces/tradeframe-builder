@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/popover";
 import { ArrowLeft, AlertCircle, Filter, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import tradingPointsService from "@/services/tradingPointsService";
+import { tradingPointsService } from "@/services/tradingPointsService";
 
 // Компоненты дашборда
 import { DashboardPeriodSelector } from "@/components/shift-dashboard/DashboardPeriodSelector";
@@ -32,7 +32,7 @@ import { PaymentMethodsChart } from "@/components/shift-dashboard/PaymentMethods
 
 export default function ShiftDashboard() {
   const navigate = useNavigate();
-  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, selectedTradingPoints } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, selectedTradingPoints } = useSelection();
 
   // Состояние для станций при выборе "все точки"
   const [allStations, setAllStations] = useState<number[]>([]);
@@ -52,13 +52,15 @@ export default function ShiftDashboard() {
     setCustomDates,
   } = useDashboardPeriod({ initialPreset: 'week' });
 
-  // Загрузка всех станций сети при isAllTradingPoints
+  // Загрузка всех станций выбранных сетей при isAllTradingPoints
   useEffect(() => {
     const loadAllStations = async () => {
-      if (isAllTradingPoints && selectedNetwork?.id) {
+      if (isAllTradingPoints && selectedNetworkIds.length > 0) {
         setLoadingStations(true);
         try {
-          let tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+          let tradingPoints = (await Promise.all(
+            selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => []))
+          )).flat();
           // Фильтруем по мультиселекту
           if (selectedTradingPoints.length > 0) {
             tradingPoints = tradingPoints.filter(tp => selectedTradingPoints.includes(tp.id));
@@ -99,7 +101,7 @@ export default function ShiftDashboard() {
     };
 
     loadAllStations();
-  }, [isAllTradingPoints, selectedNetwork?.id, selectedStation, selectedTradingPoints]);
+  }, [isAllTradingPoints, selectedNetworkIds, selectedStation, selectedTradingPoints]);
 
   // Определяем станции для загрузки
   const stationNumber = selectedStation ? extractStationNumber(selectedStation) : undefined;

@@ -23,7 +23,7 @@ interface NomenclatureListProps {
 }
 
 export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCreate }) => {
-  const { selectedNetwork } = useSelection();
+  const { selectedNetwork, selectedNetworkIds } = useSelection();
   const [nomenclature, setNomenclature] = useState<FuelNomenclature[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -33,28 +33,29 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
   });
 
   useEffect(() => {
-    if (selectedNetwork) {
+    if (selectedNetworkIds.length > 0) {
       loadNomenclature();
     } else {
       setNomenclature([]);
       setLoading(false);
     }
-  }, [filters, selectedNetwork]);
+  }, [filters, selectedNetworkIds]);
 
   const loadNomenclature = async () => {
-    if (!selectedNetwork) {
+    if (selectedNetworkIds.length === 0) {
       setNomenclature([]);
       setLoading(false);
       return;
     }
-    
+
     try {
       setLoading(true);
-      const data = await nomenclatureService.getNomenclature({
-        ...filters,
-        networkId: selectedNetwork.id
-      });
-      setNomenclature(data);
+      const results = await Promise.all(
+        selectedNetworkIds.map(networkId =>
+          nomenclatureService.getNomenclature({ ...filters, networkId }).catch(() => [] as FuelNomenclature[])
+        )
+      );
+      setNomenclature(results.flat());
     } catch (error) {
       console.error('Failed to load nomenclature:', error);
     } finally {

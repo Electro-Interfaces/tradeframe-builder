@@ -36,7 +36,7 @@ export function ReconciliationParamsModal({
   onSubmit,
   isLoading = false
 }: ReconciliationParamsModalProps) {
-  const { selectedNetwork } = useSelection();
+  const { selectedNetwork, selectedNetworkIds } = useSelection();
 
   // Состояние формы
   const [dateFrom, setDateFrom] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
@@ -51,26 +51,22 @@ export function ReconciliationParamsModal({
 
   // Загружаем станции при открытии модального окна или смене сети
   useEffect(() => {
-    if (open && selectedNetwork?.id) {
+    if (open && selectedNetworkIds.length > 0) {
       setLoadingStations(true);
-      tradingPointsService.getByNetworkId(selectedNetwork.id)
-        .then(stations => {
-          setAvailableStations(stations);
-        })
-        .catch(() => {
-          setAvailableStations([]);
-        })
-        .finally(() => {
-          setLoadingStations(false);
-        });
+      Promise.all(
+        selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => [] as TradingPoint[]))
+      )
+        .then(results => setAvailableStations(results.flat()))
+        .catch(() => setAvailableStations([]))
+        .finally(() => setLoadingStations(false));
     }
-  }, [open, selectedNetwork?.id]);
+  }, [open, selectedNetworkIds]);
 
-  // Сбрасываем выбор станций при смене сети
+  // Сбрасываем выбор станций при смене набора сетей
   useEffect(() => {
     setSelectedStationIds([]);
     setAllStations(true);
-  }, [selectedNetwork]);
+  }, [selectedNetworkIds]);
 
   // Обработчик переключения станции
   const toggleStation = (stationId: number) => {

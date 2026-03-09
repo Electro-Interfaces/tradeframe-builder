@@ -23,8 +23,10 @@ import { useSupportContext } from "@/contexts/SupportContext";
 
 interface HeaderProps {
   selectedNetwork: string;
+  selectedNetworkIds: string[];
   selectedTradingPoints: string[];
   onNetworkChange: (value: string) => void;
+  onNetworkIdsChange: (values: string[]) => void;
   onTradingPointsChange: (values: string[]) => void;
   onPointClick?: (pointId: string) => void;
   onMobileMenuToggle?: () => void;
@@ -33,8 +35,10 @@ interface HeaderProps {
 
 export function Header({
   selectedNetwork,
+  selectedNetworkIds,
   selectedTradingPoints,
   onNetworkChange,
+  onNetworkIdsChange,
   onTradingPointsChange,
   onPointClick,
   onMobileMenuToggle,
@@ -124,7 +128,9 @@ export function Header({
 
           <NetworkSelect
             value={selectedNetwork}
+            values={selectedNetworkIds}
             onValueChange={onNetworkChange}
+            onValuesChange={onNetworkIdsChange}
             className="!h-9 !py-0 text-sm min-w-0 flex-1 bg-secondary/50 border-border hover:bg-accent/50 max-w-[140px]"
           />
 
@@ -166,13 +172,13 @@ export function Header({
 
         {/* Desktop Center: Context Selectors + Connection Button */}
         <div className="hidden md:flex items-center justify-center gap-2">
-          <NetworkSelect value={selectedNetwork} onValueChange={onNetworkChange} />
+          <NetworkSelect value={selectedNetwork} values={selectedNetworkIds} onValueChange={onNetworkChange} onValuesChange={onNetworkIdsChange} />
           <PointSelect
             values={selectedTradingPoints}
             onValuesChange={onTradingPointsChange}
             onPointClick={onPointClick}
             disabled={!selectedNetwork}
-            networkId={selectedNetwork}
+            networkIds={selectedNetworkIds}
             className="inline-flex"
           />
           {/* Desktop Connection Button */}

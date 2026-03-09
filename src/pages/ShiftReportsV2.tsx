@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/contexts/SelectionContext";
+import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { extractStationNumber } from "@/utils/tradingPointUtils";
 import { getSystemId } from "@/config/stsConfig";
@@ -47,7 +48,8 @@ import type { MSTOReconciliationParams, MSTOReconciliationResult } from "@/types
 export default function ShiftReportsV2() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints } = useSelection();
+  const { selectedNetworks } = useSelectedNetworks();
   const isMobile = useIsMobile();
 
   // Состояния модальных окон
@@ -79,7 +81,9 @@ export default function ShiftReportsV2() {
   const { shifts, filteredShifts, loading, refresh } = useShiftReports({
     tradingPoint,
     networkId: selectedNetwork?.id || null,
-    network: selectedNetwork, // Передаем объект сети для получения external_id
+    network: selectedNetwork,
+    networkIds: selectedNetworkIds,
+    networks: selectedNetworks,
     isAllTradingPoints,
     filters
   });

@@ -10,6 +10,7 @@ import { useSelection } from '@/contexts/SelectionContext';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { networksService } from '@/services/networksService';
+import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { tradingPointsService } from '@/services/tradingPointsService';
 import { todayString } from '@/utils/dateUtils';
 import {
@@ -67,7 +68,8 @@ const INDICATOR_APPEAR_THRESHOLD = 30;
 
 export default function Receipts() {
   // Используем контекст выбора
-  const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints, selectedTradingPoints } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints, selectedTradingPoints } = useSelection();
+  const { selectedExternalIds } = useSelectedNetworks();
   const { user } = useNewAuth();
   const isMobile = useIsMobile();
 
@@ -120,12 +122,14 @@ export default function Receipts() {
     networksService.getAll().then(setNetworks).catch(() => {});
   }, []);
 
-  // Устанавливаем системный ID из контекста при загрузке
+  // Устанавливаем системный ID из контекста при загрузке (первая выбранная сеть)
   useEffect(() => {
-    if (selectedNetwork?.external_id) {
+    if (selectedExternalIds.length > 0) {
+      setSystemId(parseInt(selectedExternalIds[0]));
+    } else if (selectedNetwork?.external_id) {
       setSystemId(parseInt(selectedNetwork.external_id));
     }
-  }, [selectedNetwork]);
+  }, [selectedExternalIds, selectedNetwork]);
 
   // Извлекаем номер станции из выбранной торговой точки
   useEffect(() => {
@@ -198,14 +202,17 @@ export default function Receipts() {
   const [resolvedStationNumbers, setResolvedStationNumbers] = useState<Set<string> | null>(null);
 
   useEffect(() => {
-    if (!isAllTradingPoints || selectedTradingPoints.length === 0 || !selectedNetwork?.id) {
+    if (!isAllTradingPoints || selectedTradingPoints.length === 0 || selectedNetworkIds.length === 0) {
       setResolvedStationNumbers(null);
       return;
     }
-    tradingPointsService.getByNetworkId(selectedNetwork.id).then(points => {
-      if (selectedTradingPoints.length < points.length) {
+    Promise.all(
+      selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => []))
+    ).then(results => {
+      const allPoints = results.flat();
+      if (selectedTradingPoints.length < allPoints.length) {
         const numbers = new Set(
-          points
+          allPoints
             .filter(p => selectedTradingPoints.includes(p.id))
             .map(p => p.external_id)
             .filter((id): id is string => !!id)
@@ -215,7 +222,7 @@ export default function Receipts() {
         setResolvedStationNumbers(null); // Все выбраны — не фильтруем
       }
     });
-  }, [isAllTradingPoints, selectedTradingPoints, selectedNetwork?.id]);
+  }, [isAllTradingPoints, selectedTradingPoints, selectedNetworkIds]);
 
   // Базовая фильтрация БЕЗ фильтра по видам топлива (для карточек)
   const baseFilteredReceipts = useMemo(() => {
