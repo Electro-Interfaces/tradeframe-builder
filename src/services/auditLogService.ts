@@ -3,7 +3,7 @@
  * Упрощает логирование действий пользователей
  */
 
-import { AuditLogSupabaseService } from './auditLogSupabaseService';
+import { auditApiRequest } from './auditApiClient';
 import type {
   AuditLogEntry,
   CreateAuditLogInput,
@@ -104,7 +104,12 @@ export const auditLogService = {
         }
       };
 
-      return await AuditLogSupabaseService.createAuditLog(enrichedInput);
+      const result = await auditApiRequest('', {
+        method: 'POST',
+        body: JSON.stringify(enrichedInput)
+      });
+
+      return result.data ?? null;
     } catch (error) {
       // Не бросаем ошибку, чтобы не сломать основной функционал
       // В production можно логировать через сервис мониторинга
@@ -362,9 +367,24 @@ export const auditLogService = {
    */
   async getAuditLogs(filters?: AuditLogFilters): Promise<AuditLogEntry[]> {
     try {
-      return await AuditLogSupabaseService.getAuditLogs(filters);
+      const query = new URLSearchParams();
+
+      if (filters?.date_from) query.set('date_from', filters.date_from);
+      if (filters?.date_to) query.set('date_to', filters.date_to);
+      if (filters?.user_id) query.set('user_id', filters.user_id);
+      if (filters?.user_email) query.set('user_email', filters.user_email);
+      if (filters?.action_type) query.set('action_type', filters.action_type);
+      if (filters?.object_type) query.set('object_type', filters.object_type);
+      if (filters?.object_id) query.set('object_id', filters.object_id);
+      if (filters?.search_query) query.set('search_query', filters.search_query);
+      if (filters?.limit) query.set('limit', String(filters.limit));
+      if (filters?.offset) query.set('offset', String(filters.offset));
+
+      const suffix = query.toString() ? `?${query.toString()}` : '';
+      const result = await auditApiRequest(suffix, { method: 'GET' }, true);
+      return result.data || [];
     } catch (error) {
-      return [];
+      throw error;
     }
   },
 
@@ -373,7 +393,8 @@ export const auditLogService = {
    */
   async getStatistics(): Promise<AuditLogStatistics | null> {
     try {
-      return await AuditLogSupabaseService.getAuditLogStatistics();
+      const result = await auditApiRequest('/stats', { method: 'GET' }, true);
+      return result.data || null;
     } catch (error) {
       return null;
     }
@@ -384,7 +405,8 @@ export const auditLogService = {
    */
   async getRecentLogs(limit: number = 10): Promise<AuditLogEntry[]> {
     try {
-      return await AuditLogSupabaseService.getRecentAuditLogs(limit);
+      const result = await auditApiRequest(`/recent?limit=${limit}`, { method: 'GET' }, true);
+      return result.data || [];
     } catch (error) {
       return [];
     }

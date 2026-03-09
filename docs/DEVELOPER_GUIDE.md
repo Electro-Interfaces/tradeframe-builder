@@ -228,57 +228,39 @@ export const UserForm = () => {
 
 ### Создание сервиса
 
+Все API-запросы идут через Express backend. Frontend использует HTTP-клиенты с JWT авторизацией:
+
 ```typescript
 // src/services/usersService.ts
-import { supabase } from '@/lib/supabase';
+import { adminApiRequest } from './adminApiClient';
 import { User, CreateUserData, UpdateUserData } from '@/types/user';
 
-export class UsersService {
+export const usersService = {
   async getAllUsers(): Promise<User[]> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('deleted_at', null);
-    
-    if (error) throw error;
-    return data || [];
-  }
+    return adminApiRequest('/users');
+  },
 
   async createUser(userData: CreateUserData): Promise<User> {
-    const { data, error } = await supabase
-      .from('users')
-      .insert(userData)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
+    return adminApiRequest('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  },
 
   async updateUser(id: string, userData: UpdateUserData): Promise<User> {
-    const { data, error } = await supabase
-      .from('users')
-      .update({ ...userData, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
+    return adminApiRequest(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  },
 
   async deleteUser(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('users')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
-    
-    if (error) throw error;
-  }
-}
-
-export const usersService = new UsersService();
+    await adminApiRequest(`/users/${id}`, { method: 'DELETE' });
+  },
+};
 ```
+
+API-клиенты (`adminApiClient`, `orgApiClient`, `legalDocumentsApiClient` и т.д.) автоматически добавляют `Authorization: Bearer <JWT>` заголовок.
 
 ### Использование React Query
 
@@ -605,26 +587,27 @@ const mutation = useMutation(createUser, {
 });
 ```
 
-### Supabase подключение
+### Backend API не отвечает
 
 ```bash
-# Проблема: не подключается к базе
-# Решение: проверьте переменные окружения
-echo $VITE_SUPABASE_URL
-echo $VITE_SUPABASE_ANON_KEY
+# Проверьте что backend запущен
+cd server && node index.js
 
-# Проверьте RLS политики
-# Возможно политики блокируют доступ
+# Проверьте переменные окружения (server/.env)
+# DATABASE_URL должен быть настроен
+
+# Проверьте авторизацию — токен в localStorage
+# localStorage.getItem('auth_token')
 ```
 
-## 📚 Полезные ресурсы
+## Полезные ресурсы
 
 - [React Documentation](https://react.dev/)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [React Query](https://tanstack.com/query/latest)
-- [Supabase Docs](https://supabase.com/docs)
+- [PostgreSQL](https://www.postgresql.org/docs/)
 
 ## 🤝 Контрибуция
 

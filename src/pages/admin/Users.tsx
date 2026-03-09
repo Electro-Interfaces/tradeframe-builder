@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Users as UsersIcon, Search, Trash2 } from 'lucide-react'
 import { User as UserType, UserStatus } from '@/types/auth'
-import { externalUsersService } from '@/services/externalUsersService'
-import { externalRolesService } from '@/services/externalRolesService'
+import { adminUsersService } from '@/services/adminUsersService'
+import { adminRolesService } from '@/services/adminRolesService'
 import { UserFormDialog } from '@/components/admin/users/UserFormDialog'
 import { useDeleteConfirmDialog } from '@/hooks/useDeleteConfirmDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -35,14 +35,14 @@ export default function Users() {
 
   const { data: users = [], isLoading, error, refetch } = useQuery({
     queryKey: ['external-users'],
-    queryFn: () => externalUsersService.getUsersWithRoles(),
+    queryFn: () => adminUsersService.getUsersWithRoles(),
     retry: 1,
     retryDelay: 1000
   })
 
   const { data: roles = [] } = useQuery({
     queryKey: ['external-roles'],
-    queryFn: () => externalRolesService.getAllRoles(),
+    queryFn: () => adminRolesService.getAllRoles(),
     retry: 1,
     retryDelay: 1000
   })
@@ -68,7 +68,7 @@ export default function Users() {
 
   const handleDelete = async (userId: string) => {
     try {
-      await externalUsersService.deleteUser(userId)
+      await adminUsersService.deleteUser(userId)
       await refetch()
     } catch (error) {
       // Ошибка обработана в сервисе
@@ -86,7 +86,7 @@ export default function Users() {
     try {
       // Генерируем временный пароль
       const tempPassword = generateTemporaryPassword()
-      await externalUsersService.changePassword(userToResetPassword.id, tempPassword)
+      await adminUsersService.changePassword(userToResetPassword.id, tempPassword)
 
       // Показываем пароль администратору
       alert(`Пароль для пользователя ${userToResetPassword.name} сброшен.\n\nНовый временный пароль: ${tempPassword}\n\nПожалуйста, передайте этот пароль пользователю безопасным способом.`)
@@ -117,7 +117,7 @@ export default function Users() {
     if (!confirmed) return
 
     try {
-      const result = await externalUsersService.permanentlyDeleteAllSoftDeletedUsers()
+      const result = await adminUsersService.permanentlyDeleteAllSoftDeletedUsers()
 
       if (result && result.deletedCount > 0) {
         alert(`✅ Успешно удалено ${result.deletedCount} пользователей из базы данных.`)

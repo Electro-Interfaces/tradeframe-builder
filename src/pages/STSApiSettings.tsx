@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -22,1418 +20,763 @@ import {
   TestTube,
   CheckCircle,
   XCircle,
-  Clock,
-  Save,
-  RotateCcw,
-  AlertTriangle,
   Globe,
   Key,
-  User,
   ChevronDown,
   ChevronRight,
-  Play,
   Code,
   Tag,
   Loader2,
   RefreshCw,
   Edit3,
-  Send
+  Send,
+  Database,
+  Zap,
+  Trash2,
 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { getBackendOrigin } from '@/utils/backendUrl';
 
-interface STSApiConfig {
-  url: string;
-  username: string;
-  password: string;
-  enabled: boolean;
-  timeout: number;
-  retryAttempts: number;
-  token?: string;
-  tokenExpiry?: number;
-  networkId?: string;
-  tradingPointId?: string;
+// ============================================================================
+// Реальные API эндпоинты TradeFrame backend → STS proxy
+// Источник: server/routes/sts.js
+// ============================================================================
+
+interface ApiEndpoint {
+  id: string;
+  method: 'GET' | 'POST';
+  path: string;
+  summary: string;
+  group: string;
+  params: { name: string; required: boolean; description: string; defaultValue?: string }[];
+  bodySchema?: Record<string, string>;
+  cacheTTL: number;
 }
 
-const defaultConfig: STSApiConfig = {
-  url: import.meta.env.VITE_STS_API_URL || '',
-  username: import.meta.env.VITE_STS_API_USERNAME || '',
-  password: import.meta.env.VITE_STS_API_PASSWORD || '',
-  enabled: true,
-  timeout: 30000,
-  retryAttempts: 3
-};
+const API_ENDPOINTS: ApiEndpoint[] = [
+  // Оборудование
+  {
+    id: 'get-v1-info', method: 'GET', path: '/v1/info',
+    summary: 'Статусы оборудования (краткий)', group: 'Оборудование',
+    params: [
+      { name: 'system', required: true, description: 'ID системы (сети)', defaultValue: '15' },
+    ],
+    cacheTTL: 60,
+  },
+  {
+    id: 'get-v2-info', method: 'GET', path: '/v2/info',
+    summary: 'Статусы оборудования (расширенный, с params)', group: 'Оборудование',
+    params: [
+      { name: 'system', required: true, description: 'ID системы (сети)', defaultValue: '15' },
+      { name: 'station', required: false, description: 'Номер станции' },
+    ],
+    cacheTTL: 60,
+  },
+  // Резервуары
+  {
+    id: 'get-v1-tanks', method: 'GET', path: '/v1/tanks',
+    summary: 'Остатки резервуаров', group: 'Резервуары',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+      { name: 'station', required: false, description: 'Номер станции' },
+    ],
+    cacheTTL: 120,
+  },
+  // Транзакции
+  {
+    id: 'get-v1-transactions', method: 'GET', path: '/v1/transactions',
+    summary: 'Транзакции (v1)', group: 'Транзакции',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+      { name: 'station', required: true, description: 'Номер станции', defaultValue: '1' },
+      { name: 'dt_beg', required: true, description: 'Начало периода (YYYY-MM-DD)', defaultValue: '' },
+      { name: 'dt_end', required: true, description: 'Конец периода (YYYY-MM-DD)', defaultValue: '' },
+    ],
+    cacheTTL: 180,
+  },
+  {
+    id: 'get-v2-transactions', method: 'GET', path: '/v2/transactions',
+    summary: 'Транзакции (v2, расширенный)', group: 'Транзакции',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+      { name: 'station', required: true, description: 'Номер станции', defaultValue: '1' },
+      { name: 'dt_beg', required: true, description: 'Начало периода', defaultValue: '' },
+      { name: 'dt_end', required: true, description: 'Конец периода', defaultValue: '' },
+    ],
+    cacheTTL: 300,
+  },
+  // Цены
+  {
+    id: 'get-v1-prices', method: 'GET', path: '/v1/prices',
+    summary: 'Текущие цены', group: 'Цены',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+    ],
+    cacheTTL: 300,
+  },
+  {
+    id: 'get-v1-pos-prices', method: 'GET', path: '/v1/pos/prices/{station}',
+    summary: 'Цены по станции', group: 'Цены',
+    params: [
+      { name: 'station', required: true, description: 'Номер станции (в URL)', defaultValue: '1' },
+    ],
+    cacheTTL: 300,
+  },
+  {
+    id: 'get-v1-schedule-prices', method: 'GET', path: '/v1/schedule/prices/{station}',
+    summary: 'Расписание цен', group: 'Цены',
+    params: [
+      { name: 'station', required: true, description: 'Номер станции (в URL)', defaultValue: '1' },
+    ],
+    cacheTTL: 300,
+  },
+  // Смены
+  {
+    id: 'get-v1-shifts', method: 'GET', path: '/v1/shifts',
+    summary: 'Список смен', group: 'Смены',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+      { name: 'station', required: true, description: 'Номер станции', defaultValue: '1' },
+    ],
+    cacheTTL: 300,
+  },
+  // Отчёты
+  {
+    id: 'get-v1-report-shift', method: 'GET', path: '/v1/report/shift_report',
+    summary: 'Сменный отчёт', group: 'Отчёты',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+      { name: 'station', required: true, description: 'Номер станции', defaultValue: '1' },
+      { name: 'shift', required: true, description: 'Номер смены', defaultValue: '1' },
+    ],
+    cacheTTL: 7200,
+  },
+  {
+    id: 'get-v1-report-receipts', method: 'GET', path: '/v1/report/receipts',
+    summary: 'Поступления (receipts)', group: 'Отчёты',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+      { name: 'station', required: true, description: 'Номер станции', defaultValue: '1' },
+    ],
+    cacheTTL: 300,
+  },
+  // Купоны
+  {
+    id: 'get-v1-coupons', method: 'GET', path: '/v1/coupons',
+    summary: 'Список купонов', group: 'Купоны',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+      { name: 'station', required: true, description: 'Номер станции', defaultValue: '1' },
+    ],
+    cacheTTL: 0,
+  },
+  {
+    id: 'get-v1-coupons-manual', method: 'GET', path: '/v1/coupons_manual',
+    summary: 'Ручные купоны', group: 'Купоны',
+    params: [
+      { name: 'system', required: true, description: 'ID системы', defaultValue: '15' },
+      { name: 'station', required: true, description: 'Номер станции', defaultValue: '1' },
+    ],
+    cacheTTL: 0,
+  },
+  // Кэш (внутренние)
+  {
+    id: 'get-cache-stats', method: 'GET', path: '/_cache/stats',
+    summary: 'Статистика кэша STS proxy', group: 'Кэш',
+    params: [],
+    cacheTTL: 0,
+  },
+  {
+    id: 'post-cache-clear', method: 'POST', path: '/_cache/clear',
+    summary: 'Очистить кэш STS proxy', group: 'Кэш',
+    params: [],
+    cacheTTL: 0,
+  },
+];
+
+// Группировка эндпоинтов
+const GROUPS = ['Оборудование', 'Резервуары', 'Транзакции', 'Цены', 'Смены', 'Отчёты', 'Купоны', 'Кэш'];
+
+interface TestResult {
+  status: number;
+  statusText: string;
+  url: string;
+  params: Record<string, string>;
+  data: any;
+  timestamp: string;
+  success: boolean;
+  responseTime: number;
+}
+
+interface CacheStats {
+  cache: {
+    keys: number;
+    hits: number;
+    misses: number;
+    hitRate: string;
+    uptime: string;
+  };
+  ttl: Record<string, number>;
+}
+
+function formatTTL(seconds: number): string {
+  if (seconds === 0) return 'Без кэша';
+  if (seconds < 60) return `${seconds}с`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)} мин`;
+  return `${Math.round(seconds / 3600)} ч`;
+}
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function yesterdayStr(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
 
 export default function STSApiSettings() {
   const { toast } = useToast();
-  const [config, setConfig] = useState<STSApiConfig>(defaultConfig);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [testResult, setTestResult] = useState<{ success?: boolean; error?: string; responseTime?: number } | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [apiMethods, setApiMethods] = useState<any[]>([]);
-  const [isLoadingMethods, setIsLoadingMethods] = useState(false);
-  const [testingMethod, setTestingMethod] = useState<string | null>(null);
-  const [expandedMethods, setExpandedMethods] = useState<Set<string>>(new Set());
-  const [testResults, setTestResults] = useState<Record<string, any>>({});
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  const [healthResult, setHealthResult] = useState<{ ok: boolean; message: string; responseTime?: number } | null>(null);
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
+  const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
+  const [expandedEndpoints, setExpandedEndpoints] = useState<Set<string>>(new Set());
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
 
-  // Состояния для диалога редактирования параметров
+  // Параметры для тестирования (system/station по умолчанию)
+  const [defaultSystem, setDefaultSystem] = useState(() => localStorage.getItem('sts-test-system') || '15');
+  const [defaultStation, setDefaultStation] = useState(() => localStorage.getItem('sts-test-station') || '1');
+
+  // Диалог параметров
   const [isParamsDialogOpen, setIsParamsDialogOpen] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<any | null>(null);
-  const [editableParams, setEditableParams] = useState<Record<string, any>>({});
-  const [editableBody, setEditableBody] = useState<string>('');
-  
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<STSApiConfig>({
-    defaultValues: config
-  });
+  const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint | null>(null);
+  const [editableParams, setEditableParams] = useState<Record<string, string>>({});
+  const [editableBody, setEditableBody] = useState('');
 
-  const watchedValues = watch();
+  const apiOrigin = getBackendOrigin();
 
+  // Сохраняем дефолтные параметры
   useEffect(() => {
-    loadConfig();
-  }, []);
+    localStorage.setItem('sts-test-system', defaultSystem);
+    localStorage.setItem('sts-test-station', defaultStation);
+  }, [defaultSystem, defaultStation]);
 
-  useEffect(() => {
-    // Проверяем изменения в форме
-    const hasChanges = JSON.stringify(watchedValues) !== JSON.stringify(config);
-    setHasChanges(hasChanges);
-  }, [watchedValues, config]);
-
-  const loadConfig = () => {
+  // Загрузка статистики кэша при монтировании
+  const loadCacheStats = useCallback(async () => {
     try {
-      const savedConfig = localStorage.getItem('sts-api-config');
-      if (savedConfig) {
-        const parsedConfig = { ...defaultConfig, ...JSON.parse(savedConfig) };
-        setConfig(parsedConfig);
-        reset(parsedConfig);
+      const resp = await fetch(`${apiOrigin}/api/sts/_cache/stats`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setCacheStats(data);
       }
-    } catch (error) {
-      console.error('Ошибка загрузки конфигурации СТС API:', error);
-    }
-  };
+    } catch { /* ignore */ }
+  }, [apiOrigin]);
 
+  useEffect(() => { loadCacheStats(); }, [loadCacheStats]);
 
+  // Проверка подключения (через бэкенд прокси)
+  const checkHealth = async () => {
+    setIsCheckingHealth(true);
+    setHealthResult(null);
+    const startTime = Date.now();
 
-
-  // Загружаем методы API при изменении конфигурации
-  useEffect(() => {
-    if (config.url && config.enabled) {
-      loadApiMethods();
-    }
-  }, [config.url, config.enabled]);
-
-
-  const loadApiMethods = async () => {
-    setIsLoadingMethods(true);
-    // Очищаем предыдущие результаты тестирования
-    setTestResults({});
-    
     try {
-      const response = await fetch(`${config.url}/openapi.json`);
-      if (response.ok) {
-        const openApiSpec = await response.json();
-        const methods = parseOpenApiMethods(openApiSpec);
-        setApiMethods(methods);
-        
+      const resp = await fetch(`${apiOrigin}/api/sts/v1/info?system=${defaultSystem}`, {
+        signal: AbortSignal.timeout(15000),
+      });
+      const responseTime = Date.now() - startTime;
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const stationCount = Array.isArray(data) ? data.length : 0;
+        setHealthResult({
+          ok: true,
+          message: `${stationCount} станций, ${responseTime}мс`,
+          responseTime,
+        });
+        toast({ title: 'STS API доступен', description: `${stationCount} станций, ${responseTime}мс` });
       } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${resp.status}`);
       }
     } catch (error: any) {
-      console.error('Ошибка загрузки методов API:', error);
-      
-      toast({
-        title: "Ошибка загрузки методов API",
-        description: error.message,
-        variant: "destructive"
+      const responseTime = Date.now() - startTime;
+      setHealthResult({
+        ok: false,
+        message: error.message || 'Нет ответа',
+        responseTime,
       });
-      
-      setApiMethods([]);
+      toast({ title: 'STS API недоступен', description: error.message, variant: 'destructive' });
     } finally {
-      setIsLoadingMethods(false);
+      setIsCheckingHealth(false);
     }
   };
 
-  const parseOpenApiMethods = (spec: any): any[] => {
-    const methods: any[] = [];
-    
-    if (spec.paths) {
-      Object.entries(spec.paths).forEach(([path, pathData]: [string, any]) => {
-        Object.entries(pathData).forEach(([method, methodData]: [string, any]) => {
-          if (method !== 'parameters') {
-            methods.push({
-              id: `${method.toUpperCase()}_${path}`,
-              method: method.toUpperCase(),
-              path: path,
-              summary: methodData.summary || '',
-              description: methodData.description || '',
-              tags: methodData.tags || [],
-              parameters: methodData.parameters || [],
-              responses: methodData.responses || {},
-              security: methodData.security || [],
-              operationId: methodData.operationId,
-              requestBody: methodData.requestBody || null
-            });
-          }
-        });
-      });
-    }
-    
-    return methods.sort((a, b) => a.path.localeCompare(b.path));
-  };
-
-  const buildRequestBody = (method: any, config: STSApiConfig): any => {
-    let body: any = {};
-    
-    // Анализируем requestBody из OpenAPI схемы
-    if (method.requestBody?.content?.['application/json']?.schema) {
-      const schema = method.requestBody.content['application/json'].schema;
-      
-      if (schema.properties) {
-        Object.entries(schema.properties).forEach(([fieldName, fieldSchema]: [string, any]) => {
-          // Подставляем значения на основе имени поля и наших параметров
-          const value = getFieldValue(fieldName, fieldSchema, config);
-          if (value !== undefined) {
-            body[fieldName] = value;
-          }
-        });
-        
-        // Обязательно добавляем все required поля, даже если не смогли определить значение
-        if (schema.required && Array.isArray(schema.required)) {
-          schema.required.forEach((requiredField: string) => {
-            if (body[requiredField] === undefined) {
-              const fieldSchema = schema.properties[requiredField];
-              body[requiredField] = getDefaultValueForType(fieldSchema, requiredField, config);
-            }
-          });
-        }
-      }
-    }
-    
-    // Если схема не найдена, создаем базовые поля на основе имени метода и пути
-    if (Object.keys(body).length === 0) {
-      body = generateDefaultRequestBody(method, config);
-    }
-    
-    return body;
-  };
-
-  const getFieldValue = (fieldName: string, fieldSchema: any, config: STSApiConfig): any => {
-    const lowerFieldName = fieldName.toLowerCase();
-    
-    // Подстановка значений на основе имени поля
-    if (lowerFieldName.includes('network') && lowerFieldName.includes('id')) {
-      return config.networkId ? parseInt(config.networkId) : 1;
-    }
-    
-    if (lowerFieldName.includes('trading') && lowerFieldName.includes('point')) {
-      return config.tradingPointId ? parseInt(config.tradingPointId) : 101;
-    }
-    
-    if (lowerFieldName.includes('station') && lowerFieldName.includes('id')) {
-      return config.tradingPointId ? parseInt(config.tradingPointId) : 101;
-    }
-    
-    if (lowerFieldName.includes('point') && lowerFieldName.includes('id')) {
-      return config.tradingPointId ? parseInt(config.tradingPointId) : 101;
-    }
-    
-    // Подстановка на основе типа поля
-    if (fieldSchema.type === 'string') {
-      if (lowerFieldName.includes('name')) return 'Test Name';
-      if (lowerFieldName.includes('description')) return 'Test Description';
-      if (lowerFieldName.includes('comment')) return 'Test Comment';
-      return 'test';
-    }
-    
-    if (fieldSchema.type === 'integer' || fieldSchema.type === 'number') {
-      if (fieldSchema.minimum !== undefined) return fieldSchema.minimum;
-      if (fieldSchema.default !== undefined) return fieldSchema.default;
-      return 1;
-    }
-    
-    if (fieldSchema.type === 'boolean') {
-      return fieldSchema.default !== undefined ? fieldSchema.default : true;
-    }
-    
-    if (fieldSchema.type === 'array') {
-      return [];
-    }
-    
-    if (fieldSchema.type === 'object') {
-      return {};
-    }
-    
-    return undefined;
-  };
-
-  const getDefaultValueForType = (fieldSchema: any, fieldName: string, config: STSApiConfig): any => {
-    const lowerFieldName = fieldName.toLowerCase();
-    
-    // Специальные значения для конкретных полей
-    if (lowerFieldName === 'system' || lowerFieldName === 'sys') {
-      return config.networkId ? parseInt(config.networkId) : 1;
-    }
-    
-    if (lowerFieldName === 'station' || lowerFieldName === 'point') {
-      return config.tradingPointId ? parseInt(config.tradingPointId) : 1;
-    }
-    
-    if (lowerFieldName === 'field') {
-      return 'test_field';
-    }
-    
-    if (lowerFieldName === 'query') {
-      return 'test_query';
-    }
-    
-    if (lowerFieldName === 'command' || lowerFieldName === 'cmd') {
-      return 'status';
-    }
-    
-    if (lowerFieldName === 'value') {
-      return 'test_value';
-    }
-    
-    if (lowerFieldName === 'data') {
-      return { test: true };
-    }
-    
-    // Значения по умолчанию на основе типа
-    if (fieldSchema?.type === 'string') {
-      if (fieldSchema.enum && fieldSchema.enum.length > 0) {
-        return fieldSchema.enum[0]; // Берем первое значение из enum
-      }
-      return 'test_string';
-    }
-    
-    if (fieldSchema?.type === 'integer' || fieldSchema?.type === 'number') {
-      if (fieldSchema.minimum !== undefined) return fieldSchema.minimum;
-      if (fieldSchema.default !== undefined) return fieldSchema.default;
-      return 1;
-    }
-    
-    if (fieldSchema?.type === 'boolean') {
-      return fieldSchema.default !== undefined ? fieldSchema.default : true;
-    }
-    
-    if (fieldSchema?.type === 'array') {
-      return [];
-    }
-    
-    if (fieldSchema?.type === 'object') {
-      return {};
-    }
-    
-    // Если тип неизвестен, пытаемся угадать по имени поля
-    if (lowerFieldName.includes('id')) {
-      return 1;
-    }
-    
-    if (lowerFieldName.includes('count') || lowerFieldName.includes('number')) {
-      return 1;
-    }
-    
-    if (lowerFieldName.includes('name') || lowerFieldName.includes('title')) {
-      return 'Test Name';
-    }
-    
-    if (lowerFieldName.includes('description') || lowerFieldName.includes('comment')) {
-      return 'Test Description';
-    }
-    
-    // По умолчанию - строка
-    return 'test_value';
-  };
-
-  const generateDefaultRequestBody = (method: any, config: STSApiConfig): any => {
-    const body: any = {};
-    const path = method.path.toLowerCase();
-    
-    // Базовые поля на основе пути API
-    if (config.networkId) {
-      if (path.includes('network')) {
-        body.networkId = parseInt(config.networkId);
-      }
-    }
-    
-    if (config.tradingPointId) {
-      if (path.includes('station') || path.includes('point') || path.includes('trading')) {
-        body.tradingPointId = parseInt(config.tradingPointId);
-        body.stationId = parseInt(config.tradingPointId);
-      }
-    }
-    
-    // Дополнительные поля в зависимости от типа операции
-    if (method.method === 'POST') {
-      if (path.includes('price')) {
-        body.fuelType = 1;
-        body.price = 50.00;
-      }
-      
-      if (path.includes('sale') || path.includes('transaction')) {
-        body.amount = 10.0;
-        body.volume = 10.0;
-        body.fuelType = 1;
-      }
-      
-      if (path.includes('tank')) {
-        body.tankNumber = 1;
-        body.volume = 1000;
-      }
-    }
-    
-    return body;
-  };
-
-  const addRequiredQueryParams = (url: URL, method: any, config: STSApiConfig) => {
-    // Проверяем параметры из схемы OpenAPI
-    if (method.parameters && Array.isArray(method.parameters)) {
-      method.parameters.forEach((param: any) => {
-        if (param.in === 'query' && param.required && !url.searchParams.has(param.name)) {
-          const value = getQueryParamValue(param.name, param.schema, config);
-          if (value !== undefined) {
-            url.searchParams.set(param.name, value.toString());
-          }
-        }
-      });
-    }
-    
-    // Добавляем стандартные параметры если их нет
-    const path = method.path.toLowerCase();
-    
-    // Для endpoints связанных с точками, добавляем system и station если их нет
-    if (path.includes('points') || path.includes('stations')) {
-      if (config.networkId && !url.searchParams.has('system')) {
-        url.searchParams.set('system', config.networkId);
-      }
-      
-      if (config.tradingPointId && !url.searchParams.has('station')) {
-        url.searchParams.set('station', config.tradingPointId);
-      }
-    }
-  };
-
-  const getQueryParamValue = (paramName: string, paramSchema: any, config: STSApiConfig): any => {
-    const lowerParamName = paramName.toLowerCase();
-    
-    // Специфичные параметры
-    if (lowerParamName === 'system' || lowerParamName === 'sys') {
-      return config.networkId ? parseInt(config.networkId) : 1;
-    }
-    
-    if (lowerParamName === 'station' || lowerParamName === 'point') {
-      return config.tradingPointId ? parseInt(config.tradingPointId) : 1;
-    }
-    
-    if (lowerParamName === 'limit') {
-      return 10;
-    }
-    
-    if (lowerParamName === 'offset' || lowerParamName === 'skip') {
-      return 0;
-    }
-    
-    if (lowerParamName === 'page') {
-      return 1;
-    }
-    
-    // Значения на основе типа
-    if (paramSchema?.type === 'integer' || paramSchema?.type === 'number') {
-      if (paramSchema.default !== undefined) return paramSchema.default;
-      if (paramSchema.minimum !== undefined) return paramSchema.minimum;
-      return 1;
-    }
-    
-    if (paramSchema?.type === 'string') {
-      if (paramSchema.enum && paramSchema.enum.length > 0) {
-        return paramSchema.enum[0];
-      }
-      if (paramSchema.default !== undefined) return paramSchema.default;
-      return 'test';
-    }
-    
-    if (paramSchema?.type === 'boolean') {
-      return paramSchema.default !== undefined ? paramSchema.default : true;
-    }
-    
-    return 'test';
-  };
-
-  const openParamsDialog = (method: any) => {
-    if (!config.token) {
-      toast({
-        title: "Нет токена",
-        description: "Сначала получите JWT токен через тест подключения",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Подготавливаем параметры для редактирования
-    const currentValues = watchedValues;
+  // Открыть диалог параметров
+  const openParamsDialog = (endpoint: ApiEndpoint) => {
     const params: Record<string, string> = {};
+    endpoint.params.forEach(p => {
+      let val = p.defaultValue || '';
+      if (p.name === 'system') val = defaultSystem;
+      if (p.name === 'station') val = defaultStation;
+      if (p.name === 'dt_beg') val = yesterdayStr();
+      if (p.name === 'dt_end') val = todayStr();
+      params[p.name] = val;
+    });
 
-    // Path параметры
-    let urlPath = method.path;
-    if (currentValues.networkId && urlPath.includes('{networkId}')) {
-      params['networkId'] = String(currentValues.networkId);
-    }
-    if (currentValues.tradingPointId && urlPath.includes('{tradingPointId}')) {
-      params['tradingPointId'] = String(currentValues.tradingPointId);
-    }
-
-    // Query параметры
-    if (method.parameters && Array.isArray(method.parameters)) {
-      method.parameters.forEach((param: any) => {
-        if (param.in === 'query') {
-          const value = getQueryParamValue(param.name, param.schema, currentValues);
-          if (value !== undefined) {
-            params[param.name] = String(value);
-          }
-        }
-      });
-    }
-
-    // Если нет параметров, добавляем пустые значения для system и station
-    if (Object.keys(params).length === 0) {
-      params['system'] = currentValues.networkId || '15';
-      params['station'] = currentValues.tradingPointId || '4';
-    }
-
-    // Подготавливаем body для POST/PUT методов
-    let bodyText = '';
-    if (method.method === 'POST' || method.method === 'PUT' || method.method === 'PATCH') {
-      const body = buildRequestBody(method, currentValues);
-      bodyText = JSON.stringify(body, null, 2);
-    }
-
-    // Устанавливаем состояние в правильном порядке
     setEditableParams(params);
-    setEditableBody(bodyText);
-    setSelectedMethod(method);
+    setEditableBody(endpoint.bodySchema ? JSON.stringify(endpoint.bodySchema, null, 2) : '');
+    setSelectedEndpoint(endpoint);
     setIsParamsDialogOpen(true);
   };
 
-  const testApiMethodWithParams = async () => {
-    if (!selectedMethod) return;
-
-    setIsParamsDialogOpen(false);
-    await testApiMethod(selectedMethod, editableParams, editableBody);
-  };
-
-  const testApiMethod = async (method: any, customParams?: Record<string, any>, customBody?: string) => {
-    if (!config.token) {
-      toast({
-        title: "Нет токена",
-        description: "Сначала получите JWT токен через тест подключения",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setTestingMethod(method.id);
-
-    // Используем текущие значения из формы или кастомные параметры
-    const currentValues = watchedValues;
-    const params = customParams || {};
+  // Выполнить запрос
+  const executeRequest = async (endpoint: ApiEndpoint, params: Record<string, string>, body?: string) => {
+    setTestingEndpoint(endpoint.id);
+    const startTime = Date.now();
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), currentValues.timeout);
-
-      // Подставляем параметры в путь
-      let urlPath = method.path;
+      // Подставляем path-параметры
+      let urlPath = endpoint.path;
       Object.entries(params).forEach(([key, value]) => {
         if (urlPath.includes(`{${key}}`)) {
-          urlPath = urlPath.replace(`{${key}}`, String(value));
+          urlPath = urlPath.replace(`{${key}}`, encodeURIComponent(value));
         }
       });
 
-      // Добавляем query параметры
-      const url = new URL(`${currentValues.url}${urlPath}`);
+      // Собираем query-параметры (те, что не в URL)
+      const url = new URL(`${apiOrigin}/api/sts${urlPath}`);
       Object.entries(params).forEach(([key, value]) => {
-        if (!urlPath.includes(String(value))) {
-          url.searchParams.set(key, String(value));
+        if (!endpoint.path.includes(`{${key}}`) && value) {
+          url.searchParams.set(key, value);
         }
       });
-
-      // Базовые заголовки
-      const headers: Record<string, string> = {
-        'Authorization': `Bearer ${config.token}`,
-      };
-
-      // Подготавливаем тело запроса для POST/PUT методов
-      let requestBody = undefined;
-      if (method.method === 'POST' || method.method === 'PUT' || method.method === 'PATCH') {
-        headers['Content-Type'] = 'application/json';
-        if (customBody) {
-          try {
-            // Проверяем валидность JSON
-            JSON.parse(customBody);
-            requestBody = customBody;
-          } catch (e) {
-            toast({
-              title: "Ошибка JSON",
-              description: "Тело запроса содержит невалидный JSON",
-              variant: "destructive"
-            });
-            setTestingMethod(null);
-            return;
-          }
-        } else {
-          const body = buildRequestBody(method, currentValues);
-          requestBody = JSON.stringify(body);
-        }
-      }
 
       const fetchOptions: RequestInit = {
-        method: method.method,
-        headers,
-        signal: controller.signal,
+        method: endpoint.method,
+        signal: AbortSignal.timeout(30000),
       };
 
-      if (requestBody) {
-        fetchOptions.body = requestBody;
+      if (endpoint.method === 'POST' && body) {
+        fetchOptions.headers = { 'Content-Type': 'application/json' };
+        fetchOptions.body = body;
       }
 
-      const response = await fetch(url.toString(), fetchOptions);
+      const resp = await fetch(url.toString(), fetchOptions);
+      const responseTime = Date.now() - startTime;
 
-      clearTimeout(timeoutId);
-      
-      let responseData: any = null;
-      const contentType = response.headers.get('content-type');
-      
-      try {
-        if (contentType?.includes('application/json')) {
-          responseData = await response.json();
-        } else {
-          responseData = await response.text();
-        }
-      } catch (parseError) {
-        responseData = 'Ошибка парсинга ответа';
-        console.error('Ошибка парсинга ответа:', parseError);
+      let data: any;
+      const contentType = resp.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        data = await resp.json();
+      } else {
+        data = await resp.text();
       }
 
-      // Показываем данные в тосте
-      let description = `Status: ${response.status} ${response.statusText}`;
-      
-      if (response.status === 422) {
-        // Специальная обработка для 422 ошибок
-        if (responseData && typeof responseData === 'object' && responseData.message) {
-          description += ` | ${responseData.message}`;
-        } else if (responseData && typeof responseData === 'object' && responseData.errors) {
-          const errors = Array.isArray(responseData.errors) 
-            ? responseData.errors.join(', ')
-            : JSON.stringify(responseData.errors);
-          description += ` | ${errors}`;
-        } else if (responseData) {
-          description += ` | ${typeof responseData === 'string' ? responseData : JSON.stringify(responseData)}`;
-        }
-      } else if (responseData && typeof responseData === 'object') {
-        const dataInfo = Array.isArray(responseData) 
-          ? `${responseData.length} элементов`
-          : `${Object.keys(responseData).length} полей`;
-        description += ` | ${dataInfo}`;
-      }
+      const result: TestResult = {
+        status: resp.status,
+        statusText: resp.statusText,
+        url: url.toString().replace(apiOrigin, ''),
+        params,
+        data,
+        timestamp: new Date().toISOString(),
+        success: resp.ok,
+        responseTime,
+      };
+
+      setTestResults(prev => ({ ...prev, [endpoint.id]: result }));
+
+      // Разворачиваем карточку чтобы показать результат
+      setExpandedEndpoints(prev => new Set(prev).add(endpoint.id));
+
+      const dataInfo = Array.isArray(data)
+        ? `${data.length} элементов`
+        : typeof data === 'object' && data
+          ? `${Object.keys(data).length} полей`
+          : '';
 
       toast({
-        title: `${method.method} ${urlPath}`,
-        description,
-        variant: response.ok ? "default" : "destructive"
+        title: `${endpoint.method} ${urlPath}`,
+        description: `${resp.status} ${resp.statusText} | ${responseTime}мс${dataInfo ? ` | ${dataInfo}` : ''}`,
+        variant: resp.ok ? 'default' : 'destructive',
       });
 
-      // Сохраняем результат теста
-      const testResult = {
-        status: response.status,
-        statusText: response.statusText,
-        url: url.toString(),
-        usedParams: params,
-        requestBody: requestBody ? JSON.parse(requestBody) : null,
-        data: responseData,
-        timestamp: new Date().toISOString(),
-        success: response.ok
-      };
-
-      setTestResults(prev => ({
-        ...prev,
-        [method.id]: testResult
-      }));
-
+      // Обновляем статистику кэша после запроса
+      loadCacheStats();
     } catch (error: any) {
-      const errorMessage = error.name === 'AbortError' 
-        ? 'Превышен таймаут'
-        : error.message || 'Неизвестная ошибка';
-        
-      console.error('Ошибка при выполнении запроса:', error);
-      
-      // Сохраняем результат с ошибкой
-      let parsedBody = null;
-      try {
-        parsedBody = customBody ? JSON.parse(customBody) : null;
-      } catch (e) {
-        parsedBody = customBody;
-      }
-
-      const errorResult = {
+      const responseTime = Date.now() - startTime;
+      const result: TestResult = {
         status: 0,
-        statusText: 'Network Error',
-        url: `${currentValues.url}${method.path}`,
-        usedParams: params,
-        requestBody: parsedBody,
-        data: { error: errorMessage },
+        statusText: 'Error',
+        url: `${apiOrigin}/api/sts${endpoint.path}`,
+        params,
+        data: { error: error.message },
         timestamp: new Date().toISOString(),
-        success: false
+        success: false,
+        responseTime,
       };
 
-      setTestResults(prev => ({
-        ...prev,
-        [method.id]: errorResult
-      }));
-      
-      toast({
-        title: `Ошибка - ${method.method} ${method.path}`,
-        description: errorMessage,
-        variant: "destructive"
-      });
+      setTestResults(prev => ({ ...prev, [endpoint.id]: result }));
+      setExpandedEndpoints(prev => new Set(prev).add(endpoint.id));
 
+      toast({
+        title: `Ошибка: ${endpoint.method} ${endpoint.path}`,
+        description: error.message,
+        variant: 'destructive',
+      });
     } finally {
-      setTestingMethod(null);
+      setTestingEndpoint(null);
     }
   };
 
-  const toggleMethodExpansion = (methodId: string) => {
-    const newExpanded = new Set(expandedMethods);
-    if (newExpanded.has(methodId)) {
-      newExpanded.delete(methodId);
-    } else {
-      newExpanded.add(methodId);
-    }
-    setExpandedMethods(newExpanded);
+  const executeFromDialog = async () => {
+    if (!selectedEndpoint) return;
+    setIsParamsDialogOpen(false);
+    await executeRequest(selectedEndpoint, editableParams, editableBody || undefined);
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedEndpoints(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const getMethodColor = (method: string) => {
     switch (method) {
-      case 'GET': return 'bg-emerald-500/10 text-green-600 border-green-500/20 dark:text-green-400 dark:border-green-400/20';
-      case 'POST': return 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400 dark:border-blue-400/20';
-      case 'PUT': return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400 dark:border-yellow-400/20';
-      case 'DELETE': return 'bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400 dark:border-red-400/20';
-      case 'PATCH': return 'bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400 dark:border-purple-400/20';
-      default: return 'bg-muted text-muted-foreground border-border';
+      case 'GET': return 'bg-emerald-500/10 text-green-600 border-green-500/20 dark:text-green-400';
+      case 'POST': return 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
-  const saveConfig = (newConfig: STSApiConfig) => {
-    try {
-      localStorage.setItem('sts-api-config', JSON.stringify(newConfig));
-      const oldUrl = config.url;
-      setConfig(newConfig);
-      setHasChanges(false);
-      
-      // Если URL изменился, обновляем методы API
-      if (oldUrl !== newConfig.url && newConfig.enabled) {
-        setTimeout(() => loadApiMethods(), 500); // Небольшая задержка для обновления состояния
-      }
-      
-      toast({
-        title: "Настройки сохранены",
-        description: "Конфигурация СТС API успешно обновлена",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Ошибка сохранения",
-        description: error.message,
-        variant: "destructive"
-      });
+  const groupIcon = (group: string) => {
+    switch (group) {
+      case 'Кэш': return <Database className="h-4 w-4" />;
+      default: return <Tag className="h-4 w-4" />;
     }
-  };
-
-  const testConnection = async () => {
-    setIsTestingConnection(true);
-    setTestResult(null);
-    
-    const currentValues = watchedValues;
-    
-    try {
-      const startTime = Date.now();
-      
-      // Пытаемся получить JWT токен через /v1/login
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), currentValues.timeout);
-
-      const loginResponse = await fetch(`${currentValues.url}/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: currentValues.username,
-          password: currentValues.password
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      const responseTime = Date.now() - startTime;
-
-      if (loginResponse.ok) {
-        const token = await loginResponse.text();
-        
-        // Сохраняем токен и время получения
-        const newConfig = {
-          ...currentValues,
-          token: token.replace(/"/g, ''), // Убираем кавычки если есть
-          tokenExpiry: Date.now() + (24 * 60 * 60 * 1000) // 24 часа
-        };
-        setConfig(newConfig);
-        localStorage.setItem('sts-api-config', JSON.stringify(newConfig));
-        
-        setTestResult({ 
-          success: true, 
-          responseTime 
-        });
-        
-        toast({
-          title: "Подключение успешно",
-          description: `JWT токен получен. Время ответа: ${responseTime}мс`,
-        });
-      } else if (loginResponse.status === 401) {
-        throw new Error('Неверные учетные данные');
-      } else {
-        throw new Error(`HTTP ${loginResponse.status}: ${loginResponse.statusText}`);
-      }
-    } catch (error: any) {
-      const errorMessage = error.name === 'AbortError' 
-        ? 'Превышен таймаут подключения'
-        : error.message || 'Неизвестная ошибка';
-        
-      setTestResult({ 
-        success: false, 
-        error: errorMessage 
-      });
-      
-      toast({
-        title: "Ошибка подключения",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    } finally {
-      setIsTestingConnection(false);
-    }
-  };
-
-  const resetToDefaults = () => {
-    reset(defaultConfig);
-    toast({
-      title: "Настройки сброшены",
-      description: "Восстановлены значения по умолчанию",
-    });
-  };
-
-  const onSubmit = (data: STSApiConfig) => {
-    saveConfig(data);
-  };
-
-  const getStatusIcon = () => {
-    if (isTestingConnection) {
-      return <Clock className="h-4 w-4 text-yellow-500 animate-spin" />;
-    }
-    
-    if (testResult?.success) {
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
-    }
-    
-    if (testResult?.success === false) {
-      return <XCircle className="h-4 w-4 text-red-500" />;
-    }
-    
-    return <Globe className="h-4 w-4 text-muted-foreground" />;
   };
 
   return (
     <MainLayout fullWidth={true}>
       <div className="w-full h-full report-full-width">
         {/* Заголовок */}
-        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <h1 className="text-3xl font-bold text-foreground">
-            Настройки API СТС
-          </h1>
+        <div className="mb-6 pt-4 px-4 md:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold text-foreground">API СТС</h1>
           <p className="text-muted-foreground">
-            Конфигурация подключения к внешнему API торговой сети СТС
+            Тестирование API торговой сети через серверный прокси (/api/sts/*)
           </p>
         </div>
 
-        {/* Статус подключения */}
+        {/* Статус-карточки */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mx-4 md:mx-6 lg:mx-8 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Статус подключения</CardTitle>
-              {getStatusIcon()}
+              <CardTitle className="text-sm font-medium">STS API</CardTitle>
+              {isCheckingHealth ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : healthResult?.ok ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : healthResult?.ok === false ? (
+                <XCircle className="h-4 w-4 text-red-500" />
+              ) : (
+                <Globe className="h-4 w-4 text-muted-foreground" />
+              )}
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {testResult?.success === true ? 'ДОСТУПНО' : 
-                 testResult?.success === false ? 'НЕДОСТУПНО' : 'НЕ ПРОВЕРЕНО'}
+                {healthResult?.ok === true ? 'ДОСТУПЕН' :
+                 healthResult?.ok === false ? 'НЕДОСТУПЕН' : 'НЕ ПРОВЕРЕН'}
               </div>
               <p className="text-xs text-muted-foreground">
-                {testResult?.responseTime && `Время ответа: ${testResult.responseTime}мс`}
-                {testResult?.error && `Ошибка: ${testResult.error}`}
+                {healthResult?.message || 'Нажмите "Проверить"'}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">API Endpoint</CardTitle>
-              <Globe className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm font-bold truncate">
-                {config.url}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Торговая сеть СТС
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">JWT Токен</CardTitle>
+              <CardTitle className="text-sm font-medium">Прокси-сервер</CardTitle>
               <Key className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-sm font-bold">
-                {config.token ? (
-                  <Badge variant="default" className="bg-emerald-600">
-                    АКТИВЕН
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">
-                    НЕ ПОЛУЧЕН
-                  </Badge>
-                )}
-              </div>
+              <div className="text-sm font-bold truncate">/api/sts/*</div>
               <p className="text-xs text-muted-foreground">
-                {config.token && config.tokenExpiry 
-                  ? `Истекает: ${new Date(config.tokenExpiry).toLocaleString('ru-RU')}`
-                  : 'Нажмите "Тест подключения" для получения токена'
-                }
+                JWT-авторизация автоматическая (бэкенд)
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Состояние</CardTitle>
-              <Settings className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Кэш</CardTitle>
+              <Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <Badge variant={config.enabled ? "default" : "secondary"}>
-                  {config.enabled ? 'ВКЛЮЧЕНО' : 'ВЫКЛЮЧЕНО'}
-                </Badge>
-              </div>
+              {cacheStats ? (
+                <>
+                  <div className="text-2xl font-bold">{cacheStats.cache.keys}</div>
+                  <p className="text-xs text-muted-foreground">
+                    ключей | hit rate: {cacheStats.cache.hitRate} | uptime: {cacheStats.cache.uptime}
+                  </p>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">Загрузка...</div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Эндпоинтов</CardTitle>
+              <Zap className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{API_ENDPOINTS.length}</div>
               <p className="text-xs text-muted-foreground">
-                {hasChanges ? 'Есть несохраненные изменения' : 'Настройки актуальны'}
+                {Object.keys(testResults).length} протестировано
               </p>
             </CardContent>
           </Card>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Основные настройки */}
-          <Card className="mx-4 md:mx-6 lg:mx-8">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">Параметры подключения</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Основные настройки подключения */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="url" className="text-sm">URL API *</Label>
-                  <Input
-                    id="url"
-                    {...register('url', { 
-                      required: 'URL обязателен',
-                      pattern: {
-                        value: /^https?:\/\/.+/,
-                        message: 'Неверный формат URL'
-                      }
-                    })}
-                    placeholder="https://pos.autooplata.ru/tms"
-                    className="h-8"
-                  />
-                  {errors.url && (
-                    <p className="text-xs text-red-500">{errors.url.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="username" className="text-sm">Имя пользователя *</Label>
-                  <Input
-                    id="username"
-                    {...register('username', { required: 'Обязательное поле' })}
-                    placeholder="UserApi"
-                    className="h-8"
-                  />
-                  {errors.username && (
-                    <p className="text-xs text-red-500">{errors.username.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="password" className="text-sm">Пароль *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    {...register('password', { required: 'Обязательное поле' })}
-                    placeholder="••••••••••••"
-                    className="h-8"
-                  />
-                  {errors.password && (
-                    <p className="text-xs text-red-500">{errors.password.message}</p>
-                  )}
-                </div>
+        {/* Параметры по умолчанию + действия */}
+        <Card className="mx-4 md:mx-6 lg:mx-8 mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Параметры тестирования
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm">Система (network)</Label>
+                <Input
+                  value={defaultSystem}
+                  onChange={e => setDefaultSystem(e.target.value)}
+                  placeholder="15"
+                  className="h-8 w-24"
+                />
               </div>
-
-              {/* Параметры для тестирования API */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/50">
-                <div className="space-y-1">
-                  <Label htmlFor="networkId" className="text-sm">Номер сети (для тестов)</Label>
-                  <Input
-                    id="networkId"
-                    {...register('networkId')}
-                    placeholder="Например: 1"
-                    className="h-8"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Используется в API запросах для тестирования
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="tradingPointId" className="text-sm">Номер торговой точки (для тестов)</Label>
-                  <Input
-                    id="tradingPointId"
-                    {...register('tradingPointId')}
-                    placeholder="Например: 101"
-                    className="h-8"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Используется в API запросах для тестирования
-                  </p>
-                </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Станция (station)</Label>
+                <Input
+                  value={defaultStation}
+                  onChange={e => setDefaultStation(e.target.value)}
+                  placeholder="1"
+                  className="h-8 w-24"
+                />
               </div>
+              <Button variant="outline" size="sm" onClick={checkHealth} disabled={isCheckingHealth}>
+                <TestTube className="h-4 w-4 mr-2" />
+                {isCheckingHealth ? 'Проверяю...' : 'Проверить STS'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={loadCacheStats}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Обновить кэш
+              </Button>
+              <Button
+                variant="outline" size="sm"
+                onClick={() => { setTestResults({}); toast({ title: 'Результаты очищены' }); }}
+                disabled={Object.keys(testResults).length === 0}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Очистить
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* Дополнительные настройки */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-                <div className="space-y-1">
-                  <Label htmlFor="timeout" className="text-sm">Таймаут (мс)</Label>
-                  <Input
-                    id="timeout"
-                    type="number"
-                    {...register('timeout', { 
-                      min: { value: 1000, message: 'Мин: 1000' },
-                      max: { value: 120000, message: 'Макс: 120000' }
-                    })}
-                    min="1000"
-                    max="120000"
-                    step="1000"
-                    className="h-8"
-                  />
-                  {errors.timeout && (
-                    <p className="text-xs text-red-500">{errors.timeout.message}</p>
-                  )}
-                </div>
+        {/* Эндпоинты по группам */}
+        <div className="mx-4 md:mx-6 lg:mx-8 space-y-4 pb-8">
+          {GROUPS.map(group => {
+            const endpoints = API_ENDPOINTS.filter(e => e.group === group);
+            if (endpoints.length === 0) return null;
 
-                <div className="space-y-1">
-                  <Label htmlFor="retryAttempts" className="text-sm">Попытки</Label>
-                  <Input
-                    id="retryAttempts"
-                    type="number"
-                    {...register('retryAttempts', { 
-                      min: { value: 1, message: 'Мин: 1' },
-                      max: { value: 10, message: 'Макс: 10' }
-                    })}
-                    min="1"
-                    max="10"
-                    className="h-8"
-                  />
-                  {errors.retryAttempts && (
-                    <p className="text-xs text-red-500">{errors.retryAttempts.message}</p>
-                  )}
-                </div>
-
-
-                <div className="flex items-center space-x-2 pt-5">
-                  <Switch
-                    id="enabled"
-                    {...register('enabled')}
-                  />
-                  <Label htmlFor="enabled" className="text-sm">Включено</Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Действия */}
-          <div className="mx-4 md:mx-6 lg:mx-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row gap-2 justify-between">
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={testConnection}
-                      disabled={isTestingConnection}
-                    >
-                      <TestTube className="h-4 w-4 mr-2" />
-                      {isTestingConnection ? 'Тестирую...' : 'Тест подключения'}
-                    </Button>
-                    
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={resetToDefaults}
-                    >
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      По умолчанию
-                    </Button>
-                  </div>
-                  
-                  <Button 
-                    type="submit"
-                    disabled={!hasChanges}
-                    className="sm:ml-auto"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Сохранить настройки
-                  </Button>
-                </div>
-                
-                {hasChanges && (
-                  <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-                    <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
-                      <AlertTriangle className="h-4 w-4" />
-                      У вас есть несохраненные изменения. Не забудьте сохранить настройки.
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </form>
-
-        {/* Методы API */}
-        {config.enabled && (
-          <div className="mx-4 md:mx-6 lg:mx-8 mt-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Code className="h-5 w-5" />
-                      Методы API
-                      {isLoadingMethods && <Loader2 className="h-4 w-4 animate-spin" />}
-                    </CardTitle>
-                    <CardDescription>
-                      Список всех доступных методов API из OpenAPI спецификации
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => loadApiMethods()}
-                      disabled={isLoadingMethods}
-                    >
-                      {isLoadingMethods ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-4 w-4" />
-                      )}
-                      Обновить
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setTestResults({});
-                        toast({
-                          title: "Результаты очищены",
-                          description: "Все результаты тестирования удалены",
-                        });
-                      }}
-                      disabled={Object.keys(testResults).length === 0}
-                    >
-                      Очистить результаты
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingMethods ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span>Загрузка методов API...</span>
-                  </div>
-                ) : apiMethods.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Методы API не найдены. Проверьте подключение.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {apiMethods.map((method) => (
-                      <div key={method.id} className="border rounded-lg">
-                        <div 
-                          className="p-3 cursor-pointer hover:bg-muted/50 flex items-center justify-between"
-                          onClick={() => toggleMethodExpansion(method.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Badge 
-                              variant="outline" 
-                              className={`${getMethodColor(method.method)} text-xs font-mono`}
+            return (
+              <Card key={group}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    {groupIcon(group)}
+                    {group}
+                    <Badge variant="secondary" className="text-xs ml-1">{endpoints.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {endpoints.map(endpoint => (
+                    <div key={endpoint.id} className="border rounded-lg">
+                      {/* Строка эндпоинта */}
+                      <div
+                        className="p-3 cursor-pointer hover:bg-muted/50 flex items-center justify-between gap-2"
+                        onClick={() => toggleExpand(endpoint.id)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Badge variant="outline" className={`${getMethodColor(endpoint.method)} text-xs font-mono shrink-0`}>
+                            {endpoint.method}
+                          </Badge>
+                          <code className="text-sm font-mono truncate">{endpoint.path}</code>
+                          <span className="text-sm text-muted-foreground hidden md:inline truncate">{endpoint.summary}</span>
+                          {endpoint.cacheTTL > 0 && (
+                            <Badge variant="secondary" className="text-xs shrink-0">{formatTTL(endpoint.cacheTTL)}</Badge>
+                          )}
+                          {testResults[endpoint.id] && (
+                            <Badge
+                              variant={testResults[endpoint.id].success ? 'default' : 'destructive'}
+                              className="text-xs shrink-0"
                             >
-                              {method.method}
+                              {testResults[endpoint.id].status} | {testResults[endpoint.id].responseTime}мс
                             </Badge>
-                            <code className="text-sm font-mono">{method.path}</code>
-                            {method.summary && (
-                              <span className="text-sm text-muted-foreground">{method.summary}</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openParamsDialog(method);
-                              }}
-                              disabled={testingMethod === method.id || !config.token}
-                              title="Настроить параметры и выполнить запрос"
-                            >
-                              {testingMethod === method.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Edit3 className="h-3 w-3" />
-                              )}
-                            </Button>
-                            {expandedMethods.has(method.id) ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                          </div>
+                          )}
                         </div>
-                        
-                        {expandedMethods.has(method.id) && (
-                          <div className="border-t bg-muted/30 p-3">
-                            {method.description && (
-                              <div className="mb-3">
-                                <strong className="text-sm">Описание:</strong>
-                                <p className="text-sm text-muted-foreground mt-1">{method.description}</p>
-                              </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="sm" variant="outline"
+                            onClick={e => { e.stopPropagation(); openParamsDialog(endpoint); }}
+                            disabled={testingEndpoint === endpoint.id}
+                            title="Настроить и выполнить"
+                          >
+                            {testingEndpoint === endpoint.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Edit3 className="h-3 w-3" />
                             )}
-                            
-                            {method.tags && method.tags.length > 0 && (
-                              <div className="mb-3">
-                                <strong className="text-sm">Теги:</strong>
-                                <div className="flex gap-1 mt-1">
-                                  {method.tags.map((tag: string) => (
-                                    <Badge key={tag} variant="secondary" className="text-xs">
-                                      <Tag className="h-3 w-3 mr-1" />
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {method.parameters && method.parameters.length > 0 && (
-                              <div className="mb-3">
-                                <strong className="text-sm">Параметры:</strong>
-                                <div className="mt-1 space-y-1">
-                                  {method.parameters.map((param: any, idx: number) => (
-                                    <div key={idx} className="text-xs font-mono bg-background p-2 rounded border">
-                                      <span className="font-semibold">{param.name}</span>
-                                      {param.required && <Badge variant="destructive" className="ml-2 text-xs">required</Badge>}
-                                      {param.description && (
-                                        <p className="text-muted-foreground mt-1">{param.description}</p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {method.requestBody && method.requestBody.content?.['application/json']?.schema && (
-                              <div className="mb-3">
-                                <strong className="text-sm">Тело запроса (JSON):</strong>
-                                <div className="mt-1 space-y-1">
-                                  {method.requestBody.content['application/json'].schema.properties && 
-                                    Object.entries(method.requestBody.content['application/json'].schema.properties).map(([fieldName, fieldSchema]: [string, any]) => (
-                                      <div key={fieldName} className="text-xs font-mono bg-background p-2 rounded border">
-                                        <span className="font-semibold">{fieldName}</span>
-                                        <span className="ml-2 text-blue-600">({fieldSchema.type || 'any'})</span>
-                                        {method.requestBody.content['application/json'].schema.required?.includes(fieldName) && (
-                                          <Badge variant="destructive" className="ml-2 text-xs">required</Badge>
-                                        )}
-                                        {fieldSchema.description && (
-                                          <p className="text-muted-foreground mt-1">{fieldSchema.description}</p>
-                                        )}
-                                      </div>
-                                    ))
-                                  }
-                                </div>
-                              </div>
-                            )}
-
-                            {method.security && method.security.length > 0 && (
-                              <div className="mb-3">
-                                <strong className="text-sm">Безопасность:</strong>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Требует аутентификации: {method.security.map((s: any) => Object.keys(s).join(', ')).join(', ')}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Результаты тестирования */}
-                            {testResults[method.id] && (
-                              <div className="mt-3 p-3 border rounded bg-background/50">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <strong className="text-sm">Результат тестирования:</strong>
-                                  <Badge variant={testResults[method.id].success ? "default" : "destructive"} className="text-xs">
-                                    {testResults[method.id].status} {testResults[method.id].statusText}
-                                  </Badge>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(testResults[method.id].timestamp).toLocaleTimeString('ru-RU')}
-                                  </span>
-                                </div>
-
-                                {testResults[method.id].usedParams && Object.keys(testResults[method.id].usedParams).length > 0 && (
-                                  <div className="mb-2">
-                                    <strong className="text-xs">Параметры:</strong>
-                                    <div className="text-xs bg-muted/50 p-2 rounded mt-1">
-                                      {Object.entries(testResults[method.id].usedParams).map(([key, value]) => (
-                                        <div key={key} className="font-mono">
-                                          <span className="text-blue-600">{key}</span>: {String(value)}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {testResults[method.id].requestBody && (
-                                  <div className="mb-2">
-                                    <strong className="text-xs">Тело запроса:</strong>
-                                    <pre className="text-xs bg-muted/50 p-2 rounded mt-1 overflow-x-auto max-h-24 overflow-y-auto">
-                                      {JSON.stringify(testResults[method.id].requestBody, null, 2)}
-                                    </pre>
-                                  </div>
-                                )}
-
-                                <p className="text-xs text-muted-foreground mb-2">
-                                  URL: {testResults[method.id].url}
-                                </p>
-
-                                {testResults[method.id].data && (
-                                  <div>
-                                    <strong className="text-xs">Данные ответа:</strong>
-                                    <pre className="text-xs bg-muted/50 p-2 rounded mt-1 overflow-x-auto max-h-32 overflow-y-auto">
-                                      {typeof testResults[method.id].data === 'string'
-                                        ? testResults[method.id].data
-                                        : JSON.stringify(testResults[method.id].data, null, 2)}
-                                    </pre>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                          </Button>
+                          {expandedEndpoints.has(endpoint.id) ? (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
-        {/* Диалог настройки параметров */}
+                      {/* Развёрнутые детали */}
+                      {expandedEndpoints.has(endpoint.id) && (
+                        <div className="border-t bg-muted/30 p-3 space-y-3">
+                          <p className="text-sm text-muted-foreground">{endpoint.summary}</p>
+
+                          {/* Параметры */}
+                          {endpoint.params.length > 0 && (
+                            <div>
+                              <strong className="text-xs">Параметры:</strong>
+                              <div className="mt-1 space-y-1">
+                                {endpoint.params.map(p => (
+                                  <div key={p.name} className="text-xs font-mono bg-background p-2 rounded border flex items-center gap-2">
+                                    <span className="font-semibold">{p.name}</span>
+                                    {p.required && <Badge variant="destructive" className="text-[10px] px-1 py-0">required</Badge>}
+                                    <span className="text-muted-foreground">{p.description}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="text-xs text-muted-foreground">
+                            Кэш: {formatTTL(endpoint.cacheTTL)}
+                          </div>
+
+                          {/* Результат теста */}
+                          {testResults[endpoint.id] && (
+                            <div className="p-3 border rounded bg-background/50 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <strong className="text-sm">Результат:</strong>
+                                <Badge variant={testResults[endpoint.id].success ? 'default' : 'destructive'} className="text-xs">
+                                  {testResults[endpoint.id].status} {testResults[endpoint.id].statusText}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {testResults[endpoint.id].responseTime}мс | {new Date(testResults[endpoint.id].timestamp).toLocaleTimeString('ru-RU')}
+                                </span>
+                              </div>
+
+                              {Object.keys(testResults[endpoint.id].params).length > 0 && (
+                                <div>
+                                  <strong className="text-xs">Параметры:</strong>
+                                  <div className="text-xs bg-muted/50 p-2 rounded mt-1 font-mono">
+                                    {Object.entries(testResults[endpoint.id].params).map(([k, v]) => (
+                                      <div key={k}><span className="text-blue-600">{k}</span>: {v}</div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="text-xs text-muted-foreground">
+                                URL: {testResults[endpoint.id].url}
+                              </div>
+
+                              <div>
+                                <strong className="text-xs">Ответ:</strong>
+                                <pre className="text-xs bg-muted/50 p-2 rounded mt-1 overflow-x-auto max-h-48 overflow-y-auto">
+                                  {typeof testResults[endpoint.id].data === 'string'
+                                    ? testResults[endpoint.id].data
+                                    : JSON.stringify(testResults[endpoint.id].data, null, 2)}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Диалог параметров */}
         <Dialog open={isParamsDialogOpen} onOpenChange={setIsParamsDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Edit3 className="h-5 w-5" />
-                Настройка параметров запроса
+                Параметры запроса
               </DialogTitle>
-              {selectedMethod && (
+              {selectedEndpoint && (
                 <DialogDescription className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className={`${getMethodColor(selectedMethod.method)} text-xs font-mono`}>
-                    {selectedMethod.method}
+                  <Badge variant="outline" className={`${getMethodColor(selectedEndpoint.method)} text-xs font-mono`}>
+                    {selectedEndpoint.method}
                   </Badge>
-                  <code className="text-sm">{selectedMethod.path}</code>
+                  <code className="text-sm">/api/sts{selectedEndpoint.path}</code>
                 </DialogDescription>
               )}
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {/* Параметры запроса */}
               {Object.keys(editableParams).length > 0 && (
                 <div className="space-y-3">
-                  <Label className="text-sm font-semibold">Параметры запроса</Label>
-                  <div className="space-y-3">
-                    {Object.entries(editableParams).map(([key, value]) => (
-                      <div key={key} className="space-y-1">
-                        <Label htmlFor={`param-${key}`} className="text-xs font-mono text-blue-600">
-                          {key}
-                        </Label>
-                        <Input
-                          id={`param-${key}`}
-                          type="text"
-                          value={value || ''}
-                          onChange={(e) => {
-                            const newValue = e.target.value;
-                            setEditableParams(prev => ({
-                              ...prev,
-                              [key]: newValue
-                            }));
-                          }}
-                          autoComplete="off"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <Label className="text-sm font-semibold">Параметры</Label>
+                  {Object.entries(editableParams).map(([key, value]) => (
+                    <div key={key} className="space-y-1">
+                      <Label htmlFor={`p-${key}`} className="text-xs font-mono text-blue-600">{key}</Label>
+                      <Input
+                        id={`p-${key}`}
+                        value={value}
+                        onChange={e => setEditableParams(prev => ({ ...prev, [key]: e.target.value }))}
+                        autoComplete="off"
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {/* Тело запроса для POST/PUT */}
-              {selectedMethod && (selectedMethod.method === 'POST' || selectedMethod.method === 'PUT' || selectedMethod.method === 'PATCH') && (
+              {selectedEndpoint?.method === 'POST' && editableBody && (
                 <div className="space-y-2">
-                  <Label htmlFor="request-body" className="text-sm font-semibold">Тело запроса (JSON)</Label>
+                  <Label className="text-sm font-semibold">Тело запроса (JSON)</Label>
                   <Textarea
-                    id="request-body"
-                    className="font-mono text-xs min-h-[200px]"
-                    value={editableBody || ''}
-                    onChange={(e) => {
-                      setEditableBody(e.target.value);
-                    }}
-                    placeholder='{"key": "value"}'
-                    autoComplete="off"
+                    className="font-mono text-xs min-h-[150px]"
+                    value={editableBody}
+                    onChange={e => setEditableBody(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Редактируйте JSON прямо здесь. Проверьте валидность перед отправкой.
-                  </p>
                 </div>
               )}
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsParamsDialogOpen(false)}>
-                Отмена
-              </Button>
-              <Button onClick={testApiMethodWithParams} disabled={testingMethod !== null}>
+              <Button variant="outline" onClick={() => setIsParamsDialogOpen(false)}>Отмена</Button>
+              <Button onClick={executeFromDialog} disabled={testingEndpoint !== null}>
                 <Send className="h-4 w-4 mr-2" />
-                Выполнить запрос
+                Выполнить
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -8,11 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { networksService } from '@/services/networksService';
 import { apiConfigService } from '@/services/apiConfigService';
 import { Network } from '@/types/network';
-import { 
-  Database, 
-  RefreshCw, 
-  Plus, 
-  CheckCircle, 
+import {
+  RefreshCw,
+  Plus,
   XCircle,
   Settings
 } from 'lucide-react';
@@ -55,34 +53,6 @@ export function NetworksDebugSimple() {
     }
   };
 
-  const runMigration = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setLastAction('Запуск миграции...');
-      
-      const result = await networksService.migrateToSupabase();
-      
-      
-      if (result.success) {
-        setLastAction(`Миграция успешна! Перенесено: ${result.migrated}, пропущено: ${result.skipped}`);
-        // Перезагружаем данные
-        setTimeout(() => loadStatus(), 1000);
-      } else {
-        setError(result.message);
-        setLastAction('Миграция не удалась: ' + result.message);
-      }
-      
-    } catch (err) {
-      console.error('❌ Migration error:', err);
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      setError(errorMsg);
-      setLastAction('Ошибка миграции: ' + errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const createTestNetwork = async () => {
     try {
       setLoading(true);
@@ -118,8 +88,6 @@ export function NetworksDebugSimple() {
 
   const getApiModeBadge = () => {
     switch (apiMode) {
-      case 'supabase':
-        return <Badge className="bg-emerald-600">Supabase</Badge>;
       case 'mock':
         return <Badge className="bg-yellow-600">Mock</Badge>;
       case 'http':
@@ -173,19 +141,7 @@ export function NetworksDebugSimple() {
             Обновить
           </Button>
           
-          {apiMode === 'supabase' && (
-            <Button 
-              onClick={runMigration} 
-              disabled={loading}
-              variant="outline"
-              size="sm"
-            >
-              <Database className="w-4 h-4 mr-2" />
-              Миграция
-            </Button>
-          )}
-          
-          <Button 
+          <Button
             onClick={createTestNetwork} 
             disabled={loading}
             variant="outline"

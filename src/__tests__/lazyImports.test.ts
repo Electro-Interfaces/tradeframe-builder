@@ -29,7 +29,6 @@ describe('Lazy imports — все страницы App.tsx резолвятся'
     ['DataMigration', () => import('@/pages/DataMigration')],
 
     // Settings — приоритет 2
-    ['ExternalDatabaseSettings', () => import('@/pages/ExternalDatabaseSettings')],
     ['UserNotificationSettings', () => import('@/pages/UserNotificationSettings')],
 
     // Network — приоритет 3

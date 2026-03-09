@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { auditLogService } from "@/services/auditLogService";
+import { isAuditBackendMode } from "@/services/auditApiClient";
 import type { AuditLogEntry } from "@/types/audit";
 
 // Типы действий для фильтра
@@ -64,6 +65,7 @@ export default function AuditLog() {
   const [error, setError] = useState<string | null>(null);
   const [tableExists, setTableExists] = useState<boolean | null>(null);
   const isMobile = useIsMobile();
+  const auditBackendMode = isAuditBackendMode();
 
   // Загрузка данных при монтировании
   useEffect(() => {
@@ -178,56 +180,20 @@ export default function AuditLog() {
                 Таблица журнала аудита не создана
               </h2>
               <p className="text-muted-foreground mb-6 text-lg">
-                Для начала работы журнала аудита необходимо применить SQL миграцию в Supabase.
+                Для начала работы журнала аудита необходимо применить миграции PostgreSQL.
               </p>
 
               <div className="bg-secondary rounded-lg p-6 text-left w-full mb-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">📋 Инструкция по применению миграции:</h3>
-                <ol className="space-y-3 text-foreground/80">
-                  <li className="flex items-start">
-                    <span className="font-semibold mr-2">1.</span>
-                    <span>
-                      Откройте{" "}
-                      <a
-                        href={`https://supabase.com/dashboard/project/${(import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').split('.')[0]}/sql/new`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Supabase SQL Editor
-                      </a>
-                    </span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="font-semibold mr-2">2.</span>
-                    <span>Откройте файл <code className="bg-secondary px-2 py-1 rounded text-sm">migrations/create-audit-log-table.sql</code> в редакторе кода</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="font-semibold mr-2">3.</span>
-                    <span>Скопируйте весь SQL код из файла</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="font-semibold mr-2">4.</span>
-                    <span>Вставьте в Supabase SQL Editor</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="font-semibold mr-2">5.</span>
-                    <span>Нажмите <strong>Run</strong> или <kbd className="bg-secondary px-2 py-1 rounded text-sm">Ctrl+Enter</kbd></span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="font-semibold mr-2">6.</span>
-                    <span>Обновите эту страницу</span>
-                  </li>
-                </ol>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Инструкция по применению миграции:</h3>
+                <div className="space-y-3 text-foreground/80">
+                  <div>1. Откройте backend окружение проекта</div>
+                  <div>2. Убедитесь, что задан <code className="bg-secondary px-2 py-1 rounded text-sm">DATABASE_URL</code></div>
+                  <div>3. Выполните <code className="bg-secondary px-2 py-1 rounded text-sm">cd server && npm run db:migrate</code></div>
+                  <div>4. После применения миграций обновите эту страницу</div>
+                </div>
               </div>
 
               <div className="flex gap-3">
-                <Button
-                  onClick={() => window.open(`https://supabase.com/dashboard/project/${(import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').split('.')[0]}/sql/new`, '_blank')}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Открыть SQL Editor
-                </Button>
                 <Button
                   onClick={loadAuditLogs}
                   variant="outline"

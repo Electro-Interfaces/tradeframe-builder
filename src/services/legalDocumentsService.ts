@@ -1,35 +1,29 @@
 /**
- * Обновленный сервис для работы с правовыми документами через Supabase
- * Заменяет localStorage на работу с базой данных
+ * Сервис правовых документов.
+ * Все запросы через backend API `/api/legal`.
  */
 
-import { LegalDocumentsSupabaseService } from './legalDocumentsSupabaseService';
-import { apiConfigService } from './apiConfigService';
 import { authService } from './auth/authService';
+import { legalDocumentsApiClient } from './legalDocumentsApiClient';
 import type {
+  AcceptanceJournalFilters,
+  AcceptanceSource,
+  AuditLogEntry,
+  AuditLogFilters,
+  DocumentStatistics,
   DocumentType,
+  DocumentTypeInfo,
   DocumentVersion,
   DocumentVersionInput,
   DocumentVersionUpdate,
-  UserDocumentAcceptance,
-  UserLegalStatus,
-  AuditLogEntry,
-  DocumentStatistics,
-  DocumentTypeInfo,
-  AcceptanceJournalFilters,
-  AuditLogFilters,
   UserConsentRequirement,
-  DocumentStatus,
-  DOCUMENT_TYPES,
-  AcceptanceSource
+  UserDocumentAcceptance,
 } from '@/types/legal';
 
-// Утилитарная функция для задержки (для совместимости с старым API)
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const LEGAL_DOCUMENT_TYPES: DocumentType[] = ['tos', 'privacy', 'pdn'];
 
-// Простой кэш для текущих версий документов (TTL 5 минут)
 const documentVersionsCache = new Map<DocumentType, {version: DocumentVersion, timestamp: number}>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 минут
+const CACHE_TTL = 5 * 60 * 1000;
 
 const getCachedDocumentVersion = (docType: DocumentType): DocumentVersion | null => {
   const cached = documentVersionsCache.get(docType);
@@ -46,10 +40,11 @@ const setCachedDocumentVersion = (docType: DocumentType, version: DocumentVersio
   });
 };
 
-// Получение текущего пользователя (синхронная версия)
+const isDocumentTypeValue = (value: string): value is DocumentType =>
+  LEGAL_DOCUMENT_TYPES.includes(value as DocumentType);
+
 const getCurrentUser = () => {
   try {
-    // Сначала проверяем старый формат (AuthContext)
     const savedUser = localStorage.getItem('tradeframe_user');
     if (savedUser && !savedUser.includes('[object Object]')) {
       const parsedUser = JSON.parse(savedUser);
@@ -63,13 +58,11 @@ const getCurrentUser = () => {
       }
     }
 
-    // Проверяем новый формат (NewAuthContext) - email в sessionStorage
     const sessionEmail = sessionStorage.getItem('current_user_email');
     if (sessionEmail) {
-      // Для NewAuthContext возвращаем только email - методы будут использовать async версию
       return {
         email: sessionEmail,
-        id: null as any, // Будет заполнено в async версии
+        id: null as any,
         name: sessionEmail.split('@')[0],
         role: 'user'
       };
@@ -78,22 +71,16 @@ const getCurrentUser = () => {
     console.error('Error parsing current user:', error);
   }
 
-  // НЕТ FALLBACK! Это реальная система - требуем авторизацию
   throw new Error('Пользователь не авторизован. Необходимо войти в систему.');
 };
 
-// Асинхронная версия получения пользователя с полными данными из БД
 const getCurrentUserAsync = async () => {
   try {
-    // Сначала пробуем синхронный вариант
     const syncUser = getCurrentUser();
-
-    // Если у нас уже есть ID - возвращаем как есть
     if (syncUser.id) {
       return syncUser;
     }
 
-    // Если есть только email - запрашиваем полные данные из БД
     if (syncUser.email) {
       const dbUser = await authService.getUserByEmail(syncUser.email);
       if (dbUser) {
@@ -112,222 +99,113 @@ const getCurrentUserAsync = async () => {
   throw new Error('Пользователь не авторизован. Необходимо войти в систему.');
 };
 
-// Основной сервис
-export const legalDocumentsService = {
-  // === РАБОТА С ТИПАМИ ДОКУМЕНТОВ ===
-  
-  async getDocumentTypes(): Promise<DocumentTypeInfo[]> {
-    try {
-      return await LegalDocumentsSupabaseService.getDocumentTypes();
-    } catch (error) {
-      console.error('❌ Supabase error, using fallback:', error);
+const resolveCurrentUserId = async (userId?: string) => {
+  if (userId && userId !== 'current_user') {
+    return userId;
+  }
 
-      // Простой fallback с базовыми типами
-      return [
-        {
-          code: 'tos' as DocumentType,
-          title: 'Пользовательское соглашение',
-          current_version: undefined
-        },
-        {
-          code: 'privacy' as DocumentType,
-          title: 'Политика конфиденциальности',
-          current_version: undefined
-        },
-        {
-          code: 'pdn' as DocumentType,
-          title: 'Политика в области защиты персональных данных',
-          current_version: undefined
-        }
-      ];
-    }
+  const currentUser = await getCurrentUserAsync();
+  return currentUser.id;
+};
+
+export const legalDocumentsService = {
+  async getDocumentTypes(): Promise<DocumentTypeInfo[]> {
+    return legalDocumentsApiClient.getDocumentTypes();
   },
 
   async getDocumentTypeInfo(docTypeCode: DocumentType): Promise<DocumentTypeInfo | null> {
     try {
-      const types = await this.getDocumentTypes();
-      return types.find(t => t.code === docTypeCode) || null;
-    } catch (error) {
-      console.error('❌ Error getting document type info:', error);
+      return await legalDocumentsApiClient.getDocumentTypeInfo(docTypeCode);
+    } catch {
       return null;
     }
   },
 
-  // === РАБОТА С ВЕРСИЯМИ ДОКУМЕНТОВ ===
-
   async getDocumentVersions(docTypeCode?: DocumentType): Promise<DocumentVersion[]> {
-    try {
-      return await LegalDocumentsSupabaseService.getDocumentVersions(docTypeCode);
-    } catch (error) {
-      console.error('❌ Supabase error, returning empty array:', error);
-      return [];
-    }
+    return legalDocumentsApiClient.getDocumentVersions(docTypeCode);
   },
 
   async getDocumentVersion(versionId: string): Promise<DocumentVersion | null> {
     try {
-      return await LegalDocumentsSupabaseService.getDocumentVersion(versionId);
-    } catch (error) {
-      console.error('❌ Supabase error getting document version:', error);
+      return await legalDocumentsApiClient.getDocumentVersion(versionId);
+    } catch {
       return null;
     }
   },
 
   async getCurrentDocumentVersion(docTypeCode: DocumentType): Promise<DocumentVersion | null> {
-    try {
-      // Проверяем кэш
-      const cached = getCachedDocumentVersion(docTypeCode);
-      if (cached) {
-        return cached;
-      }
+    const cached = getCachedDocumentVersion(docTypeCode);
+    if (cached) return cached;
 
-      // Загружаем из БД если нет в кэше
-      const version = await LegalDocumentsSupabaseService.getCurrentDocumentVersion(docTypeCode);
-
-      // Кэшируем результат
-      if (version) {
-        setCachedDocumentVersion(docTypeCode, version);
-      }
-
-      return version;
-    } catch (error) {
-      console.error('❌ Supabase error getting current document version:', error);
-      return null;
+    const version = await legalDocumentsApiClient.getCurrentDocumentVersion(docTypeCode);
+    if (version) {
+      setCachedDocumentVersion(docTypeCode, version);
     }
+    return version;
   },
 
-
-  // === РАБОТА С СОГЛАСИЯМИ ПОЛЬЗОВАТЕЛЕЙ ===
-
   async acceptDocument(versionId: string, userId?: string, source: AcceptanceSource = 'web'): Promise<UserDocumentAcceptance> {
-    try {
-      // Используем async версию для получения реального UUID из БД
-      const currentUser = await getCurrentUserAsync();
-      const actualUserId = userId || currentUser.id;
-      const actualUserEmail = currentUser.email;
-
-      return await LegalDocumentsSupabaseService.acceptDocument(
-        versionId,
-        actualUserId,
-        actualUserEmail,
-        source
-      );
-    } catch (error) {
-      console.error('❌ Error accepting document:', error);
-      throw error;
+    if (isDocumentTypeValue(versionId)) {
+      return this.acceptDocumentByType(versionId, userId, source);
     }
+
+    const currentUser = await getCurrentUserAsync();
+    return legalDocumentsApiClient.acceptDocument({
+      versionId,
+      userId: userId || currentUser.id,
+      userEmail: currentUser.email,
+      source
+    });
   },
 
   async acceptDocumentByType(docType: DocumentType, userId?: string, source: AcceptanceSource = 'web'): Promise<UserDocumentAcceptance> {
-    try {
-      // Получаем текущую версию документа
-      const currentVersion = await this.getCurrentDocumentVersion(docType);
-      if (!currentVersion) {
-        throw new Error(`Не найдена текущая версия документа типа ${docType}`);
-      }
-      
-      return await this.acceptDocument(currentVersion.id, userId, source);
-    } catch (error) {
-      console.error('❌ Error accepting document by type:', error);
-      throw error;
-    }
+    const currentUser = await getCurrentUserAsync();
+    return legalDocumentsApiClient.acceptDocument({
+      docType,
+      userId: userId || currentUser.id,
+      userEmail: currentUser.email,
+      source
+    });
   },
 
   async getUserAcceptances(userId: string): Promise<UserDocumentAcceptance[]> {
-    try {
-      return await LegalDocumentsSupabaseService.getUserAcceptances(userId);
-    } catch (error) {
-      console.error('❌ Supabase error getting user acceptances:', error);
-      return [];
-    }
+    const effectiveUserId = await resolveCurrentUserId(userId);
+    return legalDocumentsApiClient.getUserAcceptances(effectiveUserId);
   },
 
   async getUserConsentRequirement(userId: string): Promise<UserConsentRequirement> {
-    try {
-      return await LegalDocumentsSupabaseService.getUserConsentRequirement(userId);
-    } catch (error) {
-      console.error('❌ Supabase error getting consent requirement:', error);
-      
-      // Fallback - считаем что согласия требуются
-      return {
-        user_id: userId,
-        requires_consent: true,
-        pending_documents: [],
-        current_acceptances: []
-      };
-    }
+    const effectiveUserId = await resolveCurrentUserId(userId);
+    return legalDocumentsApiClient.getUserConsentRequirement(effectiveUserId);
   },
 
   async updateUserLegalStatus(userId: string, docType: DocumentType, versionId: string): Promise<void> {
-    try {
-      await LegalDocumentsSupabaseService.updateUserLegalStatus(userId, docType, versionId);
-    } catch (error) {
-      console.error('❌ Error updating user legal status:', error);
-      throw error;
-    }
+    const effectiveUserId = await resolveCurrentUserId(userId);
+    await legalDocumentsApiClient.updateUserLegalStatus(effectiveUserId, { docType, versionId });
   },
 
-  // === ЖУРНАЛЫ И СТАТИСТИКА ===
-
   async getAcceptanceJournal(filters: AcceptanceJournalFilters = {}): Promise<UserDocumentAcceptance[]> {
-    try {
-      return await LegalDocumentsSupabaseService.getAcceptanceJournal(filters);
-    } catch (error) {
-      console.error('❌ Supabase error getting acceptance journal:', error);
-      return [];
-    }
+    return legalDocumentsApiClient.getAcceptanceJournal(filters);
   },
 
   async getDocumentStatistics(): Promise<DocumentStatistics[]> {
-    try {
-      return await LegalDocumentsSupabaseService.getDocumentStatistics();
-    } catch (error) {
-      console.error('❌ Supabase error getting document statistics:', error);
-      return [];
-    }
+    return legalDocumentsApiClient.getDocumentStatistics();
   },
 
-  // === МЕТОДЫ РЕДАКТИРОВАНИЯ ===
-
   async createDocumentDraft(input: DocumentVersionInput): Promise<DocumentVersion> {
-    try {
-      const currentUser = await getCurrentUserAsync();
-
-      return await LegalDocumentsSupabaseService.createDocumentDraft(
-        input.doc_type_code,
-        input.version,
-        input.content_md || '',
-        input.changelog || '',
-        currentUser.id,
-        currentUser.name
-      );
-    } catch (error) {
-      console.error('❌ Error creating document draft:', error);
-      throw error;
-    }
+    const currentUser = await getCurrentUserAsync();
+    return legalDocumentsApiClient.createDocumentDraft({
+      ...input,
+      editor_id: currentUser.id,
+      editor_name: currentUser.name
+    });
   },
 
   async updateDocumentVersion(versionId: string, update: DocumentVersionUpdate): Promise<DocumentVersion> {
-    try {
-      return await LegalDocumentsSupabaseService.updateDocumentVersion(
-        versionId,
-        update.version || '',
-        update.content_md || '',
-        update.changelog || ''
-      );
-    } catch (error) {
-      console.error('❌ Error updating document version:', error);
-      throw error;
-    }
+    return legalDocumentsApiClient.updateDocumentVersion(versionId, update);
   },
 
   async publishDocumentVersion(versionId: string): Promise<DocumentVersion> {
-    try {
-      return await LegalDocumentsSupabaseService.publishDocumentVersion(versionId);
-    } catch (error) {
-      console.error('❌ Error publishing document version:', error);
-      throw error;
-    }
+    return legalDocumentsApiClient.publishDocumentVersion(versionId);
   },
 
   async archiveDocumentVersion(versionId: string): Promise<DocumentVersion> {
@@ -335,7 +213,6 @@ export const legalDocumentsService = {
   },
 
   async getAuditLog(filters: AuditLogFilters = {}): Promise<AuditLogEntry[]> {
-    // getAuditLog not implemented in Supabase service yet
     return [];
   }
 };

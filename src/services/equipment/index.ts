@@ -31,19 +31,9 @@ import { isApiMockMode } from '@/services/apiConfigService';
 import { mockEquipmentAPI, dynamicEquipmentTemplatesAPI } from './mockEquipment';
 import { realEquipmentAPI, realEquipmentTemplatesAPI } from './realEquipment';
 
-// Import Supabase services
-import {
-  supabaseEquipmentAPI,
-  supabaseEquipmentTemplatesAPI
-} from '../equipmentSupabase';
-
-// Export current implementation - prioritize Supabase over HTTP API
-const useSupabase = import.meta.env.VITE_USE_SUPABASE_DIRECT === 'true';
-
+// Export current implementation — всегда через backend API (Supabase bypass удалён)
 export const currentEquipmentAPI = isApiMockMode() ?
-  mockEquipmentAPI :
-  (useSupabase ? supabaseEquipmentAPI : realEquipmentAPI);
+  mockEquipmentAPI : realEquipmentAPI;
 
 export const currentEquipmentTemplatesAPI = isApiMockMode() ?
-  dynamicEquipmentTemplatesAPI :
-  (useSupabase ? supabaseEquipmentTemplatesAPI : realEquipmentTemplatesAPI);
+  dynamicEquipmentTemplatesAPI : realEquipmentTemplatesAPI;

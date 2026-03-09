@@ -500,6 +500,7 @@ export interface TankCalibrationSettings {
   tank_tilt_angle_degrees: number;
 
   level_sensor_type: LevelSensorType;
+  dispensers_error_percent: number;
   level_sensor_error_percent: number;
   level_sensor_accuracy_mm: number;
 
@@ -532,6 +533,8 @@ export interface TankCalibrationSettings {
   calibration_method: CalibrationMethod;
   calibration_step_mm: number;
   bias_offset_percent: number;
+  min_change_for_calibration_liters: number;
+  max_acceptable_deviation_percent: number;
 
   nozzles_count: number;
 
@@ -547,6 +550,73 @@ export interface TankCalibrationSettings {
   manual_reference_volume?: number;
 }
 
+// ============================================================
+// ТИПЫ ДЛЯ РАСЧЁТА МАРЖИ ТОПЛИВА (FIFO)
+// ============================================================
+
+/** Закупочная стоимость поставки (хранится в localStorage) */
+export interface ReceiptCostEntry {
+  key: string;                   // system:station:tank:ttn:dt
+  system: number;
+  station: number;
+  tank: number;
+  ttn: string;
+  dt: string;
+  costPerLiter: number;
+  costPerKg?: number;
+  inputUnit: 'liter' | 'kg';
+  density: number;
+  factVolumeLiters: number;
+  totalCost: number;
+  fuelCode: number;
+  supplier?: string;
+  updatedAt: string;
+}
+
+/** Лот в очереди FIFO */
+export interface FifoLot {
+  ttn: string;
+  dt: string;
+  remainingVolume: number;       // литры
+  costPerLiter: number;
+  originalVolume: number;
+}
+
+/** Результат списания одного часового блока продаж */
+export interface FifoSaleResult {
+  time: string;
+  volumeSold: number;
+  costOfGoods: number;
+  revenue: number;
+  avgCostPerLiter: number;
+  retailPrice: number;
+  marginPerLiter: number;
+  marginPercent: number;
+}
+
+/** Итоги FIFO за период */
+export interface FifoSummary {
+  totalRevenue: number;
+  totalCostOfGoods: number;
+  totalProfit: number;
+  avgMarginPerLiter: number;
+  avgMarginPercent: number;
+  remainingInventoryValue: number;
+  remainingInventoryVolume: number;
+  sales: FifoSaleResult[];
+  warnings: string[];
+}
+
+/** Точка графика маржи */
+export interface MarginChartPoint {
+  time: string;
+  marginPerLiter: number;
+  avgCostPerLiter: number;
+  retailPrice: number;
+  cumulativeProfit: number;
+  marginPercent: number;
+}
+
 export const DEFAULT_CALIBRATION_SETTINGS: Omit<TankCalibrationSettings, 'tank_id'> = {
   tank_shape_type: 'horizontal_cylinder',
   tank_location_type: 'underground',
@@ -557,6 +627,7 @@ export const DEFAULT_CALIBRATION_SETTINGS: Omit<TankCalibrationSettings, 'tank_i
   tank_tilt_angle_degrees: 0,
 
   level_sensor_type: 'other',
+  dispensers_error_percent: 0.25,
   level_sensor_error_percent: 0.5,
   level_sensor_accuracy_mm: 1,
 
@@ -589,6 +660,8 @@ export const DEFAULT_CALIBRATION_SETTINGS: Omit<TankCalibrationSettings, 'tank_i
   calibration_method: 'direct_interpolation',
   calibration_step_mm: 10,
   bias_offset_percent: 0.002,
+  min_change_for_calibration_liters: 100,
+  max_acceptable_deviation_percent: 2,
 
   nozzles_count: 1,
 

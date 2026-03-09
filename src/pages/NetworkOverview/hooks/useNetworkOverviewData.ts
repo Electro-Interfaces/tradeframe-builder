@@ -2,11 +2,12 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { stsApiService } from "@/services/stsApi";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
 import { todayString, monthsAgoString } from "@/utils/dateUtils";
 
 export function useNetworkOverviewData() {
-  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
   const { user } = useNewAuth();
   const { toast } = useToast();
 
@@ -103,7 +104,26 @@ export function useNetworkOverviewData() {
         contextParams
       );
 
-      setTransactions(stsTransactions);
+      // Фильтруем транзакции по мультиселекту
+      let filteredStsTransactions = stsTransactions;
+      if (isAllTradingPoints && selectedTradingPoints.length > 0 && selectedNetwork?.id) {
+        try {
+          const networkPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+          if (selectedTradingPoints.length < networkPoints.length) {
+            const selectedExternalIds = new Set(
+              networkPoints
+                .filter(p => selectedTradingPoints.includes(p.id))
+                .map(p => p.external_id)
+                .filter(Boolean)
+            );
+            filteredStsTransactions = stsTransactions.filter(t =>
+              selectedExternalIds.has(String(t.stationNumber))
+            );
+          }
+        } catch { /* ignore, show all */ }
+      }
+
+      setTransactions(filteredStsTransactions);
 
       // Загружаем транзакции предыдущего периода
       try {
@@ -120,7 +140,29 @@ export function useNetworkOverviewData() {
           0,
           contextParams
         );
-        setPrevPeriodTransactions(prevTransactions);
+        // Фильтруем предыдущий период тем же набором станций
+        if (isAllTradingPoints && selectedTradingPoints.length > 0 && selectedNetwork?.id) {
+          try {
+            const networkPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+            if (selectedTradingPoints.length < networkPoints.length) {
+              const selectedExternalIds = new Set(
+                networkPoints
+                  .filter(p => selectedTradingPoints.includes(p.id))
+                  .map(p => p.external_id)
+                  .filter(Boolean)
+              );
+              setPrevPeriodTransactions(prevTransactions.filter(t =>
+                selectedExternalIds.has(String(t.stationNumber))
+              ));
+            } else {
+              setPrevPeriodTransactions(prevTransactions);
+            }
+          } catch {
+            setPrevPeriodTransactions(prevTransactions);
+          }
+        } else {
+          setPrevPeriodTransactions(prevTransactions);
+        }
       } catch {
         setPrevPeriodTransactions([]);
       }
@@ -176,7 +218,7 @@ export function useNetworkOverviewData() {
         setLoading(false);
       }
     }
-  }, [selectedNetwork?.external_id, selectedTradingPoint, selectedStation?.external_id, dateFrom, dateTo]);
+  }, [selectedNetwork?.external_id, selectedNetwork?.id, selectedTradingPoint, selectedStation?.external_id, selectedTradingPoints, isAllTradingPoints, dateFrom, dateTo]);
 
   // Инициализация компонента
   useEffect(() => {

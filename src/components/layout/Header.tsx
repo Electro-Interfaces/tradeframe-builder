@@ -23,18 +23,20 @@ import { useSupportContext } from "@/contexts/SupportContext";
 
 interface HeaderProps {
   selectedNetwork: string;
-  selectedTradingPoint: string;
+  selectedTradingPoints: string[];
   onNetworkChange: (value: string) => void;
-  onTradingPointChange: (value: string) => void;
+  onTradingPointsChange: (values: string[]) => void;
+  onPointClick?: (pointId: string) => void;
   onMobileMenuToggle?: () => void;
   isMobile?: boolean;
 }
 
 export function Header({
   selectedNetwork,
-  selectedTradingPoint,
+  selectedTradingPoints,
   onNetworkChange,
-  onTradingPointChange,
+  onTradingPointsChange,
+  onPointClick,
   onMobileMenuToggle,
   isMobile = false
 }: HeaderProps) {
@@ -165,9 +167,10 @@ export function Header({
         {/* Desktop Center: Context Selectors + Connection Button */}
         <div className="hidden md:flex items-center justify-center gap-2">
           <NetworkSelect value={selectedNetwork} onValueChange={onNetworkChange} />
-          <PointSelect 
-            value={selectedTradingPoint} 
-            onValueChange={onTradingPointChange}
+          <PointSelect
+            values={selectedTradingPoints}
+            onValuesChange={onTradingPointsChange}
+            onPointClick={onPointClick}
             disabled={!selectedNetwork}
             networkId={selectedNetwork}
             className="inline-flex"

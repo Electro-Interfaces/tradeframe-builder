@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNewAuth } from '@/contexts/NewAuthContext';
-import { externalUsersService } from '@/services/externalUsersService';
+import { adminUsersService } from '@/services/adminUsersService';
 import type { User } from '@/types/auth';
 
 /**
@@ -17,14 +17,7 @@ export const useCurrentUserProfile = () => {
       }
 
       try {
-        // Загружаем пользователя из внешней БД по email
-        const externalUser = await externalUsersService.getUserByEmail(authUser.email);
-
-        if (externalUser) {
-          return externalUser;
-        } else {
-          return null;
-        }
+        return await adminUsersService.getUserByEmail(authUser.email);
       } catch (error) {
         console.error('useCurrentUserProfile: Ошибка загрузки профиля:', error);
         throw error;

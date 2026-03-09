@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Database, AlertTriangle, CheckCircle } from 'lucide-react';
-import { externalUsersService } from '@/services/externalUsersService';
+import { adminUsersService } from '@/services/adminUsersService';
 
 interface DatabaseStatus {
   connected: boolean;
@@ -35,7 +35,7 @@ export const DatabaseStatusIndicator: React.FC = () => {
       }
 
       // Тестируем подключение
-      const testResult = await externalUsersService.testConnection();
+      const testResult = await adminUsersService.testConnection();
       
       setStatus({
         connected: testResult.success,

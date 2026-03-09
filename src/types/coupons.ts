@@ -32,13 +32,11 @@ export type CouponCreateMode = 'liters' | 'rubles';
 
 // Запрос на создание купона
 export interface CreateCouponRequest {
-  service_code?: number;    // Код продукта/услуги (только для режима «Литры»)
-  amount: number;           // Объём в литрах или сумма в рублях (зависит от режима)
+  service_code: number;     // 0 = рубли (любое топливо), иначе код конкретного топлива (литры)
+  amount: number;           // Объём в литрах или сумма в рублях (зависит от service_code)
   lifetime: number;         // Срок действия (дней)
   fiscal: boolean;          // Фискальный чек
   comment: string;          // Комментарий к купону (обязательное поле)
-  user_id?: string;         // ID автора купона
-  user_name?: string;       // Имя автора купона
 }
 
 // Основной интерфейс купона (по реальному API)

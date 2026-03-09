@@ -44,7 +44,7 @@ import {
   EquipmentEvent,
   EquipmentStatus 
 } from "@/types/equipment";
-import { nomenclatureService } from "@/services/nomenclatureService";
+import { nomenclatureService } from "@/services/nomenclatureApiService";
 import { FuelNomenclature } from "@/types/nomenclature";
 import { useSelection } from "@/contexts/SelectionContext";
 import { ComponentsTab } from "./ComponentsTab";

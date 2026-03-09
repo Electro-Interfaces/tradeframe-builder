@@ -248,6 +248,14 @@ router.get('/files/:folder/:filename', async (req, res) => {
   }
 });
 
+// /unread — fast path когда SDK не настроен (чтобы не спамить 503 и не забивать rate limiter)
+router.get('/unread', (req, res, next) => {
+  if (!TSUPPORT_SDK_API_KEY || !TSUPPORT_SDK_SECRET) {
+    return res.json({ tickets: 0, chat: 0, total: 0 });
+  }
+  next();
+});
+
 // Все эндпоинты ниже требуют SDK-конфиг + user headers
 router.use(checkSdkConfig);
 

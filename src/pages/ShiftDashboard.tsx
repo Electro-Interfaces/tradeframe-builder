@@ -32,7 +32,7 @@ import { PaymentMethodsChart } from "@/components/shift-dashboard/PaymentMethods
 
 export default function ShiftDashboard() {
   const navigate = useNavigate();
-  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, selectedTradingPoints } = useSelection();
 
   // Состояние для станций при выборе "все точки"
   const [allStations, setAllStations] = useState<number[]>([]);
@@ -58,7 +58,11 @@ export default function ShiftDashboard() {
       if (isAllTradingPoints && selectedNetwork?.id) {
         setLoadingStations(true);
         try {
-          const tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+          let tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+          // Фильтруем по мультиселекту
+          if (selectedTradingPoints.length > 0) {
+            tradingPoints = tradingPoints.filter(tp => selectedTradingPoints.includes(tp.id));
+          }
           const stationNumbers: number[] = [];
           const namesMap: Record<number, string> = {};
 
@@ -95,7 +99,7 @@ export default function ShiftDashboard() {
     };
 
     loadAllStations();
-  }, [isAllTradingPoints, selectedNetwork?.id, selectedStation]);
+  }, [isAllTradingPoints, selectedNetwork?.id, selectedStation, selectedTradingPoints]);
 
   // Определяем станции для загрузки
   const stationNumber = selectedStation ? extractStationNumber(selectedStation) : undefined;

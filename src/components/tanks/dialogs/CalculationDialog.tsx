@@ -154,6 +154,8 @@ export function CalculationDialog({
         throw new Error('Нет данных истории резервуара за выбранный период');
       }
 
+      const fuelCode = tankHistory.find(record => record.number === tankNumber)?.fuel;
+
       // Загружаем транзакции (отпуски ТРК)
       const transactionsResponse = await getTransactions({
         system: selectedNetwork.external_id,
@@ -183,8 +185,15 @@ export function CalculationDialog({
         transactions,
         settings,
         tankNumber,
-        receipts
+        receipts,
+        undefined,
+        fuelCode
       );
+
+      if (result.table.length === 0) {
+        const details = result.diagnostics?.warnings?.join(' ');
+        throw new Error(details || 'Недостаточно реальных отпусков ТРК и показаний датчика для расчета калибровочной таблицы.');
+      }
 
       setCalculatedTable(result.table);
       setCalculationResult({

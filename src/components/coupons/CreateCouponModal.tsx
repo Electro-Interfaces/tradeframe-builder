@@ -48,7 +48,7 @@ export function CreateCouponModal({
   const { user } = useNewAuth();
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<CouponCreateMode>('liters');
-  const [serviceCode, setServiceCode] = useState<string | undefined>(undefined);
+  const [serviceCode, setServiceCode] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [lifetime, setLifetime] = useState<string>('7');
   const [fiscal, setFiscal] = useState(false);
@@ -71,13 +71,13 @@ export function CreateCouponModal({
   const handleModeChange = (newMode: CouponCreateMode) => {
     setMode(newMode);
     // Сбрасываем специфичные для режима поля
-    setServiceCode(undefined);
+    setServiceCode('');
     setAmount('');
   };
 
   const resetForm = () => {
     setMode('liters');
-    setServiceCode(undefined);
+    setServiceCode('');
     setAmount('');
     setLifetime('7');
     setFiscal(false);
@@ -92,13 +92,11 @@ export function CreateCouponModal({
       const authorName = user?.name || user?.email || 'Неизвестный';
 
       const request: CreateCouponRequest = {
+        service_code: mode === 'liters' ? Number(serviceCode) : 0,
         amount: amountNum,
         lifetime: lifetimeNum,
         fiscal,
         comment: comment.trim(),
-        user_id: user?.id || undefined,
-        user_name: authorName,
-        ...(mode === 'liters' && { service_code: Number(serviceCode) }),
       };
 
       const result = await couponsApiService.createCoupon(systemId, stationId, request);
@@ -158,12 +156,13 @@ export function CreateCouponModal({
       resetForm();
       onOpenChange(false);
       // Обновляем данные из API — оптимистичные купоны сохранятся если API их ещё не вернул
-      setTimeout(() => onSuccess?.(), 3000);
-      setTimeout(() => onSuccess?.(), 10000);
+      setTimeout(() => onSuccess?.(), 5000);
     } catch (error: any) {
+      console.error('Coupon creation error:', error);
+      const detail = error?.details?.message || error?.message || 'Не удалось создать купон';
       toast({
         title: 'Ошибка создания купона',
-        description: error?.message || 'Не удалось создать купон',
+        description: detail,
         variant: 'destructive',
       });
     } finally {

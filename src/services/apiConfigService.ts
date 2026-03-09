@@ -5,14 +5,12 @@
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
-import { supabaseService } from '@/services/supabaseServiceClient';
-import { createClient } from '@supabase/supabase-js';
 
 export interface DatabaseConnection {
   id: string;
   name: string;
   url: string;
-  type: 'postgresql' | 'mysql' | 'sqlite' | 'mock' | 'supabase' | 'external-api';
+  type: 'postgresql' | 'mysql' | 'sqlite' | 'mock' | 'external-api';
   description?: string;
   isActive: boolean;
   isDefault: boolean;
@@ -24,11 +22,6 @@ export interface DatabaseConnection {
     retryAttempts?: number;
     poolSize?: number;
     ssl?: boolean;
-    // Специфичные настройки для Supabase
-    apiKey?: string;
-    serviceRoleKey?: string;
-    schema?: string;
-    autoApiKey?: boolean;
     // Настройки для внешнего API с базовой аутентификацией
     username?: string;
     password?: string;
@@ -45,7 +38,7 @@ export interface ApiConfig {
 
 // Начальная конфигурация с mock и demo подключениями
 const initialConfig: ApiConfig = {
-  currentConnectionId: 'supabase-db',
+  currentConnectionId: 'local-db',
   debugMode: import.meta.env.DEV || false,
   lastUpdated: new Date(),
   availableConnections: [
@@ -99,26 +92,6 @@ const initialConfig: ApiConfig = {
       }
     },
     {
-      id: 'supabase-db',
-      name: 'Supabase БД',
-      url: import.meta.env.VITE_SUPABASE_URL || '',
-      type: 'supabase',
-      description: 'Supabase PostgreSQL база данных с REST API (правильный проект)',
-      isActive: true,
-      isDefault: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      settings: {
-        timeout: 30000,
-        retryAttempts: 3,
-        ssl: true,
-        apiKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '',
-        serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '',
-        schema: 'public',
-        autoApiKey: true
-      }
-    },
-    {
       id: 'trading-network-api',
       name: 'API торговой сети',
       url: import.meta.env.VITE_STS_API_URL || '',
@@ -142,51 +115,6 @@ const initialConfig: ApiConfig = {
 
 // Загружаем конфигурацию из localStorage
 let currentConfig: ApiConfig = PersistentStorage.load<ApiConfig>('api_config', initialConfig);
-
-/**
- * Создает Supabase клиент из настроек подключения
- */
-function createSupabaseFromSettings(url: string, apiKey: string, schema: string = 'public') {
-  const client = createClient(url, apiKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    },
-    db: {
-      schema
-    }
-  });
-
-  return {
-    client,
-    async testConnection() {
-      try {
-        const { data, error, count } = await client
-          .from('operations')
-          .select('*', { count: 'exact', head: true });
-        
-        if (error) {
-          return {
-            success: false,
-            error: error.message,
-            info: { error }
-          };
-        }
-        
-        return {
-          success: true,
-          info: { count, schema }
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          info: { error }
-        };
-      }
-    }
-  };
-}
 
 // Функция сохранения
 const saveConfig = () => {
@@ -241,13 +169,10 @@ export const apiConfigService = {
   /**
    * Получить текущий режим API
    */
-  getApiMode(): 'mock' | 'http' | 'supabase' {
+  getApiMode(): 'mock' | 'http' {
     const connection = this.getCurrentConnection();
     if (!connection || connection.type === 'mock') {
       return 'mock';
-    }
-    if (connection.type === 'supabase') {
-      return 'supabase';
     }
     return 'http';
   },
@@ -406,55 +331,6 @@ export const apiConfigService = {
         responseTime: 50,
         details: { mode: 'mock', storage: 'localStorage' }
       };
-    }
-
-    // Supabase подключение
-    if (connection.type === 'supabase') {
-      const startTime = Date.now();
-      try {
-        const apiKey = connection.settings?.apiKey;
-        if (!apiKey) {
-          return {
-            success: false,
-            error: 'API ключ не настроен для Supabase подключения'
-          };
-        }
-
-        const supabaseClient = createSupabaseFromSettings(
-          connection.url, 
-          apiKey, 
-          connection.settings?.schema || 'public'
-        );
-        
-        const testResult = await supabaseClient.testConnection();
-        const responseTime = Date.now() - startTime;
-        
-        if (testResult.success) {
-          return {
-            success: true,
-            responseTime,
-            details: {
-              type: 'supabase',
-              url: connection.url,
-              schema: connection.settings?.schema || 'public',
-              ...testResult.info
-            }
-          };
-        } else {
-          return {
-            success: false,
-            error: testResult.error || 'Не удалось подключиться к Supabase',
-            responseTime
-          };
-        }
-      } catch (error) {
-        const responseTime = Date.now() - startTime;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-          responseTime
-        };
-      }
     }
 
     // Тестируем внешний API с базовой аутентификацией

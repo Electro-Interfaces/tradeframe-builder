@@ -6,7 +6,34 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "db:migrate": "node db/migrate.js",
+    "db:migrate:status": "node db/migrate.js --status",
+    "etl:auth:export": "node scripts/migrate/exportAuthData.js",
+    "etl:auth:load": "node scripts/migrate/loadAuthToPg.js",
+    "etl:auth:validate": "node scripts/migrate/validateAuthMigration.js",
+    "etl:org:export": "node scripts/migrate/exportTenants.js",
+    "etl:org:transform": "node scripts/migrate/transformTenants.js",
+    "etl:org:load": "node scripts/migrate/loadOrgToPg.js",
+    "etl:org:validate": "node scripts/migrate/validateOrgMigration.js",
+    "etl:nomenclature:export": "node scripts/migrate/exportNomenclature.js",
+    "etl:nomenclature:load": "node scripts/migrate/loadNomenclatureToPg.js",
+    "etl:nomenclature:validate": "node scripts/migrate/validateNomenclatureMigration.js",
+    "etl:legal:export": "node scripts/migrate/exportLegalData.js",
+    "etl:legal:load": "node scripts/migrate/loadLegalToPg.js",
+    "etl:legal:validate": "node scripts/migrate/validateLegalMigration.js",
+    "etl:notifications:export": "node scripts/migrate/exportNotificationsData.js",
+    "etl:notifications:load": "node scripts/migrate/loadNotificationsToPg.js",
+    "etl:notifications:validate": "node scripts/migrate/validateNotificationsMigration.js",
+    "etl:messaging:export": "node scripts/migrate/exportMessagingData.js",
+    "etl:messaging:load": "node scripts/migrate/loadMessagingToPg.js",
+    "etl:messaging:validate": "node scripts/migrate/validateMessagingMigration.js",
+    "etl:audit:export": "node scripts/migrate/exportAuditData.js",
+    "etl:audit:load": "node scripts/migrate/loadAuditToPg.js",
+    "etl:audit:validate": "node scripts/migrate/validateAuditMigration.js",
+    "etl:tank-calibration:export": "node scripts/migrate/exportTankCalibration.js",
+    "etl:tank-calibration:load": "node scripts/migrate/loadTankCalibrationToPg.js",
+    "etl:tank-calibration:validate": "node scripts/migrate/validateTankCalibrationMigration.js"
   },
   "keywords": [
     "proxy",
@@ -19,6 +46,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.6.2",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
@@ -27,6 +55,7 @@
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "node-telegram-bot-api": "^0.66.0",
-    "nodemailer": "^6.9.7"
+    "nodemailer": "^6.9.7",
+    "pg": "^8.13.1"
   }
 }

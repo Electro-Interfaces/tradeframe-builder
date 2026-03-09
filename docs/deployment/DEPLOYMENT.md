@@ -41,15 +41,19 @@ npm run api:dev      # Backend API (port 3001)
 ```
 
 ### 2. Переменные окружения
+
+**Frontend** (корневой `.env`):
 ```bash
-# Создать .env из примера
 cp .env.example .env
 
-# Основные переменные
 VITE_API_URL=http://localhost:3001
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_key
-VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_key
+VITE_BASE_URL=http://localhost:3000
+```
+
+**Backend** (`server/.env`):
+```bash
+DATABASE_URL=postgresql://user:password@host:5432/tradecontrol
+JWT_SECRET=your_jwt_secret
 ```
 
 ## 🎯 Готовность приложения (92%)
@@ -58,7 +62,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_key
 - **Архитектура**: React 18 + TypeScript + Vite (95%)
 - **Мобильная адаптация**: Все разделы оптимизированы (95%)
 - **PWA функциональность**: Service Worker + Manifest (90%)
-- **Безопасность**: JWT + Supabase RLS (85%)
+- **Безопасность**: JWT + PostgreSQL + requireAuth middleware (85%)
 - **Бизнес-логика**: 5 основных разделов (90%)
 - **Основные данные**: Торговые сети, точки, пользователи, роли - РЕАЛЬНАЯ система (не демо) - 100%
 
@@ -68,9 +72,9 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_key
 - **Unit тесты**: Не реализованы
 - **Health checks**: Отсутствуют
 
-### 🚨 КРИТИЧНО ДЛЯ PRODUCTION
+### КРИТИЧНО ДЛЯ PRODUCTION
 - HTTPS настройка (обязательно для PWA)
-- Production Supabase проект
+- PostgreSQL БД (уже развёрнута на 194.135.36.195)
 - Environment secrets управление
 - Мониторинг и логирование
 
@@ -81,8 +85,12 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_key
 ```bash
 VITE_API_URL=https://api.ваш-домен.com
 VITE_BASE_URL=https://ваш-домен.com
-VITE_SUPABASE_URL=https://ваш-проект.supabase.co
-VITE_SUPABASE_ANON_KEY=ваш_anon_key
+```
+
+#### `server/.env` (production)
+```bash
+DATABASE_URL=postgresql://user:password@194.135.36.195:5432/tradecontrol
+JWT_SECRET=your_production_jwt_secret
 ```
 
 ### Docker конфигурация (пример)
@@ -174,7 +182,7 @@ server {
 - [ ] Настроены SSL сертификаты
 - [ ] Работает HTTPS редирект
 - [ ] Проверена мобильная версия
-- [ ] Настроена база данных Supabase
+- [ ] Настроена база данных PostgreSQL
 - [ ] Протестирована авторизация
 
 ## После деплоймента

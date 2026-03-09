@@ -57,10 +57,10 @@ import {
 interface CalibrationComparison {
   level_mm: number;
   current_volume: number | undefined;
-  calculated_volume: number;
+  geometric_volume: number;
   trk_volume: number | undefined;
-  difference: number;
-  difference_percent: number;
+  difference: number | undefined;
+  difference_percent: number | undefined;
 }
 
 // Интерфейс для валидации через ТРК
@@ -85,6 +85,33 @@ interface AnalysisResult extends CalculateCalibrationTableResult {
     avg_difference_percent: number;
   };
   trk_validation?: TRKValidationPoint[];
+  debug?: {
+    tankHistoryCount: number;
+    transactionsCount: number;
+    currentTablePoints: number;
+    currentTableFiltered: number;
+    calculatedTablePoints: number;
+    calculatedTableFiltered: number;
+    currentTableSize: number;
+    calculatedTableSize: number;
+    comparisonSize: number;
+    levelRange?: {
+      min: number;
+      max: number;
+    };
+    volumeRange?: {
+      min: number;
+      max: number;
+    };
+    stepMm?: number;
+    rawComparison?: Array<{
+      level: number;
+      sensor: number;
+      trk: number;
+      diff: number;
+      diffPercent: string;
+    }>;
+  };
 }
 
 interface AnalysisDialogProps {
@@ -101,10 +128,12 @@ interface AnalysisDialogProps {
  */
 function validateCalibrationByTRK(
   tankHistory: Array<{ dt: string; level: string; volume: string; number: number }>,
-  transactions: Array<{ dt?: string; tank: number; nozzle: number; quantity: string | number }>,
+  transactions: Array<{ dt?: string; tank: number; fuel?: number; nozzle: number; quantity: string | number }>,
+  receipts: ReceiptItem[],
   tankNumber: number,
   currentCalibrationMap: Map<number, number>,
-  pollingIntervalMinutes: number = 10
+  pollingIntervalMinutes: number = 10,
+  fuelCode?: number
 ): TRKValidationPoint[] {
   const validationPoints: TRKValidationPoint[] = [];
 
@@ -115,8 +144,18 @@ function validateCalibrationByTRK(
   );
 
   const tankTransactions = transactions
-    .filter(t => t.tank === tankNumber && t.dt)
+    .filter(t => {
+      if (!t.dt) return false;
+      if (typeof fuelCode === 'number' && fuelCode > 0) {
+        return t.fuel === fuelCode;
+      }
+      return t.tank === tankNumber;
+    })
     .sort((a, b) => new Date(a.dt!).getTime() - new Date(b.dt!).getTime());
+
+  const tankReceipts = receipts
+    .filter(r => r.tank === tankNumber)
+    .sort((a, b) => new Date(a.dt).getTime() - new Date(b.dt).getTime());
 
   for (let i = 0; i < sortedHistory.length - 1; i++) {
     const recordBefore = sortedHistory[i];
@@ -133,6 +172,12 @@ function validateCalibrationByTRK(
       return transactionTime > timeBefore && transactionTime < timeAfter;
     });
 
+    const receiptsInInterval = tankReceipts.filter(receipt => {
+      const receiptTime = new Date(receipt.dt).getTime();
+      return receiptTime > timeBefore && receiptTime < timeAfter;
+    });
+
+    if (receiptsInInterval.length > 0) continue;
     if (transactionsInInterval.length === 0) continue;
 
     let totalVolumeTRK = 0;
@@ -274,6 +319,8 @@ export function AnalysisDialog({
         throw new Error('Нет данных истории резервуара за выбранный период');
       }
 
+      const fuelCode = tankHistory.find(record => record.number === tankNumber)?.fuel;
+
       // 3. Получаем транзакции (отпуски ТРК) за период
       const transactionsResponse = await getTransactions({
         system: selectedNetwork.external_id,
@@ -311,8 +358,14 @@ export function AnalysisDialog({
         settings,
         tankNumber,
         receipts,
-        activeTable?.table
+        activeTable?.table,
+        fuelCode
       );
+
+      if (calculatedTableResult.table.length === 0) {
+        const details = calculatedTableResult.diagnostics?.warnings?.join(' ');
+        throw new Error(details || 'Недостаточно реальных отпусков ТРК и показаний датчика для расчета калибровочной таблицы.');
+      }
 
       // 7. Сравниваем ГЕОМЕТРИЧЕСКУЮ (эталон) с ТЕКУЩЕЙ (датчик)
       let comparison: CalibrationComparison[] | undefined;
@@ -398,21 +451,23 @@ export function AnalysisDialog({
           // Защита от NaN
           if (trk_volume !== null && isNaN(trk_volume)) trk_volume = null;
 
-          const difference = current_volume !== null ? geometric_volume - current_volume : 0;
-          const differencePercent = current_volume !== null && current_volume > 0
+          const difference = current_volume !== null && trk_volume !== null
+            ? trk_volume - current_volume
+            : undefined;
+          const differencePercent = difference !== undefined && current_volume !== null && current_volume > 0
             ? (difference / current_volume) * 100
-            : 0;
+            : undefined;
 
           comparison.push({
             level_mm: Math.round(level_mm),
             current_volume: current_volume ?? undefined,
-            calculated_volume: geometric_volume,
+            geometric_volume,
             trk_volume: trk_volume ?? undefined,
             difference,
             difference_percent: differencePercent,
           });
 
-          if (current_volume !== null) {
+          if (difference !== undefined && differencePercent !== undefined) {
             totalDiff += Math.abs(difference);
             totalDiffPercent += Math.abs(differencePercent);
             maxDiff = Math.max(maxDiff, Math.abs(difference));
@@ -438,9 +493,11 @@ export function AnalysisDialog({
       const trkValidation = validateCalibrationByTRK(
         tankHistory,
         transactions,
+        receipts,
         tankNumber,
         currentCalibrationMap,
-        settings.data_polling_interval_minutes
+        settings.data_polling_interval_minutes,
+        fuelCode
       );
 
       // 8. Формируем результат
@@ -895,7 +952,11 @@ export function AnalysisDialog({
                                 }}
                                 formatter={(value: number, name: string) => [
                                   `${value.toFixed(0)} л`,
-                                  name === 'calculated_volume' ? '🟢 Геометрия (эталон)' : '🟠 Датчик (текущий)'
+                                  name === 'geometric_volume'
+                                    ? '🟢 Геометрия (эталон)'
+                                    : name === 'trk_volume'
+                                      ? '🔵 Калибровка ТРК'
+                                      : '🟠 Датчик (текущий)'
                                 ]}
                                 labelFormatter={(label) => `Уровень: ${label} мм`}
                               />
@@ -904,7 +965,7 @@ export function AnalysisDialog({
                               />
                               <Line
                                 type="monotone"
-                                dataKey="calculated_volume"
+                                dataKey="geometric_volume"
                                 stroke="#10b981"
                                 strokeWidth={2}
                                 dot={{ fill: '#10b981', r: 2 }}
@@ -972,11 +1033,11 @@ export function AnalysisDialog({
                     {/* График отклонений Датчик vs ТРК */}
                     {analysisResult.comparison && analysisResult.comparison.length > 0 && (() => {
                       const deviationData = analysisResult.comparison
-                        .filter((p: CalibrationComparison) => p.current_volume > 0 && p.trk_volume > 0)
+                        .filter((p: CalibrationComparison) => p.current_volume !== undefined && p.current_volume > 0 && p.trk_volume !== undefined && p.trk_volume > 0)
                         .map((p: CalibrationComparison) => ({
                           level_mm: p.level_mm,
-                          diff_liters: Math.round(p.trk_volume - p.current_volume),
-                          diff_percent: ((p.trk_volume - p.current_volume) / p.current_volume * 100)
+                          diff_liters: Math.round(p.trk_volume! - p.current_volume!),
+                          diff_percent: ((p.trk_volume! - p.current_volume!) / p.current_volume! * 100)
                         }));
 
                       if (deviationData.length === 0) return null;
@@ -1200,17 +1261,18 @@ export function AnalysisDialog({
                               <tr>
                                 <th className="px-3 py-2 text-left text-foreground/80 font-medium">Уровень (мм)</th>
                                 <th className="px-3 py-2 text-right text-foreground/80 font-medium">Датчик (л)</th>
-                                <th className="px-3 py-2 text-right text-foreground/80 font-medium">Калибровка (л)</th>
-                                <th className="px-3 py-2 text-right text-foreground/80 font-medium">Разница (л)</th>
-                                <th className="px-3 py-2 text-right text-foreground/80 font-medium">Разница (%)</th>
+                            <th className="px-3 py-2 text-right text-foreground/80 font-medium">ТРК (л)</th>
+                            <th className="px-3 py-2 text-right text-foreground/80 font-medium">Геометрия (л)</th>
+                            <th className="px-3 py-2 text-right text-foreground/80 font-medium">ТРК - Датчик (л)</th>
+                            <th className="px-3 py-2 text-right text-foreground/80 font-medium">ТРК - Датчик (%)</th>
                               </tr>
                             </thead>
                             <tbody className="bg-background">
                               {analysisResult.comparison.map((row, idx) => (
                                 <tr
                                   key={idx}
-                                  className={`border-t border-border ${Math.abs(row.difference_percent) > 1 ? 'bg-red-500/10' :
-                                      Math.abs(row.difference_percent) > 0.5 ? 'bg-yellow-500/10' :
+                                  className={`border-t border-border ${row.difference_percent !== undefined && Math.abs(row.difference_percent) > 1 ? 'bg-red-500/10' :
+                                      row.difference_percent !== undefined && Math.abs(row.difference_percent) > 0.5 ? 'bg-yellow-500/10' :
                                         ''
                                     }`}
                                 >
@@ -1219,19 +1281,22 @@ export function AnalysisDialog({
                                     {row.current_volume?.toFixed(2) ?? '—'}
                                   </td>
                                   <td className="px-3 py-2 text-right text-foreground">
-                                    {row.calculated_volume.toFixed(2)}
+                                    {row.trk_volume?.toFixed(2) ?? '—'}
                                   </td>
-                                  <td className={`px-3 py-2 text-right font-medium ${Math.abs(row.difference) > 50 ? 'text-red-600 dark:text-red-400' :
-                                      Math.abs(row.difference) > 20 ? 'text-yellow-600 dark:text-yellow-400' :
+                                  <td className="px-3 py-2 text-right text-foreground">
+                                    {row.geometric_volume.toFixed(2)}
+                                  </td>
+                                  <td className={`px-3 py-2 text-right font-medium ${row.difference !== undefined && Math.abs(row.difference) > 50 ? 'text-red-600 dark:text-red-400' :
+                                      row.difference !== undefined && Math.abs(row.difference) > 20 ? 'text-yellow-600 dark:text-yellow-400' :
                                         'text-green-600 dark:text-green-400'
                                     }`}>
-                                    {row.difference > 0 ? '+' : ''}{row.difference.toFixed(2)}
+                                    {row.difference !== undefined ? `${row.difference > 0 ? '+' : ''}${row.difference.toFixed(2)}` : '—'}
                                   </td>
-                                  <td className={`px-3 py-2 text-right font-medium ${Math.abs(row.difference_percent) > 1 ? 'text-red-600 dark:text-red-400' :
-                                      Math.abs(row.difference_percent) > 0.5 ? 'text-yellow-600 dark:text-yellow-400' :
+                                  <td className={`px-3 py-2 text-right font-medium ${row.difference_percent !== undefined && Math.abs(row.difference_percent) > 1 ? 'text-red-600 dark:text-red-400' :
+                                      row.difference_percent !== undefined && Math.abs(row.difference_percent) > 0.5 ? 'text-yellow-600 dark:text-yellow-400' :
                                         'text-green-600 dark:text-green-400'
                                     }`}>
-                                    {row.difference_percent > 0 ? '+' : ''}{row.difference_percent.toFixed(3)}%
+                                    {row.difference_percent !== undefined ? `${row.difference_percent > 0 ? '+' : ''}${row.difference_percent.toFixed(3)}%` : '—'}
                                   </td>
                                 </tr>
                               ))}

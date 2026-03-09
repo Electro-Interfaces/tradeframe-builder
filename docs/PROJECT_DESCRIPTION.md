@@ -2,7 +2,7 @@
 
 > **Версия:** 2.0.2
 > **Дата:** Февраль 2026
-> **Стек:** React 18 + TypeScript + Vite + Express + Supabase
+> **Стек:** React 18 + TypeScript + Vite + Express + PostgreSQL
 > **Назначение:** Платформа управления торговыми сетями АЗС
 
 ---
@@ -58,17 +58,17 @@
 │  server/routes/tradecorp.js   — TradeCorp API прокси         │
 │  server/routes/telegram.js    — Telegram уведомления API     │
 │  server/routes/messages.js    — Broadcast сообщения API      │
-│  server/routes/supabase.js    — Supabase прокси              │
 │  server/routes/tankCalibration.js — Калибровка резервуаров   │
-│  server/telegram-bot.js       — Telegram Bot (polling)       │
+│  server/telegram-bot-runtime.js  — Telegram Bot (polling)   │
 │  server/services/             — Движок уведомлений, cron     │
+│  server/repositories/pg/      — SQL-запросы (node-postgres)  │
 └───────┬──────────┬──────────┬──────────┬─────────────────────┘
         │          │          │          │
         ▼          ▼          ▼          ▼
-   ┌─────────┐ ┌────────┐ ┌──────┐ ┌──────────┐
-   │ Supabase│ │STS API │ │ MSTO │ │TradeCorp │
-   │ (БД)   │ │(POS)   │ │      │ │          │
-   └─────────┘ └────────┘ └──────┘ └──────────┘
+   ┌──────────┐ ┌────────┐ ┌──────┐ ┌──────────┐
+   │PostgreSQL│ │STS API │ │ MSTO │ │TradeCorp │
+   │  (БД)   │ │(POS)   │ │      │ │          │
+   └──────────┘ └────────┘ └──────┘ └──────────┘
 ```
 
 ### 2.2. Поток данных

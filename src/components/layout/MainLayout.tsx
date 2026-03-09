@@ -13,7 +13,7 @@ interface MainLayoutProps {
 }
 
 const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) => {
-  const { selectedNetwork, setSelectedNetwork, selectedTradingPoint, setSelectedTradingPoint } = useSelection();
+  const { selectedNetwork, setSelectedNetwork, selectedTradingPoint, selectedTradingPoints, setSelectedTradingPoints, setSelectedTradingPoint } = useSelection();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -27,8 +27,12 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
     setSelectedNetwork(value);
   };
 
-  const handleTradingPointChange = (value: string) => {
-    setSelectedTradingPoint(value);
+  const handleTradingPointsChange = (values: string[]) => {
+    setSelectedTradingPoints(values);
+  };
+
+  const handlePointClick = (pointId: string) => {
+    setSelectedTradingPoint(pointId);
   };
 
 
@@ -37,9 +41,10 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
       <div className={`bg-background text-foreground w-full max-w-none ${fullWidth ? 'h-screen' : 'min-h-screen'} ${isMobile ? 'flex flex-col' : ''}`}>
         <Header
           selectedNetwork={selectedNetwork?.id || ""}
-          selectedTradingPoint={selectedTradingPoint}
+          selectedTradingPoints={selectedTradingPoints}
           onNetworkChange={handleNetworkChange}
-          onTradingPointChange={handleTradingPointChange}
+          onTradingPointsChange={handleTradingPointsChange}
+          onPointClick={handlePointClick}
           onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
           isMobile={isMobile}
         />
@@ -64,8 +69,9 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
                   {selectedNetwork && (
                     <div className="mx-3 mt-3 mb-0 px-3 py-3 bg-card border border-border rounded-xl shadow-sm">
                       <PointSelect
-                        value={selectedTradingPoint}
-                        onValueChange={handleTradingPointChange}
+                        values={selectedTradingPoints}
+                        onValuesChange={handleTradingPointsChange}
+                        onPointClick={handlePointClick}
                         disabled={!selectedNetwork}
                         networkId={selectedNetwork.id}
                         className="w-full"

@@ -28,8 +28,8 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { User as UserIcon, Mail, KeyRound, Shield, Eye, EyeOff, Sparkles, Network, MapPin } from 'lucide-react'
-import { externalUsersService } from '@/services/externalUsersService'
-import { externalRolesService } from '@/services/externalRolesService'
+import { adminUsersService } from '@/services/adminUsersService'
+import { adminRolesService } from '@/services/adminRolesService'
 import { networksService } from '@/services/networksService'
 import { MultiNetworkSelect } from '@/components/selects/MultiNetworkSelect'
 import { MultiPointSelect } from '@/components/selects/MultiPointSelect'
@@ -228,7 +228,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
       if (user) {
         // Редактирование
-        await externalUsersService.updateUser(user.id, {
+        await adminUsersService.updateUser(user.id, {
           email: formData.email,
           name: formData.name,
           status: formData.status
@@ -249,16 +249,16 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
         if (currentRoleId !== selectedRole || scopeValuesChanged) {
           if (currentRoleId) {
-            await externalRolesService.removeRoleFromUser(user.id, currentRoleId)
+            await adminRolesService.removeRoleFromUser(user.id, currentRoleId)
           }
           if (selectedRole) {
-            await externalRolesService.assignRoleToUser(user.id, selectedRole, scopeValues)
+            await adminRolesService.assignRoleToUser(user.id, selectedRole, scopeValues)
           }
         }
 
         // Изменение пароля если указан
         if (formData.password) {
-          await externalUsersService.changePassword(user.id, formData.password)
+          await adminUsersService.changePassword(user.id, formData.password)
           toast({
             title: "Пароль изменен",
             description: `Новый пароль для ${user.name} установлен`,
@@ -280,7 +280,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         }
 
         // Создание
-        const createdUser = await externalUsersService.createUser({
+        const createdUser = await adminUsersService.createUser({
           email: formData.email,
           name: formData.name,
           password: formData.password,
@@ -290,8 +290,8 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
         // Если есть scopeValues - обновляем назначение роли
         if (selectedRole && scopeValues.length > 0 && createdUser?.id) {
-          await externalRolesService.removeRoleFromUser(createdUser.id, selectedRole)
-          await externalRolesService.assignRoleToUser(createdUser.id, selectedRole, scopeValues)
+          await adminRolesService.removeRoleFromUser(createdUser.id, selectedRole)
+          await adminRolesService.assignRoleToUser(createdUser.id, selectedRole, scopeValues)
         }
 
         toast({

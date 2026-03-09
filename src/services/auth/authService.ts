@@ -1,6 +1,7 @@
 /**
- * Чистый сервис авторизации
- * Работает напрямую с Supabase без лишних абстракций
+ * Сервис авторизации с безопасным переходным режимом.
+ * `legacy` — текущая схема прямой работы с Supabase.
+ * `backend` — работа только через backend `/api/auth`.
  */
 
 import { auditLogService } from '../auditLogService';
@@ -27,6 +28,7 @@ export interface DatabaseUser {
   }>;
   created_at: string;
   updated_at: string;
+  role?: string;
 }
 
 interface UserRole {
@@ -52,142 +54,183 @@ interface AppUser {
   status: string;
   role: string;
   roleId: number;
-  permissions: (Permission | string)[];  // Массив разрешений (объекты или строки)
-  roles: UserRole[];  // Массив ролей для отображения в профиле
+  permissions: (Permission | string)[];
+  roles: UserRole[];
 }
 
+interface AuthSessionResult {
+  user: AppUser;
+  token?: string;
+  expiresAt?: string;
+}
+
+type AuthMode = 'legacy' | 'backend';
+
 class AuthService {
-  // Определяем URL в зависимости от окружения
+  private readonly authMode: AuthMode =
+    import.meta.env.VITE_AUTH_API_MODE === 'legacy' ? 'legacy' : 'backend';
+
+  private readonly BACKEND_AUTH_URL = `${getBackendOrigin()}/api/auth`;
   private readonly SUPABASE_URL = this.getSupabaseUrl();
   private readonly SUPABASE_KEY = this.getSupabaseKey();
 
-  /**
-   * Получает Supabase ключ из переменных окружения
-   * На production/test используется backend proxy, ключ передаётся через него
-   */
+  isBackendMode(): boolean {
+    return this.authMode === 'backend';
+  }
+
+  private getStoredAuthToken(): string {
+    return localStorage.getItem('auth_token')
+      || sessionStorage.getItem('auth_token')
+      || localStorage.getItem('tradeframe_token_v2')
+      || localStorage.getItem('authToken')
+      || '';
+  }
+
+  /** @deprecated Legacy Supabase mode отключён. Все запросы через backend API. */
   private getSupabaseKey(): string {
-    const key = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-    if (!key) {
-      // VITE_SUPABASE_SERVICE_ROLE_KEY not set
-      return '';
-    }
-    return key;
+    return '';
   }
 
-  /**
-   * Определяет URL для Supabase в зависимости от окружения
-   * - localhost → прямой доступ к Supabase
-   * - testtf.dataworker.ru → через backend proxy
-   * - prod.dataworker.ru → через backend proxy
-   */
+  /** @deprecated Legacy Supabase mode отключён. Все запросы через backend API. */
   private getSupabaseUrl(): string {
-    const hostname = window.location.hostname;
-
-    // На deployed окружениях (prod/test/github) — через backend proxy
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return `${getBackendOrigin()}/api/supabase`;
-    }
-
-    // Локально — прямой доступ к Supabase
-    return import.meta.env.VITE_SUPABASE_URL || '';
+    return '';
   }
 
-  /**
-   * Выполняет HTTP запрос к Supabase
-   */
-  private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    // Если используем proxy, /rest/v1/ уже добавлен в proxy route
-    // Если прямой доступ к Supabase, добавляем /rest/v1/
+  private async parseResponse(response: Response): Promise<any> {
+    const responseText = await response.text();
+
+    if (!responseText) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      return responseText;
+    }
+  }
+
+  private async makeBackendRequest(
+    endpoint: string,
+    options: RequestInit = {},
+    requiresAuth: boolean = false
+  ): Promise<any> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    if (requiresAuth) {
+      const token = this.getStoredAuthToken();
+      if (!token) {
+        const err = new Error('Токен авторизации отсутствует');
+        (err as any).status = 401;
+        throw err;
+      }
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.BACKEND_AUTH_URL}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+
+    const body = await this.parseResponse(response);
+
+    if (!response.ok) {
+      const message = body?.error || body?.message || `Ошибка авторизации: ${response.status}`;
+      const err = new Error(message);
+      (err as any).status = response.status;
+      throw err;
+    }
+
+    return body;
+  }
+
+  private async makeLegacyRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
     const isProxy = this.SUPABASE_URL.includes('/api/supabase');
     const url = isProxy
       ? `${this.SUPABASE_URL}/${endpoint}`
       : `${this.SUPABASE_URL}/rest/v1/${endpoint}`;
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'apikey': this.SUPABASE_KEY,
-          'Authorization': `Bearer ${this.SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation',
-          ...options.headers,
-        },
-      });
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        apikey: this.SUPABASE_KEY,
+        Authorization: `Bearer ${this.SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+        ...options.headers,
+      },
+    });
 
-      // Сначала получаем текст ответа, чтобы избежать двойного чтения stream
-      const responseText = await response.text();
+    const body = await this.parseResponse(response);
 
-      if (!response.ok) {
-        let error = {};
-        try {
-          error = JSON.parse(responseText);
-        } catch {
-          error = { message: responseText };
-        }
-        throw new Error(`Ошибка запроса к базе данных: ${response.status} ${JSON.stringify(error)}`);
-      }
-
-      // Парсим успешный ответ
-      try {
-        return JSON.parse(responseText);
-      } catch {
-        return responseText;
-      }
-    } catch (error) {
-      // Обработка сетевых ошибок (NetworkError, CORS, timeout)
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Не удалось подключиться к серверу. Проверьте подключение к интернету или попробуйте позже.');
-      }
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Ошибка запроса к базе данных: ${response.status} ${JSON.stringify(body)}`);
     }
+
+    return body;
   }
 
-  /**
-   * Ищет пользователя по email в базе данных с ролями (новая схема БД)
-   */
-  async getUserByEmail(email: string): Promise<DatabaseUser | null> {
+  async getCurrentUser(): Promise<AppUser | null> {
+    if (!this.isBackendMode()) {
+      return null;
+    }
+
+    const token = this.getStoredAuthToken();
+    if (!token || token.split('.').length !== 3) {
+      return null;
+    }
+
     try {
-
-      // НОВАЯ СХЕМА: получаем пользователя с ролями через джойн
-      // Также получаем scope_value из user_roles для индивидуальных ограничений
-      const users = await this.makeRequest(
-        `users?select=*,user_roles(scope_value,role:roles(*))&email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
-      );
-
-      if (users.length === 0) {
+      return await this.makeBackendRequest('/me', { method: 'GET' }, true);
+    } catch (err: any) {
+      // 401/403 — токен невалиден, реальный logout
+      if (err.status === 401 || err.status === 403) {
         return null;
       }
-
-      const user = users[0];
-
-      // Логируем роли из новой схемы БД
-      const userRoles = user.user_roles || [];
-
-      return user;
-    } catch (error) {
-      throw error;
+      // Транзитные ошибки (429, 500, сеть) — не разлогинивать
+      throw err;
     }
   }
 
-  /**
-   * Проверяет пароль пользователя (простой SHA-256)
-   */
+  private async getLegacyUserByEmail(email: string): Promise<DatabaseUser | null> {
+    const users = await this.makeLegacyRequest(
+      `users?select=*,user_roles(scope_value,role:roles(*))&email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
+    );
+
+    if (!Array.isArray(users) || users.length === 0) {
+      return null;
+    }
+
+    return users[0];
+  }
+
+  async getUserByEmail(email: string): Promise<DatabaseUser | null> {
+    if (this.isBackendMode()) {
+      try {
+        return await this.makeBackendRequest(
+          `/users/by-email?email=${encodeURIComponent(email)}`,
+          { method: 'GET' },
+          true
+        );
+      } catch {
+        return null;
+      }
+    }
+
+    return this.getLegacyUserByEmail(email);
+  }
+
   async verifyPassword(user: DatabaseUser, password: string): Promise<boolean> {
-    if (!password || password.length < 1) {
+    if (!password || !user.pwd_salt || !user.pwd_hash) {
       return false;
     }
-
-    if (!user.pwd_salt || !user.pwd_hash) {
-      return false;
-    }
-
 
     try {
-      // Простое хеширование: пароль + соль
       const passwordWithSalt = password + user.pwd_salt;
-
-      // Используем SHA-256 если доступен, иначе base64
       let computedHash: string;
 
       if (crypto && crypto.subtle) {
@@ -197,142 +240,127 @@ class AuthService {
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         computedHash = btoa(String.fromCharCode(...hashArray));
       } else {
-        // Простой base64 fallback
         computedHash = btoa(passwordWithSalt);
       }
 
-      const isValid = computedHash === user.pwd_hash;
-
-      return isValid;
-    } catch (error) {
+      return computedHash === user.pwd_hash;
+    } catch {
       return false;
     }
   }
 
-  /**
-   * Аутентифицирует пользователя
-   */
-  async authenticate(email: string, password: string): Promise<AppUser | null> {
-    try {
-
-      const dbUser = await this.getUserByEmail(email);
-      if (!dbUser) {
-        return null;
-      }
-
-      const isValidPassword = await this.verifyPassword(dbUser, password);
-      if (!isValidPassword) {
-        // Логируем неудачную попытку входа
-        await auditLogService.logAuthentication('failed_login', email, {
-          reason: 'Неверный пароль',
-          success: false
-        });
-        return null;
-      }
-
-      // Трансформируем пользователя из БД в формат приложения
-      const appUser = this.transformUser(dbUser);
-
-      // Обновляем время последнего входа
-      try {
-        await this.makeRequest(`users?id=eq.${appUser.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            last_login: new Date().toISOString()
-          })
-        });
-      } catch (error) {
-        console.error('Failed to update last_login:', error);
-        // Не прерываем вход при ошибке обновления
-      }
-
-      // Логируем успешный вход
-      await auditLogService.logAuthentication('login', email, {
-        user_id: appUser.id,
-        user_name: appUser.name,
-        role: appUser.role,
-        success: true
+  async authenticate(email: string, password: string): Promise<AuthSessionResult | null> {
+    if (this.isBackendMode()) {
+      const result = await this.makeBackendRequest('/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
       });
 
-      return appUser;
-    } catch (error) {
-      throw error;
+      return {
+        user: result.user,
+        token: result.token,
+        expiresAt: result.expires_at,
+      };
     }
+
+    const dbUser = await this.getLegacyUserByEmail(email);
+    if (!dbUser) {
+      return null;
+    }
+
+    const isValidPassword = await this.verifyPassword(dbUser, password);
+    if (!isValidPassword) {
+      await auditLogService.logAuthentication('failed_login', email, {
+        reason: 'Неверный пароль',
+        success: false,
+      });
+      return null;
+    }
+
+    const appUser = this.transformUser(dbUser);
+
+    try {
+      await this.makeLegacyRequest(`users?id=eq.${appUser.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          last_login: new Date().toISOString(),
+        }),
+      });
+    } catch {
+      // last_login не должен ломать вход
+    }
+
+    await auditLogService.logAuthentication('login', email, {
+      user_id: appUser.id,
+      user_name: appUser.name,
+      role: appUser.role,
+      success: true,
+    });
+
+    return { user: appUser };
   }
 
-  /**
-   * Трансформирует пользователя из БД в формат приложения (НОВАЯ СХЕМА)
-   * РЕФАКТОРИНГ: Собираем ВСЕ разрешения из ВСЕХ ролей как объекты
-   */
   private transformUser(dbUser: DatabaseUser): AppUser {
-
-    // Получаем все роли пользователя из новой схемы БД
     const userRoles = dbUser.user_roles || [];
     const primaryRole = userRoles[0]?.role;
-
-    let userRole = 'user';
-    let roleId = 0;
-
-    // Маппинг имен ролей на коды для совместимости
     const roleNameToCode: Record<string, string> = {
       'Суперадминистратор': 'super_admin',
       'Администратор сети': 'network_admin',
       'Менеджер': 'manager',
       'Оператор': 'operator',
-      'Менеджер БТО': 'bto_manager'
+      'Менеджер БТО': 'bto_manager',
     };
 
+    let userRole = 'user';
+    let roleId = 0;
+
     if (primaryRole) {
-      // Используем код роли напрямую из БД или имя роли для маппинга
       userRole = primaryRole.code || roleNameToCode[primaryRole.name] || primaryRole.name;
       roleId = primaryRole.id;
     }
 
-    // Собираем ВСЕ разрешения из ВСЕХ ролей пользователя
-    // Разрешения хранятся как объекты { section, resource, actions }
     const allPermissions: (Permission | string)[] = [];
-    const permissionSet = new Set<string>(); // Для дедупликации
+    const permissionSet = new Set<string>();
 
-    userRoles.forEach((ur: any) => {
-      const role = ur.role;
-      if (!role || !role.permissions) return;
+    userRoles.forEach((userRoleItem: any) => {
+      const role = userRoleItem.role;
+      if (!role || !role.permissions) {
+        return;
+      }
 
-      role.permissions.forEach((perm: any) => {
-        // Создаём уникальный ключ для проверки дубликатов
-        const key = typeof perm === 'object'
-          ? `${perm.section}.${perm.resource}`
-          : String(perm);
+      role.permissions.forEach((permission: any) => {
+        const key = typeof permission === 'object'
+          ? `${permission.section}.${permission.resource}`
+          : String(permission);
 
         if (!permissionSet.has(key)) {
           permissionSet.add(key);
-          allPermissions.push(perm);
+          allPermissions.push(permission);
         }
       });
     });
 
-    // Формируем массив ролей для отображения в профиле
-    // Приоритет: scope_value из user_roles > scope_values из роли
     const roles: UserRole[] = userRoles
-      .filter((ur: any) => ur.role)
-      .map((ur: any) => {
-        const role = ur.role;
-
-        // Парсим scope_value из user_roles (хранится как JSON-строка)
+      .filter((userRoleItem: any) => userRoleItem.role)
+      .map((userRoleItem: any) => {
+        const role = userRoleItem.role;
         let userScopeValues: string[] = [];
-        if (ur.scope_value) {
+
+        if (userRoleItem.scope_value) {
           try {
-            const parsed = JSON.parse(ur.scope_value);
+            const parsed = typeof userRoleItem.scope_value === 'string'
+              ? JSON.parse(userRoleItem.scope_value)
+              : userRoleItem.scope_value;
             if (Array.isArray(parsed)) {
               userScopeValues = parsed;
+            } else if (parsed) {
+              userScopeValues = [String(parsed)];
             }
           } catch {
-            // Если не JSON - используем как одиночное значение для обратной совместимости
-            userScopeValues = [ur.scope_value];
+            userScopeValues = [String(userRoleItem.scope_value)];
           }
         }
 
-        // Используем scope_values из назначения (user_roles), если они есть
-        // Иначе используем scope_values из самой роли
         const effectiveScopeValues = userScopeValues.length > 0
           ? userScopeValues
           : (role.scope_values || []);
@@ -343,28 +371,23 @@ class AuthService {
           roleCode: role.code || roleNameToCode[role.name] || role.name,
           scope: role.scope,
           scopeValues: effectiveScopeValues,
-          permissions: role.permissions || []
+          permissions: role.permissions || [],
         };
       });
 
-    const appUser = {
+    return {
       id: dbUser.id,
       email: dbUser.email,
       name: dbUser.name,
       phone: dbUser.phone,
       status: dbUser.status,
       role: userRole,
-      roleId: roleId,
+      roleId,
       permissions: allPermissions,
-      roles: roles
+      roles,
     };
-
-    return appUser;
   }
 
-  /**
-   * Создает простой хеш для пароля (SHA-256 или base64)
-   */
   async createPasswordHash(password: string, salt: string): Promise<string> {
     const passwordWithSalt = password + salt;
 
@@ -374,74 +397,89 @@ class AuthService {
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return btoa(String.fromCharCode(...hashArray));
-    } else {
-      return btoa(passwordWithSalt);
     }
+
+    return btoa(passwordWithSalt);
   }
 
-  /**
-   * Генерирует простую соль
-   */
   generateSalt(): string {
     const array = new Uint8Array(16);
     crypto.getRandomValues(array);
-    return Array.from(array, b => b.toString(36).padStart(2, '0')).join('').substring(0, 24);
+    return Array.from(array, (value) => value.toString(36).padStart(2, '0')).join('').substring(0, 24);
   }
 
-  /**
-   * Обновляет имя пользователя в базе данных
-   */
   async updateUserName(userId: string, newName: string): Promise<void> {
-    try {
-
-      await this.makeRequest(`users?id=eq.${userId}`, {
+    if (this.isBackendMode()) {
+      await this.makeBackendRequest('/me', {
         method: 'PATCH',
-        body: JSON.stringify({
-          name: newName.trim(),
-          updated_at: new Date().toISOString()
-        })
-      });
-
-    } catch (error) {
-      throw error;
+        body: JSON.stringify({ name: newName.trim() }),
+      }, true);
+      return;
     }
+
+    await this.makeLegacyRequest(`users?id=eq.${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: newName.trim(),
+        updated_at: new Date().toISOString(),
+      }),
+    });
   }
 
-  /**
-   * Изменяет пароль пользователя
-   */
-  async changePassword(userId: string, email: string, currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    userId: string,
+    email: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> {
+    if (this.isBackendMode()) {
+      await this.makeBackendRequest('/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      }, true);
+      return;
+    }
+
+    const dbUser = await this.getLegacyUserByEmail(email);
+    if (!dbUser) {
+      throw new Error('Пользователь не найден');
+    }
+
+    const isValidPassword = await this.verifyPassword(dbUser, currentPassword);
+    if (!isValidPassword) {
+      throw new Error('Неверный текущий пароль');
+    }
+
+    const newSalt = this.generateSalt();
+    const newHash = await this.createPasswordHash(newPassword, newSalt);
+
+    await this.makeLegacyRequest(`users?id=eq.${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        pwd_salt: newSalt,
+        pwd_hash: newHash,
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  }
+
+  async logout(): Promise<void> {
+    if (!this.isBackendMode()) {
+      return;
+    }
+
+    const token = this.getStoredAuthToken();
+    if (!token || token.split('.').length !== 3) {
+      return;
+    }
+
     try {
-      // 1. Сначала проверяем текущий пароль
-      const dbUser = await this.getUserByEmail(email);
-      if (!dbUser) {
-        throw new Error('Пользователь не найден');
-      }
-
-      const isValidPassword = await this.verifyPassword(dbUser, currentPassword);
-      if (!isValidPassword) {
-        throw new Error('Неверный текущий пароль');
-      }
-
-      // 2. Генерируем новую соль и хеш для нового пароля
-      const newSalt = this.generateSalt();
-      const newHash = await this.createPasswordHash(newPassword, newSalt);
-
-      // 3. Обновляем пароль в базе данных
-      await this.makeRequest(`users?id=eq.${userId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          pwd_salt: newSalt,
-          pwd_hash: newHash,
-          updated_at: new Date().toISOString()
-        })
-      });
-
-    } catch (error) {
-      throw error;
+      await this.makeBackendRequest('/logout', { method: 'POST' }, true);
+    } catch {
+      // logout на сервере не должен блокировать локальную очистку
     }
   }
 }
 
 export const authService = new AuthService();
-export type { AppUser, UserRole, Permission };
+export type { AppUser, UserRole, Permission, AuthSessionResult };

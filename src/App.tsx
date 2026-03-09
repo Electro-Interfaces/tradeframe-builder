@@ -42,7 +42,6 @@ const AuditLog = lazy(() => import("./pages/AuditLog"));
 const DataMigration = lazy(() => import("./pages/DataMigration"));
 
 // Settings страницы - ленивая загрузка (приоритет 2)
-const ExternalDatabaseSettings = lazy(() => import("./pages/ExternalDatabaseSettings"));
 const UserNotificationSettings = lazy(() => import("./pages/UserNotificationSettings"));
 
 // Network страницы - ленивая загрузка (приоритет 3)
@@ -228,7 +227,6 @@ const App = () => {
                   <Route path="/admin/data-migration" element={<ProtectedRoute><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
 
                   {/* Settings страницы - приоритет 2 */}
-                  <Route path="/settings/external-database" element={<ProtectedRoute><LazyLoader><ExternalDatabaseSettings /></LazyLoader></ProtectedRoute>} />
                   <Route path="/settings/notifications" element={<ProtectedRoute><LazyLoader><UserNotificationSettings /></LazyLoader></ProtectedRoute>} />
 
                   {/* Network страницы - приоритет 3 */}

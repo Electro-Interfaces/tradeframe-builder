@@ -16,7 +16,7 @@ class ExternalRolesService {
   private getConfig(): ExternalDatabaseConfig {
     const fixedConfig: ExternalDatabaseConfig = {
       url: import.meta.env.VITE_SUPABASE_URL || '',
-      apiKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ''
+      apiKey: import.meta.env.VITE_SUPABASE_ANON_KEY || ''
     };
 
     // Обновляем кэш каждую секунду

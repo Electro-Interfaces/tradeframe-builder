@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Users as UsersIcon, Search, Trash2 } from 'lucide-react';
 import { UserStatus } from '@/types/auth';
-import { externalUsersService } from '@/services/externalUsersService';
-import { externalRolesService } from '@/services/externalRolesService';
+import { adminUsersService } from '@/services/adminUsersService';
+import { adminRolesService } from '@/services/adminRolesService';
 import { permissionService } from '@/services/auth/permissionService';
 import { UserFormDialog } from '@/components/admin/users/UserFormDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -37,14 +37,14 @@ export default function Users() {
   // React Query для данных
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['external-users'],
-    queryFn: () => externalUsersService.getUsersWithRoles(),
+    queryFn: () => adminUsersService.getUsersWithRoles(),
     retry: 1,
     retryDelay: 1000
   });
 
   const { data: roles = [] } = useQuery({
     queryKey: ['external-roles'],
-    queryFn: () => externalRolesService.getAllRoles(),
+    queryFn: () => adminRolesService.getAllRoles(),
     retry: 1,
     retryDelay: 1000
   });
@@ -72,7 +72,7 @@ export default function Users() {
     if (!dialogsState.deleteDialog.user) return;
 
     try {
-      await externalUsersService.deleteUser(dialogsState.deleteDialog.user.id);
+      await adminUsersService.deleteUser(dialogsState.deleteDialog.user.id);
       toast({
         title: "Успешно",
         description: "Пользователь удален"
@@ -98,7 +98,7 @@ export default function Users() {
     if (!confirmed) return;
 
     try {
-      const result = await externalUsersService.permanentlyDeleteAllSoftDeletedUsers();
+      const result = await adminUsersService.permanentlyDeleteAllSoftDeletedUsers();
 
       if (result && result.deletedCount > 0) {
         toast({

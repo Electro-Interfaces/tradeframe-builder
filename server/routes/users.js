@@ -1,0 +1,174 @@
+const express = require('express');
+
+const { requireAuth } = require('../middleware/auth');
+const adminDataSource = require('../services/admin/adminDataSource');
+
+const router = express.Router();
+
+function hasAdminAccess(user) {
+  const roleCodes = new Set([
+    user?.role,
+    ...(Array.isArray(user?.roles) ? user.roles.map((role) => role.roleCode) : []),
+  ].filter(Boolean));
+
+  if (['super_admin', 'system_admin', 'network_admin'].some((code) => roleCodes.has(code))) {
+    return true;
+  }
+
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  return permissions.some((permission) => {
+    const actions = Array.isArray(permission?.actions) ? permission.actions : [];
+    const canManage = actions.includes('manage') || actions.includes('write');
+
+    return canManage && (
+      (permission.section === 'admin' && ['users', 'roles'].includes(permission.resource))
+      || (permission.section === 'networks' && permission.resource === 'users')
+    );
+  });
+}
+
+function requireAdminAccess(req, res, next) {
+  if (!hasAdminAccess(req.user)) {
+    return res.status(403).json({ error: 'Недостаточно прав для управления пользователями' });
+  }
+
+  return next();
+}
+
+router.use(requireAuth, requireAdminAccess);
+
+router.get('/', async (req, res) => {
+  try {
+    const users = await adminDataSource.getUsersWithRoles({
+      includeDeleted: req.query.includeDeleted === 'true',
+      deletedOnly: req.query.deletedOnly === 'true',
+    });
+
+    return res.json(users);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Ошибка загрузки пользователей' });
+  }
+});
+
+router.get('/by-email/:email', async (req, res) => {
+  try {
+    const user = await adminDataSource.getUserByEmail(req.params.email, {
+      includeDeleted: req.query.includeDeleted === 'true',
+      deletedOnly: req.query.deletedOnly === 'true',
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    return res.json(user);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Ошибка загрузки пользователя' });
+  }
+});
+
+router.delete('/deleted/purge', async (req, res) => {
+  try {
+    const result = await adminDataSource.purgeSoftDeletedUsers();
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Ошибка очистки удаленных пользователей' });
+  }
+});
+
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await adminDataSource.getUserById(req.params.id, {
+      includeDeleted: req.query.includeDeleted === 'true',
+      deletedOnly: req.query.deletedOnly === 'true',
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    return res.json(user);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Ошибка загрузки пользователя' });
+  }
+});
+
+router.post('/', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    const name = String(req.body?.name || '').trim();
+    const password = String(req.body?.password || '');
+
+    if (!email || !name || !password) {
+      return res.status(400).json({ error: 'Email, имя и пароль обязательны' });
+    }
+
+    const createdUser = await adminDataSource.createUser({
+      tenant_id: req.body?.tenant_id || 'default',
+      email,
+      name,
+      phone: req.body?.phone || null,
+      password,
+      status: req.body?.status || 'active',
+      roles: Array.isArray(req.body?.roles) ? req.body.roles : [],
+      assigned_by: req.user.id,
+      preferences: req.body?.preferences || {},
+      direct_permissions: req.body?.direct_permissions || [],
+    });
+
+    return res.status(201).json(createdUser);
+  } catch (error) {
+    return res.status(400).json({ error: error.message || 'Ошибка создания пользователя' });
+  }
+});
+
+router.put('/:id', async (req, res) => {
+  try {
+    const updatedUser = await adminDataSource.updateUser(req.params.id, {
+      email: req.body?.email,
+      name: req.body?.name,
+      phone: req.body?.phone,
+      status: req.body?.status,
+      preferences: req.body?.preferences,
+      direct_permissions: req.body?.direct_permissions,
+    });
+
+    return res.json(updatedUser);
+  } catch (error) {
+    return res.status(400).json({ error: error.message || 'Ошибка обновления пользователя' });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    await adminDataSource.softDeleteUser(req.params.id);
+    return res.json({ ok: true });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Ошибка удаления пользователя' });
+  }
+});
+
+router.post('/:id/restore', async (req, res) => {
+  try {
+    const restoredUser = await adminDataSource.restoreUser(req.params.id);
+    return res.json(restoredUser);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Ошибка восстановления пользователя' });
+  }
+});
+
+router.post('/:id/password', async (req, res) => {
+  try {
+    const newPassword = String(req.body?.newPassword || '');
+    if (!newPassword) {
+      return res.status(400).json({ error: 'Новый пароль обязателен' });
+    }
+
+    await adminDataSource.setUserPassword(req.params.id, newPassword);
+    return res.json({ ok: true });
+  } catch (error) {
+    return res.status(400).json({ error: error.message || 'Ошибка смены пароля' });
+  }
+});
+
+module.exports = router;

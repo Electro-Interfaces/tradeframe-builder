@@ -32,6 +32,13 @@ interface CalibrationDataPoint {
   temperature?: number;   // Температура (опционально)
 }
 
+interface ParsedMeasurement {
+  time: number;
+  level_mm: number;
+  volume: number;
+  temperature?: number;
+}
+
 
 /**
  * Диагностическая информация для отладки
@@ -365,7 +372,8 @@ export function calculateCalibrationTable(
   settings: TankCalibrationSettings,
   tankNumber: number,
   receipts?: ReceiptItem[],
-  currentTable?: CalibrationTablePoint[]
+  currentTable?: CalibrationTablePoint[],
+  fuelCode?: number
 ): CalibrationCalculationResult {
 
   const diagnostics: CalibrationDiagnostics = {
@@ -387,7 +395,8 @@ export function calculateCalibrationTable(
     settings,
     tankNumber,
     diagnostics,
-    currentTable
+    currentTable,
+    fuelCode
   );
 
   diagnostics.totalPointsBeforeFilter = dataPoints.length;
@@ -456,16 +465,32 @@ function prepareDataPointsWithReceipts(
   settings: TankCalibrationSettings,
   tankNumber: number,
   diagnostics: CalibrationDiagnostics,
-  currentTable?: CalibrationTablePoint[]
+  currentTable?: CalibrationTablePoint[],
+  fuelCode?: number
 ): CalibrationDataPoint[] {
 
   if (history.length === 0) {
     return [];
   }
 
+  const effectiveFuelCode = fuelCode
+    ?? history.find(record => record.number === tankNumber && typeof record.fuel === 'number' && record.fuel > 0)?.fuel
+    ?? null;
+
+  const matchTransactionToTank = (tx: TransactionItem) => {
+    if (effectiveFuelCode !== null) {
+      return tx.fuel === effectiveFuelCode;
+    }
+    return tx.tank === tankNumber;
+  };
+
+  if (settings.reference_source === 'current_table' && (!currentTable || currentTable.length === 0)) {
+    diagnostics.warnings.push('Источник опорной точки "текущая таблица" выбран, но активная таблица недоступна. Используется геометрия.');
+  }
+
   // Подготовка транзакций для данного резервуара
   const tankTransactions = transactions
-    .filter(tx => tx.tank === tankNumber)
+    .filter(matchTransactionToTank)
     .map(tx => ({
       time: new Date(tx.dt || '').getTime(),
       quantity: typeof tx.quantity === 'string' ? parseFloat(tx.quantity) : tx.quantity,
@@ -475,6 +500,12 @@ function prepareDataPointsWithReceipts(
     .sort((a, b) => a.time - b.time);
 
   diagnostics.transactionsProcessed = tankTransactions.length;
+
+  if (effectiveFuelCode !== null) {
+    diagnostics.warnings.push(`Отпуски ТРК сопоставлены по коду топлива ${effectiveFuelCode}.`);
+  } else {
+    diagnostics.warnings.push('Код топлива резервуара не определен. Использована fallback-фильтрация транзакций по номеру резервуара, она может быть неточной.');
+  }
 
   // Подготовка поступлений для данного резервуара
   const tankReceipts = receipts
@@ -488,6 +519,11 @@ function prepareDataPointsWithReceipts(
     .sort((a, b) => a.time - b.time);
 
   diagnostics.receiptsProcessed = tankReceipts.length;
+
+  if (tankTransactions.length === 0 && tankReceipts.length === 0) {
+    diagnostics.warnings.push('За выбранный период не найдено ни одного реального отпуска ТРК или поступления для этого резервуара.');
+    return [];
+  }
 
   // Сортируем историю по времени
   const sortedHistory = [...history]
@@ -527,13 +563,26 @@ function calculateFromSingleReferencePoint(
   currentTable?: CalibrationTablePoint[]
 ): CalibrationDataPoint[] {
 
-  // ОПТИМИЗАЦИЯ: Предварительно парсим историю один раз
-  const parsedHistory = sortedHistory.map(record => ({
+  const rawMeasurements: ParsedMeasurement[] = sortedHistory.map(record => ({
     time: new Date(record.dt).getTime(),
     level_mm: parseFloat(record.level) * 10,
     volume: parseFloat(record.volume),
     temperature: parseFloat(record.temperature)
   }));
+
+  const averagedMeasurements = averageMeasurementsByWindow(rawMeasurements, settings, diagnostics);
+  const parsedHistory = filterMeasurementsByRestWindow(
+    averagedMeasurements,
+    transactions,
+    receipts,
+    settings,
+    diagnostics
+  );
+
+  if (parsedHistory.length === 0) {
+    diagnostics.warnings.push('После усреднения и окна стабилизации не осталось валидных измерений датчика.');
+    return [];
+  }
 
   // Находим опорную точку - просто МАКСИМАЛЬНЫЙ уровень в периоде
   let referencePoint: { time: number; level_mm: number; volume: number; temperature?: number } | null = null;
@@ -695,6 +744,9 @@ function calculateFromSingleReferencePoint(
 
   // 4. Идём НАЗАД от опорной точки (в прошлое)
   let volumeBackward = referenceVolume;
+  let lastBackwardAcceptedVolume = adjustForDeadStock(referenceVolume, settings);
+  let skippedByMinChange = 0;
+  const minChangeForCalibration = Math.max(0, settings.min_change_for_calibration_liters || 0);
 
   for (let i = refIndex - 1; i >= 0; i--) {
     const event = timeline[i];
@@ -721,19 +773,27 @@ function calculateFromSingleReferencePoint(
         continue;
       }
 
+      const adjustedVolume = adjustForDeadStock(volume, settings);
+      if (minChangeForCalibration > 0 && Math.abs(adjustedVolume - lastBackwardAcceptedVolume) < minChangeForCalibration) {
+        skippedByMinChange++;
+        continue;
+      }
+
       // Используем РЕАЛЬНЫЙ уровень датчика!
       // Это связывает показания датчика (level_mm) с реальным объёмом (по ТРК)
       result.push({
         level_mm: event.level_mm,  // Уровень датчика
-        volume_liters: adjustForDeadStock(volume, settings),  // Объём по ТРК
+        volume_liters: adjustedVolume,  // Объём по ТРК
         timestamp: event.time,
         temperature: event.temperature
       });
+      lastBackwardAcceptedVolume = adjustedVolume;
     }
   }
 
   // 5. Идём ВПЕРЁД от опорной точки (в будущее)
   let volumeForward = referenceVolume;
+  let lastForwardAcceptedVolume = adjustForDeadStock(referenceVolume, settings);
 
   for (let i = refIndex + 1; i < timeline.length; i++) {
     const event = timeline[i];
@@ -760,20 +820,156 @@ function calculateFromSingleReferencePoint(
         continue;
       }
 
+      const adjustedVolume = adjustForDeadStock(volume, settings);
+      if (minChangeForCalibration > 0 && Math.abs(adjustedVolume - lastForwardAcceptedVolume) < minChangeForCalibration) {
+        skippedByMinChange++;
+        continue;
+      }
+
       // Используем РЕАЛЬНЫЙ уровень датчика!
       // Это связывает показания датчика (level_mm) с реальным объёмом (по ТРК)
       result.push({
         level_mm: event.level_mm,  // Уровень датчика
-        volume_liters: adjustForDeadStock(volume, settings),  // Объём по ТРК
+        volume_liters: adjustedVolume,  // Объём по ТРК
         timestamp: event.time,
         temperature: event.temperature
       });
+      lastForwardAcceptedVolume = adjustedVolume;
     }
+  }
+
+  if (skippedByMinChange > 0) {
+    diagnostics.warnings.push(
+      `Пропущено ${skippedByMinChange} измерений с изменением меньше ${minChangeForCalibration} л.`
+    );
   }
 
   diagnostics.segmentsCount = 1; // Теперь один "сегмент" - вся шкала
 
   return result;
+}
+
+function averageMeasurementsByWindow(
+  measurements: ParsedMeasurement[],
+  settings: TankCalibrationSettings,
+  diagnostics: CalibrationDiagnostics
+): ParsedMeasurement[] {
+  const windowMinutes = Math.max(0, settings.averaging_period_minutes || 0);
+
+  if (measurements.length < 2 || windowMinutes <= 0) {
+    return measurements;
+  }
+
+  const windowMs = windowMinutes * 60 * 1000;
+  const sorted = [...measurements].sort((a, b) => a.time - b.time);
+  const averaged: ParsedMeasurement[] = [];
+  let bucket: ParsedMeasurement[] = [];
+  let bucketStart = sorted[0].time;
+
+  const flushBucket = () => {
+    if (bucket.length === 0) return;
+
+    const avgTime = bucket.reduce((sum, item) => sum + item.time, 0) / bucket.length;
+    const avgLevel = bucket.reduce((sum, item) => sum + item.level_mm, 0) / bucket.length;
+    const avgVolume = bucket.reduce((sum, item) => sum + item.volume, 0) / bucket.length;
+    const validTemperatures = bucket
+      .map(item => item.temperature)
+      .filter((temperature): temperature is number => typeof temperature === 'number' && !isNaN(temperature));
+    const avgTemperature = validTemperatures.length > 0
+      ? validTemperatures.reduce((sum, item) => sum + item, 0) / validTemperatures.length
+      : undefined;
+
+    averaged.push({
+      time: avgTime,
+      level_mm: avgLevel,
+      volume: avgVolume,
+      temperature: avgTemperature
+    });
+  };
+
+  for (const measurement of sorted) {
+    if (bucket.length === 0) {
+      bucket.push(measurement);
+      bucketStart = measurement.time;
+      continue;
+    }
+
+    if (measurement.time - bucketStart < windowMs) {
+      bucket.push(measurement);
+      continue;
+    }
+
+    flushBucket();
+    bucket = [measurement];
+    bucketStart = measurement.time;
+  }
+
+  flushBucket();
+
+  if (averaged.length < measurements.length) {
+    diagnostics.warnings.push(
+      `Показания датчика усреднены по окну ${windowMinutes} мин: ${measurements.length} -> ${averaged.length} точек.`
+    );
+  }
+
+  return averaged;
+}
+
+function filterMeasurementsByRestWindow(
+  measurements: ParsedMeasurement[],
+  transactions: { time: number; quantity: number; type: 'release' }[],
+  receipts: { time: number; volume: number; type: 'receipt' }[],
+  settings: TankCalibrationSettings,
+  diagnostics: CalibrationDiagnostics
+): ParsedMeasurement[] {
+  const restMinutes = Math.max(0, settings.tank_rest_time_minutes || 0);
+
+  if (measurements.length === 0 || restMinutes <= 0) {
+    return measurements;
+  }
+
+  const restWindowMs = restMinutes * 60 * 1000;
+  const eventTimes = [
+    ...transactions.map(item => item.time),
+    ...receipts.map(item => item.time)
+  ].sort((a, b) => a - b);
+
+  if (eventTimes.length === 0) {
+    return measurements;
+  }
+
+  let filteredCount = 0;
+  let eventIndex = 0;
+  const stableMeasurements: ParsedMeasurement[] = [];
+
+  for (const measurement of measurements) {
+    while (eventIndex < eventTimes.length && eventTimes[eventIndex] <= measurement.time) {
+      eventIndex++;
+    }
+
+    const previousEventTime = eventIndex > 0 ? eventTimes[eventIndex - 1] : null;
+    if (previousEventTime !== null && measurement.time - previousEventTime < restWindowMs) {
+      filteredCount++;
+      continue;
+    }
+
+    stableMeasurements.push(measurement);
+  }
+
+  if (filteredCount > 0) {
+    diagnostics.warnings.push(
+      `Отфильтровано ${filteredCount} измерений в окне стабилизации ${restMinutes} мин после отпусков и поступлений.`
+    );
+  }
+
+  if (stableMeasurements.length === 0) {
+    diagnostics.warnings.push(
+      'Окно стабилизации исключило все измерения. Использованы усредненные показания без фильтра покоя.'
+    );
+    return measurements;
+  }
+
+  return stableMeasurements;
 }
 
 // ============================================================================

@@ -81,7 +81,7 @@ const form = useForm<FormData>({
 
 ## 🗄️ Архитектура данных
 
-### База данных (Supabase)
+### База данных (PostgreSQL)
 ```sql
 -- Основные таблицы
 users                 -- Пользователи системы
@@ -99,7 +99,7 @@ prices               -- Цены на топливо
 ├── networksService.ts    # Работа с сетями
 ├── usersService.ts       # Управление пользователями
 ├── pricesService.ts      # Управление ценами
-└── supabaseClient.ts     # Клиент Supabase
+└── adminApiClient.ts     # HTTP-клиент для backend API
 ```
 
 ### Кэширование данных
@@ -120,9 +120,9 @@ const queryClient = new QueryClient({
 ## 🔐 Безопасность
 
 ### Аутентификация
-- **Supabase Auth** - Базовая аутентификация
-- **Custom Auth Context** - Управление сессией
-- **JWT токены** - Безопасная передача данных
+- **JWT аутентификация** - Через Express backend (server/services/auth/)
+- **Custom Auth Context** - Управление сессией на фронтенде
+- **requireAuth middleware** - Проверка Bearer-токена на каждом запросе
 - **Refresh tokens** - Автоматическое обновление
 
 ### Авторизация

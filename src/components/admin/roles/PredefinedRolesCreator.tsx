@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, XCircle, Loader2, Shield, Users, Network, Settings, Eye } from 'lucide-react';
-import { externalRolesService } from '@/services/externalRolesService';
+import { adminRolesService } from '@/services/adminRolesService';
 import { Permission, CreateRoleInput } from '@/types/auth';
 
 interface PredefinedRole {
@@ -124,7 +124,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
       is_active: true
     };
 
-    await externalRolesService.createRole(createInput);
+    await adminRolesService.createRole(createInput);
   };
 
   const handleCreateAllRoles = async () => {
@@ -147,7 +147,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
 
       try {
         // Проверяем, не существует ли роль уже
-        const existingRole = await externalRolesService.getRoleByCode(role.code);
+        const existingRole = await adminRolesService.getRoleByCode(role.code);
         
         if (existingRole) {
           // Роль уже существует
@@ -204,7 +204,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
 
     try {
       // Проверяем, не существует ли роль уже
-      const existingRole = await externalRolesService.getRoleByCode(role.code);
+      const existingRole = await adminRolesService.getRoleByCode(role.code);
       
       if (existingRole) {
         setRoleStatuses(prev => prev.map(rs => 

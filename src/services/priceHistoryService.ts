@@ -256,7 +256,7 @@ class PriceHistoryServiceClass {
   }
 
   private getAuthHeaders(): Record<string, string> {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     
     if (token) {
       return {

@@ -19,7 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { cn } from "@/lib/utils";
 
 import { EquipmentTemplate, CreateEquipmentRequest } from "@/types/equipment";
-import { nomenclatureService } from "@/services/nomenclatureService";
+import { nomenclatureService } from "@/services/nomenclatureApiService";
 import { FuelNomenclature } from "@/types/nomenclature";
 import { useSelection } from "@/contexts/SelectionContext";
 

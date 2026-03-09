@@ -3,7 +3,7 @@
  * Отображает информацию по поступлениям в резервуары
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useReceipts } from '@/hooks/useReceipts';
 import { useSelection } from '@/contexts/SelectionContext';
@@ -17,6 +17,13 @@ import {
   getFilterOptions,
 } from '@/services/receiptsService';
 import { exportReceiptsToExcel } from '@/services/receiptsExportService';
+import {
+  makeReceiptCostKey,
+  getReceiptCostsForTank,
+  saveReceiptCost,
+  recalculateCosts,
+} from '@/services/receiptCostService';
+import type { ReceiptCostEntry } from '@/types/tanks';
 import { extractStationNumber } from '@/utils/tradingPointUtils';
 import type { ReceiptsQueryParams, FlatReceipt } from '@/types/receipts';
 import type { Network } from '@/types/network';
@@ -41,7 +48,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Filter, Download, RefreshCw } from 'lucide-react';
+import { AlertCircle, Filter, Download, RefreshCw, TrendingUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -60,7 +67,7 @@ const INDICATOR_APPEAR_THRESHOLD = 30;
 
 export default function Receipts() {
   // Используем контекст выбора
-  const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints } = useSelection();
+  const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints, selectedTradingPoints } = useSelection();
   const { user } = useNewAuth();
   const isMobile = useIsMobile();
 
@@ -187,9 +194,37 @@ export default function Receipts() {
     return getFilterOptions(flatReceipts);
   }, [flatReceipts]);
 
+  // Номера станций из мультиселекта для фильтрации поступлений
+  const [resolvedStationNumbers, setResolvedStationNumbers] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!isAllTradingPoints || selectedTradingPoints.length === 0 || !selectedNetwork?.id) {
+      setResolvedStationNumbers(null);
+      return;
+    }
+    tradingPointsService.getByNetworkId(selectedNetwork.id).then(points => {
+      if (selectedTradingPoints.length < points.length) {
+        const numbers = new Set(
+          points
+            .filter(p => selectedTradingPoints.includes(p.id))
+            .map(p => p.external_id)
+            .filter((id): id is string => !!id)
+        );
+        setResolvedStationNumbers(numbers);
+      } else {
+        setResolvedStationNumbers(null); // Все выбраны — не фильтруем
+      }
+    });
+  }, [isAllTradingPoints, selectedTradingPoints, selectedNetwork?.id]);
+
   // Базовая фильтрация БЕЗ фильтра по видам топлива (для карточек)
   const baseFilteredReceipts = useMemo(() => {
     let filtered = flatReceipts;
+
+    // Фильтр по мультиселекту торговых точек
+    if (resolvedStationNumbers && resolvedStationNumbers.size > 0) {
+      filtered = filtered.filter(r => resolvedStationNumbers.has(String(r.stationNumber)));
+    }
 
     // Фильтр по доступным станциям (RBAC на основе scopeValues роли пользователя)
     if (allowedStationNumbers) {
@@ -244,7 +279,7 @@ export default function Receipts() {
     }
 
     return filtered;
-  }, [flatReceipts, stationIds, shiftNumber, baseId, debouncedTtn, dateFrom, dateTo, allowedStationNumbers]);
+  }, [flatReceipts, stationIds, shiftNumber, baseId, debouncedTtn, dateFrom, dateTo, allowedStationNumbers, resolvedStationNumbers]);
 
   // Фильтрация и сортировка данных на клиенте (для таблицы)
   const filteredReceipts = useMemo(() => {
@@ -296,6 +331,86 @@ export default function Receipts() {
     setBaseId('');
     setTtnNumber('');
   };
+
+  // ── Режим маржи ──────────────────────────────────────────
+  const [showMargin, setShowMargin] = useState(false);
+  const [marginCosts, setMarginCosts] = useState<Map<string, ReceiptCostEntry>>(new Map());
+  const marginTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Загрузка цен при включении режима маржи
+  useEffect(() => {
+    if (!showMargin || !systemId) return;
+    // Собираем уникальные tank по станциям из текущих данных
+    const loaded = new Map<string, ReceiptCostEntry>();
+    const seen = new Set<string>();
+    for (const r of flatReceipts) {
+      const tankKey = `${systemId}:${r.stationNumber}:${r.tank}`;
+      if (seen.has(tankKey)) continue;
+      seen.add(tankKey);
+      const costs = getReceiptCostsForTank(systemId, r.stationNumber, r.tank);
+      for (const c of costs) loaded.set(c.key, c);
+    }
+    setMarginCosts(loaded);
+  }, [showMargin, systemId, flatReceipts]);
+
+  const handleMarginCostChange = useCallback((receipt: FlatReceipt, rawValue: string) => {
+    if (!systemId) return;
+    const value = parseFloat(rawValue);
+    if (isNaN(value) || value < 0) return;
+
+    const density = receipt.doc.density || receipt.fact.density || 750;
+    const volume = parseFloat(receipt.doc.volume) || parseFloat(receipt.fact.volume) || 0;
+    const { costPerLiter, costPerKg } = recalculateCosts(value, 'liter', density);
+    const key = makeReceiptCostKey(systemId, receipt.stationNumber, receipt.tank, receipt.ttn, receipt.dt);
+
+    const entry: ReceiptCostEntry = {
+      key,
+      system: systemId,
+      station: receipt.stationNumber,
+      tank: receipt.tank,
+      ttn: receipt.ttn,
+      dt: receipt.dt,
+      costPerLiter,
+      costPerKg,
+      inputUnit: 'liter',
+      density,
+      factVolumeLiters: volume,
+      totalCost: costPerLiter * volume,
+      fuelCode: receipt.service.service_code,
+      supplier: receipt.base?.name,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setMarginCosts(prev => {
+      const next = new Map(prev);
+      next.set(key, entry);
+      return next;
+    });
+
+    const existingTimer = marginTimers.current.get(key);
+    if (existingTimer) clearTimeout(existingTimer);
+    marginTimers.current.set(key, setTimeout(() => {
+      saveReceiptCost(entry);
+      marginTimers.current.delete(key);
+    }, 500));
+  }, [systemId]);
+
+  // KPI маржи
+  const marginSummary = useMemo(() => {
+    if (!showMargin || marginCosts.size === 0) return null;
+    let totalCost = 0;
+    let totalVolume = 0;
+    let count = 0;
+    for (const c of marginCosts.values()) {
+      if (c.costPerLiter > 0) {
+        totalCost += c.totalCost;
+        totalVolume += c.factVolumeLiters;
+        count++;
+      }
+    }
+    const avgCostPerLiter = totalVolume > 0 ? totalCost / totalVolume : 0;
+    return { totalCost, totalVolume, avgCostPerLiter, count };
+  }, [showMargin, marginCosts]);
 
   // Экспорт в Excel
   const handleExport = async () => {
@@ -398,6 +513,18 @@ export default function Receipts() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-foreground">Поступления топлива</h1>
             <div className="flex items-center gap-2">
+              <Button
+                variant={showMargin ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowMargin(v => !v)}
+                disabled={filteredReceipts.length === 0}
+                className={showMargin
+                  ? ''
+                  : 'border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white'}
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Маржа
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -574,6 +701,25 @@ export default function Receipts() {
           </div>
         )}
 
+        {/* KPI маржи */}
+        {showMargin && marginSummary && marginSummary.count > 0 && (
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Средняя закупочная</div>
+              <div className="text-lg font-bold text-amber-700 dark:text-amber-300">{marginSummary.avgCostPerLiter.toFixed(2)} ₽/л</div>
+            </div>
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
+              <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Общая стоимость</div>
+              <div className="text-lg font-bold text-blue-700 dark:text-blue-300">{marginSummary.totalCost.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽</div>
+            </div>
+            <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3">
+              <div className="text-[10px] text-green-600 dark:text-green-400 font-medium">Объём с ценой</div>
+              <div className="text-lg font-bold text-green-700 dark:text-green-300">{marginSummary.totalVolume.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} л</div>
+              <div className="text-[10px] text-green-600/70 dark:text-green-400/70">{marginSummary.count} из {filteredReceipts.length} поступлений</div>
+            </div>
+          </div>
+        )}
+
         {/* Таблица */}
         <div className="bg-card rounded-lg border border-border p-4 md:p-6">
           <div className="mb-4">
@@ -620,6 +766,12 @@ export default function Receipts() {
                 <TableHead className="text-right text-muted-foreground">Объем (л)</TableHead>
                 <TableHead className="text-right text-muted-foreground">Масса (кг)</TableHead>
                 <TableHead className="text-right text-muted-foreground">Отклонение (кг)</TableHead>
+                {showMargin && (
+                  <>
+                    <TableHead className="text-right text-muted-foreground w-28">₽/л</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Итого ₽</TableHead>
+                  </>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -663,6 +815,31 @@ export default function Receipts() {
                         {amountDiff > 0 ? '+' : ''}{amountDiff.toFixed(2)}
                       </span>
                     </TableCell>
+                    {showMargin && (() => {
+                      const costKey = systemId
+                        ? makeReceiptCostKey(systemId, receipt.stationNumber, receipt.tank, receipt.ttn, receipt.dt)
+                        : '';
+                      const saved = marginCosts.get(costKey);
+                      const totalCost = saved ? saved.costPerLiter * docVolume : 0;
+                      return (
+                        <>
+                          <TableCell className="py-0.5 px-1" onClick={e => e.stopPropagation()}>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
+                              className="h-7 text-xs text-right w-full px-1.5"
+                              defaultValue={saved?.costPerLiter ? saved.costPerLiter.toFixed(2) : ''}
+                              onChange={e => handleMarginCostChange(receipt, e.target.value)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-foreground/80">
+                            {totalCost > 0 ? totalCost.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) : '—'}
+                          </TableCell>
+                        </>
+                      );
+                    })()}
                   </TableRow>
                 );
               })}

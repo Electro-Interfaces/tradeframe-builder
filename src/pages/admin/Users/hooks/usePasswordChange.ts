@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { User as UserType } from '@/types/auth';
-import { externalUsersService } from '@/services/externalUsersService';
+import { adminUsersService } from '@/services/adminUsersService';
 import { useToast } from '@/hooks/use-toast';
 
 interface UsePasswordChangeReturn {
@@ -37,7 +37,7 @@ export function usePasswordChange(): UsePasswordChangeReturn {
 
     setIsLoading(true);
     try {
-      await externalUsersService.changePassword(userToChange.id, newPassword);
+      await adminUsersService.changePassword(userToChange.id, newPassword);
 
       toast({
         title: "Пароль изменен",

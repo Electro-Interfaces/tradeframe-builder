@@ -1,8 +1,7 @@
 /**
- * Notification Service - работа с системой уведомлений через Supabase
+ * Notification Service - работа с системой уведомлений через backend API
  */
 
-import { createClient } from '@supabase/supabase-js';
 import type {
   NotificationRule,
   Notification,
@@ -10,28 +9,15 @@ import type {
   UserNotificationSubscription,
   RoleNotificationSubscription
 } from '@/types/notification';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { notificationApiRequest } from './notificationApiClient';
 
 /**
  * Получить список правил уведомлений для тенанта
  */
 export async function getNotificationRules(tenantId: string): Promise<NotificationRule[]> {
-  const response = await fetch(`/api/telegram/get-rules/${tenantId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch notification rules');
-  }
-
-  const result = await response.json();
+  const result = await notificationApiRequest<{ success: boolean; data: NotificationRule[] }>(
+    `/api/telegram/get-rules/${tenantId}`
+  );
   return result.data || [];
 }
 
@@ -39,36 +25,23 @@ export async function getNotificationRules(tenantId: string): Promise<Notificati
  * Получить правило по ID
  */
 export async function getNotificationRule(ruleId: string): Promise<NotificationRule | null> {
-  const { data, error } = await supabase
-    .from('notification_rules')
-    .select('*')
-    .eq('id', ruleId)
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to fetch notification rule: ${error.message}`);
-  }
-
-  return data;
+  const result = await notificationApiRequest<{ success: boolean; data: NotificationRule | null }>(
+    `/api/telegram/get-rule/${ruleId}`
+  );
+  return result.data || null;
 }
 
 /**
  * Создать новое правило
  */
 export async function createNotificationRule(rule: Partial<NotificationRule>): Promise<NotificationRule> {
-  const response = await fetch('/api/telegram/create-rule', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ rule })
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to create notification rule');
-  }
-
-  const result = await response.json();
+  const result = await notificationApiRequest<{ success: boolean; data: NotificationRule }>(
+    '/api/telegram/create-rule',
+    {
+      method: 'POST',
+      body: JSON.stringify({ rule })
+    }
+  );
   return result.data;
 }
 
@@ -79,19 +52,13 @@ export async function updateNotificationRule(
   ruleId: string,
   updates: Partial<NotificationRule>
 ): Promise<NotificationRule> {
-  const response = await fetch(`/api/telegram/update-rule/${ruleId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ updates })
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update notification rule');
-  }
-
-  const result = await response.json();
+  const result = await notificationApiRequest<{ success: boolean; data: NotificationRule }>(
+    `/api/telegram/update-rule/${ruleId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ updates })
+    }
+  );
   return result.data;
 }
 
@@ -99,16 +66,9 @@ export async function updateNotificationRule(
  * Удалить правило
  */
 export async function deleteNotificationRule(ruleId: string): Promise<void> {
-  const response = await fetch(`/api/telegram/delete-rule/${ruleId}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json'
-    }
+  await notificationApiRequest<{ success: boolean }>(`/api/telegram/delete-rule/${ruleId}`, {
+    method: 'DELETE'
   });
-
-  if (!response.ok) {
-    throw new Error('Failed to delete notification rule');
-  }
 }
 
 /**
@@ -122,66 +82,35 @@ export async function getNotifications(
     offset?: number;
   }
 ): Promise<Notification[]> {
-  let query = supabase
-    .from('notifications')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .order('created_at', { ascending: false });
+  const query = new URLSearchParams();
+  if (options?.status) query.set('status', options.status);
+  if (options?.limit) query.set('limit', String(options.limit));
+  if (options?.offset) query.set('offset', String(options.offset));
 
-  if (options?.status) {
-    query = query.eq('status', options.status);
-  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  const result = await notificationApiRequest<{ success: boolean; data: Notification[] }>(
+    `/api/telegram/get-notifications/${tenantId}${suffix}`
+  );
 
-  if (options?.limit) {
-    query = query.limit(options.limit);
-  }
-
-  if (options?.offset) {
-    query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Failed to fetch notifications: ${error.message}`);
-  }
-
-  return data || [];
+  return result.data || [];
 }
 
 /**
  * Отметить уведомление как прочитанное
  */
 export async function markNotificationAsRead(notificationId: string): Promise<void> {
-  const { error } = await supabase
-    .from('notifications')
-    .update({
-      read_at: new Date().toISOString(),
-      status: 'read'
-    })
-    .eq('id', notificationId);
-
-  if (error) {
-    throw new Error(`Failed to mark notification as read: ${error.message}`);
-  }
+  await notificationApiRequest<{ success: boolean }>(`/api/telegram/mark-notification-read/${notificationId}`, {
+    method: 'POST'
+  });
 }
 
 /**
  * Получить настройки уведомлений пользователя
  */
 export async function getUserNotificationSettings(userId: string): Promise<UserNotificationSettings | null> {
-  const response = await fetch(`/api/telegram/get-settings/${userId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch user notification settings');
-  }
-
-  const result = await response.json();
+  const result = await notificationApiRequest<{ success: boolean; data: UserNotificationSettings | null }>(
+    `/api/telegram/get-settings/${userId}`
+  );
   return result.data;
 }
 
@@ -192,19 +121,13 @@ export async function updateUserNotificationSettings(
   userId: string,
   settings: Partial<UserNotificationSettings>
 ): Promise<UserNotificationSettings> {
-  const response = await fetch('/api/telegram/save-settings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ userId, settings })
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update user notification settings');
-  }
-
-  const result = await response.json();
+  const result = await notificationApiRequest<{ success: boolean; data: UserNotificationSettings }>(
+    '/api/telegram/save-settings',
+    {
+      method: 'POST',
+      body: JSON.stringify({ userId, settings })
+    }
+  );
   return result.data;
 }
 
@@ -216,19 +139,16 @@ export async function generateTelegramLinkCode(userId: string): Promise<{
   telegramLink: string;
   expiresAt: string;
 }> {
-  const response = await fetch('/api/telegram/generate-link-code', {
+  const data = await notificationApiRequest<{
+    success: boolean;
+    linkCode: string;
+    telegramLink: string;
+    expiresAt: string;
+  }>('/api/telegram/generate-link-code', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
     body: JSON.stringify({ userId })
   });
 
-  if (!response.ok) {
-    throw new Error('Failed to generate Telegram link code');
-  }
-
-  const data = await response.json();
   return data;
 }
 
@@ -236,18 +156,9 @@ export async function generateTelegramLinkCode(userId: string): Promise<{
  * Получить подписки пользователя
  */
 export async function getUserNotificationSubscriptions(userId: string): Promise<UserNotificationSubscription[]> {
-  const response = await fetch(`/api/telegram/get-subscriptions/${userId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch user notification subscriptions');
-  }
-
-  const result = await response.json();
+  const result = await notificationApiRequest<{ success: boolean; data: UserNotificationSubscription[] }>(
+    `/api/telegram/get-subscriptions/${userId}`
+  );
   return result.data || [];
 }
 
@@ -259,19 +170,13 @@ export async function updateUserNotificationSubscription(
   notificationType: string,
   subscription: Partial<UserNotificationSubscription>
 ): Promise<UserNotificationSubscription> {
-  const response = await fetch('/api/telegram/save-subscription', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ userId, notificationType, subscription })
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update subscription');
-  }
-
-  const result = await response.json();
+  const result = await notificationApiRequest<{ success: boolean; data: UserNotificationSubscription }>(
+    '/api/telegram/save-subscription',
+    {
+      method: 'POST',
+      body: JSON.stringify({ userId, notificationType, subscription })
+    }
+  );
   return result.data;
 }
 
@@ -279,35 +184,22 @@ export async function updateUserNotificationSubscription(
  * Получить подписки роли
  */
 export async function getRoleNotificationSubscriptions(roleId: string): Promise<RoleNotificationSubscription[]> {
-  const { data, error } = await supabase
-    .from('role_notification_subscriptions')
-    .select('*')
-    .eq('role_id', roleId);
-
-  if (error) {
-    throw new Error(`Failed to fetch role notification subscriptions: ${error.message}`);
-  }
-
-  return data || [];
+  const result = await notificationApiRequest<{ success: boolean; data: RoleNotificationSubscription[] }>(
+    `/api/telegram/get-role-subscriptions/${roleId}`
+  );
+  return result.data || [];
 }
 
 /**
  * Отправить тестовое уведомление в Telegram
  */
 export async function sendTestNotification(userId: string): Promise<{ success: boolean; message: string }> {
-  const response = await fetch('/api/telegram/send-test-notification', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ userId })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to send test notification');
-  }
-
-  const result = await response.json();
+  const result = await notificationApiRequest<{ success: boolean; message: string }>(
+    '/api/telegram/send-test-notification',
+    {
+      method: 'POST',
+      body: JSON.stringify({ userId })
+    }
+  );
   return result;
 }

@@ -112,13 +112,13 @@ ssh -i ~/.ssh/github_deploy_key root@194.135.36.195 "echo 'SSH works!'"
 - **Name:** `REMOTE_USER`
 - **Value:** `root`
 
-#### Секрет 4: VITE_SUPABASE_URL
-- **Name:** `VITE_SUPABASE_URL`
-- **Value:** `https://ssvazdgnmatbdynkhkqo.supabase.co`
+#### Секрет 4: DATABASE_URL
+- **Name:** `DATABASE_URL`
+- **Value:** `postgresql://user:password@194.135.36.195:5432/tradecontrol`
 
-#### Секрет 5: VITE_SUPABASE_SERVICE_ROLE_KEY
-- **Name:** `VITE_SUPABASE_SERVICE_ROLE_KEY`
-- **Value:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0`
+#### Секрет 5: JWT_SECRET
+- **Name:** `JWT_SECRET`
+- **Value:** Секретный ключ для подписи JWT токенов
 
 #### Секрет 6: VITE_STS_API_URL
 - **Name:** `VITE_STS_API_URL`
@@ -144,8 +144,8 @@ Actions secrets (8)
 SSH_PRIVATE_KEY             Updated now
 REMOTE_HOST                 Updated now
 REMOTE_USER                 Updated now
-VITE_SUPABASE_URL          Updated now
-VITE_SUPABASE_SERVICE_ROLE_KEY  Updated now
+DATABASE_URL                Updated now
+JWT_SECRET                  Updated now
 VITE_STS_API_URL           Updated now
 VITE_STS_API_USERNAME      Updated now
 VITE_STS_API_PASSWORD      Updated now

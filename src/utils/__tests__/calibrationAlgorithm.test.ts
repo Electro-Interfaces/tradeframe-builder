@@ -54,11 +54,12 @@ function makeHistoryRecord(overrides: Partial<TankHistoryRecord> = {}): TankHist
 function generateLinearHistory(
   count: number,
   tankNumber: number = 1,
-  options?: { startLevel?: number; levelStep?: number; volumePerMm?: number }
+  options?: { startLevel?: number; levelStep?: number; volumePerMm?: number; fuel?: number }
 ): TankHistoryRecord[] {
   const startLevel = options?.startLevel ?? 50;
   const levelStep = options?.levelStep ?? 5;
   const volumePerMm = options?.volumePerMm ?? 10;  // 10 л на мм
+  const fuel = options?.fuel ?? 2;
 
   const records: TankHistoryRecord[] = [];
   const baseTime = new Date('2025-01-15T00:00:00Z').getTime();
@@ -70,6 +71,7 @@ function generateLinearHistory(
 
     records.push(makeHistoryRecord({
       number: tankNumber,
+      fuel,
       level: String(levelCm),
       volume: String(volume),
       temperature: '15',
@@ -414,7 +416,25 @@ describe('calculateCalibrationTable', () => {
       startLevel: 50, levelStep: 3, volumePerMm: 10,
     });
 
-    const transactions: TransactionItem[] = [];
+    const transactions: TransactionItem[] = [
+      {
+        id: 1,
+        pos: 1,
+        shift: 1,
+        number: 1,
+        tank: 999,
+        nozzle: 1,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '150',
+        cost: '7500',
+        price: '50',
+        amount: '112.5',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: '2025-01-15T00:20:00Z',
+      }
+    ];
 
     const result = calculateCalibrationTable(history, transactions, settings, 1);
 
@@ -500,11 +520,220 @@ describe('calculateCalibrationTable', () => {
     });
 
     const history = generateLinearHistory(20, 1, { startLevel: 50, levelStep: 5, volumePerMm: 10 });
-    const result = calculateCalibrationTable(history, [], settings, 1);
+    const transactions: TransactionItem[] = [
+      {
+        id: 1,
+        pos: 1,
+        shift: 1,
+        number: 1,
+        tank: 999,
+        nozzle: 1,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '120',
+        cost: '6000',
+        price: '50',
+        amount: '90',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: '2025-01-15T00:10:00Z',
+      }
+    ];
+    const result = calculateCalibrationTable(history, transactions, settings, 1);
 
     const refWarning = result.diagnostics?.warnings.find(w => w.includes('⭐ Опорная точка'));
     expect(refWarning).toBeDefined();
     expect(refWarning).toContain('(геометрия)');
+  });
+
+  it('использует код топлива для сопоставления транзакций, если номера резервуаров в transactions некорректны', () => {
+    const settings = makeSettings({
+      calibration_method: 'direct_interpolation',
+      calibration_step_mm: 100,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+      outlier_filter_enabled: false,
+      bias_offset_percent: 0,
+    });
+
+    const baseTime = new Date('2025-01-15T00:00:00Z').getTime();
+    const history = generateLinearHistory(12, 1, {
+      startLevel: 200,
+      levelStep: -5,
+      volumePerMm: 10,
+      fuel: 3,
+    });
+
+    const transactions: TransactionItem[] = [
+      {
+        id: 1,
+        pos: 1,
+        shift: 1,
+        number: 1,
+        tank: 999,
+        nozzle: 1,
+        fuel: 3,
+        fuel_name: 'АИ-95',
+        quantity: '120',
+        cost: '6000',
+        price: '50',
+        amount: '90',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: new Date(baseTime + 2 * 600000).toISOString(),
+      },
+      {
+        id: 2,
+        pos: 1,
+        shift: 1,
+        number: 2,
+        tank: 999,
+        nozzle: 1,
+        fuel: 3,
+        fuel_name: 'АИ-95',
+        quantity: '140',
+        cost: '7000',
+        price: '50',
+        amount: '105',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: new Date(baseTime + 6 * 600000).toISOString(),
+      }
+    ];
+
+    const result = calculateCalibrationTable(history, transactions, settings, 1, [], undefined, 3);
+
+    expect(result.table.length).toBeGreaterThan(0);
+    expect(result.diagnostics?.transactionsProcessed).toBe(2);
+    expect(result.diagnostics?.warnings.some(w => w.includes('коду топлива 3'))).toBe(true);
+  });
+
+  it('усредняет измерения по averaging_period_minutes и пишет это в диагностику', () => {
+    const settings = makeSettings({
+      averaging_period_minutes: 30,
+      calibration_method: 'direct_interpolation',
+      calibration_step_mm: 100,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+      outlier_filter_enabled: false,
+      bias_offset_percent: 0,
+    });
+
+    const history = generateLinearHistory(12, 1, {
+      startLevel: 200,
+      levelStep: -2,
+      volumePerMm: 10,
+      fuel: 2,
+    });
+
+    const transactions: TransactionItem[] = [
+      {
+        id: 1,
+        pos: 1,
+        shift: 1,
+        number: 1,
+        tank: 999,
+        nozzle: 1,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '250',
+        cost: '12500',
+        price: '50',
+        amount: '187.5',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: '2025-01-15T00:35:00Z',
+      },
+      {
+        id: 2,
+        pos: 1,
+        shift: 1,
+        number: 2,
+        tank: 999,
+        nozzle: 1,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '300',
+        cost: '15000',
+        price: '50',
+        amount: '225',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: '2025-01-15T01:05:00Z',
+      },
+      {
+        id: 3,
+        pos: 1,
+        shift: 1,
+        number: 3,
+        tank: 999,
+        nozzle: 1,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '350',
+        cost: '17500',
+        price: '50',
+        amount: '262.5',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: '2025-01-15T01:35:00Z',
+      }
+    ];
+
+    const result = calculateCalibrationTable(history, transactions, settings, 1);
+
+    expect(result.diagnostics?.totalPointsBeforeFilter ?? 0).toBeLessThan(history.length);
+    expect(result.diagnostics?.warnings.some(w => w.includes('усреднены по окну 30 мин'))).toBe(true);
+  });
+
+  it('исключает измерения в tank_rest_time_minutes после событий и пишет это в диагностику', () => {
+    const settings = makeSettings({
+      averaging_period_minutes: 10,
+      tank_rest_time_minutes: 30,
+      calibration_method: 'direct_interpolation',
+      calibration_step_mm: 100,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+      outlier_filter_enabled: false,
+      bias_offset_percent: 0,
+    });
+
+    const history: TankHistoryRecord[] = [
+      makeHistoryRecord({ dt: '2025-01-15T00:00:00Z', level: '200', volume: '20000' }),
+      makeHistoryRecord({ dt: '2025-01-15T00:10:00Z', level: '199', volume: '19900' }),
+      makeHistoryRecord({ dt: '2025-01-15T00:20:00Z', level: '198', volume: '19800' }),
+      makeHistoryRecord({ dt: '2025-01-15T00:40:00Z', level: '190', volume: '19000' }),
+      makeHistoryRecord({ dt: '2025-01-15T01:10:00Z', level: '185', volume: '18500' }),
+      makeHistoryRecord({ dt: '2025-01-15T01:40:00Z', level: '180', volume: '18000' }),
+    ];
+
+    const transactions: TransactionItem[] = [
+      {
+        id: 1,
+        pos: 1,
+        shift: 1,
+        number: 1,
+        tank: 999,
+        nozzle: 1,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '300',
+        cost: '15000',
+        price: '50',
+        amount: '225',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: '2025-01-15T00:05:00Z',
+      }
+    ];
+
+    const result = calculateCalibrationTable(history, transactions, settings, 1);
+
+    expect(result.table.length).toBeGreaterThan(0);
+    expect(result.diagnostics?.warnings.some(w => w.includes('окне стабилизации 30 мин'))).toBe(true);
   });
 });
 

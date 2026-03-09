@@ -13,6 +13,9 @@ type SelectionContextValue = {
   selectedStation: TradingPoint | null;
   isAllTradingPoints: boolean;
   isInitialized: boolean;
+  // Мультиселект торговых точек
+  selectedTradingPoints: string[];
+  setSelectedTradingPoints: (ids: string[]) => void;
 };
 
 const SelectionContext = createContext<SelectionContextValue | undefined>(undefined);
@@ -87,9 +90,25 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     return saved;
   });
 
-  const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>(() => {
+  const [selectedTradingPoint, setSelectedTradingPointRaw] = useState<string>(() => {
     if (typeof window === 'undefined') return "";
     return localStorage.getItem("tc:selectedTradingPoint") || "";
+  });
+
+  // Мультиселект: массив ID выбранных торговых точек
+  const [selectedTradingPoints, setSelectedTradingPointsRaw] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem("tc:selectedTradingPoints");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch { /* ignore */ }
+    }
+    // Миграция из старого формата
+    const old = localStorage.getItem("tc:selectedTradingPoint") || "";
+    if (old && old !== "all") return [old];
+    return [];
   });
 
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
@@ -181,20 +200,9 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
                     ? tradingPoints.filter(p => pointScopeValues.includes(p.id))
                     : tradingPoints;
 
-                  // Ищем торговую точку "АЗС 4" среди доступных
-                  const azs4Point = availablePoints.find(p =>
-                    p.name && (
-                      p.name.toLowerCase().includes('азс 4') ||
-                      p.name.toLowerCase().includes('азс4') ||
-                      p.name.toLowerCase() === 'азс 4'
-                    )
-                  );
-
-                  if (azs4Point) {
-                    setSelectedTradingPoint(azs4Point.id);
-                  } else if (availablePoints.length > 0) {
-                    // Если АЗС 4 не найдена, выбираем первую доступную
-                    setSelectedTradingPoint(availablePoints[0].id);
+                  // По умолчанию выбираем все доступные станции (мультиселект)
+                  if (availablePoints.length > 0) {
+                    setSelectedTradingPoints(availablePoints.map(p => p.id));
                   }
 
                   // Отмечаем инициализацию как завершенную
@@ -252,6 +260,32 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedTradingPoint]);
 
+  // Обёртка setSelectedTradingPoint — синхронизирует оба состояния
+  const setSelectedTradingPoint = useCallback((v: string) => {
+    setSelectedTradingPointRaw(v);
+    // Синхронизируем массив мультиселекта
+    if (v === "all") {
+      // "all" из legacy-кода → selectedTradingPoints не меняем,
+      // он будет обновлён PointSelect при рендере
+    } else if (v) {
+      setSelectedTradingPointsRaw([v]);
+    } else {
+      setSelectedTradingPointsRaw([]);
+    }
+  }, []);
+
+  // Установка мультиселекта — обновляет и legacy selectedTradingPoint
+  const setSelectedTradingPoints = useCallback((ids: string[]) => {
+    setSelectedTradingPointsRaw(ids);
+    if (ids.length === 0) {
+      setSelectedTradingPointRaw("");
+    } else if (ids.length === 1) {
+      setSelectedTradingPointRaw(ids[0]);
+    } else {
+      setSelectedTradingPointRaw("all");
+    }
+  }, []);
+
   const handleSetSelectedNetwork = useCallback((networkId: string) => {
     const hasNetworkRestrictions = user?.roles?.some(role =>
       role.scope === 'network' && role.scopeValues && role.scopeValues.length > 0
@@ -267,11 +301,13 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
       if (allowedNetworkIds.has(networkId)) {
         setSelectedNetworkId(networkId);
-        setSelectedTradingPoint("");
+        setSelectedTradingPointRaw("");
+        setSelectedTradingPointsRaw([]);
       }
     } else {
       setSelectedNetworkId(networkId);
-      setSelectedTradingPoint("");
+      setSelectedTradingPointRaw("");
+      setSelectedTradingPointsRaw([]);
     }
   }, [user]);
 
@@ -296,6 +332,17 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedTradingPoint]);
 
+  // Persist мультиселекта
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem("tc:selectedTradingPoints", JSON.stringify(selectedTradingPoints));
+      } catch (e) {
+        // Failed to save to localStorage
+      }
+    }
+  }, [selectedTradingPoints]);
+
   const value = useMemo<SelectionContextValue>(() => ({
     selectedNetwork,
     setSelectedNetwork: handleSetSelectedNetwork,
@@ -304,7 +351,9 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     selectedStation,
     isAllTradingPoints: selectedTradingPoint === "all",
     isInitialized,
-  }), [selectedNetwork, handleSetSelectedNetwork, selectedTradingPoint, selectedStation, isInitialized]);
+    selectedTradingPoints,
+    setSelectedTradingPoints,
+  }), [selectedNetwork, handleSetSelectedNetwork, selectedTradingPoint, setSelectedTradingPoint, selectedStation, isInitialized, selectedTradingPoints, setSelectedTradingPoints]);
 
   return (
     <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>

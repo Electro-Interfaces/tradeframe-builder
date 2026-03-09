@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RoleService } from '@/services/roleService'
+import { adminRolesService } from '@/services/adminRolesService'
 import { PERMISSION_SECTIONS } from '@/config/permissions'
 import type { Role, PermissionAction, Permission } from '@/types/auth'
 
@@ -41,7 +41,7 @@ export function PermissionBuilder() {
   const loadRoles = async () => {
     try {
       setLoading(true)
-      const rolesData = await RoleService.getAllRoles()
+      const rolesData = await adminRolesService.getAllRoles()
       setRoles(rolesData)
       if (rolesData.length > 0) {
         const firstRole = rolesData[0]
@@ -115,7 +115,7 @@ export function PermissionBuilder() {
 
     try {
       setSaving(true)
-      await RoleService.updateRole(selectedRole.id, {
+      await adminRolesService.updateRole(selectedRole.id, {
         name: selectedRole.name,
         description: selectedRole.description,
         permissions: editedPermissions,

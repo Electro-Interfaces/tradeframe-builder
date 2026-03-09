@@ -18,8 +18,8 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table'
-import { UserService, type UserStatistics } from '@/services/usersSupabaseService'
-import { RoleService } from '@/services/roleService'
+import { adminUsersService } from '@/services/adminUsersService'
+import { adminRolesService } from '@/services/adminRolesService'
 import type { User, Role } from '@/types/auth'
 import { RoleFormDialog } from '@/components/admin/roles/RoleFormDialog'
 import { UserFormDialog } from '@/components/admin/users/UserFormDialog'
@@ -30,6 +30,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+
+interface UserStatistics {
+  totalUsers: number
+  usersByStatus: Record<string, number>
+  usersByRole: Record<string, number>
+  activeUsers: number
+  newUsersThisMonth: number
+}
 
 export default function UsersAndRoles() {
   const isMobile = useIsMobile()
@@ -51,11 +59,26 @@ export default function UsersAndRoles() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [usersData, rolesData, statsData] = await Promise.all([
-        UserService.getAllUsers(),
-        RoleService.getAllRoles(),
-        UserService.getUserStatistics()
+      const [usersData, rolesData] = await Promise.all([
+        adminUsersService.getUsersWithRoles(),
+        adminRolesService.getAllRoles()
       ])
+      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      const statsData: UserStatistics = {
+        totalUsers: usersData.length,
+        usersByStatus: usersData.reduce((acc, user) => {
+          acc[user.status] = (acc[user.status] || 0) + 1
+          return acc
+        }, {} as Record<string, number>),
+        usersByRole: usersData.reduce((acc, user) => {
+          user.roles.forEach(role => {
+            acc[role.role_name] = (acc[role.role_name] || 0) + 1
+          })
+          return acc
+        }, {} as Record<string, number>),
+        activeUsers: usersData.filter(user => user.status === 'active').length,
+        newUsersThisMonth: usersData.filter(user => user.created_at >= startOfMonth).length
+      }
       
       setUsers(usersData)
       setRoles(rolesData)
@@ -81,7 +104,7 @@ export default function UsersAndRoles() {
   const handleDeleteRole = async (roleId: string) => {
     if (window.confirm('Вы уверены, что хотите удалить эту роль?')) {
       try {
-        await RoleService.deleteRole(roleId)
+        await adminRolesService.deleteRole(roleId)
         await loadData()
       } catch (error) {
         console.error('Ошибка удаления роли:', error)
@@ -110,7 +133,7 @@ export default function UsersAndRoles() {
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm('Вы уверены, что хотите удалить этого пользователя?')) {
       try {
-        await UserService.deleteUser(userId)
+        await adminUsersService.deleteUser(userId)
         await loadData()
       } catch (error) {
         console.error('Ошибка удаления пользователя:', error)

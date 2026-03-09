@@ -50,11 +50,11 @@ REMOTE_HOST
 REMOTE_USER
 root
 
-VITE_SUPABASE_URL
-https://ssvazdgnmatbdynkhkqo.supabase.co
+DATABASE_URL
+postgresql://user:password@194.135.36.195:5432/tradecontrol
 
-VITE_SUPABASE_SERVICE_ROLE_KEY
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0
+JWT_SECRET
+(секретный ключ для JWT)
 
 VITE_STS_API_URL
 https://pos.autooplata.ru/tms

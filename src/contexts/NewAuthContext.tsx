@@ -3,7 +3,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
-import { authService, type AppUser, type UserRole, type DatabaseUser } from '../services/auth/authService';
+import { authService, type AppUser, type UserRole } from '../services/auth/authService';
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
 import { auditLogService } from '../services/auditLogService';
 import {
@@ -85,7 +85,9 @@ function getInitialUserFromStorage(): AppUser | null {
 
 export function NewAuthProvider({ children }: AuthProviderProps) {
   // Синхронная инициализация из localStorage - предотвращает logout при обновлении
-  const initialUser = getInitialUserFromStorage();
+  // useMemo с [] — вычисляем ОДИН раз, иначе JSON.parse создаёт новый объект каждый рендер
+  // и useEffect([initialUser]) зацикливается в backend-режиме
+  const initialUser = useMemo(() => getInitialUserFromStorage(), []);
   const [user, setUser] = useState<AppUser | null>(initialUser);
   const [loading, setLoading] = useState(!initialUser); // Если есть пользователь - не показываем загрузку
 
@@ -102,11 +104,14 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     localStorage.removeItem('auth_token');
+    sessionStorage.removeItem('auth_token');
 
     // Ключи для httpClient
     localStorage.removeItem('auth_login');
     localStorage.removeItem('auth_token_expiry');
     localStorage.removeItem('auth_user');
+    sessionStorage.removeItem('auth_token_expiry');
+    sessionStorage.removeItem('auth_user');
 
     // Очищаем IndexedDB
     await clearRememberedCredentials();
@@ -128,7 +133,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   /**
    * Сохраняет данные авторизации в localStorage и sessionStorage
    */
-  const saveAuthSession = (user: AppUser, token: string) => {
+  const saveAuthSession = (user: AppUser, token: string, expiresAt?: string) => {
     try {
       // Сохраняем в localStorage для постоянного хранения
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
@@ -137,10 +142,25 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       // Также сохраняем в старые ключи для обратной совместимости
       localStorage.setItem('tradeframe_user', JSON.stringify(user));
       localStorage.setItem('authToken', token);
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_user', JSON.stringify(user));
+
+      if (expiresAt) {
+        localStorage.setItem('auth_token_expiry', expiresAt);
+      } else {
+        localStorage.removeItem('auth_token_expiry');
+      }
 
       // Сохраняем email в sessionStorage для повторной аутентификации
       sessionStorage.setItem('current_user_email', user.email);
       sessionStorage.setItem('auth_timestamp', Date.now().toString());
+      sessionStorage.setItem('auth_token', token);
+      sessionStorage.setItem('auth_user', JSON.stringify(user));
+      if (expiresAt) {
+        sessionStorage.setItem('auth_token_expiry', expiresAt);
+      } else {
+        sessionStorage.removeItem('auth_token_expiry');
+      }
     } catch (error) {
     }
   };
@@ -177,21 +197,17 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
    */
   const loadFreshUserData = async (email: string): Promise<AppUser | null> => {
     try {
+      if (authService.isBackendMode()) {
+        return await authService.getCurrentUser();
+      }
 
       const dbUser = await authService.getUserByEmail(email);
       if (!dbUser) {
         return null;
       }
 
-      // Получаем роли из новой схемы БД
       const userRoles = dbUser.user_roles || [];
       const primaryRole = userRoles[0]?.role;
-
-      let userRole = 'user';
-      let roleId = 0;
-      let permissions: string[] = [];
-
-      // Маппинг имен ролей на коды для совместимости
       const roleNameToCode: Record<string, string> = {
         'Суперадминистратор': 'super_admin',
         'Администратор сети': 'network_admin',
@@ -200,24 +216,13 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         'Менеджер БТО': 'bto_manager'
       };
 
-      if (primaryRole) {
-        // Используем код роли или имя для маппинга
-        userRole = primaryRole.code || roleNameToCode[primaryRole.name] || primaryRole.name;
-        roleId = primaryRole.id;
-        permissions = primaryRole.permissions || [];
-      }
-
-      // Формируем массив ролей для отображения в профиле
       const roles: UserRole[] = userRoles
         .filter(ur => ur.role)
         .map(ur => {
           const role = ur.role;
-          // ИСПРАВЛЕНО: берем scope_value из user_roles (персональные ограничения),
-          // а не scope_values из roles (дефолтные значения роли)
           let userScopeValues: string[] = [];
           if (ur.scope_value) {
             try {
-              // scope_value хранится как JSON строка в user_roles
               userScopeValues = typeof ur.scope_value === 'string'
                 ? JSON.parse(ur.scope_value)
                 : ur.scope_value;
@@ -225,7 +230,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
               userScopeValues = [];
             }
           }
-          // Fallback на scope_values из roles если нет персональных
           if (userScopeValues.length === 0 && role.scope_values) {
             userScopeValues = role.scope_values;
           }
@@ -240,21 +244,24 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
           };
         });
 
-      const userData: AppUser = {
+      return {
         id: dbUser.id,
         email: dbUser.email,
         name: dbUser.name,
         phone: dbUser.phone,
         status: dbUser.status,
-        role: userRole,
-        roleId: roleId,
-        permissions: permissions,
-        roles: roles
+        role: primaryRole?.code || roleNameToCode[primaryRole?.name || ''] || dbUser.role || 'user',
+        roleId: primaryRole?.id || 0,
+        permissions: primaryRole?.permissions || [],
+        roles,
       };
-
-      return userData;
-    } catch (error) {
-      return null;
+    } catch (err: any) {
+      // 401/403 — реальная невалидность, null → logout
+      if (err.status === 401 || err.status === 403) {
+        return null;
+      }
+      // Транзитные ошибки — пробрасываем, чтобы вызывающий код не разлогинивал
+      throw err;
     }
   };
 
@@ -269,6 +276,32 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
           // Только обновляем sessionStorage для текущего сеанса
           sessionStorage.setItem('current_user_email', initialUser.email);
           sessionStorage.setItem('auth_timestamp', Date.now().toString());
+
+          if (authService.isBackendMode()) {
+            try {
+              const freshUser = await authService.getCurrentUser();
+              if (freshUser) {
+                setUser(freshUser);
+                const currentToken =
+                  localStorage.getItem('auth_token')
+                  || localStorage.getItem(STORAGE_KEYS.TOKEN)
+                  || '';
+                const currentExpiry =
+                  localStorage.getItem('auth_token_expiry')
+                  || undefined;
+                if (currentToken) {
+                  saveAuthSession(freshUser, currentToken, currentExpiry);
+                }
+              } else {
+                // getCurrentUser вернул null → 401/403 или нет токена — реальный logout
+                setUser(null);
+                await clearAuthData();
+              }
+            } catch {
+              // Транзитная ошибка (429, 500, сеть) — оставляем пользователя из localStorage
+              // Не разлогиниваем, данные обновятся при следующем успешном запросе
+            }
+          }
           return;
         }
 
@@ -278,7 +311,11 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
           const freshUser = await loadFreshUserData(sessionEmail);
           if (freshUser) {
             setUser(freshUser);
-            saveAuthSession(freshUser, generateAuthToken(freshUser));
+            const token = localStorage.getItem('auth_token')
+              || sessionStorage.getItem('auth_token')
+              || generateAuthToken(freshUser);
+            const expiresAt = localStorage.getItem('auth_token_expiry') || undefined;
+            saveAuthSession(freshUser, token, expiresAt);
             return; // Успешно восстановили сессию
           } else {
             await clearAuthData();
@@ -316,23 +353,24 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
 
     try {
 
-      const authenticatedUser = await authService.authenticate(email, password);
+      const authResult = await authService.authenticate(email, password);
 
-      if (!authenticatedUser) {
+      if (!authResult) {
         throw new Error('Неверный email или пароль');
       }
 
-      // Генерируем токен
-      const token = generateAuthToken(authenticatedUser);
+      const authenticatedUser = authResult.user;
+      const token = authResult.token || generateAuthToken(authenticatedUser);
+      const expiresAt = authResult.expiresAt || new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
 
       // Сохраняем пользователя и токен
       setUser(authenticatedUser);
-      saveAuthSession(authenticatedUser, token);
+      saveAuthSession(authenticatedUser, token, expiresAt);
 
       // Сохраняем данные для httpClient (без пароля — при истечении токена редирект на логин)
       localStorage.setItem('auth_login', email);
       localStorage.setItem('auth_token', token);
-      localStorage.setItem('auth_token_expiry', new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString());
+      localStorage.setItem('auth_token_expiry', expiresAt);
       localStorage.setItem('auth_user', JSON.stringify(authenticatedUser));
 
       // Если выбрано "Запомнить меня", сохраняем в IndexedDB
@@ -355,6 +393,8 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
    */
   const logout = useCallback(async () => {
     try {
+      await authService.logout();
+
       // Логируем выход перед очисткой данных
       if (user?.email) {
         await auditLogService.logAuthentication('logout', user.email, {
@@ -371,7 +411,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     }
 
     setUser(null);
-    clearAuthData();
+    await clearAuthData();
     // Очищаем также сессионные данные
     sessionStorage.removeItem('current_user_email');
     sessionStorage.removeItem('auth_timestamp');

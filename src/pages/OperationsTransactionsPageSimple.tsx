@@ -29,7 +29,7 @@ import { todayString, daysAgoString } from "@/utils/dateUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 
 export default function OperationsTransactionsPageSimple() {
-  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
   const { user } = useNewAuth();
   const isMobile = useIsMobile();
 
@@ -184,12 +184,29 @@ export default function OperationsTransactionsPageSimple() {
         transactions = await stsApiService.getTransactions(
           dateFrom,
           dateTo,
-          0, // Без лимита — статистика по всем транзакциям за период
+          0,
           {
             networkId: selectedNetwork.external_id
-            // tradingPointId не указываем - получим все станции
           }
         );
+
+        // Фильтруем по мультиселекту
+        if (selectedTradingPoints.length > 0 && selectedNetwork?.id) {
+          try {
+            const networkPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+            if (selectedTradingPoints.length < networkPoints.length) {
+              const selectedExternalIds = new Set(
+                networkPoints
+                  .filter(p => selectedTradingPoints.includes(p.id))
+                  .map(p => p.external_id)
+                  .filter(Boolean)
+              );
+              transactions = transactions.filter((t: any) =>
+                selectedExternalIds.has(String(t.stationNumber))
+              );
+            }
+          } catch { /* ignore */ }
+        }
       } else if (selectedTradingPoint) {
         // Загружаем для конкретной торговой точки
         let tradingPointExternalId: string | null | undefined = undefined;

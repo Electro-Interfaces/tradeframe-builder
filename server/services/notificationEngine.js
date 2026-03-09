@@ -3,12 +3,11 @@
  * Проверяет правила, генерирует и отправляет уведомления
  */
 
-const { createClient } = require('@supabase/supabase-js');
 const telegramService = require('./telegramService');
 const axios = require('axios');
+const notificationEngineDataSource = require('./notifications/notificationEngineDataSource');
+const notificationEngineOrgSource = require('./notifications/notificationEngineOrgSource');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const STS_API_URL = process.env.STS_API_URL;
 const STS_API_USERNAME = process.env.STS_API_USERNAME;
 const STS_API_PASSWORD = process.env.STS_API_PASSWORD;
@@ -21,7 +20,6 @@ const BLOCK_THRESHOLD_LITERS = 800;
 
 class NotificationEngine {
   constructor() {
-    this.supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     this.stsToken = null;
     this.stsTokenExpiry = null;
   }
@@ -81,14 +79,7 @@ class NotificationEngine {
    */
   async processAllRules() {
     try {
-      const { data: rules, error } = await this.supabase
-        .from('notification_rules')
-        .select('*')
-        .eq('is_active', true);
-
-      if (error) {
-        throw error;
-      }
+      const rules = await notificationEngineDataSource.getActiveRules();
 
       for (const rule of rules) {
         await this.processRule(rule);
@@ -107,15 +98,7 @@ class NotificationEngine {
    */
   async processRulesByType(ruleType) {
     try {
-      const { data: rules, error } = await this.supabase
-        .from('notification_rules')
-        .select('*')
-        .eq('is_active', true)
-        .eq('type', ruleType);
-
-      if (error) {
-        throw error;
-      }
+      const rules = await notificationEngineDataSource.getActiveRules(ruleType);
 
       let totalNotificationsSent = 0;
 
@@ -166,21 +149,10 @@ class NotificationEngine {
     }
 
     try {
-      // Формируем запрос для поиска последнего уведомления
-      let query = this.supabase
-        .from('notifications')
-        .select('*')
-        .eq('type', notificationType);
-
-      // Добавляем фильтры по идентификаторам
-      for (const [key, value] of Object.entries(identifiers)) {
-        query = query.eq(`context->>${key}`, String(value));
-      }
-
-      const { data: lastNotification } = await query
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const lastNotification = await notificationEngineDataSource.findRecentNotification(
+        notificationType,
+        identifiers
+      );
 
       if (!lastNotification) {
         return true; // Уведомлений еще не было
@@ -238,10 +210,7 @@ class NotificationEngine {
    */
   async processRule(rule) {
     try {
-      await this.supabase
-        .from('notification_rules')
-        .update({ last_check_at: new Date().toISOString() })
-        .eq('id', rule.id);
+      await notificationEngineDataSource.touchRuleCheck(rule.id);
 
       switch (rule.type) {
         case 'bill_acceptor_threshold':
@@ -272,16 +241,7 @@ class NotificationEngine {
     const { rule_config } = rule;
     const { checkType, warningLevel, applyToAllStations, specificStations } = rule_config;
 
-    // Получаем данные из таблицы tenants для получения настроек порогов и списка станций
-    const { data: tenants, error } = await this.supabase
-      .from('tenants')
-      .select('id, code, name, settings')
-      .eq('type', 'network')
-      .eq('is_active', true);
-
-    if (error) {
-      throw error;
-    }
+    const tenants = await notificationEngineOrgSource.getNetworksForEngine();
 
     const stations = [];
 
@@ -376,13 +336,10 @@ class NotificationEngine {
     }
 
     if (notificationsSent.length > 0) {
-      await this.supabase
-        .from('notification_rules')
-        .update({
-          last_notification_at: new Date().toISOString(),
-          total_notifications_sent: rule.total_notifications_sent + notificationsSent.length
-        })
-        .eq('id', rule.id);
+      await notificationEngineDataSource.incrementRuleNotifications(
+        rule.id,
+        notificationsSent.length
+      );
     }
 
     return { success: true, notificationsSent: notificationsSent.length };
@@ -454,15 +411,7 @@ class NotificationEngine {
         channels: ['telegram'] // ✅ Только Telegram
       };
 
-      const { data, error } = await this.supabase
-        .from('notifications')
-        .insert(notification)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
+      const data = await notificationEngineDataSource.createNotification(notification);
 
       await this.sendNotification(data, rule);
 
@@ -486,13 +435,7 @@ class NotificationEngine {
       }
     }
 
-    await this.supabase
-      .from('notifications')
-      .update({
-        status: 'sent',
-        sent_at: new Date().toISOString()
-      })
-      .eq('id', notification.id);
+    await notificationEngineDataSource.markNotificationSent(notification.id);
   }
 
   /**
@@ -502,134 +445,7 @@ class NotificationEngine {
    * @param {string} notificationType - Тип уведомления (low_fuel_level, terminal_offline, и т.д.)
    */
   async getRecipients(rule, tenantId, notificationType) {
-    const { recipients } = rule;
-    const recipientList = [];
-
-    // Если список получателей пуст, получаем всех активных пользователей
-    const hasRecipients = (recipients.roles && recipients.roles.length > 0) ||
-                          (recipients.users && recipients.users.length > 0);
-
-    if (!hasRecipients) {
-      // ✅ Получаем всех пользователей с включенным Telegram
-      const { data: allSettings } = await this.supabase
-        .from('user_notification_settings')
-        .select('*')
-        .eq('telegram_enabled', true);
-
-      if (allSettings) {
-        // Для каждой настройки получаем данные пользователя
-        for (const setting of allSettings) {
-          // ✅ Проверяем подписку пользователя на данный тип уведомления
-          const { data: subscription } = await this.supabase
-            .from('user_notification_subscriptions')
-            .select('enabled')
-            .eq('user_id', setting.user_id)
-            .eq('notification_type', notificationType)
-            .single();
-
-          // Пропускаем, если подписка отключена
-          if (subscription && !subscription.enabled) {
-            continue;
-          }
-
-          const { data: user } = await this.supabase
-            .from('users')
-            .select('id, name')
-            .eq('id', setting.user_id)
-            .single();
-
-          if (user) {
-            recipientList.push({
-              id: user.id,
-              full_name: user.name,
-              settings: setting
-            });
-          }
-        }
-      }
-    } else {
-      // Используем указанных получателей
-      if (recipients.roles && recipients.roles.length > 0) {
-        // Получаем ID ролей по названиям
-        const { data: roles } = await this.supabase
-          .from('roles')
-          .select('id')
-          .in('name', recipients.roles);
-
-        if (roles && roles.length > 0) {
-          const roleIds = roles.map(r => r.id);
-
-          const { data: roleUsers } = await this.supabase
-            .from('user_roles')
-            .select('user_id')
-            .in('role_id', roleIds);
-
-          if (roleUsers) {
-            for (const roleUser of roleUsers) {
-              const { data: user } = await this.supabase
-                .from('users')
-                .select('id, name')
-                .eq('id', roleUser.user_id)
-                .single();
-
-              if (user) {
-                recipientList.push({
-                  id: user.id,
-                      full_name: user.name
-                });
-              }
-            }
-          }
-        }
-      }
-
-      if (recipients.users && recipients.users.length > 0) {
-        const { data: users } = await this.supabase
-          .from('users')
-          .select('id, name')
-          .in('id', recipients.users);
-
-        if (users) {
-          recipientList.push(...users.map(u => ({
-            id: u.id,
-            full_name: u.name
-          })));
-        }
-      }
-
-      // Получаем настройки для каждого пользователя
-      for (const user of recipientList) {
-        const { data: settings } = await this.supabase
-          .from('user_notification_settings')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        user.settings = settings;
-      }
-
-      // ✅ Фильтруем получателей по подпискам на тип уведомления
-      const filteredRecipients = [];
-      for (const user of recipientList) {
-        const { data: subscription } = await this.supabase
-          .from('user_notification_subscriptions')
-          .select('enabled')
-          .eq('user_id', user.id)
-          .eq('notification_type', notificationType)
-          .single();
-
-        // Пропускаем, если подписка явно отключена
-        if (subscription && !subscription.enabled) {
-          continue;
-        }
-
-        filteredRecipients.push(user);
-      }
-
-      return filteredRecipients;
-    }
-
-    return recipientList;
+    return notificationEngineDataSource.getRecipients(rule, notificationType);
   }
 
   /**
@@ -699,16 +515,14 @@ class NotificationEngine {
         }
       }
 
-      await this.supabase
-        .from('notification_delivery_log')
-        .insert({
-          notification_id: notification.id,
-          user_id: recipient.id,
-          channel,
-          status: deliveryResult?.success ? 'delivered' : 'failed',
-          error_message: deliveryResult?.error,
-          metadata: deliveryResult
-        });
+      await notificationEngineDataSource.createDeliveryLog({
+        notification_id: notification.id,
+        user_id: recipient.id,
+        channel,
+        status: deliveryResult?.success ? 'delivered' : 'failed',
+        error_message: deliveryResult?.error,
+        metadata: deliveryResult
+      });
 
     } catch (error) {
       console.error(`❌ Ошибка отправки через ${channel}:`, error);
@@ -729,16 +543,7 @@ class NotificationEngine {
     const { rule_config } = rule;
     const { checkType, warningLevel, applyToAllStations, specificStations } = rule_config;
 
-    // Получаем данные из таблицы tenants для получения настроек порогов и списка станций
-    const { data: tenants, error } = await this.supabase
-      .from('tenants')
-      .select('id, code, name, settings')
-      .eq('type', 'network')
-      .eq('is_active', true);
-
-    if (error) {
-      throw error;
-    }
+    const tenants = await notificationEngineOrgSource.getNetworksForEngine();
 
     const stations = [];
 
@@ -885,13 +690,10 @@ class NotificationEngine {
     }
 
     if (notificationsSent.length > 0) {
-      await this.supabase
-        .from('notification_rules')
-        .update({
-          last_notification_at: new Date().toISOString(),
-          total_notifications_sent: rule.total_notifications_sent + notificationsSent.length
-        })
-        .eq('id', rule.id);
+      await notificationEngineDataSource.incrementRuleNotifications(
+        rule.id,
+        notificationsSent.length
+      );
     }
 
     return { success: true, notificationsSent: notificationsSent.length };
@@ -951,15 +753,7 @@ class NotificationEngine {
         channels: ['telegram'] // ✅ Только Telegram
       };
 
-      const { data, error } = await this.supabase
-        .from('notifications')
-        .insert(notification)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
+      const data = await notificationEngineDataSource.createNotification(notification);
 
       await this.sendNotification(data, rule);
 
@@ -1002,15 +796,7 @@ class NotificationEngine {
         channels: ['telegram']
       };
 
-      const { data, error } = await this.supabase
-        .from('notifications')
-        .insert(notification)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
+      const data = await notificationEngineDataSource.createNotification(notification);
 
       await this.sendNotification(data, rule);
 
@@ -1030,14 +816,10 @@ class NotificationEngine {
       let notificationsSent = 0;
 
       // Получаем тенанта
-      const { data: tenant, error: tenantError } = await this.supabase
-        .from('tenants')
-        .select('*')
-        .eq('id', rule.tenant_id)
-        .single();
+      const tenant = await notificationEngineOrgSource.getNetworkByIdForEngine(rule.tenant_id);
 
-      if (tenantError || !tenant) {
-        console.error('❌ Ошибка получения тенанта:', tenantError);
+      if (!tenant) {
+        console.error('❌ Ошибка получения тенанта:', rule.tenant_id);
         return { success: false, error: 'Tenant not found' };
       }
 
@@ -1143,20 +925,11 @@ class NotificationEngine {
         }
       };
 
-      const { data: notification, error } = await this.supabase
-        .from('notifications')
-        .insert(data)
-        .select()
-        .single();
+      const notification = await notificationEngineDataSource.createNotification(data);
 
-      if (error) {
-        console.error('❌ Ошибка создания уведомления:', error);
-        return null;
-      }
+      await this.sendNotification(notification, rule);
 
-      await this.sendNotification(data, rule);
-
-      return data;
+      return notification;
     } catch (error) {
       console.error('❌ Ошибка создания уведомления о проблемах с терминалом:', error);
       return null;
@@ -1177,14 +950,10 @@ class NotificationEngine {
   async checkUnpunchedReceipts(rule) {
     try {
       // Получаем тенанта
-      const { data: tenant, error: tenantError } = await this.supabase
-        .from('tenants')
-        .select('*')
-        .eq('id', rule.tenant_id)
-        .single();
+      const tenant = await notificationEngineOrgSource.getNetworkByIdForEngine(rule.tenant_id);
 
-      if (tenantError || !tenant) {
-        console.error('❌ Ошибка получения тенанта:', tenantError);
+      if (!tenant) {
+        console.error('❌ Ошибка получения тенанта:', rule.tenant_id);
         return { success: false, error: 'Tenant not found' };
       }
 
@@ -1293,27 +1062,11 @@ class NotificationEngine {
         }
       };
 
-      const { data: notification, error } = await this.supabase
-        .from('notifications')
-        .insert(data)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Ошибка создания уведомления:', error);
-        return null;
-      }
+      const notification = await notificationEngineDataSource.createNotification(data);
 
       await this.sendNotification(notification, rule);
 
-      // Обновляем статистику правила
-      await this.supabase
-        .from('notification_rules')
-        .update({
-          last_notification_at: new Date().toISOString(),
-          total_notifications_sent: (rule.total_notifications_sent || 0) + 1
-        })
-        .eq('id', rule.id);
+      await notificationEngineDataSource.incrementRuleNotifications(rule.id, 1);
 
       return notification;
     } catch (error) {

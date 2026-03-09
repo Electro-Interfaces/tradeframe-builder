@@ -2,8 +2,8 @@
  * Сервис для работы с профилем текущего пользователя
  */
 
-import { usersService, type User } from './usersService';
-import { externalUsersService } from './externalUsersService';
+import { adminUsersService } from './adminUsersService';
+import type { User } from '@/types/auth';
 
 interface CurrentUserProfileData {
   firstName: string;
@@ -12,26 +12,26 @@ interface CurrentUserProfileData {
 }
 
 class CurrentUserService {
-  private currentUserId: number | null = null;
+  private currentUserId: string | null = null;
 
   /**
    * Устанавливает ID текущего пользователя
    */
-  setCurrentUserId(userId: number) {
+  setCurrentUserId(userId: string) {
     this.currentUserId = userId;
   }
 
   /**
    * Получает ID текущего пользователя из localStorage
    */
-  private getCurrentUserId(): number | null {
+  private getCurrentUserId(): string | null {
     if (this.currentUserId) return this.currentUserId;
     
     try {
       const savedUser = localStorage.getItem('currentUser');
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
-        return parsed.id || null;
+        return parsed.id ? String(parsed.id) : null;
       }
     } catch (error) {
       console.error('Ошибка получения ID пользователя:', error);
@@ -50,7 +50,7 @@ class CurrentUserService {
     }
 
     try {
-      return await usersService.getUserById(userId);
+      return await adminUsersService.getUserById(userId);
     } catch (error) {
       console.error('Ошибка получения профиля пользователя:', error);
       throw error;
@@ -67,11 +67,10 @@ class CurrentUserService {
     }
 
     try {
-      const updatedUser = await usersService.updateUser(userId, {
-        firstName: profileData.firstName,
-        lastName: profileData.lastName,
-        phone: profileData.phone
-      });
+      const updatedUser = await adminUsersService.updateUser(userId, {
+        name: `${profileData.firstName} ${profileData.lastName}`.trim(),
+        phone: profileData.phone,
+      } as any);
 
       // Обновляем данные в localStorage
       if (updatedUser) {
@@ -92,7 +91,7 @@ class CurrentUserService {
     try {
 
       // Ищем пользователя напрямую в таблице users
-      const user = await externalUsersService.getUserByEmail(email);
+      const user = await adminUsersService.getUserByEmail(email);
       if (user) {
         return user;
       }

@@ -29,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { externalRolesService } from '@/services/externalRolesService'
+import { adminRolesService } from '@/services/adminRolesService'
 import { PERMISSION_SECTIONS, PermissionHelpers } from '@/config/permissions'
 import type { Role, Permission, RoleScope, PermissionAction } from '@/types/auth'
 import { NetworkSelect } from '@/components/selects/NetworkSelect'
@@ -121,7 +121,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
       if (role) {
         // Редактирование роли
-        await externalRolesService.updateRole(role.id, {
+        await adminRolesService.updateRole(role.id, {
           name: formData.name,
           description: formData.description,
           permissions,
@@ -131,7 +131,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
         })
       } else {
         // Создание новой роли
-        await externalRolesService.createRole({
+        await adminRolesService.createRole({
           code: formData.code,
           name: formData.name,
           description: formData.description,

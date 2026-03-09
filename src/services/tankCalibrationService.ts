@@ -6,65 +6,64 @@ import type { TankCalibrationSettings } from '@/types/tanks';
 
 const API_BASE_URL = '/api/tank-calibration';
 
+function getAuthToken(): string {
+  return localStorage.getItem('auth_token')
+    || sessionStorage.getItem('auth_token')
+    || '';
+}
+
+function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  };
+}
+
 /**
  * Получить настройки калибровки для резервуара
  */
 export async function getCalibrationSettings(tankId: string): Promise<TankCalibrationSettings | null> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/${tankId}`);
+  const response = await fetch(`${API_BASE_URL}/${tankId}`, {
+    headers: authHeaders(),
+  });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch calibration settings: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching calibration settings:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Failed to fetch calibration settings: ${response.statusText}`);
   }
+
+  return response.json();
 }
 
 /**
  * Сохранить настройки калибровки резервуара
  */
 export async function saveCalibrationSettings(settings: TankCalibrationSettings): Promise<TankCalibrationSettings> {
-  try {
-    const response = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(settings),
-    });
+  const response = await fetch(API_BASE_URL, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(settings),
+  });
 
-    if (!response.ok) {
-      throw new Error(`Failed to save calibration settings: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error saving calibration settings:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Failed to save calibration settings: ${response.statusText}`);
   }
+
+  return response.json();
 }
 
 /**
  * Удалить настройки калибровки резервуара
  */
 export async function deleteCalibrationSettings(tankId: string): Promise<void> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/${tankId}`, {
-      method: 'DELETE',
-    });
+  const response = await fetch(`${API_BASE_URL}/${tankId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
 
-    if (!response.ok) {
-      throw new Error(`Failed to delete calibration settings: ${response.statusText}`);
-    }
-  } catch (error) {
-    console.error('Error deleting calibration settings:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Failed to delete calibration settings: ${response.statusText}`);
   }
 }
 
@@ -72,19 +71,14 @@ export async function deleteCalibrationSettings(tankId: string): Promise<void> {
  * Запустить процесс калибровки для резервуара
  */
 export async function runCalibration(tankId: string): Promise<{ success: boolean; message: string }> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/${tankId}/run`, {
-      method: 'POST',
-    });
+  const response = await fetch(`${API_BASE_URL}/${tankId}/run`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
 
-    if (!response.ok) {
-      throw new Error(`Failed to run calibration: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error running calibration:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Failed to run calibration: ${response.statusText}`);
   }
+
+  return response.json();
 }

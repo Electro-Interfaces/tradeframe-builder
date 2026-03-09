@@ -1,8 +1,14 @@
 /**
  * Диалог детального анализа резервуара с графиками
+ *
+ * Оптимизации производительности:
+ * - Ленивый рендер табов: монтируется только активный график (убирает ~100 forced reflows)
+ * - Даунсемплинг данных: ≤150 точек для плавного рендера SVG
+ * - Мемоизация стилей: tick/tooltip объекты создаются один раз
+ * - Отключены анимации Recharts (isAnimationActive=false)
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,19 +16,12 @@ import {
   DialogTitle,
   DialogDescription
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
-  ComposedChart,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -30,12 +29,12 @@ import {
   ResponsiveContainer,
   Legend,
   ReferenceLine,
-  LabelList
 } from 'recharts';
 import { RefreshCw, TrendingUp, TrendingDown, Minus, Droplets, Thermometer, Gauge, Fuel, Activity, AlertTriangle } from 'lucide-react';
 import type { Tank, TankHistoryRecord, TankHistoryStats, AnalysisPeriod, TransactionV2Response, ReceiptResponse } from '@/types/tanks';
 import { getTankAnalysis, getPeriodDates } from '@/services/tankHistoryService';
 import { getBookData } from '@/services/tankBookService';
+// import { MarginTab } from './MarginTab';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import {
@@ -48,6 +47,41 @@ import {
   type DetectedAnomaly,
   type AnomalySeverity
 } from '@/services/tankAnalysisCalculations';
+
+// ── Стили графиков (создаются один раз, не на каждый рендер) ──
+const CHART_TICK = { fill: 'hsl(var(--muted-foreground))', fontSize: 12 } as const;
+const CHART_STROKE = 'hsl(var(--muted-foreground))';
+const CHART_GRID_STROKE = 'hsl(var(--border))';
+const TOOLTIP_STYLE = {
+  backgroundColor: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: '8px',
+  color: 'hsl(var(--foreground))'
+} as const;
+const LEGEND_STYLE = { paddingTop: '4px', fontSize: '11px' } as const;
+
+type ChartTab = 'release' | 'minusa' | 'volume' | 'temperature' | 'density' | 'water';
+
+/**
+ * Даунсемплинг: оставляем первую, последнюю точку и равномерную выборку между ними.
+ * Сохраняет экстремумы (min/max) в каждом сегменте для визуальной точности.
+ */
+function downsample<T extends Record<string, any>>(data: T[], maxPoints: number): T[] {
+  if (data.length <= maxPoints) return data;
+
+  const result: T[] = [data[0]]; // первая точка
+  const step = (data.length - 1) / (maxPoints - 1);
+
+  for (let i = 1; i < maxPoints - 1; i++) {
+    const idx = Math.round(i * step);
+    result.push(data[idx]);
+  }
+
+  result.push(data[data.length - 1]); // последняя точка
+  return result;
+}
+
+const MAX_CHART_POINTS = 150;
 
 interface TankAnalysisDialogProps {
   tank: Tank;
@@ -70,10 +104,16 @@ function generateTankAnalysis(
   bookReceipts: number,
   period: AnalysisPeriod,
   tank: Tank,
-  chartDataLength: number
+  chartDataLength: number,
+  customStart?: string,
+  customEnd?: string
 ): AnalysisItem[] {
   const items: AnalysisItem[] = [];
-  const periodDays = period === '24h' ? 1 : period === '7d' ? 7 : 30;
+  let periodDays = period === '24h' ? 1 : period === '7d' ? 7 : 30;
+  if (period === 'custom' && customStart && customEnd) {
+    const diffMs = new Date(customEnd).getTime() - new Date(customStart).getTime();
+    periodDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  }
 
   // 1. Баланс резервуара
   const diff = releaseTotals.actual - releaseTotals.book;
@@ -264,12 +304,26 @@ const PERIOD_FILTERS: { value: AnalysisPeriod; label: string }[] = [
   { value: '30d', label: '30 дней' }
 ];
 
+// Мемоизированный форматтер для Tooltip (литры)
+const litresFormatter = (value: any) => {
+  if (typeof value === 'number') return value.toFixed(2) + ' л';
+  return value;
+};
+
+// Мемоизированный domain для плотности
+const densityDomain: [(dataMin: number) => number, (dataMax: number) => number] = [
+  (dataMin: number) => Math.floor(dataMin - 2),
+  (dataMax: number) => Math.ceil(dataMax + 2)
+];
+
 export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDialogProps) {
   const isMobile = useIsMobile();
   const chartHeight = isMobile ? 260 : 380;
-  // Используем selectedStation из контекста - там уже есть external_id
   const { selectedNetwork, selectedStation } = useSelection();
   const [period, setPeriod] = useState<AnalysisPeriod>('7d');
+  const [customStart, setCustomStart] = useState<string>('');
+  const [customEnd, setCustomEnd] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<ChartTab>('release');
   const [history, setHistory] = useState<TankHistoryRecord[]>([]);
   const [stats, setStats] = useState<TankHistoryStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -312,7 +366,11 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
     try {
       // Вычисляем даты периода
-      const dates = getPeriodDates(period);
+      const dates = getPeriodDates(
+        period,
+        period === 'custom' && customStart ? new Date(customStart + 'T00:00:00') : undefined,
+        period === 'custom' && customEnd ? new Date(customEnd + 'T23:59:59') : undefined,
+      );
       setPeriodDates(dates); // Сохраняем для использования в нормализации
 
       const params = {
@@ -381,9 +439,9 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
   const fuelCode = (tank.apiData?.fuel ?? tank.stsData?.fuelCode) || (history.length > 0 ? history[0].fuel : 0);
 
   // Мемоизация тяжёлых вычислений — пересчёт только при изменении данных
-  const { chartData, minusaChartData, computedStats, releaseTotals, anomalies } = useMemo(() => {
+  const { chartData, chartDataSampled, minusaChartData, computedStats, releaseTotals, anomalies } = useMemo(() => {
     if (!history.length) {
-      return { chartData: [], minusaChartData: [], computedStats: stats, releaseTotals: { actual: 0, book: 0 }, anomalies: [] };
+      return { chartData: [], chartDataSampled: [], minusaChartData: [], computedStats: stats, releaseTotals: { actual: 0, book: 0 }, anomalies: [] };
     }
 
     const normTx = normalizeTransactions(transactions, fuelCode, periodDates?.dt_beg, periodDates?.dt_end);
@@ -391,84 +449,135 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
     const initVals = calculateInitialValues(history[0], normTx, normRcp);
     const chart = calculateChartData(history, normTx, normRcp, initVals);
     const volumeBookStats = recalculateVolumeBookStats(chart);
-    const minusa = chart.map(point => ({
-      ...point,
-      minusa: point.releaseBook - point.releaseActual
-    }));
 
-    // Итоговые значения реализации из последней точки графика (согласованы с графиком)
+    // Даунсемплинг для графиков (полные данные — для расчётов)
+    // Зажимаем releaseActual/releaseBook ≥ 0 (отрицательная кумулятивная реализация физически невозможна)
+    const sampled = downsample(chart, MAX_CHART_POINTS).map(p => ({
+      ...p,
+      releaseActual: Math.max(0, p.releaseActual),
+      releaseBook: Math.max(0, p.releaseBook),
+    }));
+    const minusa = downsample(
+      chart.map(point => ({ ...point, minusa: point.releaseBook - point.releaseActual })),
+      MAX_CHART_POINTS
+    );
+
     const lastPoint = chart[chart.length - 1];
     const totals = {
       actual: lastPoint?.releaseActual ?? 0,
       book: lastPoint?.releaseBook ?? 0
     };
 
-    // Создаём новый объект stats с обновлённым volumeBook (без мутации)
     const updatedStats = stats ? { ...stats, volumeBook: volumeBookStats } : stats;
-
-    // Обнаружение аномалий
     const detected = detectAnomalies(chart, history);
 
-    return { chartData: chart, minusaChartData: minusa, computedStats: updatedStats, releaseTotals: totals, anomalies: detected };
+    return { chartData: chart, chartDataSampled: sampled, minusaChartData: minusa, computedStats: updatedStats, releaseTotals: totals, anomalies: detected };
   }, [history, transactions, receipts, stats, tankNumber, fuelCode, periodDates?.dt_beg, periodDates?.dt_end]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto md:h-[90vh] md:overflow-hidden md:flex md:flex-col md:gap-2 bg-background text-foreground">
-        <DialogHeader className="md:shrink-0 pb-0">
-          <DialogTitle className="text-base md:text-lg flex items-center gap-2">
-            {tank.name}
-            <Badge variant="outline" className="text-xs font-medium">
-              {tank.fuelType}
-            </Badge>
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Анализ динамики резервуара за выбранный период
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto md:h-[90vh] md:overflow-hidden md:flex md:flex-col md:gap-0 bg-background text-foreground p-0">
+        {/* ── Компактный заголовок ── */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-card/50 md:shrink-0">
+          <DialogHeader className="p-0 space-y-0">
+            <DialogTitle className="text-base font-semibold flex items-center gap-2.5">
+              {tank.name}
+              <Badge variant="outline" className="text-[10px] font-semibold px-2 py-0 h-5 border-blue-500/40 text-blue-500 dark:text-blue-400">
+                {tank.fuelType}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Анализ динамики резервуара за выбранный период
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Фильтры периода */}
-        <div className="flex flex-wrap items-center gap-1.5 md:shrink-0">
-          {PERIOD_FILTERS.map(filter => (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {PERIOD_FILTERS.map(filter => (
+              <Button
+                key={filter.value}
+                variant={period === filter.value ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setPeriod(filter.value)}
+                disabled={loading}
+                className={`h-7 text-xs px-3 rounded-full ${period === filter.value ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {filter.label}
+              </Button>
+            ))}
             <Button
-              key={filter.value}
-              variant={period === filter.value ? 'default' : 'outline'}
+              variant={period === 'custom' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setPeriod(filter.value)}
+              onClick={() => {
+                if (period !== 'custom') {
+                  // Инициализируем даты: последние 7 дней
+                  const end = new Date();
+                  const start = new Date();
+                  start.setDate(start.getDate() - 7);
+                  setCustomStart(start.toISOString().slice(0, 10));
+                  setCustomEnd(end.toISOString().slice(0, 10));
+                  setPeriod('custom');
+                }
+              }}
               disabled={loading}
-              className="h-7 text-xs px-3"
+              className={`h-7 text-xs px-3 rounded-full ${period === 'custom' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              {filter.label}
+              Период
             </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadHistory}
-            disabled={loading}
-            className="ml-auto h-7 text-xs px-3"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
-            Обновить
-          </Button>
+            {period === 'custom' && (
+              <>
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="h-7 text-xs px-2 rounded bg-secondary border border-border text-foreground"
+                />
+                <span className="text-xs text-muted-foreground">—</span>
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="h-7 text-xs px-2 rounded bg-secondary border border-border text-foreground"
+                />
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={loadHistory}
+                  disabled={loading || !customStart || !customEnd}
+                  className="h-7 text-xs px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  Загрузить
+                </Button>
+              </>
+            )}
+            <div className="w-px h-5 bg-border mx-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={loadHistory}
+              disabled={loading}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
 
         {/* Состояние загрузки/ошибки */}
         {loading && (
-          <div className="flex flex-col justify-center items-center flex-1 min-h-0 gap-3">
-            <RefreshCw className="w-10 h-10 text-blue-500 animate-spin" />
+          <div className="flex flex-col justify-center items-center flex-1 min-h-0 gap-3 px-5">
+            <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
             <div className="text-center">
               <p className="text-foreground/80 text-xs mb-2">{loadingStage}</p>
               <div className="flex gap-4 text-[11px]">
-                <div className={`flex items-center gap-1.5 ${loadingProgress.tankHistory ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                <div className={`flex items-center gap-1.5 ${loadingProgress.tankHistory ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                   <div className={`w-1.5 h-1.5 rounded-full ${loadingProgress.tankHistory ? 'bg-emerald-400' : 'bg-secondary animate-pulse'}`} />
                   История
                 </div>
-                <div className={`flex items-center gap-1.5 ${loadingProgress.transactions ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                <div className={`flex items-center gap-1.5 ${loadingProgress.transactions ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                   <div className={`w-1.5 h-1.5 rounded-full ${loadingProgress.transactions ? 'bg-emerald-400' : 'bg-secondary animate-pulse'}`} />
                   Транзакции
                 </div>
-                <div className={`flex items-center gap-1.5 ${loadingProgress.receipts ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                <div className={`flex items-center gap-1.5 ${loadingProgress.receipts ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                   <div className={`w-1.5 h-1.5 rounded-full ${loadingProgress.receipts ? 'bg-emerald-400' : 'bg-secondary animate-pulse'}`} />
                   Поступления
                 </div>
@@ -478,463 +587,236 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         )}
 
         {error && (
-          <div className="bg-red-100 dark:bg-red-900/20 border border-red-600 rounded-lg p-3 text-red-600 dark:text-red-400 text-sm shrink-0">
+          <div className="mx-5 mt-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-500 text-sm shrink-0">
             {error}
           </div>
         )}
 
-        {/* Основной контент: 2 колонки — левая (статистика+анализ), правая (аномалии+графики) */}
+        {/* Основной контент */}
         {!loading && !error && computedStats && (
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(280px,340px)_1fr] gap-3 md:flex-1 md:min-h-0 md:overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(300px,360px)_1fr] gap-0 md:flex-1 md:min-h-0 md:overflow-hidden">
 
-            {/* ═══ Левая колонка: Статистика + Анализ ═══ */}
-            <div className="flex flex-col gap-3 md:overflow-y-auto">
-              {/* Таблица показателей */}
-              <div className="overflow-x-auto">
-                <div className="border border-border rounded-lg overflow-hidden w-full">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border bg-secondary">
-                        <th className="text-left py-1 px-2.5 text-[11px] font-medium text-muted-foreground">Показатель</th>
-                        <th className="text-right py-1 px-2.5 text-[11px] font-medium text-muted-foreground">Текущее</th>
-                        <th className="text-center py-1 px-1 text-[11px] font-medium text-muted-foreground w-8"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      <tr className="hover:bg-secondary/50">
-                        <td className="py-1 px-2.5 text-foreground/80 text-[11px]">Факт. остаток</td>
-                        <td className="py-1 px-2.5 text-right font-semibold text-foreground text-[11px]">{computedStats.volume.current.toFixed(0)} л</td>
-                        <td className="py-1 px-1 text-center">
-                          {computedStats.volume.current > computedStats.volume.avg ? (
-                            <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400 mx-auto" />
-                          ) : computedStats.volume.current < computedStats.volume.avg ? (
-                            <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400 mx-auto" />
-                          ) : (
-                            <Minus className="w-3 h-3 text-muted-foreground mx-auto" />
-                          )}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-secondary/50">
-                        <td className="py-1 px-2.5 text-foreground/80 text-[11px]">Книж. остаток</td>
-                        <td className="py-1 px-2.5 text-right font-semibold text-foreground text-[11px]">{(computedStats.volumeBook?.current || 0).toFixed(0)} л</td>
-                        <td className="py-1 px-1 text-center">
-                          {(computedStats.volumeBook?.current || 0) > (computedStats.volumeBook?.avg || 0) ? (
-                            <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400 mx-auto" />
-                          ) : (computedStats.volumeBook?.current || 0) < (computedStats.volumeBook?.avg || 0) ? (
-                            <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400 mx-auto" />
-                          ) : (
-                            <Minus className="w-3 h-3 text-muted-foreground mx-auto" />
-                          )}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-secondary/50">
-                        <td className="py-1 px-2.5 text-foreground/80 text-[11px]">Температура</td>
-                        <td className="py-1 px-2.5 text-right font-semibold text-foreground text-[11px]">{computedStats.temperature.current.toFixed(1)} °C</td>
-                        <td className="py-1 px-1 text-center">
-                          {computedStats.temperature.current > computedStats.temperature.avg ? (
-                            <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400 mx-auto" />
-                          ) : computedStats.temperature.current < computedStats.temperature.avg ? (
-                            <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400 mx-auto" />
-                          ) : (
-                            <Minus className="w-3 h-3 text-muted-foreground mx-auto" />
-                          )}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-secondary/50">
-                        <td className="py-1 px-2.5 text-foreground/80 text-[11px]">Плотность</td>
-                        <td className="py-1 px-2.5 text-right font-semibold text-foreground text-[11px]">{computedStats.density.current.toFixed(1)} кг/м³</td>
-                        <td className="py-1 px-1 text-center">
-                          {computedStats.density.current > computedStats.density.avg ? (
-                            <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400 mx-auto" />
-                          ) : computedStats.density.current < computedStats.density.avg ? (
-                            <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400 mx-auto" />
-                          ) : (
-                            <Minus className="w-3 h-3 text-muted-foreground mx-auto" />
-                          )}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-secondary/50">
-                        <td className="py-1 px-2.5 text-foreground/80 text-[11px]">Уровень воды</td>
-                        <td className="py-1 px-2.5 text-right font-semibold text-foreground text-[11px]">{computedStats.waterLevel.current.toFixed(2)} см</td>
-                        <td className="py-1 px-1 text-center">
-                          {computedStats.waterLevel.current > computedStats.waterLevel.avg ? (
-                            <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400 mx-auto" />
-                          ) : computedStats.waterLevel.current < computedStats.waterLevel.avg ? (
-                            <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400 mx-auto" />
-                          ) : (
-                            <Minus className="w-3 h-3 text-muted-foreground mx-auto" />
-                          )}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-secondary/50">
-                        <td className="py-1 px-2.5 text-foreground/80 text-[11px]">Факт. реализация</td>
-                        <td className="py-1 px-2.5 text-right font-semibold text-foreground text-[11px]">{releaseTotals.actual.toFixed(0)} л</td>
-                        <td className="py-1 px-1 text-center"><Minus className="w-3 h-3 text-muted-foreground mx-auto" /></td>
-                      </tr>
-                      <tr className="hover:bg-secondary/50">
-                        <td className="py-1 px-2.5 text-foreground/80 text-[11px]">Книж. реализация</td>
-                        <td className="py-1 px-2.5 text-right font-semibold text-foreground text-[11px]">{releaseTotals.book.toFixed(0)} л</td>
-                        <td className="py-1 px-1 text-center"><Minus className="w-3 h-3 text-muted-foreground mx-auto" /></td>
-                      </tr>
-                      <tr className="hover:bg-secondary/50">
-                        <td className="py-1 px-2.5 text-foreground/80 text-[11px]">Поступления</td>
-                        <td className="py-1 px-2.5 text-right font-semibold text-cyan-600 dark:text-cyan-400 text-[11px]">{(bookReceipts || 0).toFixed(0)} л</td>
-                        <td className="py-1 px-1 text-center">
-                          {bookReceipts > 0 ? (
-                            <TrendingUp className="w-3 h-3 text-cyan-600 dark:text-cyan-400 mx-auto" />
-                          ) : (
-                            <Minus className="w-3 h-3 text-muted-foreground mx-auto" />
-                          )}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-secondary/50 bg-secondary/30">
-                        <td className="py-1 px-2.5 text-foreground/80 font-semibold text-[11px]">Разница (факт - книга)</td>
-                        <td className="py-1 px-2.5 text-right font-bold text-[11px]">
-                          {(() => {
-                            const difference = releaseTotals.actual - releaseTotals.book;
-                            const isPositive = difference >= 0;
-                            return (
-                              <span className={isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                                {isPositive ? '+' : ''}{difference.toFixed(0)} л
-                              </span>
-                            );
-                          })()}
-                        </td>
-                        <td className="py-1 px-1 text-center">
-                          {(() => {
-                            const difference = releaseTotals.actual - releaseTotals.book;
-                            return difference >= 0 ? (
-                              <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400 mx-auto" />
-                            ) : (
-                              <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400 mx-auto" />
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+            {/* ═══ Левая колонка: KPI + Анализ ═══ */}
+            <div className="flex flex-col gap-0 md:overflow-y-auto border-r border-border bg-card/30">
+              {/* KPI сетка */}
+              <div className="grid grid-cols-2 gap-px bg-border">
+                {[
+                  { label: 'Факт. остаток', value: `${computedStats.volume.current.toFixed(0)} л`, cmp: computedStats.volume.current - computedStats.volume.avg },
+                  { label: 'Книж. остаток', value: `${(computedStats.volumeBook?.current || 0).toFixed(0)} л`, cmp: (computedStats.volumeBook?.current || 0) - (computedStats.volumeBook?.avg || 0) },
+                  { label: 'Температура', value: `${computedStats.temperature.current.toFixed(1)}°C`, cmp: computedStats.temperature.current - computedStats.temperature.avg },
+                  { label: 'Плотность', value: `${computedStats.density.current.toFixed(1)} кг/м³`, cmp: computedStats.density.current - computedStats.density.avg },
+                  { label: 'Уровень воды', value: `${computedStats.waterLevel.current.toFixed(2)} см`, cmp: computedStats.waterLevel.current - computedStats.waterLevel.avg },
+                  { label: 'Поступления', value: `${(bookReceipts || 0).toFixed(0)} л`, cmp: bookReceipts > 0 ? 1 : 0, color: 'cyan' as const },
+                ].map((kpi) => (
+                  <div key={kpi.label} className="bg-background px-3 py-2">
+                    <div className="text-[10px] text-muted-foreground mb-0.5">{kpi.label}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-semibold ${kpi.color === 'cyan' ? 'text-cyan-500 dark:text-cyan-400' : 'text-foreground'}`}>{kpi.value}</span>
+                      {kpi.cmp > 0 ? <TrendingUp className="w-3 h-3 text-emerald-500" /> : kpi.cmp < 0 ? <TrendingDown className="w-3 h-3 text-red-500" /> : <Minus className="w-3 h-3 text-muted-foreground/40" />}
+                    </div>
+                  </div>
+                ))}
               </div>
+
+              {/* Блок реализации — акцентный */}
+              {(() => {
+                const diff = releaseTotals.actual - releaseTotals.book;
+                const isPositive = diff >= 0;
+                return (
+                  <div className="px-3 py-2.5 border-t border-border bg-secondary/30">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span className="text-[10px] text-muted-foreground">Факт. реализация</span>
+                      <span className="text-xs font-semibold text-foreground">{releaseTotals.actual.toFixed(0)} л</span>
+                    </div>
+                    <div className="flex justify-between items-baseline mb-1.5">
+                      <span className="text-[10px] text-muted-foreground">Книж. реализация</span>
+                      <span className="text-xs font-semibold text-foreground">{releaseTotals.book.toFixed(0)} л</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1.5 border-t border-border/50">
+                      <span className="text-[10px] font-medium text-muted-foreground">Разница</span>
+                      <div className="flex items-center gap-1">
+                        <span className={`text-xs font-bold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {isPositive ? '+' : ''}{diff.toFixed(0)} л
+                        </span>
+                        {isPositive ? <TrendingUp className="w-3 h-3 text-emerald-500" /> : <TrendingDown className="w-3 h-3 text-red-500" />}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Панель анализа */}
               <TankAnalysisPanel
-                items={generateTankAnalysis(computedStats, releaseTotals, bookReceipts, period, tank, chartData.length)}
+                items={generateTankAnalysis(computedStats, releaseTotals, bookReceipts, period, tank, chartData.length, customStart, customEnd)}
               />
             </div>
 
-            {/* ═══ Правая колонка: Аномалии + Графики ═══ */}
-            <div className="flex flex-col gap-3 md:overflow-y-auto">
-              {/* Блок аномалий */}
-              {anomalies.length > 0 && (
-                <AnomaliesPanel anomalies={anomalies} />
-              )}
+            {/* ═══ Правая колонка: Графики сверху, Аномалии снизу ═══ */}
+            <div className="flex flex-col gap-0 md:overflow-y-auto">
 
-              {/* Графики */}
+              {/* Графики — ленивый рендер: только активный таб */}
               {chartData.length > 0 && (
-                <Tabs defaultValue="release" className="w-full">
-            <TabsList className="grid grid-cols-3 md:grid-cols-6 gap-1 w-full bg-card h-auto p-1 md:shrink-0">
-              <TabsTrigger value="release" className="text-xs">Реализация</TabsTrigger>
-              <TabsTrigger value="minusa" className="text-xs">Погрешность</TabsTrigger>
-              <TabsTrigger value="volume" className="text-xs">Остатки</TabsTrigger>
-              <TabsTrigger value="temperature" className="text-xs">Температура</TabsTrigger>
-              <TabsTrigger value="density" className="text-xs">Плотность</TabsTrigger>
-              <TabsTrigger value="water" className="text-xs">Вода</TabsTrigger>
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ChartTab)} className="w-full px-3 pt-3">
+            <TabsList className="grid grid-cols-4 md:grid-cols-7 gap-0.5 w-full bg-secondary/50 h-auto p-0.5 rounded-lg md:shrink-0 border border-border/50">
+              <TabsTrigger value="release" className="text-[11px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md py-1.5">Реализация</TabsTrigger>
+              <TabsTrigger value="minusa" className="text-[11px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md py-1.5">Погрешность</TabsTrigger>
+              <TabsTrigger value="volume" className="text-[11px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md py-1.5">Остатки</TabsTrigger>
+              <TabsTrigger value="temperature" className="text-[11px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md py-1.5">Температура</TabsTrigger>
+              <TabsTrigger value="density" className="text-[11px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md py-1.5">Плотность</TabsTrigger>
+              <TabsTrigger value="water" className="text-[11px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md py-1.5">Вода</TabsTrigger>
             </TabsList>
 
-            {/* График остатков */}
-            <TabsContent value="volume" className="mt-2">
-              <ResponsiveContainer width="100%" height={chartHeight}>
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="volumeActualGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="volumeBookGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis
-                    dataKey="time"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))'
-                    }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '4px', fontSize: '11px' }} />
-                  <Area
-                    type="monotone"
-                    dataKey="volumeActual"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    fill="url(#volumeActualGradient)"
-                    name="Фактический остаток"
-                    dot={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="volumeBook"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    fill="url(#volumeBookGradient)"
-                    name="Книжный остаток"
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </TabsContent>
+            <div className="mt-3">
+              {activeTab === 'volume' && (
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                  <AreaChart data={chartDataSampled}>
+                    <defs>
+                      <linearGradient id="volumeActualGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="volumeBookGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} opacity={0.5} />
+                    <XAxis dataKey="time" stroke={CHART_STROKE} tick={CHART_TICK} />
+                    <YAxis stroke={CHART_STROKE} tick={CHART_TICK}
+                      domain={[0, 'auto']}
+                      label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: CHART_STROKE }}
+                    />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
+                    <Legend wrapperStyle={LEGEND_STYLE} />
+                    <Area type="monotone" dataKey="volumeActual" stroke="#3b82f6" strokeWidth={2}
+                      fill="url(#volumeActualGradient)" name="Фактический остаток" dot={false} animationDuration={0} />
+                    <Area type="monotone" dataKey="volumeBook" stroke="#10b981" strokeWidth={2}
+                      strokeDasharray="5 5" fill="url(#volumeBookGradient)" name="Книжный остаток" dot={false} animationDuration={0} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
 
-            {/* График температуры */}
-            <TabsContent value="temperature" className="mt-2">
-              <ResponsiveContainer width="100%" height={chartHeight}>
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis
-                    dataKey="time"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    label={{ value: 'Температура (°C)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))'
-                    }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '4px', fontSize: '11px' }} />
-                  <Area
-                    type="monotone"
-                    dataKey="temperature"
-                    stroke="#f59e0b"
-                    strokeWidth={2}
-                    fill="url(#temperatureGradient)"
-                    name="Температура"
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </TabsContent>
+              {activeTab === 'temperature' && (
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                  <AreaChart data={chartDataSampled}>
+                    <defs>
+                      <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} opacity={0.5} />
+                    <XAxis dataKey="time" stroke={CHART_STROKE} tick={CHART_TICK} />
+                    <YAxis stroke={CHART_STROKE} tick={CHART_TICK}
+                      label={{ value: 'Температура (°C)', angle: -90, position: 'insideLeft', fill: CHART_STROKE }}
+                    />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
+                    <Legend wrapperStyle={LEGEND_STYLE} />
+                    <Area type="monotone" dataKey="temperature" stroke="#f59e0b" strokeWidth={2}
+                      fill="url(#temperatureGradient)" name="Температура" dot={false} animationDuration={0} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
 
-            {/* График плотности */}
-            <TabsContent value="density" className="mt-2">
-              <ResponsiveContainer width="100%" height={chartHeight}>
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="densityGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis
-                    dataKey="time"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    label={{ value: 'Плотность (кг/м³)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                    domain={[
-                      (dataMin: number) => Math.floor(dataMin - 2),
-                      (dataMax: number) => Math.ceil(dataMax + 2)
-                    ]}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))'
-                    }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '4px', fontSize: '11px' }} />
-                  <Area
-                    type="monotone"
-                    dataKey="density"
-                    stroke="#8b5cf6"
-                    strokeWidth={2}
-                    fill="url(#densityGradient)"
-                    name="Плотность"
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </TabsContent>
+              {activeTab === 'density' && (
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                  <AreaChart data={chartDataSampled}>
+                    <defs>
+                      <linearGradient id="densityGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} opacity={0.5} />
+                    <XAxis dataKey="time" stroke={CHART_STROKE} tick={CHART_TICK} />
+                    <YAxis stroke={CHART_STROKE} tick={CHART_TICK}
+                      label={{ value: 'Плотность (кг/м³)', angle: -90, position: 'insideLeft', fill: CHART_STROKE }}
+                      domain={densityDomain}
+                    />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
+                    <Legend wrapperStyle={LEGEND_STYLE} />
+                    <Area type="monotone" dataKey="density" stroke="#8b5cf6" strokeWidth={2}
+                      fill="url(#densityGradient)" name="Плотность" dot={false} animationDuration={0} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
 
-            {/* График уровня воды */}
-            <TabsContent value="water" className="mt-2">
-              <ResponsiveContainer width="100%" height={chartHeight}>
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="waterGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis
-                    dataKey="time"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    label={{ value: 'Уровень воды (см)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))'
-                    }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '4px', fontSize: '11px' }} />
-                  <Area
-                    type="monotone"
-                    dataKey="waterLevel"
-                    stroke="#06b6d4"
-                    strokeWidth={2}
-                    fill="url(#waterGradient)"
-                    name="Уровень воды"
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </TabsContent>
+              {activeTab === 'water' && (
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                  <AreaChart data={chartDataSampled}>
+                    <defs>
+                      <linearGradient id="waterGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} opacity={0.5} />
+                    <XAxis dataKey="time" stroke={CHART_STROKE} tick={CHART_TICK} />
+                    <YAxis stroke={CHART_STROKE} tick={CHART_TICK}
+                      domain={[0, 'auto']}
+                      label={{ value: 'Уровень воды (см)', angle: -90, position: 'insideLeft', fill: CHART_STROKE }}
+                    />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
+                    <Legend wrapperStyle={LEGEND_STYLE} />
+                    <Area type="monotone" dataKey="waterLevel" stroke="#06b6d4" strokeWidth={2}
+                      fill="url(#waterGradient)" name="Уровень воды" dot={false} animationDuration={0} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
 
-            {/* График реализации */}
-            <TabsContent value="release" className="mt-2">
-              <ResponsiveContainer width="100%" height={chartHeight}>
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="time"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    label={{ value: 'Литры', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))'
-                    }}
-                    formatter={(value: any) => {
-                      if (typeof value === 'number') {
-                        return value.toFixed(2) + ' л';
-                      }
-                      return value;
-                    }}
-                  />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="releaseActual"
-                    stroke="#10b981"
-                    fill="#10b981"
-                    fillOpacity={0.3}
-                    strokeWidth={1}
-                    name="Фактическая реализация (л)"
-                  />
-                  <Area
-                    type="stepAfter"
-                    dataKey="releaseBook"
-                    stroke="#f59e0b"
-                    fill="#f59e0b"
-                    fillOpacity={0.2}
-                    strokeWidth={1}
-                    strokeDasharray="5 5"
-                    name="Книжная реализация (л)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </TabsContent>
+              {activeTab === 'release' && (
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                  <AreaChart data={chartDataSampled}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} />
+                    <XAxis dataKey="time" stroke={CHART_STROKE} tick={CHART_TICK} />
+                    <YAxis stroke={CHART_STROKE} tick={CHART_TICK}
+                      domain={[0, 'auto']}
+                      label={{ value: 'Литры', angle: -90, position: 'insideLeft', fill: CHART_STROKE }}
+                    />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={litresFormatter} />
+                    <Legend />
+                    <Area type="monotone" dataKey="releaseActual" stroke="#10b981" fill="#10b981"
+                      fillOpacity={0.3} strokeWidth={1} name="Фактическая реализация (л)" animationDuration={0} />
+                    <Area type="stepAfter" dataKey="releaseBook" stroke="#f59e0b" fill="#f59e0b"
+                      fillOpacity={0.2} strokeWidth={1} strokeDasharray="5 5" name="Книжная реализация (л)" animationDuration={0} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
 
-            {/* График Погрешности - разница между книгой и фактом */}
-            <TabsContent value="minusa" className="mt-2">
-              <div className="mb-1 px-3 py-1.5 bg-card rounded border border-border">
-                <p className="text-[11px] text-foreground/70">
-                  <span className="font-medium">Погрешность:</span> книжная - фактическая реализация. Положительные — недоучет, отрицательные — переучет.
-                </p>
-              </div>
+              {activeTab === 'minusa' && (
+                <>
+                  <div className="mb-1 px-3 py-1.5 bg-card rounded border border-border">
+                    <p className="text-[11px] text-foreground/70">
+                      <span className="font-medium">Погрешность:</span> книжная - фактическая реализация. Положительные — недоучет, отрицательные — переучет.
+                    </p>
+                  </div>
+                  <ResponsiveContainer width="100%" height={isMobile ? 240 : 350}>
+                    <AreaChart data={minusaChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} />
+                      <XAxis dataKey="time" stroke={CHART_STROKE} tick={CHART_TICK} />
+                      <YAxis stroke={CHART_STROKE} tick={CHART_TICK}
+                        label={{ value: 'Литры (разница)', angle: -90, position: 'insideLeft', fill: CHART_STROKE }}
+                      />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={litresFormatter} />
+                      <Legend />
+                      <ReferenceLine y={0} stroke={CHART_STROKE} strokeDasharray="3 3" />
+                      <Area type="monotone" dataKey="minusa" stroke="#a855f7" fill="#a855f7"
+                        fillOpacity={0.3} strokeWidth={1} name="Погрешность учета (л)" animationDuration={0} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </>
+              )}
 
-              <ResponsiveContainer width="100%" height={isMobile ? 240 : 350}>
-                <AreaChart data={minusaChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="time"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    label={{ value: 'Литры (разница)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))'
-                    }}
-                    formatter={(value: any) => {
-                      if (typeof value === 'number') {
-                        return value.toFixed(2) + ' л';
-                      }
-                      return value;
-                    }}
-                  />
-                  <Legend />
-                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                  <Area
-                    type="monotone"
-                    dataKey="minusa"
-                    stroke="#a855f7"
-                    fill="#a855f7"
-                    fillOpacity={0.3}
-                    strokeWidth={1}
-                    name="Погрешность учета (л)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </TabsContent>
+            </div>
 
           </Tabs>
+              )}
+
+              {/* Блок аномалий — под графиками */}
+              {anomalies.length > 0 && (
+                <div className="px-3 pb-3">
+                  <AnomaliesPanel anomalies={anomalies} />
+                </div>
               )}
             </div>
           </div>

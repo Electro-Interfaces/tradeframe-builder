@@ -7,6 +7,7 @@ import { shiftReportsV2Service } from '@/services/shiftReportsV2Service';
 import { extractStationNumber } from '@/utils/tradingPointUtils';
 import { getSystemId } from '@/config/stsConfig';
 import { useNewAuth } from '@/contexts/NewAuthContext';
+import { useSelection } from '@/contexts/SelectionContext';
 import type { ShiftListItem, ShiftFilters } from '@/types/shift-reports-v2';
 
 interface UseShiftReportsOptions {
@@ -22,6 +23,7 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useNewAuth();
+  const { selectedTradingPoints } = useSelection();
 
   // Получаем system ID из external_id сети
   const systemId = getSystemId(network);
@@ -64,6 +66,11 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
           // Загружаем все торговые точки сети
           const tradingPointsService = (await import('@/services/tradingPointsService')).default;
           let tradingPoints = await tradingPointsService.getByNetworkId(networkId);
+
+          // Фильтрация по мультиселекту
+          if (selectedTradingPoints.length > 0) {
+            tradingPoints = tradingPoints.filter(tp => selectedTradingPoints.includes(tp.id));
+          }
 
           // Фильтрация по разрешенным станциям (RBAC)
           if (allowedStationNumbers) {
@@ -154,7 +161,7 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
     };
 
     loadShifts();
-  }, [tradingPoint, networkId, isAllTradingPoints, allowedStationNumbers, systemId]);
+  }, [tradingPoint, networkId, isAllTradingPoints, allowedStationNumbers, systemId, selectedTradingPoints]);
   // Примечание: filters.dateFrom/dateTo убраны из зависимостей, т.к. фильтрация по датам
   // выполняется на клиенте в filteredShifts, а не на сервере
 

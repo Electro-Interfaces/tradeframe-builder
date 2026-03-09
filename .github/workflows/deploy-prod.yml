@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Позволяет также запускать вручную через UI
+  workflow_dispatch:
 
 jobs:
   deploy-prod:
@@ -35,14 +35,20 @@ jobs:
           VITE_API_URL: https://prod.dataworker.ru
           VITE_BASE_URL: https://prod.dataworker.ru
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_STS_API_URL: ${{ secrets.VITE_STS_API_URL }}
           VITE_STS_API_USERNAME: ${{ secrets.VITE_STS_API_USERNAME }}
           VITE_STS_API_PASSWORD: ${{ secrets.VITE_STS_API_PASSWORD }}
+          VITE_AUTH_API_MODE: backend
+          VITE_ADMIN_API_MODE: backend
+          VITE_ORG_API_MODE: backend
+          VITE_AUDIT_API_MODE: backend
+          VITE_LEGAL_API_MODE: backend
+          VITE_NOMENCLATURE_API_MODE: backend
 
       - name: Create deployment archive
         run: |
-          tar -czf deployment.tar.gz dist/ src/ server/ package.json
+          tar -czf deployment.tar.gz dist/ server/ package.json ecosystem.prod.config.cjs
           ls -lh deployment.tar.gz
 
       - name: Deploy to PRODUCTION server
@@ -51,7 +57,7 @@ jobs:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "deployment.tar.gz,ecosystem.prod.config.cjs"
+          source: "deployment.tar.gz"
           target: "/tmp/"
 
       - name: Execute deployment on PRODUCTION server
@@ -62,28 +68,23 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            echo "🔄 Starting PRODUCTION deployment..."
+            echo "Starting PRODUCTION deployment..."
             cd /var/www/www-root/data/www/prod.dataworker.ru
 
-            # Создаем бэкап текущей версии
+            # Бэкап текущей версии
             timestamp=$(date +%Y%m%d_%H%M%S)
-            mkdir -p /tmp/backups
+            mkdir -p /var/backups/tradeframe
             if [ -d "dist" ]; then
-              tar -czf /tmp/backups/prod-backup-${timestamp}.tar.gz dist src server || true
-              echo "✅ Backup created: /tmp/backups/prod-backup-${timestamp}.tar.gz"
+              tar -czf /var/backups/tradeframe/prod-backup-${timestamp}.tar.gz dist server || true
+              echo "Backup: /var/backups/tradeframe/prod-backup-${timestamp}.tar.gz"
             fi
 
-            # Распаковываем новую версию (dist, src, server, package.json)
+            # Распаковываем (dist + server + package.json + ecosystem)
             tar -xzf /tmp/deployment.tar.gz
             rm /tmp/deployment.tar.gz
-            echo "✅ New build and source code extracted"
+            echo "Build extracted"
 
-            # Копируем PM2 конфигурацию
-            cp /tmp/ecosystem.prod.config.cjs ./
-            rm /tmp/ecosystem.prod.config.cjs
-            echo "✅ PM2 config updated"
-
-            # Создаем server/.env с переменными окружения
+            # server/.env — секреты + PG конфигурация
             cat > server/.env << 'ENV_EOF'
             # STS API Configuration
             STS_API_URL=${{ secrets.VITE_STS_API_URL }}
@@ -105,7 +106,7 @@ jobs:
             TELEGRAM_BOT_NAME=TradeFrame Notifications
             TELEGRAM_BOT_USERNAME=TradeFrameDW_Bot
 
-            # Supabase Configuration
+            # Supabase Configuration (legacy fallback)
             SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             SUPABASE_SERVICE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
 
@@ -119,39 +120,48 @@ jobs:
             TSUPPORT_API_URL=${{ secrets.TSUPPORT_API_URL }}
             TSUPPORT_SDK_API_KEY=${{ secrets.TSUPPORT_SDK_API_KEY }}
             TSUPPORT_SDK_SECRET=${{ secrets.TSUPPORT_SDK_SECRET }}
+
+            # PostgreSQL — primary data source
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            AUTH_DATA_SOURCE=pg
+            DATA_SOURCE=pg
+
+            # JWT Token Secret
+            JWT_SECRET=${{ secrets.JWT_SECRET_PROD }}
             ENV_EOF
 
-            # Устанавливаем зависимости для backend
+            # Устанавливаем зависимости backend
             cd server
             npm install --production
             cd ..
 
-            # Останавливаем старые процессы (если есть)
+            # Перезапуск PM2
             pm2 delete tradeframe-prod-frontend tradeframe-prod-backend || true
-
-            # Запускаем процессы с актуальной конфигурацией
             pm2 start ecosystem.prod.config.cjs
-
-            # Сохраняем конфигурацию PM2
             pm2 save
 
-            # Проверяем статус
             pm2 list | grep tradeframe-prod
 
-            echo "✅ PRODUCTION deployment completed!"
-            echo "🌐 URL: https://prod.dataworker.ru"
+            echo "PRODUCTION deployment completed"
+            echo "URL: https://prod.dataworker.ru"
 
       - name: Verify deployment
         run: |
-          echo "⏳ Waiting 10 seconds for services to start..."
           sleep 10
-
-          # Проверяем доступность PRODUCTION сайта
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://prod.dataworker.ru)
           if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ PRODUCTION site is responding with HTTP 200"
+            echo "PRODUCTION site responding HTTP 200"
           else
-            echo "❌ PRODUCTION site returned HTTP $HTTP_STATUS"
+            echo "PRODUCTION site returned HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+          # Проверяем что бэкенд отвечает
+          API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://prod.dataworker.ru/api/legal/document-types)
+          if [ "$API_STATUS" -eq 200 ]; then
+            echo "Backend API responding HTTP 200"
+          else
+            echo "Backend API returned HTTP $API_STATUS"
             exit 1
           fi
 
@@ -159,8 +169,7 @@ jobs:
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ PRODUCTION Deployment SUCCESSFUL"
-            echo "🌐 https://prod.dataworker.ru"
+            echo "PRODUCTION Deployment SUCCESSFUL — https://prod.dataworker.ru"
           else
-            echo "❌ PRODUCTION Deployment FAILED"
+            echo "PRODUCTION Deployment FAILED"
           fi

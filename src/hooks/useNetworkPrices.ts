@@ -117,12 +117,21 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
   filterPeriodRef.current = filterPeriod;
 
   // Вычисляем разрешенные ID торговых точек из scopeValues пользователя
+  // Важно: scope='network' означает доступ ко ВСЕМ точкам сети, фильтровать не нужно
+  // scope='trading_point'/'assigned' — конкретные точки
   const allowedTradingPointIds = useMemo(() => {
     if (!user?.roles) return null; // null означает "нет ограничений"
 
+    // Если хотя бы одна роль — global или network scope, не фильтруем точки
+    const hasGlobalOrNetworkScope = user.roles.some(role =>
+      role.scope === 'global' || role.scope === 'network'
+    );
+    if (hasGlobalOrNetworkScope) return null;
+
     const userScopeValues: string[] = [];
     user.roles.forEach(role => {
-      if (role.scopeValues && role.scopeValues.length > 0) {
+      if ((role.scope === 'trading_point' || role.scope === 'assigned') &&
+          role.scopeValues && role.scopeValues.length > 0) {
         userScopeValues.push(...role.scopeValues);
       }
     });

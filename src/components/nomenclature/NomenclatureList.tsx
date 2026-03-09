@@ -13,7 +13,7 @@ import {
   Trash2,
   FileText
 } from "lucide-react";
-import { nomenclatureService } from '@/services/nomenclatureService';
+import { nomenclatureService } from '@/services/nomenclatureApiService';
 import { FuelNomenclature, FuelNomenclatureFilters } from '@/types/nomenclature';
 import { useSelection } from "@/contexts/SelectionContext";
 

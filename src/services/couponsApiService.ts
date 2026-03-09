@@ -143,8 +143,9 @@ class CouponsApiService {
         station: station.toString()
       });
       return result;
-    } catch (error) {
-      throw this.createApiError('CREATE_ERROR', 'Ошибка создания купона', error);
+    } catch (error: any) {
+      const detail = error?.message || 'Не удалось создать купон';
+      throw this.createApiError('CREATE_ERROR', detail, error);
     }
   }
 

@@ -112,5 +112,38 @@ e2e/                # E2E тесты (Playwright)
 docs/               # Документация (architecture, deployment, mobile, operations, setup)
 ```
 
+## STS (Station Terminal Service) — poscontrol
+
+**STS** — это проект **poscontrol** (`ELSYPLUS/poscontrol/`), от которого TradeFrame получает данные по АЗС.
+
+| Параметр | Значение |
+|----------|----------|
+| Репозиторий | `git@github.com:TS-94/poscontrol.git` |
+| Стек | Python 3 + FastAPI + SQLAlchemy + pyodbc (MS SQL) |
+| API (prod) | `https://pos.autooplata.ru/tms` |
+| Swagger | `https://pos.autooplata.ru/tms/docs` |
+| Сервер | 195.133.27.26 (логин: gavrilov.v) |
+| Порт | 8012 (Docker) / 5001 (dev) |
+
+### API-эндпоинты STS (используемые TradeFrame)
+
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| POST | `/v1/login` | Авторизация → JWT-токен (Bearer) |
+| GET | `/v1/pos/prices/{station}` | Получение цен по станции |
+| POST | `/v1/prices` | Установка цен (service_code → price + effective_date) |
+| GET | `/v1/services` | Справочник услуг (топливо) |
+| GET | `/v1/info` | Статусы оборудования (краткий) |
+| GET | `/v2/info` | Статусы оборудования (расширенный, с params) |
+| POST | `/v1/control/restart` | Перезагрузка терминала |
+
+Параметры запросов: `system` (ID системы), `station` (номер станции), `date` (опционально).
+
+### ENV-переменные для STS
+
+В `server/.env` и корневом `.env`:
+- `VITE_STS_API_URL` — базовый URL STS API
+- `VITE_STS_API_USERNAME` / `VITE_STS_API_PASSWORD` — авторизация
+
 ---
-> Связи: [[CLAUDE|Мастер-контекст]] | [[Dashboard]] | [[DW_Business/products/tradesuite-overview|TradeSuite обзор]] | [[ELSYPLUS/TradeCorp/CLAUDE|TradeCorp]] | [[OnlineOrders/MSTO-Terminal/CLAUDE|TradeGate]]
+> Связи: [[CLAUDE|Мастер-контекст]] | [[Dashboard]] | [[DW_Business/products/tradesuite-overview|TradeSuite обзор]] | [[ELSYPLUS/TradeCorp/CLAUDE|TradeCorp]] | [[OnlineOrders/MSTO-Terminal/CLAUDE|TradeGate]] | [[ELSYPLUS/poscontrol|STS (poscontrol)]]

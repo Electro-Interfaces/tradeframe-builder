@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { User as UserType } from '@/types/auth';
-import { externalUsersService } from '@/services/externalUsersService';
+import { adminUsersService } from '@/services/adminUsersService';
 import { useToast } from '@/hooks/use-toast';
 import { generateTemporaryPassword } from '../utils/passwordGenerator';
 
@@ -37,7 +37,7 @@ export function usePasswordReset(): UsePasswordResetReturn {
       // Генерируем временный пароль
       const tempPassword = generateTemporaryPassword();
 
-      await externalUsersService.changePassword(userToReset.id, tempPassword);
+      await adminUsersService.changePassword(userToReset.id, tempPassword);
 
       toast({
         title: "Пароль сброшен",

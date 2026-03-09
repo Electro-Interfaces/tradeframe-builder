@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { externalRolesService } from '@/services/externalRolesService';
+import { adminRolesService } from '@/services/adminRolesService';
 import { useToast } from '@/hooks/use-toast';
 import type { Role } from '@/types/auth';
 import { PREDEFINED_ROLES } from '../utils/predefinedRoles';
@@ -23,7 +23,7 @@ export function useRoles(): UseRolesReturn {
   const loadRoles = useCallback(async () => {
     try {
       setLoading(true);
-      const rolesData = await externalRolesService.getAllRoles();
+      const rolesData = await adminRolesService.getAllRoles();
       setRoles(rolesData);
     } catch (error) {
       toast({
@@ -38,7 +38,7 @@ export function useRoles(): UseRolesReturn {
 
   const deleteRole = useCallback(async (roleId: string) => {
     try {
-      await externalRolesService.deleteRole(roleId);
+      await adminRolesService.deleteRole(roleId);
       toast({
         title: "Успешно",
         description: "Роль удалена"
@@ -61,7 +61,7 @@ export function useRoles(): UseRolesReturn {
 
       for (const roleConfig of PREDEFINED_ROLES) {
         try {
-          await externalRolesService.createRole(roleConfig);
+          await adminRolesService.createRole(roleConfig);
           created++;
         } catch (error) {
           errors.push(roleConfig.code);
