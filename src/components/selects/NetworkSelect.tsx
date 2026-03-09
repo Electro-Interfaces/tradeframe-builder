@@ -81,13 +81,8 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
   };
 
   const handleRowClick = (networkId: string) => {
-    if (isMultiMode) {
-      // Клик по строке — переключение основной сети (без снятия чекбокса)
-      onValueChange?.(networkId);
-    } else {
-      onValueChange?.(networkId);
-      setOpen(false);
-    }
+    onValueChange?.(networkId);
+    setOpen(false);
   };
 
   // Текст кнопки
@@ -111,7 +106,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
           <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto min-w-56 max-w-md p-0" align="start" onFocusOutside={(e) => e.preventDefault()}>
+      <PopoverContent className="w-auto min-w-56 max-w-md p-0" align="start">
         <div className="max-h-[360px] overflow-y-auto p-2">
           <ul className="space-y-0.5">
             {/* «Выбрать все» — только в мультирежиме при >1 сети */}
