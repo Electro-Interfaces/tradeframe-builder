@@ -86,10 +86,9 @@ export default function CouponsPage() {
   // обновляется асинхронно через отдельный useEffect и может быть устаревшим
   useEffect(() => {
     if (selectedExternalIds.length > 0) {
-      // Используем первую выбранную сеть для system (API принимает один systemId)
-      const systemId = Number(selectedExternalIds[0]);
-      if (!isNaN(systemId)) {
-        loadCouponsData({ ...filters, system: systemId });
+      const systemIds = selectedExternalIds.map(Number).filter(n => !isNaN(n));
+      if (systemIds.length > 0) {
+        loadCouponsData({ ...filters, system: systemIds[0], systems: systemIds });
       }
     }
   }, [selectedTradingPoint, selectedExternalIds]);

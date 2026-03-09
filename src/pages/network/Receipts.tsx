@@ -122,14 +122,20 @@ export default function Receipts() {
     networksService.getAll().then(setNetworks).catch(() => {});
   }, []);
 
+  // Все system IDs из мультиселекта сетей
+  const systemIds = useMemo(() =>
+    selectedExternalIds.map(id => parseInt(id)).filter(n => !isNaN(n)),
+    [selectedExternalIds]
+  );
+
   // Устанавливаем системный ID из контекста при загрузке (первая выбранная сеть)
   useEffect(() => {
-    if (selectedExternalIds.length > 0) {
-      setSystemId(parseInt(selectedExternalIds[0]));
+    if (systemIds.length > 0) {
+      setSystemId(systemIds[0]);
     } else if (selectedNetwork?.external_id) {
       setSystemId(parseInt(selectedNetwork.external_id));
     }
-  }, [selectedExternalIds, selectedNetwork]);
+  }, [systemIds, selectedNetwork]);
 
   // Извлекаем номер станции из выбранной торговой точки
   useEffect(() => {
@@ -145,10 +151,11 @@ export default function Receipts() {
     }
   }, [selectedTradingPointId, selectedNetwork, isAllTradingPoints]);
 
-  // Параметры запроса к API
-  const queryParams: ReceiptsQueryParams = useMemo(() => {
-    const params: ReceiptsQueryParams = {
-      system: systemId || 0
+  // Параметры запроса к API (с мультисетевой поддержкой)
+  const queryParams = useMemo(() => {
+    const params: any = {
+      system: systemId || 0,
+      systems: systemIds.length > 1 ? systemIds : undefined
     };
 
     // Добавляем station если выбрана конкретная торговая точка
@@ -160,7 +167,7 @@ export default function Receipts() {
     if (dateTo) params.dt_end = dateTo;
 
     return params;
-  }, [systemId, stationNumber, isAllTradingPoints, dateFrom, dateTo]);
+  }, [systemId, systemIds, stationNumber, isAllTradingPoints, dateFrom, dateTo]);
 
   // Загрузка данных
   const { data: receiptsData, isLoading, isError, error, refetch } = useReceipts(queryParams);
@@ -201,8 +208,9 @@ export default function Receipts() {
   // Номера станций из мультиселекта для фильтрации поступлений
   const [resolvedStationNumbers, setResolvedStationNumbers] = useState<Set<string> | null>(null);
 
+  // Всегда фильтруем по справочнику — STS может возвращать станции, не зарегистрированные в системе
   useEffect(() => {
-    if (!isAllTradingPoints || selectedTradingPoints.length === 0 || selectedNetworkIds.length === 0) {
+    if (!isAllTradingPoints || selectedNetworkIds.length === 0) {
       setResolvedStationNumbers(null);
       return;
     }
@@ -210,17 +218,13 @@ export default function Receipts() {
       selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => []))
     ).then(results => {
       const allPoints = results.flat();
-      if (selectedTradingPoints.length < allPoints.length) {
-        const numbers = new Set(
-          allPoints
-            .filter(p => selectedTradingPoints.includes(p.id))
-            .map(p => p.external_id)
-            .filter((id): id is string => !!id)
-        );
-        setResolvedStationNumbers(numbers);
-      } else {
-        setResolvedStationNumbers(null); // Все выбраны — не фильтруем
-      }
+      const relevantPoints = selectedTradingPoints.length > 0 && selectedTradingPoints.length < allPoints.length
+        ? allPoints.filter(p => selectedTradingPoints.includes(p.id))
+        : allPoints;
+      const numbers = new Set(
+        relevantPoints.map(p => p.external_id).filter((id): id is string => !!id)
+      );
+      setResolvedStationNumbers(numbers.size > 0 ? numbers : null);
     });
   }, [isAllTradingPoints, selectedTradingPoints, selectedNetworkIds]);
 

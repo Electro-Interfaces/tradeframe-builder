@@ -25,8 +25,9 @@ export function useCouponsData() {
 
   /**
    * Загрузка данных купонов с API
+   * filters.system — основная сеть, filters.systems — все выбранные сети (мультиселект)
    */
-  const loadCouponsData = async (filters: CouponsFilter) => {
+  const loadCouponsData = async (filters: CouponsFilter & { systems?: number[] }) => {
     setLoading(true);
     setError(null);
 
@@ -43,20 +44,45 @@ export function useCouponsData() {
         }
       }
 
-      // Параметры запроса к API
-      const apiParams: CouponsApiParams = {
-        system: filters.system,
-        // Используем external_id торговой точки если он число
-        ...(tradingPointExternalId && { station: tradingPointExternalId }),
-        ...(filters.dateFrom && { dt_beg: filters.dateFrom }),
-        ...(filters.dateTo && { dt_end: filters.dateTo })
-      };
+      // Эффективный список system IDs: мультиселект или один
+      const systemIds = (filters.systems && filters.systems.length > 0)
+        ? filters.systems
+        : [filters.system];
 
-      // Загружаем обычные и ручные купоны параллельно
-      const [apiResponse, manualResponse] = await Promise.all([
-        couponsApiService.getCoupons(apiParams),
-        couponsApiService.getManualCoupons(apiParams).catch(() => [])
-      ]);
+      // Загружаем купоны из всех систем параллельно
+      const allResults = await Promise.all(
+        systemIds.map(async (sys) => {
+          const apiParams: CouponsApiParams = {
+            system: sys,
+            ...(tradingPointExternalId && { station: tradingPointExternalId }),
+            ...(filters.dateFrom && { dt_beg: filters.dateFrom }),
+            ...(filters.dateTo && { dt_end: filters.dateTo })
+          };
+          const [api, manual] = await Promise.all([
+            couponsApiService.getCoupons(apiParams).catch(() => [] as any),
+            couponsApiService.getManualCoupons(apiParams).catch(() => [] as any)
+          ]);
+          return { api, manual };
+        })
+      );
+
+      // Мержим результаты из всех сетей
+      const apiResponse = allResults.length === 1
+        ? allResults[0].api
+        : allResults.reduce((acc, r) => {
+            if (Array.isArray(r.api)) return [...(Array.isArray(acc) ? acc : []), ...r.api];
+            if (Array.isArray(acc)) return acc;
+            // Объект с полями — мержим массивы внутри
+            const merged = { ...acc };
+            Object.keys(r.api || {}).forEach(key => {
+              if (Array.isArray((r.api as any)[key]) && Array.isArray((merged as any)[key])) {
+                (merged as any)[key] = [...(merged as any)[key], ...(r.api as any)[key]];
+              }
+            });
+            return merged;
+          }, allResults[0].api);
+
+      const manualResponse = allResults.flatMap(r => Array.isArray(r.manual) ? r.manual : []);
 
       // Обогащаем обычные купоны данными comment/user из ручных
       const enrichedResponse = couponsApiService.enrichWithManualData(apiResponse, manualResponse);
