@@ -92,6 +92,7 @@ export function useNetworkOverviewData() {
   }, []);
 
   // Фильтрация транзакций по мультиселекту точек
+  // Всегда фильтруем по справочнику — STS может возвращать станции, не зарегистрированные в системе
   const filterBySelectedPoints = useCallback(async (txns: any[]) => {
     if (!isAllTradingPoints || selectedTradingPoints.length === 0 || selectedNetworkIds.length === 0) {
       return txns;
@@ -100,15 +101,16 @@ export function useNetworkOverviewData() {
       const allPoints = (await Promise.all(
         selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => []))
       )).flat();
-      if (selectedTradingPoints.length < allPoints.length) {
-        const allowedExtIds = new Set(
-          allPoints
-            .filter(p => selectedTradingPoints.includes(p.id))
-            .map(p => p.external_id)
-            .filter(Boolean)
-        );
-        return txns.filter(t => allowedExtIds.has(String(t.stationNumber)));
-      }
+      // Фильтруем по выбранным точкам (или по всем известным, если выбраны все)
+      const relevantPoints = selectedTradingPoints.length < allPoints.length
+        ? allPoints.filter(p => selectedTradingPoints.includes(p.id))
+        : allPoints;
+      const allowedExtIds = new Set(
+        relevantPoints
+          .map(p => p.external_id)
+          .filter(Boolean)
+      );
+      return txns.filter(t => allowedExtIds.has(String(t.stationNumber)));
     } catch { /* ignore */ }
     return txns;
   }, [isAllTradingPoints, selectedTradingPoints, selectedNetworkIds]);
