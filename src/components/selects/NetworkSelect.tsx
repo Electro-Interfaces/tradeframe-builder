@@ -120,7 +120,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                 key="all"
                 className={cn(
                   "flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer border-b border-border mb-1 transition-colors",
-                  selectedIds.length === networks.length ? "bg-purple-600/10" : "hover:bg-card"
+                  selectedIds.length === networks.length ? "bg-blue-600/10" : "hover:bg-card"
                 )}
                 onClick={() => {
                   if (selectedIds.length === networks.length) {
@@ -133,10 +133,10 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
               >
                 <Checkbox
                   checked={selectedIds.length === networks.length}
-                  className="data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                  className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                 />
-                <span className="h-2 w-2 rounded-full bg-purple-400" aria-hidden />
-                <span className={cn("truncate font-medium", selectedIds.length === networks.length && "text-purple-700 dark:text-purple-200")}>
+                <span className="h-2 w-2 rounded-full bg-blue-400" aria-hidden />
+                <span className={cn("truncate font-medium", selectedIds.length === networks.length && "text-blue-700 dark:text-blue-200")}>
                   Все сети ({networks.length})
                 </span>
               </li>
@@ -149,13 +149,13 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                   key={network.id}
                   className={cn(
                     "flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors",
-                    isSelected ? "bg-purple-600/10" : "hover:bg-card"
+                    isSelected ? "bg-blue-600/10" : "hover:bg-card"
                   )}
                 >
                   {isMultiMode && (
                     <Checkbox
                       checked={isSelected}
-                      className="data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600 cursor-pointer shrink-0"
+                      className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 cursor-pointer shrink-0"
                       onCheckedChange={() => handleToggle(network.id)}
                       onClick={(e) => e.stopPropagation()}
                     />
@@ -167,13 +167,13 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                     <span
                       className={cn(
                         "h-2 w-2 rounded-full shrink-0",
-                        isPrimary ? "bg-purple-500" : "bg-emerald-400"
+                        isPrimary ? "bg-blue-500" : "bg-emerald-400"
                       )}
                       aria-hidden
                     />
                     <span className={cn(
                       "truncate",
-                      isSelected && "text-purple-700 dark:text-purple-200 font-medium"
+                      isSelected && "text-blue-700 dark:text-blue-200 font-medium"
                     )}>
                       {network.name}
                     </span>
@@ -182,7 +182,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                     )}
                   </div>
                   {!isMultiMode && isSelected && (
-                    <Check className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                    <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
                   )}
                 </li>
               );
