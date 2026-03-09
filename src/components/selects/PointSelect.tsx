@@ -155,7 +155,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
           <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto min-w-56 max-w-md p-0" align="start">
+      <PopoverContent className="w-auto min-w-56 max-w-md p-0" align="start" onFocusOutside={(e) => e.preventDefault()}>
         <div className="max-h-[360px] overflow-y-auto p-2">
           <ul className="space-y-0.5">
             {/* Выбрать все */}

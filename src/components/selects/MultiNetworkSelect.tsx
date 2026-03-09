@@ -109,6 +109,7 @@ export function MultiNetworkSelect({
       </PopoverTrigger>
       <PopoverContent
         className="w-auto min-w-[320px] max-w-md p-0 bg-card border-border"
+        onFocusOutside={(e) => e.preventDefault()}
         align="start"
       >
         {/* Header с кнопками */}
