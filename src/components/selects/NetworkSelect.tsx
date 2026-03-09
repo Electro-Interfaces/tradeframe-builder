@@ -184,6 +184,17 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
             })}
           </ul>
         </div>
+        {/* Кнопка «Применить» — закрыть dropdown после мультиселекта */}
+        {isMultiMode && selectedIds.length > 0 && (
+          <div className="border-t border-border px-2 py-2">
+            <button
+              className="w-full px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              Применить ({selectedIds.length})
+            </button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
