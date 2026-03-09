@@ -186,7 +186,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
                   className={cn("rounded-full bg-blue-400", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")}
                   aria-hidden
                 />
-                <span className={cn("truncate font-medium", isMobile && "text-base", isAllSelected && "text-blue-700 dark:text-blue-200")}>
+                <span className={cn("truncate font-medium", isAllSelected && "text-blue-700 dark:text-blue-200")}>
                   {hasRestrictedAccess
                     ? `Все доступные (${tradingPoints.length})`
                     : "Все торговые точки"
@@ -233,12 +233,12 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
                       )}
                       aria-hidden
                     />
-                    <span className={cn(isMobile && "text-base", isSelected && "text-blue-700 dark:text-blue-200 font-medium")}>
+                    <span className={cn("truncate", isSelected && "text-blue-700 dark:text-blue-200 font-medium")}>
                       {point.name}
-                      {point.description && <span className="text-muted-foreground"> - {point.description}</span>}
+                      {!isMobile && point.description && <span className="text-muted-foreground"> - {point.description}</span>}
                     </span>
                     {point.external_id && (
-                      <span className={cn("text-blue-600 dark:text-blue-400 font-mono shrink-0", isMobile ? "text-sm" : "text-xs")}>({point.external_id})</span>
+                      <span className="text-xs text-blue-600 dark:text-blue-400 font-mono shrink-0">({point.external_id})</span>
                     )}
                   </div>
                 </li>
@@ -252,7 +252,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
             <button
               className={cn(
                 "w-full font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
-                isMobile ? "px-4 py-2.5 text-base" : "px-3 py-1.5 text-sm"
+                isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm"
               )}
               onClick={() => setOpen(false)}
             >

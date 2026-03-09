@@ -140,7 +140,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                   )}
                 />
                 <span className={cn("rounded-full bg-blue-400", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
-                <span className={cn("truncate font-medium", isMobile && "text-base", selectedIds.length === networks.length && "text-blue-700 dark:text-blue-200")}>
+                <span className={cn("truncate font-medium", selectedIds.length === networks.length && "text-blue-700 dark:text-blue-200")}>
                   Все сети ({networks.length})
                 </span>
               </li>
@@ -182,13 +182,12 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                     />
                     <span className={cn(
                       "truncate",
-                      isMobile && "text-base",
                       isSelected && "text-blue-700 dark:text-blue-200 font-medium"
                     )}>
                       {network.name}
                     </span>
                     {network.code && (
-                      <span className={cn("text-muted-foreground font-mono shrink-0", isMobile ? "text-sm" : "text-xs")}>({network.code})</span>
+                      <span className="text-xs text-muted-foreground font-mono shrink-0">({network.code})</span>
                     )}
                   </div>
                   {!isMultiMode && isSelected && (
@@ -205,7 +204,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
             <button
               className={cn(
                 "w-full font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
-                isMobile ? "px-4 py-2.5 text-base" : "px-3 py-1.5 text-sm"
+                isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm"
               )}
               onClick={() => setOpen(false)}
             >
