@@ -52,6 +52,7 @@ export interface PriceStatistics {
 
 interface UseNetworkPricesOptions {
   network?: Network | null;
+  networks?: Network[]; // Мультиселект сетей
   autoLoad?: boolean;
   loadHistory?: boolean; // Загружать ли историю цен
   historyDays?: number; // За сколько дней загружать историю (по умолчанию 90)
@@ -97,7 +98,14 @@ interface ShiftFuelSale {
 }
 
 export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetworkPricesReturn {
-  const { network, autoLoad = true, loadHistory = true, historyDays = 90, loadShiftSales = true, shiftsDays = 30, filterPeriod = 'all' } = options;
+  const { network, networks, autoLoad = true, loadHistory = true, historyDays = 90, loadShiftSales = true, shiftsDays = 30, filterPeriod = 'all' } = options;
+
+  // Эффективный список сетей: мультиселект или одна основная
+  const effectiveNetworks = useMemo(() => {
+    if (networks && networks.length > 0) return networks;
+    if (network) return [network];
+    return [];
+  }, [networks, network]);
   const { user } = useNewAuth();
 
   const [networkPrices, setNetworkPrices] = useState<NetworkPriceData[]>([]);
@@ -311,7 +319,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
    * Загрузка цен по всей сети
    */
   const loadNetworkPrices = useCallback(async () => {
-    if (!network || !network.external_id) {
+    if (effectiveNetworks.length === 0 || !effectiveNetworks.some(n => n.external_id)) {
       setNetworkPrices([]);
       setStatistics([]);
       return;
@@ -330,8 +338,15 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
     setRawShiftFuelSales([]);
 
     try {
-      // Получаем все торговые точки сети
-      const tradingPoints = await tradingPointsService.getByNetworkId(network.id);
+      // Получаем все торговые точки из всех выбранных сетей с маппингом на сеть
+      type TpWithNetwork = Awaited<ReturnType<typeof tradingPointsService.getByNetworkId>>[number] & { _networkExtId: string };
+      const allPointsRaw = await Promise.all(
+        effectiveNetworks.filter(n => n.external_id).map(async (net) => {
+          const pts = await tradingPointsService.getByNetworkId(net.id).catch(() => [] as any[]);
+          return pts.map((p: any): TpWithNetwork => ({ ...p, _networkExtId: net.external_id! }));
+        })
+      );
+      const tradingPoints: TpWithNetwork[] = allPointsRaw.flat();
 
       // Фильтруем только активные точки с external_id
       let activePoints = tradingPoints.filter(
@@ -349,7 +364,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
       const pricesPromises = activePoints.map(async (tp) => {
         try {
           const prices = await stsApiService.getPrices({
-            networkId: network.external_id!,
+            networkId: tp._networkExtId,
             tradingPointId: tp.external_id
           });
 
@@ -384,7 +399,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
           const historyPromises = activePoints.map(async (tp) => {
             try {
               const history = await stsApiService.getPriceSchedule(
-                network.external_id!,
+                tp._networkExtId,
                 tp.external_id!,
                 startDateStr
               );
@@ -444,11 +459,11 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
           shiftsStartDate.setDate(shiftsStartDate.getDate() - shiftsDays);
           const shiftsEndDate = new Date();
 
-          // Загрузка списка смен — параллельно по станциям
+          // Загрузка списка смен — параллельно по станциям, используя per-point network
           const shiftsPromises = activePoints.map(async (tp) => {
             try {
               return await shiftsService.getShifts({
-                system: Number(network.external_id!),
+                system: Number(tp._networkExtId),
                 station: Number(tp.external_id),
                 dt_beg: shiftsStartDate.toISOString().split('T')[0] + 'T00:00:00',
                 dt_end: shiftsEndDate.toISOString().split('T')[0] + 'T23:59:59'
@@ -556,7 +571,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
       setError(error);
       setLoading(false);
     }
-  }, [network, calculateStatistics, loadHistory, historyDays, loadShiftSales, shiftsDays, allowedTradingPointIds]);
+  }, [effectiveNetworks, calculateStatistics, loadHistory, historyDays, loadShiftSales, shiftsDays, allowedTradingPointIds]);
 
   /**
    * Обновление данных

@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useSelection } from "@/contexts/SelectionContext";
+import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNetworkPrices } from "@/hooks/useNetworkPrices";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +22,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function NetworkPricing() {
   const { selectedNetwork, isInitialized } = useSelection();
+  const { selectedNetworks } = useSelectedNetworks();
   const isMobile = useIsMobile();
 
   // Выбранный период на уровне страницы
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
 
-  // Загрузка цен по сети
+  // Загрузка цен по всем выбранным сетям
   const {
     networkPrices,
     statistics,
@@ -38,6 +40,7 @@ export default function NetworkPricing() {
     refresh
   } = useNetworkPrices({
     network: selectedNetwork,
+    networks: selectedNetworks,
     autoLoad: true,
     filterPeriod: selectedPeriod
   });
@@ -88,7 +91,10 @@ export default function NetworkPricing() {
                 Ценообразование
               </h1>
               <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
-                Сеть: {selectedNetwork.name}
+                {selectedNetworks.length > 1
+                  ? `Сети: ${selectedNetworks.map(n => n.name).join(', ')}`
+                  : `Сеть: ${selectedNetwork.name}`
+                }
               </p>
             </div>
 
