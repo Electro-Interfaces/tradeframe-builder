@@ -190,23 +190,21 @@ export default function OperationsTransactionsPageSimple() {
         );
         transactions = results.flat();
 
-        // Фильтруем по мультиселекту
-        if (selectedTradingPoints.length > 0 && selectedNetworkIds.length > 0) {
+        // Всегда фильтруем по справочнику станций — STS может возвращать станции, не зарегистрированные в системе
+        if (selectedNetworkIds.length > 0) {
           try {
             const allNetworkPoints = (await Promise.all(
               selectedNetworkIds.map(id => tradingPointsService.getByNetworkId(id).catch(() => []))
             )).flat();
-            if (selectedTradingPoints.length < allNetworkPoints.length) {
-              const selectedExtIds = new Set(
-                allNetworkPoints
-                  .filter(p => selectedTradingPoints.includes(p.id))
-                  .map(p => p.external_id)
-                  .filter(Boolean)
-              );
-              transactions = transactions.filter((t: any) =>
-                selectedExtIds.has(String(t.stationNumber))
-              );
-            }
+            const relevantPoints = selectedTradingPoints.length > 0 && selectedTradingPoints.length < allNetworkPoints.length
+              ? allNetworkPoints.filter(p => selectedTradingPoints.includes(p.id))
+              : allNetworkPoints;
+            const allowedExtIds = new Set(
+              relevantPoints.map(p => p.external_id).filter(Boolean)
+            );
+            transactions = transactions.filter((t: any) =>
+              allowedExtIds.has(String(t.stationNumber))
+            );
           } catch { /* ignore */ }
         }
       } else if (selectedTradingPoint) {
