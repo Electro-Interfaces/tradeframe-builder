@@ -9,7 +9,7 @@ import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 
 export function useNetworkOverviewData() {
   const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
-  const { selectedExternalIds } = useSelectedNetworks();
+  const { selectedExternalIds, selectedNetworks } = useSelectedNetworks();
   const { user } = useNewAuth();
   const { toast } = useToast();
 
@@ -153,19 +153,23 @@ export function useNetworkOverviewData() {
         setPrevPeriodTransactions([]);
       }
 
-      // Дополнительные данные (только для конкретной станции + основная сеть)
+      // Дополнительные данные (только для конкретной станции)
+      // Определяем правильный external_id сети для этой станции
       if (tradingPointId && tradingPointId !== '1') {
-        const primaryParams = { networkId: selectedExternalIds[0], tradingPointId };
+        const stationNetworkExtId = selectedStation?.networkId
+          ? selectedNetworks.find(n => n.id === selectedStation.networkId)?.external_id || selectedExternalIds[0]
+          : selectedExternalIds[0];
+        const stationParams = { networkId: stationNetworkExtId, tradingPointId };
         try {
-          const tanksData = await stsApiService.getTanks(primaryParams);
+          const tanksData = await stsApiService.getTanks(stationParams);
           setTanks(tanksData);
         } catch { /* ignore */ }
         try {
-          const terminalData = await stsApiService.getTerminalInfo(primaryParams);
+          const terminalData = await stsApiService.getTerminalInfo(stationParams);
           setTerminalInfo(terminalData);
         } catch { /* ignore */ }
         try {
-          const pricesData = await stsApiService.getPrices(primaryParams);
+          const pricesData = await stsApiService.getPrices(stationParams);
           setPrices(pricesData);
         } catch { /* ignore */ }
       }
@@ -182,7 +186,7 @@ export function useNetworkOverviewData() {
         setLoading(false);
       }
     }
-  }, [selectedExternalIds, selectedTradingPoint, selectedStation?.external_id, selectedTradingPoints, isAllTradingPoints, dateFrom, dateTo, fetchTransactionsForNetworks, filterBySelectedPoints]);
+  }, [selectedExternalIds, selectedNetworks, selectedTradingPoint, selectedStation, selectedTradingPoints, isAllTradingPoints, dateFrom, dateTo, fetchTransactionsForNetworks, filterBySelectedPoints]);
 
   // Инициализация компонента
   useEffect(() => {
