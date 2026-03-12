@@ -29,13 +29,18 @@ export async function executeReconciliation(
   params: ReconciliationParams
 ): Promise<ReconciliationResult> {
   const startTime = Date.now();
-  const { dateFrom, dateTo, stationIds, showAllShifts } = params;
+  const { dateFrom, dateTo, stationIds, showAllShifts, systemId } = params;
+
+  if (!systemId) {
+    throw new Error('Не указан systemId — выберите сеть перед запуском сверки');
+  }
 
   // Получаем данные параллельно из трёх источников
+  // systemId передаётся из настроек сети для запросов к STS API
   const [corpTransactions, tfTransactions, shiftsInfo] = await Promise.all([
     getCorpTransactions(dateFrom, dateTo, stationIds),
-    getTfTransactions(dateFrom, dateTo, stationIds),
-    getShiftsWithReports(dateFrom, dateTo, stationIds, showAllShifts)
+    getTfTransactions(dateFrom, dateTo, stationIds, systemId),
+    getShiftsWithReports(dateFrom, dateTo, stationIds, showAllShifts, systemId)
   ]);
 
   // Создаём унифицированную карту имён станций

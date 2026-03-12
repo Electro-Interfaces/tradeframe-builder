@@ -129,6 +129,8 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const { user } = useNewAuth();
+  // Стабильный ID пользователя для перезапуска эффектов после логина
+  const userId = user?.id;
 
   // Проверяем, имеет ли пользователь доступ к сохраненной в localStorage сети
   // И автоматически выбираем доступную сеть если текущая недоступна
@@ -148,10 +150,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (availableNetworks.length > 0) {
-        // По умолчанию выбираем сеть БТО (external_id === "15") если она доступна
-        const defaultNetwork = availableNetworks.find(n => n.external_id === "15");
-        const networkToSelect = defaultNetwork || availableNetworks[0];
-        setSelectedNetworkId(networkToSelect.id);
+        setSelectedNetworkId(availableNetworks[0].id);
       }
     };
 
@@ -258,7 +257,9 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       // Если нет выбранной сети, всё равно отмечаем инициализацию
       setIsInitialized(true);
     }
-  }, [selectedNetworkId]);
+  }, [selectedNetworkId, userId]);
+  // ↑ userId в зависимостях: после логина (null→user) эффект перезапускается,
+  //   т.к. до логина API-вызовы фейлятся из-за отсутствия токена авторизации
 
   // Загружаем объект торговой точки при изменении selectedTradingPoint
   useEffect(() => {

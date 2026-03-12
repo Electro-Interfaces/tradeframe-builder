@@ -214,7 +214,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
           )
         break
 
-      case 'manager':
+      case 'manager': {
         // Менеджер: операции, отчеты, цены, резервуары + видимость основных меню
         const managerSections = ['networks', 'operations', 'equipment', 'finance', 'menu_visibility']
         newPermissions = Object.values(PERMISSION_SECTIONS)
@@ -231,6 +231,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
             }))
           )
         break
+      }
 
       case 'readonly':
         // Только чтение: все разделы только на чтение + видимость всех меню

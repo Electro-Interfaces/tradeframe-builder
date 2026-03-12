@@ -943,6 +943,7 @@ if (typeof window !== 'undefined') {
     localStorage.removeItem('fuelTypes');
     localStorage.removeItem('tanks');
   } catch (e) {
+    void e;
   }
 }
 

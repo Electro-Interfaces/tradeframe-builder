@@ -2,6 +2,27 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import './styles/mobile.css'
+import { clearTradeFrameAppStorage } from './utils/storageCleanup'
+
+const DOM_MUTATION_ERROR_PATTERNS = ['insertBefore', 'appendChild', 'removeChild'] as const
+
+function getErrorMessage(value: unknown): string {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (value && typeof value === 'object' && 'message' in value) {
+    const message = (value as { message?: unknown }).message
+    return typeof message === 'string' ? message : ''
+  }
+
+  return ''
+}
+
+function isRecoverableDomMutationError(value: unknown): boolean {
+  const message = getErrorMessage(value)
+  return DOM_MUTATION_ERROR_PATTERNS.some((pattern) => message.includes(pattern))
+}
 
 // Регистрация Service Worker для PWA (единственная точка регистрации)
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -47,12 +68,15 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 declare global {
   interface Window {
     resetDemoData: () => void;
+    clearTradeFrameAppStorage: () => void;
     reactReady?: boolean;
   }
 }
 
+window.clearTradeFrameAppStorage = clearTradeFrameAppStorage;
+
 window.resetDemoData = () => {
-  localStorage.clear();
+  clearTradeFrameAppStorage();
   location.reload();
 };
 
@@ -92,44 +116,21 @@ if (typeof window !== 'undefined') {
 
     // iOS PWA auth fix
     const authFromBrowser = sessionStorage.getItem('pwa-auth-backup');
-    if (authFromBrowser && !localStorage.getItem('tradeframe_user')) {
+    if (authFromBrowser && !localStorage.getItem('tradeframe_user_v2') && !localStorage.getItem('tradeframe_user')) {
       try {
         const authData = JSON.parse(authFromBrowser);
+        localStorage.setItem('tradeframe_user_v2', authData.user);
+        localStorage.setItem('tradeframe_token_v2', authData.token);
         localStorage.setItem('tradeframe_user', authData.user);
         localStorage.setItem('authToken', authData.token);
-      } catch (e) {}
+        localStorage.setItem('auth_token', authData.token);
+        localStorage.setItem('auth_user', authData.user);
+        sessionStorage.setItem('auth_token', authData.token);
+        sessionStorage.setItem('auth_user', authData.user);
+      } catch (e) {
+        void e;
+      }
     }
-
-    // iOS PWA error prevention и обработка DOM ошибок
-    window.addEventListener('error', (e) => {
-      // Специальная обработка DOM ошибок типа insertBefore
-      if (e.message && (
-        e.message.includes('insertBefore') ||
-        e.message.includes('appendChild') ||
-        e.message.includes('removeChild') ||
-        e.message.includes('Node')
-      )) {
-        e.preventDefault();
-        return true;
-      }
-
-      // Общая обработка для PWA
-      e.preventDefault();
-      return true;
-    });
-
-    // Дополнительная защита для unhandledrejection (для React ошибок)
-    window.addEventListener('unhandledrejection', (e) => {
-      if (e.reason && e.reason.message && (
-        e.reason.message.includes('insertBefore') ||
-        e.reason.message.includes('appendChild') ||
-        e.reason.message.includes('removeChild') ||
-        e.reason.message.includes('Node')
-      )) {
-        e.preventDefault();
-        return true;
-      }
-    });
   }
 }
 
@@ -141,12 +142,7 @@ if (typeof window !== 'undefined') {
 // Глобальная обработка ошибок insertBefore для всех браузеров
 window.addEventListener('error', (e) => {
   // Предотвращаем показ ошибки insertBefore пользователю
-  if (e.message && (
-    e.message.includes('insertBefore') ||
-    e.message.includes('appendChild') ||
-    e.message.includes('removeChild') ||
-    e.message.includes('Node')
-  )) {
+  if (isRecoverableDomMutationError(e.message)) {
     e.preventDefault();
     return true;
   }
@@ -154,12 +150,7 @@ window.addEventListener('error', (e) => {
 
 window.addEventListener('unhandledrejection', (e) => {
   // Предотвращаем показ ошибки insertBefore в промисах
-  if (e.reason && e.reason.message && (
-    e.reason.message.includes('insertBefore') ||
-    e.reason.message.includes('appendChild') ||
-    e.reason.message.includes('removeChild') ||
-    e.reason.message.includes('Node')
-  )) {
+  if (isRecoverableDomMutationError(e.reason)) {
     e.preventDefault();
     return true;
   }
@@ -191,7 +182,7 @@ try {
           <h1 style="margin-bottom: 20px;">Ошибка загрузки</h1>
           <p style="margin-bottom: 20px; color: hsl(var(--muted-foreground));">Приложение не может быть загружено</p>
           <button
-            onclick="localStorage.clear(); sessionStorage.clear(); location.reload();"
+            onclick="window.clearTradeFrameAppStorage(); location.reload();"
             style="background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px;">
             Очистить данные и перезагрузить
           </button>

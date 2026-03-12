@@ -2,7 +2,7 @@
  * Сервис трёхсторонней сверки корпоративного процессинга
  *
  * Модульная структура:
- * - constants.ts    - константы (TIME_TOLERANCE_MS, SYSTEM_ID и др.)
+ * - constants.ts    - константы (TIME_TOLERANCE_MS и др.)
  * - utils.ts        - утилиты (normalizeFuelName, round, mapTradecorpStationToSts)
  * - dataFetcher.ts  - получение данных из API (Corp, TF, Shifts)
  * - matcher.ts      - построчная сверка Corp ↔ TF
@@ -28,7 +28,6 @@ export { executeReconciliation } from './orchestrator';
 // Константы (для использования в UI)
 export {
   TIME_TOLERANCE_MS,
-  SYSTEM_ID,
   LITERS_TOLERANCE,
   UI_DISCREPANCY_TOLERANCE,
   TRANSACTION_STATUS_ORDER

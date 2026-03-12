@@ -100,7 +100,6 @@ export function useTanks(options: UseTanksOptions = {}): UseTanksReturn {
     if (autoLoad && networkId && tradingPointId && tradingPointId !== 'all') {
       loadTanks();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [networkId, tradingPointId, autoLoad]);
 
   return {

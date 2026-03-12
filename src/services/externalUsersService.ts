@@ -1,5 +1,5 @@
 /**
- * Сервис для работы с пользователями во внешней базе данных Supabase
+ * Сервис для работы с пользователями во внешней базе данных PostgreSQL
  */
 
 import { User, UserStatus, CreateUserInput, UpdateUserInput } from '@/types/auth';

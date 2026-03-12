@@ -91,6 +91,94 @@ export function calculateTankFullVolume(
   return volume_mm3 / 1000000; // мм³ → литры
 }
 
+function getTankLevelCapacity(settings: TankCalibrationSettings): number {
+  switch (settings.tank_shape_type) {
+    case 'vertical_cylinder':
+    case 'rectangular':
+      return settings.tank_height_mm;
+    case 'spherical':
+    case 'horizontal_cylinder':
+    default:
+      return settings.tank_diameter_mm;
+  }
+}
+
+function getMeasurableLevelRange(settings: TankCalibrationSettings): {
+  minLevelMm: number;
+  maxLevelMm: number;
+} {
+  const minLevelMm = Math.max(0, settings.sensor_blind_zone_bottom_mm || 0);
+  const tankCapacityMm = getTankLevelCapacity(settings);
+  const maxLevelMm = Math.max(
+    minLevelMm,
+    tankCapacityMm - (settings.sensor_blind_zone_top_mm || 0)
+  );
+
+  return {
+    minLevelMm,
+    maxLevelMm,
+  };
+}
+
+function calculateVolumeByTankShape(
+  level_mm: number,
+  settings: TankCalibrationSettings
+): number {
+  const maxLevel = getTankLevelCapacity(settings);
+  const boundedLevel = Math.max(0, Math.min(level_mm, maxLevel));
+
+  switch (settings.tank_shape_type) {
+    case 'horizontal_cylinder':
+      return calculateHorizontalCylinderVolume(
+        boundedLevel,
+        settings.tank_diameter_mm,
+        settings.tank_length_mm,
+        settings.tank_tilt_angle_degrees
+      );
+
+    case 'vertical_cylinder': {
+      const radius = settings.tank_diameter_mm / 2;
+      return (Math.PI * radius * radius * boundedLevel) / 1000000;
+    }
+
+    case 'spherical': {
+      const radius = settings.tank_diameter_mm / 2;
+      return (Math.PI * boundedLevel * boundedLevel * (radius - boundedLevel / 3)) / 1000000;
+    }
+
+    case 'rectangular':
+      return (settings.tank_length_mm * settings.tank_width_mm * boundedLevel) / 1000000;
+
+    default:
+      return calculateHorizontalCylinderVolume(
+        boundedLevel,
+        settings.tank_diameter_mm,
+        settings.tank_length_mm,
+        settings.tank_tilt_angle_degrees
+      );
+  }
+}
+
+function buildLevelSequence(startLevel: number, endLevel: number, step: number): number[] {
+  if (step <= 0) {
+    throw new Error('Шаг калибровки должен быть > 0');
+  }
+
+  const normalizedStart = Math.max(0, startLevel);
+  const normalizedEnd = Math.max(normalizedStart, endLevel);
+  const levels: number[] = [];
+
+  for (let level = normalizedStart; level < normalizedEnd; level += step) {
+    levels.push(level);
+  }
+
+  if (levels.length === 0 || Math.abs(levels[levels.length - 1] - normalizedEnd) > 0.001) {
+    levels.push(normalizedEnd);
+  }
+
+  return levels;
+}
+
 /**
  * Расчет площади сегмента круга
  */
@@ -195,7 +283,7 @@ export function correctVolumeForTemperature(
   actualTemp: number,
   settings: TankCalibrationSettings
 ): number {
-  if (!actualTemp || isNaN(actualTemp)) return volume;
+  if (!Number.isFinite(actualTemp)) return volume;
 
   const alpha = settings.thermal_expansion_coefficient;
   const T_base = settings.base_temperature;
@@ -216,7 +304,7 @@ export function normalizeVolumeToBaseTemperature(
   actualTemp: number,
   settings: TankCalibrationSettings
 ): number {
-  if (!actualTemp || isNaN(actualTemp)) return volume;
+  if (!Number.isFinite(actualTemp)) return volume;
 
   const alpha = settings.thermal_expansion_coefficient;
   const T_base = settings.base_temperature;
@@ -241,7 +329,7 @@ function isInBlindZone(
   }
 
   // Слепая зона сверху (относительно диаметра резервуара)
-  const maxMeasurableLevel = settings.tank_diameter_mm - settings.sensor_blind_zone_top_mm;
+  const maxMeasurableLevel = getTankLevelCapacity(settings) - settings.sensor_blind_zone_top_mm;
   if (level_mm > maxMeasurableLevel) {
     return true;
   }
@@ -274,34 +362,13 @@ export function buildGeometricCalibrationTable(
 
   const table: CalibrationTablePoint[] = [];
   const step = settings.calibration_step_mm || 100;
+  const { minLevelMm, maxLevelMm } = getMeasurableLevelRange(settings);
 
-  for (let level = 0; level <= settings.tank_diameter_mm; level += step) {
-    let volume = 0;
-
-    switch (settings.tank_shape_type) {
-      case 'horizontal_cylinder':
-        volume = calculateHorizontalCylinderVolume(
-          level,
-          settings.tank_diameter_mm,
-          settings.tank_length_mm,
-          settings.tank_tilt_angle_degrees
-        );
-        break;
-
-      case 'vertical_cylinder':
-        const R = settings.tank_diameter_mm / 2;
-        volume = (Math.PI * R * R * level) / 1000000;
-        break;
-
-      default:
-        volume = calculateHorizontalCylinderVolume(
-          level,
-          settings.tank_diameter_mm,
-          settings.tank_length_mm,
-          settings.tank_tilt_angle_degrees
-        );
-    }
-
+  for (const level of buildLevelSequence(minLevelMm, maxLevelMm, step)) {
+    const volume = adjustForDeadStock(
+      calculateVolumeByTankShape(level, settings),
+      settings
+    );
     table.push({
       level_mm: level,
       volume_liters: Math.max(0, volume)
@@ -477,7 +544,12 @@ function prepareDataPointsWithReceipts(
     ?? history.find(record => record.number === tankNumber && typeof record.fuel === 'number' && record.fuel > 0)?.fuel
     ?? null;
 
+  const hasDirectTankMatches = transactions.some(tx => tx.tank === tankNumber);
+
   const matchTransactionToTank = (tx: TransactionItem) => {
+    if (hasDirectTankMatches) {
+      return tx.tank === tankNumber;
+    }
     if (effectiveFuelCode !== null) {
       return tx.fuel === effectiveFuelCode;
     }
@@ -501,8 +573,10 @@ function prepareDataPointsWithReceipts(
 
   diagnostics.transactionsProcessed = tankTransactions.length;
 
-  if (effectiveFuelCode !== null) {
-    diagnostics.warnings.push(`Отпуски ТРК сопоставлены по коду топлива ${effectiveFuelCode}.`);
+  if (hasDirectTankMatches) {
+    diagnostics.warnings.push(`Отпуски ТРК сопоставлены по номеру резервуара ${tankNumber}.`);
+  } else if (effectiveFuelCode !== null) {
+    diagnostics.warnings.push(`Отпуски ТРК сопоставлены по коду топлива ${effectiveFuelCode}, так как совпадений по резервуару ${tankNumber} не найдено.`);
   } else {
     diagnostics.warnings.push('Код топлива резервуара не определен. Использована fallback-фильтрация транзакций по номеру резервуара, она может быть неточной.');
   }
@@ -609,24 +683,14 @@ function calculateFromSingleReferencePoint(
         referenceVolume = interpolateVolumeFromTable(record.level_mm, currentTable);
         sourceUsed = 'current_table';
 
-        // Если вернулся 0 (вне диапазона или ошибка), фоллбек на геометрию
-        if (referenceVolume === 0 && record.level_mm > 0) {
-          referenceVolume = calculateHorizontalCylinderVolume(
-            record.level_mm,
-            settings.tank_diameter_mm,
-            settings.tank_length_mm,
-            settings.tank_tilt_angle_degrees || 0
-          );
+        // Если точка вне диапазона текущей таблицы, фоллбек на геометрию
+        if (referenceVolume === null) {
+          referenceVolume = calculateVolumeByTankShape(record.level_mm, settings);
           sourceUsed = 'geometry_fallback';
         }
       } else {
         // По умолчанию - геометрия
-        referenceVolume = calculateHorizontalCylinderVolume(
-          record.level_mm,
-          settings.tank_diameter_mm,
-          settings.tank_length_mm,
-          settings.tank_tilt_angle_degrees || 0
-        );
+        referenceVolume = calculateVolumeByTankShape(record.level_mm, settings);
         sourceUsed = 'geometry';
       }
 
@@ -1192,7 +1256,7 @@ function buildCalibrationTable(
     offset = referencePoint.volume_liters - regressionValueAtRef;
   }
 
-  for (let level = start_level; level <= max_level; level += step) {
+  for (const level of buildLevelSequence(start_level, max_level, step)) {
     const volume = interpolateVolume(level, validPoints, settings.calibration_method);
     const interpolatedVolume = volume + offset;
 
@@ -1604,15 +1668,15 @@ function calculateQualityMetrics(
 /**
  * Интерполяция объема по таблице
  */
-function interpolateVolumeFromTable(level: number, table: CalibrationTablePoint[]): number {
-  if (!table || table.length === 0) return 0;
+function interpolateVolumeFromTable(level: number, table: CalibrationTablePoint[]): number | null {
+  if (!table || table.length === 0) return null;
 
   // Sort table just in case
   const sortedTable = [...table].sort((a, b) => a.level_mm - b.level_mm);
 
   // Check bounds
-  if (level <= sortedTable[0].level_mm) return sortedTable[0].volume_liters;
-  if (level >= sortedTable[sortedTable.length - 1].level_mm) return sortedTable[sortedTable.length - 1].volume_liters;
+  if (level < sortedTable[0].level_mm) return null;
+  if (level > sortedTable[sortedTable.length - 1].level_mm) return null;
 
   // Find interval
   for (let i = 0; i < sortedTable.length - 1; i++) {
@@ -1625,5 +1689,5 @@ function interpolateVolumeFromTable(level: number, table: CalibrationTablePoint[
     }
   }
 
-  return 0;
+  return null;
 }

@@ -112,7 +112,7 @@ export default function ShiftDashboard() {
   const stationNumber = selectedStation ? extractStationNumber(selectedStation) : undefined;
   const stations = isAllTradingPoints ? allStations : (stationNumber ? [stationNumber] : []);
 
-  // Получаем system ID из external_id сети
+  // Получаем system ID из external_id сети (null пока сеть не выбрана)
   const systemId = getSystemId(selectedNetwork);
 
   // Сброс фильтра смен при смене станции или периода
@@ -134,7 +134,7 @@ export default function ShiftDashboard() {
     stationNames,
     period,
     selectedShifts: selectedShifts.length > 0 ? selectedShifts : undefined,
-    enabled: stations.length > 0 && !loadingStations,
+    enabled: stations.length > 0 && !loadingStations && systemId != null,
   });
 
   // Обёртка для pull-to-refresh (refetch возвращает Promise из react-query)

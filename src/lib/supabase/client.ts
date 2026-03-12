@@ -1,5 +1,5 @@
 /**
- * Улучшенный Supabase клиент с retry логикой и обработкой ошибок
+ * Клиент БД с retry логикой и обработкой ошибок
  */
 
 import { createClient, SupabaseClient, PostgrestError } from '@supabase/supabase-js';
@@ -69,13 +69,13 @@ class EnhancedSupabaseClient {
 
       return true;
     } catch (error) {
-      console.error('❌ Ошибка инициализации Supabase client:', error);
+      console.error('❌ Ошибка инициализации DB client:', error);
       return false;
     }
   }
 
   /**
-   * Проверка подключения к Supabase
+   * Проверка подключения к БД
    */
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     if (!this.client) {
@@ -113,8 +113,6 @@ class EnhancedSupabaseClient {
         const result = await operation();
         
         if (!result.error) {
-          if (attempt > 0) {
-          }
           return result;
         }
 

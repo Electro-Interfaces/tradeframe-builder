@@ -10,7 +10,7 @@ export type DataSourceType =
   | 'external-database' 
   | 'mock'
   | 'local-api'
-  | 'supabase'
+  | 'postgresql'
   | 'cache'
   | 'mixed';
 
@@ -32,7 +32,7 @@ const getSourceIcon = (type: DataSourceType, connected?: boolean) => {
   switch (type) {
     case 'external-database':
       return connected === false ? <WifiOff className="h-3 w-3" /> : <Database className="h-3 w-3" />;
-    case 'supabase':
+    case 'postgresql':
       return connected === false ? <WifiOff className="h-3 w-3" /> : <Cloud className="h-3 w-3" />;
     case 'local-api':
       return <Server className="h-3 w-3" />;
@@ -51,7 +51,7 @@ const getSourceVariant = (type: DataSourceType, connected?: boolean) => {
   
   switch (type) {
     case 'external-database':
-    case 'supabase':
+    case 'postgresql':
       return 'default';
     case 'mock':
       return 'secondary';
@@ -101,14 +101,14 @@ export function DataSourceIndicator({
 // Хук для определения источника данных с отслеживанием изменений localStorage
 export function useDataSourceInfo() {
   const [hasExternalDatabase, setHasExternalDatabase] = useState(false);
-  const [hasSupabaseConnection, setHasSupabaseConnection] = useState(false);
+  const [hasPgConnection, setHasPgConnection] = useState(false);
 
   const checkExternalDatabase = (): boolean => {
     // Всегда возвращаем true, так как настройки зафиксированы в коде
     return true;
   };
 
-  const checkSupabaseConnection = (): boolean => {
+  const checkPgConnection = (): boolean => {
     // Всегда возвращаем true, так как настройки зафиксированы в коде
     return true;
   };
@@ -116,7 +116,7 @@ export function useDataSourceInfo() {
   // Функция для обновления состояний
   const updateConnectionStatus = () => {
     setHasExternalDatabase(checkExternalDatabase());
-    setHasSupabaseConnection(checkSupabaseConnection());
+    setHasPgConnection(checkPgConnection());
   };
 
   // Отслеживаем изменения при монтировании
@@ -127,7 +127,7 @@ export function useDataSourceInfo() {
   // Отслеживаем изменения localStorage
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'externalDatabase' || e.key === 'supabaseSettings' || e.key === null) {
+      if (e.key === 'externalDatabase' || e.key === null) {
         updateConnectionStatus();
       }
     };
@@ -150,9 +150,9 @@ export function useDataSourceInfo() {
 
   return {
     checkExternalDatabase,
-    checkSupabaseConnection,
+    checkPgConnection,
     hasExternalDatabase,
-    hasSupabaseConnection,
+    hasPgConnection,
     refreshConnectionStatus: updateConnectionStatus,
   };
 }

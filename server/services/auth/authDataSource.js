@@ -63,6 +63,9 @@ function transformUser(databaseUser) {
     'Менеджер': 'manager',
     'Оператор': 'operator',
     'Менеджер БТО': 'bto_manager',
+    'Менеджер Энтиком': 'enticom_manager',
+    'Менеджер двух станций': 'bto_station_manager',
+    'Менеджер станций БТО': 'bto_station_manager',
   };
 
   const permissionSet = new Set();

@@ -11,7 +11,7 @@ class AdminUsersService {
   private config: ExternalDatabaseConfig | null = null;
   private lastConfigUpdate = 0;
 
-  /** @deprecated Legacy Supabase mode отключён. Все запросы через backend API. */
+  /** @deprecated Legacy режим отключён. Все запросы через backend API. */
   private getConfig(): ExternalDatabaseConfig {
     const fixedConfig: ExternalDatabaseConfig = {
       url: import.meta.env.VITE_SUPABASE_URL || '',

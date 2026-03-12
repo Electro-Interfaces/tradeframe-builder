@@ -1,8 +1,7 @@
 /**
- * Supabase Service Client — DEPRECATED
+ * Legacy DB Service Client — DEPRECATED
  *
  * Проект полностью переведён на PG через backend API.
- * Service role key больше не передаётся во frontend.
  * Этот модуль сохранён как заглушка для обратной совместимости импортов.
  */
 
@@ -29,7 +28,7 @@ export const supabaseService: SupabaseClient = createClient(
 export const testServiceConnection = async () => {
   return {
     success: false,
-    error: 'Legacy Supabase mode отключён. Используйте backend API.',
+    error: 'Legacy режим отключён. Используйте backend API.',
   };
 };
 

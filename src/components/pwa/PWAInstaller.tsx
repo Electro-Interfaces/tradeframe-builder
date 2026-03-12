@@ -214,8 +214,8 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
         '📱 Установка TradeControl PWA на iPhone/iPad:\n\n' +
         '1. Убедитесь, что используете Safari (не Chrome или другой браузер)\n' +
         '2. Нажмите кнопку "Поделиться" (□↗) в нижней панели Safari\n' +
-        '3. Прокрутите список действий и найдите "На экран \"Домой\""\n' +
-        '4. Нажмите "На экран \"Домой\""\n' +
+        '3. Прокрутите список действий и найдите "На экран "Домой""\n' +
+        '4. Нажмите "На экран "Домой""\n' +
         '5. Отредактируйте название приложения при необходимости\n' +
         '6. Нажмите "Добавить" в правом верхнем углу\n\n' +
         '✨ После установки TradeControl будет работать как полноценное приложение с:\n' +
@@ -295,7 +295,6 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     if (process.env.NODE_ENV === 'development') {
       (window as any).clearPWADismissal = () => {
         localStorage.removeItem('pwa-install-dismissed');
-        process.env.NODE_ENV === 'development' && console.log('PWA dismissal cleared - reload page to test again');
       };
     }
   };

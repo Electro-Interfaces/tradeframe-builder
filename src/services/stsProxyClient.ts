@@ -22,7 +22,7 @@ interface StsProxyRequestOptions {
 }
 
 /**
- * Получение данных текущего пользователя из localStorage (Supabase auth)
+ * Получение данных текущего пользователя из localStorage
  * Передаются как X-User-Id и X-User-Name заголовки в каждом запросе к backend proxy
  */
 function getUserHeaders(): Record<string, string> {
@@ -40,7 +40,7 @@ function getUserHeaders(): Record<string, string> {
       }
     }
 
-    // Источник 2: Supabase auth token (fallback)
+    // Источник 2: Legacy auth token (fallback)
     const projectRef = (import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').split('.')[0];
     const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
     if (raw) {

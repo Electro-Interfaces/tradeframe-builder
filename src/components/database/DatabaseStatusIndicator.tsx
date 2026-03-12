@@ -76,7 +76,7 @@ export const DatabaseStatusIndicator: React.FC = () => {
         <div className="text-sm">
           <p><strong>Статус:</strong> Подключено</p>
           <p><strong>URL:</strong> {status.url}</p>
-          <p><strong>Тип:</strong> Supabase PostgreSQL</p>
+          <p><strong>Тип:</strong> PostgreSQL</p>
           <p className="text-green-600 dark:text-green-400 mt-1">✓ Используется внешняя база данных</p>
         </div>
       );

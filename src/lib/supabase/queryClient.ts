@@ -1,5 +1,5 @@
 /**
- * Настроенный QueryClient для оптимальной работы с Supabase
+ * Настроенный QueryClient для оптимальной работы с PostgreSQL
  */
 
 import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
@@ -32,11 +32,6 @@ export const queryClient = new QueryClient({
           description: getErrorMessage(error),
           variant: "destructive",
         });
-      }
-    },
-    onSuccess: (data, query) => {
-      // Логирование успешных запросов в dev режиме
-      if (process.env.NODE_ENV === 'development') {
       }
     }
   }),
@@ -114,7 +109,7 @@ export const queryClient = new QueryClient({
 // Утилита для определения человекочитаемого сообщения об ошибке
 function getErrorMessage(error: any): string {
   if (error?.message) {
-    // Переводим стандартные ошибки Supabase
+    // Переводим стандартные ошибки БД
     const translations: Record<string, string> = {
       'fetch failed': 'Проблемы с подключением к серверу',
       'timeout': 'Превышено время ожидания',
@@ -146,17 +141,17 @@ export const QueryConfigs = {
     refetchOnWindowFocus: false,
   },
 
-  // Для ролей (редко изменяются)
+  // Для ролей (редко изменяются, но должны обновляться при смене прав)
   roles: {
-    staleTime: STALE_TIMES.LONG,
-    gcTime: CACHE_TIMES.LONG,
+    staleTime: STALE_TIMES.MEDIUM, // 1 мин (было 5 мин) — быстрее подхватывает смену прав
+    gcTime: CACHE_TIMES.MEDIUM,    // 5 мин (было 30 мин)
     refetchOnWindowFocus: false,
   },
 
-  // Для цен (часто изменяются)
+  // Для цен (изменяются несколько раз в день, не каждые 10 сек)
   prices: {
-    staleTime: STALE_TIMES.SHORT,
-    gcTime: CACHE_TIMES.SHORT,
+    staleTime: STALE_TIMES.MEDIUM, // 1 мин (было 10 сек) — цены меняются редко
+    gcTime: CACHE_TIMES.MEDIUM,    // 5 мин (было 30 сек)
     refetchOnWindowFocus: true,
   },
 

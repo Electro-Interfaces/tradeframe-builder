@@ -2,7 +2,14 @@ const express = require('express');
 const axios = require('axios');
 const NodeCache = require('node-cache');
 
+const { requireAuth } = require('../middleware/auth');
+const { validateStsAccess } = require('../middleware/scopeFilter');
+
 const router = express.Router();
+
+// Авторизация + проверка scope для всех STS-запросов
+router.use(requireAuth);
+router.use(validateStsAccess);
 
 // Инициализация кэша
 // stdTTL - время жизни по умолчанию в секундах
@@ -252,11 +259,20 @@ async function proxyRequest(req, res) {
       }
     }
 
+    // Нормализация дат: STS API требует datetime формат (YYYY-MM-DD HH:MM:SS)
+    const normalizedQuery = { ...query };
+    if (normalizedQuery.dt_beg && /^\d{4}-\d{2}-\d{2}$/.test(normalizedQuery.dt_beg)) {
+      normalizedQuery.dt_beg += ' 00:00:00';
+    }
+    if (normalizedQuery.dt_end && /^\d{4}-\d{2}-\d{2}$/.test(normalizedQuery.dt_end)) {
+      normalizedQuery.dt_end += ' 23:59:59';
+    }
+
     // Формируем параметры запроса к STS API
     const requestConfig = {
       method: method,
       url: urlPath,
-      params: query,
+      params: normalizedQuery,
       ...(method !== 'GET' && method !== 'HEAD' && { data: body })
     };
 

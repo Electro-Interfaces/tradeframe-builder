@@ -121,7 +121,7 @@ export function Header({
             size="icon"
             onClick={handleMobileMenuClick}
             aria-label="Открыть меню"
-            className={`shrink-0 h-9 w-9 bg-secondary hover:bg-accent text-foreground border border-border rounded-lg transition-all duration-200 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
+            className={`shrink-0 h-11 w-11 bg-secondary hover:bg-accent text-foreground border border-border rounded-lg transition-all duration-200 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
           >
             <Menu className="h-4 w-4" />
           </Button>
@@ -140,7 +140,7 @@ export function Header({
             size="icon"
             onClick={() => setIsConnectionDialogOpen(true)}
             aria-label="Проверить связь со станциями"
-            className="shrink-0 h-9 w-9 bg-secondary hover:bg-blue-600 text-blue-500 dark:text-blue-400 hover:text-white border border-border rounded-lg transition-all duration-200"
+            className="shrink-0 h-11 w-11 bg-secondary hover:bg-blue-600 text-blue-500 dark:text-blue-400 hover:text-white border border-border rounded-lg transition-all duration-200"
             title="Проверить связь со станциями"
           >
             <Wifi className="h-4 w-4" />
@@ -152,7 +152,7 @@ export function Header({
             size="icon"
             onClick={openCreateDialog}
             aria-label="Создать заявку"
-            className="shrink-0 h-9 w-9 bg-secondary hover:bg-green-600 text-green-500 dark:text-green-400 hover:text-white border border-border rounded-lg transition-all duration-200"
+            className="shrink-0 h-11 w-11 bg-secondary hover:bg-green-600 text-green-500 dark:text-green-400 hover:text-white border border-border rounded-lg transition-all duration-200"
             title="Создать заявку"
           >
             <LifeBuoy className="h-4 w-4" />

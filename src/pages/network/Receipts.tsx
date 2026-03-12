@@ -20,11 +20,14 @@ import {
 import { exportReceiptsToExcel } from '@/services/receiptsExportService';
 import {
   makeReceiptCostKey,
-  getReceiptCostsForTank,
-  saveReceiptCost,
   recalculateCosts,
-} from '@/services/receiptCostService';
-import type { ReceiptCostEntry } from '@/types/tanks';
+  fetchReceiptCosts,
+  upsertReceiptCost,
+  bulkUpsertReceiptCosts,
+  buildCostIndex,
+  type ReceiptCostRecord,
+  type UpsertReceiptCostData,
+} from '@/services/receiptCostApiService';
 import { extractStationNumber } from '@/utils/tradingPointUtils';
 import type { ReceiptsQueryParams, FlatReceipt } from '@/types/receipts';
 import type { Network } from '@/types/network';
@@ -49,7 +52,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Filter, Download, RefreshCw, TrendingUp } from 'lucide-react';
+import { AlertCircle, Filter, Download, RefreshCw, TrendingUp, Layers, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -345,24 +348,22 @@ export default function Receipts() {
 
   // ── Режим маржи ──────────────────────────────────────────
   const [showMargin, setShowMargin] = useState(false);
-  const [marginCosts, setMarginCosts] = useState<Map<string, ReceiptCostEntry>>(new Map());
+  const [marginCosts, setMarginCosts] = useState<Map<string, ReceiptCostRecord>>(new Map());
   const marginTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const [marginInputUnit, setMarginInputUnit] = useState<'liter' | 'kg'>('liter');
 
-  // Загрузка цен при включении режима маржи
+  // Загрузка цен из PG при включении режима маржи
   useEffect(() => {
     if (!showMargin || !systemId) return;
-    // Собираем уникальные tank по станциям из текущих данных
-    const loaded = new Map<string, ReceiptCostEntry>();
-    const seen = new Set<string>();
-    for (const r of flatReceipts) {
-      const tankKey = `${systemId}:${r.stationNumber}:${r.tank}`;
-      if (seen.has(tankKey)) continue;
-      seen.add(tankKey);
-      const costs = getReceiptCostsForTank(systemId, r.stationNumber, r.tank);
-      for (const c of costs) loaded.set(c.key, c);
-    }
-    setMarginCosts(loaded);
-  }, [showMargin, systemId, flatReceipts]);
+    fetchReceiptCosts({
+      systemId,
+      stationNumber: stationNumber ?? undefined,
+      dtBeg: dateFrom || undefined,
+      dtEnd: dateTo || undefined,
+    })
+      .then(records => setMarginCosts(buildCostIndex(records)))
+      .catch(() => {});
+  }, [showMargin, systemId, stationNumber, dateFrom, dateTo]);
 
   const handleMarginCostChange = useCallback((receipt: FlatReceipt, rawValue: string) => {
     if (!systemId) return;
@@ -371,40 +372,50 @@ export default function Receipts() {
 
     const density = receipt.doc.density || receipt.fact.density || 750;
     const volume = parseFloat(receipt.doc.volume) || parseFloat(receipt.fact.volume) || 0;
-    const { costPerLiter, costPerKg } = recalculateCosts(value, 'liter', density);
+    const { costPerLiter, costPerKg } = recalculateCosts(value, marginInputUnit, density);
     const key = makeReceiptCostKey(systemId, receipt.stationNumber, receipt.tank, receipt.ttn, receipt.dt);
 
-    const entry: ReceiptCostEntry = {
-      key,
-      system: systemId,
-      station: receipt.stationNumber,
-      tank: receipt.tank,
+    const data: UpsertReceiptCostData = {
+      systemId,
+      stationNumber: receipt.stationNumber,
+      tankNumber: receipt.tank,
       ttn: receipt.ttn,
-      dt: receipt.dt,
+      receiptDt: receipt.dt,
+      fuelCode: receipt.service.service_code,
+      fuelName: receipt.service.service_name,
       costPerLiter,
       costPerKg,
-      inputUnit: 'liter',
+      inputUnit: marginInputUnit,
+      volumeLiters: volume,
       density,
-      factVolumeLiters: volume,
       totalCost: costPerLiter * volume,
-      fuelCode: receipt.service.service_code,
-      supplier: receipt.base?.name,
-      updatedAt: new Date().toISOString(),
+      supplierId: receipt.base?.id,
+      supplierName: receipt.base?.name || '',
     };
 
+    // Optimistic update
     setMarginCosts(prev => {
       const next = new Map(prev);
-      next.set(key, entry);
+      next.set(key, {
+        id: '',
+        ...data,
+        costPerKg: costPerKg,
+        createdBy: null,
+        updatedBy: null,
+        createdAt: '',
+        updatedAt: new Date().toISOString(),
+      } as ReceiptCostRecord);
       return next;
     });
 
+    // Debounced save to PG
     const existingTimer = marginTimers.current.get(key);
     if (existingTimer) clearTimeout(existingTimer);
     marginTimers.current.set(key, setTimeout(() => {
-      saveReceiptCost(entry);
+      upsertReceiptCost(data).catch(() => {});
       marginTimers.current.delete(key);
-    }, 500));
-  }, [systemId]);
+    }, 600));
+  }, [systemId, marginInputUnit]);
 
   // KPI маржи
   const marginSummary = useMemo(() => {
@@ -415,13 +426,84 @@ export default function Receipts() {
     for (const c of marginCosts.values()) {
       if (c.costPerLiter > 0) {
         totalCost += c.totalCost;
-        totalVolume += c.factVolumeLiters;
+        totalVolume += c.volumeLiters;
         count++;
       }
     }
     const avgCostPerLiter = totalVolume > 0 ? totalCost / totalVolume : 0;
     return { totalCost, totalVolume, avgCostPerLiter, count };
   }, [showMargin, marginCosts]);
+
+  // Быстрое заполнение по виду топлива
+  const [bulkFillOpen, setBulkFillOpen] = useState(false);
+  const [bulkFillFuel, setBulkFillFuel] = useState<string>('');
+  const [bulkFillPrice, setBulkFillPrice] = useState<string>('');
+  const [bulkFillSaving, setBulkFillSaving] = useState(false);
+
+  const bulkFillTargets = useMemo(() => {
+    if (!bulkFillFuel || !showMargin || !systemId) return [];
+    return filteredReceipts.filter(r => {
+      if (r.service.service_name !== bulkFillFuel) return false;
+      const key = makeReceiptCostKey(systemId, r.stationNumber, r.tank, r.ttn, r.dt);
+      const existing = marginCosts.get(key);
+      return !existing || existing.costPerLiter <= 0;
+    });
+  }, [bulkFillFuel, showMargin, systemId, filteredReceipts, marginCosts]);
+
+  const handleBulkFill = useCallback(async (mode: 'fill_empty' | 'overwrite') => {
+    if (!systemId || !bulkFillFuel) return;
+    const price = parseFloat(bulkFillPrice);
+    if (isNaN(price) || price <= 0) return;
+
+    const targets = mode === 'overwrite'
+      ? filteredReceipts.filter(r => r.service.service_name === bulkFillFuel)
+      : bulkFillTargets;
+
+    if (targets.length === 0) return;
+
+    setBulkFillSaving(true);
+    try {
+      const entries: UpsertReceiptCostData[] = targets.map(r => {
+        const density = r.doc.density || r.fact.density || 750;
+        const volume = parseFloat(r.doc.volume) || parseFloat(r.fact.volume) || 0;
+        const { costPerLiter, costPerKg } = recalculateCosts(price, marginInputUnit, density);
+        return {
+          systemId,
+          stationNumber: r.stationNumber,
+          tankNumber: r.tank,
+          ttn: r.ttn,
+          receiptDt: r.dt,
+          fuelCode: r.service.service_code,
+          fuelName: r.service.service_name,
+          costPerLiter,
+          costPerKg,
+          inputUnit: marginInputUnit,
+          volumeLiters: volume,
+          density,
+          totalCost: costPerLiter * volume,
+          supplierId: r.base?.id,
+          supplierName: r.base?.name || '',
+        };
+      });
+
+      await bulkUpsertReceiptCosts(entries, mode);
+
+      // Перезагрузка цен
+      const records = await fetchReceiptCosts({
+        systemId,
+        stationNumber: stationNumber ?? undefined,
+        dtBeg: dateFrom || undefined,
+        dtEnd: dateTo || undefined,
+      });
+      setMarginCosts(buildCostIndex(records));
+      setBulkFillOpen(false);
+      setBulkFillPrice('');
+    } catch {
+      // тихая ошибка
+    } finally {
+      setBulkFillSaving(false);
+    }
+  }, [systemId, bulkFillFuel, bulkFillPrice, marginInputUnit, filteredReceipts, bulkFillTargets, stationNumber, dateFrom, dateTo]);
 
   // Экспорт в Excel
   const handleExport = async () => {
@@ -521,21 +603,44 @@ export default function Receipts() {
         )}
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h1 className="text-2xl font-semibold text-foreground">Поступления топлива</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Расценка: две кнопки-метода */}
               <Button
-                variant={showMargin ? 'default' : 'outline'}
+                variant={showMargin && !bulkFillOpen ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setShowMargin(v => !v)}
+                onClick={() => { setShowMargin(true); setBulkFillOpen(false); }}
                 disabled={filteredReceipts.length === 0}
-                className={showMargin
+                className={showMargin && !bulkFillOpen
                   ? ''
                   : 'border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white'}
               >
                 <TrendingUp className="h-4 w-4 mr-2" />
-                Маржа
+                Поштучная расценка
               </Button>
+              <Button
+                variant={bulkFillOpen ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => { setShowMargin(true); setBulkFillOpen(v => !v); }}
+                disabled={filteredReceipts.length === 0}
+                className={bulkFillOpen
+                  ? 'bg-violet-600 hover:bg-violet-700'
+                  : 'border-violet-600 text-violet-600 hover:bg-violet-600 hover:text-white'}
+              >
+                <Layers className="h-4 w-4 mr-2" />
+                Массовая расценка
+              </Button>
+              {showMargin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setShowMargin(false); setBulkFillOpen(false); }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -731,6 +836,91 @@ export default function Receipts() {
           </div>
         )}
 
+        {/* Панель управления расценкой: единицы ввода */}
+        {showMargin && filteredReceipts.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-3 py-1.5">
+              <span className="text-xs text-muted-foreground">Единица ввода:</span>
+              <button
+                className={`text-xs px-2 py-0.5 rounded ${marginInputUnit === 'liter' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                onClick={() => setMarginInputUnit('liter')}
+              >
+                ₽/л
+              </button>
+              <button
+                className={`text-xs px-2 py-0.5 rounded ${marginInputUnit === 'kg' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                onClick={() => setMarginInputUnit('kg')}
+              >
+                ₽/кг
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Панель массовой расценки */}
+        {bulkFillOpen && (
+          <div className="mb-4 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-4">
+            <div className="text-sm font-medium text-violet-800 dark:text-violet-200 mb-3">
+              Массовая расценка — заполнение себестоимости по виду топлива
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+              <div>
+                <Label className="text-xs text-muted-foreground">Вид топлива</Label>
+                <Select value={bulkFillFuel || undefined} onValueChange={setBulkFillFuel}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Выберите" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filterOptions.fuelTypes.map(fuel => (
+                      <SelectItem key={fuel} value={fuel}>{fuel}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Цена, {marginInputUnit === 'liter' ? '₽/л' : '₽/кг'}
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={bulkFillPrice}
+                  onChange={e => setBulkFillPrice(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {bulkFillFuel && (
+                  <>
+                    <div>Незаполненных: <b>{bulkFillTargets.length}</b></div>
+                    <div>Объём: <b>{bulkFillTargets.reduce((s, r) => s + (parseFloat(r.doc.volume) || 0), 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} л</b></div>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={!bulkFillFuel || !bulkFillPrice || bulkFillTargets.length === 0 || bulkFillSaving}
+                  onClick={() => handleBulkFill('fill_empty')}
+                  className="bg-violet-600 hover:bg-violet-700 text-white"
+                >
+                  {bulkFillSaving ? 'Сохранение...' : 'Заполнить пустые'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!bulkFillFuel || !bulkFillPrice || bulkFillSaving}
+                  onClick={() => handleBulkFill('overwrite')}
+                >
+                  Заменить все
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Таблица */}
         <div className="bg-card rounded-lg border border-border p-4 md:p-6">
           <div className="mb-4">
@@ -779,7 +969,7 @@ export default function Receipts() {
                 <TableHead className="text-right text-muted-foreground">Отклонение (кг)</TableHead>
                 {showMargin && (
                   <>
-                    <TableHead className="text-right text-muted-foreground w-28">₽/л</TableHead>
+                    <TableHead className="text-right text-muted-foreground w-28">{marginInputUnit === 'liter' ? '₽/л' : '₽/кг'}</TableHead>
                     <TableHead className="text-right text-muted-foreground">Итого ₽</TableHead>
                   </>
                 )}
@@ -841,7 +1031,7 @@ export default function Receipts() {
                               min="0"
                               placeholder="0.00"
                               className="h-7 text-xs text-right w-full px-1.5"
-                              defaultValue={saved?.costPerLiter ? saved.costPerLiter.toFixed(2) : ''}
+                              defaultValue={saved?.costPerLiter ? (marginInputUnit === 'liter' ? saved.costPerLiter : (saved.costPerKg ?? 0)).toFixed(2) : ''}
                               onChange={e => handleMarginCostChange(receipt, e.target.value)}
                             />
                           </TableCell>

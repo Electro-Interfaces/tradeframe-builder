@@ -27,8 +27,8 @@ export function useShiftReports({ tradingPoint, networkId, network, networkIds, 
   const { user } = useNewAuth();
   const { selectedTradingPoints } = useSelection();
 
-  // Получаем system ID из external_id сети
-  const systemId = getSystemId(network);
+  // Получаем system ID из external_id сети (null если сеть не выбрана)
+  const systemId = getSystemId(network) ?? undefined;
 
   // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
   const allowedStationNumbers = useMemo(() => {
@@ -59,6 +59,12 @@ export function useShiftReports({ tradingPoint, networkId, network, networkIds, 
   // Загрузка смен
   useEffect(() => {
     const loadShifts = async () => {
+      // Без system ID нельзя делать запросы к STS
+      if (!systemId && !(networks && networks.length > 0)) {
+        setShifts([]);
+        return;
+      }
+
       // Если выбраны "Все торговые точки" - загружаем для всех выбранных сетей
       const effectiveNetworkIds = networkIds?.length ? networkIds : (networkId ? [networkId] : []);
       if (isAllTradingPoints && effectiveNetworkIds.length > 0) {
@@ -68,7 +74,10 @@ export function useShiftReports({ tradingPoint, networkId, network, networkIds, 
 
           // Строим маппинг networkId → systemId для STS вызовов
           const networkSystemIds = new Map<string, number>();
-          (networks || []).forEach(n => networkSystemIds.set(n.id, getSystemId(n)));
+          (networks || []).forEach(n => {
+            const sId = getSystemId(n);
+            if (sId) networkSystemIds.set(n.id, sId);
+          });
 
           // Загружаем все торговые точки из всех выбранных сетей
           const { tradingPointsService } = await import('@/services/tradingPointsService');

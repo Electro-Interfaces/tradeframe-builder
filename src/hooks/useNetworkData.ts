@@ -48,7 +48,7 @@ export function useNetworkData({
       setPrices([]);
 
       // Формируем параметры контекста
-      let contextParams = {
+      const contextParams = {
         networkId: selectedNetwork?.external_id || selectedNetwork?.code || '1',
         tradingPointId: undefined as string | undefined
       };

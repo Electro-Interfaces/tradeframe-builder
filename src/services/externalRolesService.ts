@@ -1,5 +1,5 @@
 /**
- * Сервис для работы с ролями во внешней базе данных Supabase
+ * Сервис для работы с ролями во внешней базе данных PostgreSQL
  */
 
 import { Role, RoleScope, Permission, CreateRoleInput, UpdateRoleInput } from '@/types/auth';

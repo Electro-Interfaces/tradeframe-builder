@@ -1,13 +1,14 @@
 const express = require('express');
 
 const { requireAuth } = require('../middleware/auth');
+const { filterTradingPointsByScope } = require('../middleware/scopeFilter');
 const orgDataSource = require('../services/org/orgDataSource');
 
 const router = express.Router();
 
 router.use(requireAuth);
 
-router.get('/', async (req, res) => {
+router.get('/', filterTradingPointsByScope, async (req, res) => {
   try {
     const points = await orgDataSource.getTradingPoints(req.query.networkId || null);
     res.json(points);

@@ -1,8 +1,9 @@
-import { useState, useEffect, memo } from "react";
+import { useState, memo } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
+import { BottomNav } from "./BottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
 import { PointSelect } from "@/components/selects/PointSelect";
@@ -16,12 +17,6 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
   const { selectedNetwork, setSelectedNetwork, selectedNetworkIds, setSelectedNetworkIds, selectedTradingPoint, selectedTradingPoints, setSelectedTradingPoints, setSelectedTradingPoint } = useSelection();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-
-  // Логирование для мобильных устройств
-  useEffect(() => {
-    if (isMobile) {
-    }
-  }, [isMobile]);
 
   const handleNetworkChange = (value: string) => {
     setSelectedNetwork(value);
@@ -69,7 +64,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
             </Sheet>
 
             <div className="flex flex-col flex-1 min-h-0">
-              <main className="flex-1 min-h-0 min-w-0 w-full max-w-none overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+              <main className="flex-1 min-h-0 min-w-0 w-full max-w-none overflow-y-auto pb-16" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
                 <div className={fullWidth ? "w-full max-w-none min-h-full" : "w-full max-w-none"}>
                   {/* Mobile Trading Point Selector */}
                   {selectedNetwork && (
@@ -88,6 +83,8 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
                 </div>
               </main>
             </div>
+
+            <BottomNav onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
           </>
         ) : (
           // Desktop Layout

@@ -33,7 +33,7 @@ import {
 import { RefreshCw, TrendingUp, TrendingDown, Minus, Droplets, Thermometer, Gauge, Fuel, Activity, AlertTriangle } from 'lucide-react';
 import type { Tank, TankHistoryRecord, TankHistoryStats, AnalysisPeriod, TransactionV2Response, ReceiptResponse } from '@/types/tanks';
 import { getTankAnalysis, getPeriodDates } from '@/services/tankHistoryService';
-import { getBookData } from '@/services/tankBookService';
+import { calculateBookReleaseFromTransactions, getBookData } from '@/services/tankBookService';
 // import { MarginTab } from './MarginTab';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -406,7 +406,6 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
       if (!fuelCode && historyResult.history.length > 0) {
         const historyFuelCode = historyResult.history[0].fuel;
         if (historyFuelCode) {
-          const { calculateBookReleaseFromTransactions } = await import('@/services/tankBookService');
           finalBookRelease = calculateBookReleaseFromTransactions(bookData.transactions, historyFuelCode);
         }
       }

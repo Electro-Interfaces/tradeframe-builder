@@ -72,7 +72,7 @@ class ExternalPricesService {
   }
 
   /**
-   * Получение цен из внешнего API (Supabase)
+   * Получение цен из внешнего API (PostgreSQL)
    */
   async getPrices(params: {
     networkId?: string;
@@ -86,11 +86,11 @@ class ExternalPricesService {
       }
 
 
-      // Используем улучшенный Supabase клиент
+      // Используем клиент БД
       if (!supabaseClient.isInitialized()) {
         const initialized = supabaseClient.initialize();
         if (!initialized) {
-          throw new Error('Не удалось инициализировать Supabase клиент');
+          throw new Error('Не удалось инициализировать клиент БД');
         }
       }
 
@@ -115,7 +115,7 @@ class ExternalPricesService {
       }
 
       const { data: prices, error } = await supabaseClient.select<ExternalPrice>(
-        'fuel_prices', // название таблицы в Supabase
+        'fuel_prices',
         '*',
         {
           filters,

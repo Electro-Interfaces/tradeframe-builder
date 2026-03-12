@@ -52,6 +52,7 @@ const BroadcastMessages = lazy(() => import("./pages/BroadcastMessages"));
 const Receipts = lazy(() => import("./pages/network/Receipts"));
 const NetworkPricing = lazy(() => import("./pages/NetworkPricing"));
 const ReconciliationPage = lazy(() => import("./pages/ReconciliationPage"));
+const MarginAnalytics = lazy(() => import("./pages/analytics/MarginAnalytics"));
 const OnlineOrdersMonitor = lazy(() => import("./pages/OnlineOrdersMonitor"));
 
 // Equipment и остальные страницы - ленивая загрузка (приоритет 3)
@@ -76,7 +77,15 @@ const LogoVariants = lazy(() => import("./pages/LogoVariants"));
 const TicketsPage = lazy(() => import("./pages/support/TicketsPage"));
 const ChatPage = lazy(() => import("./pages/support/ChatPage"));
 
-// Используем предварительно настроенный queryClient из lib/supabase/queryClient
+// Используем предварительно настроенный queryClient из lib/queryClient
+
+function isChunkLoadError(message: string): boolean {
+  return (
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('Importing a module script failed') ||
+    message.includes('error loading dynamically imported module')
+  );
+}
 
 const App = () => {
   const [showPWAInstaller, setShowPWAInstaller] = useState(false);
@@ -87,11 +96,7 @@ const App = () => {
       const errorMessage = event.message || '';
 
       // Проверяем, является ли это ошибкой динамического импорта
-      if (
-        errorMessage.includes('Failed to fetch dynamically imported module') ||
-        errorMessage.includes('Failed to fetch') ||
-        errorMessage.includes('Importing a module script failed')
-      ) {
+      if (isChunkLoadError(errorMessage)) {
         // Dynamic import error detected, reloading page
 
         // Предотвращаем бесконечную перезагрузку
@@ -101,8 +106,6 @@ const App = () => {
         if (!lastReload || now - parseInt(lastReload) > 10000) {
           sessionStorage.setItem('lastChunkErrorReload', now.toString());
           window.location.reload();
-        } else {
-          console.error('❌ Слишком частые перезагрузки, пропускаем');
         }
 
         event.preventDefault();
@@ -237,6 +240,7 @@ const App = () => {
                   <Route path="/network/broadcast-messages" element={<ProtectedRoute><LazyLoader><BroadcastMessages /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/receipts" element={<ProtectedRoute><LazyLoader><Receipts /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/reconciliation" element={<ProtectedRoute><LazyLoader><ReconciliationPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/analytics/margins" element={<ProtectedRoute><LazyLoader><MarginAnalytics /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/online-orders" element={<ProtectedRoute><LazyLoader><OnlineOrdersMonitor /></LazyLoader></ProtectedRoute>} />
 
                   {/* Equipment страницы - приоритет 3 */}

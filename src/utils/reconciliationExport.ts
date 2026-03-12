@@ -1,13 +1,14 @@
-import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { ReconciliationResult } from '@/types/reconciliation';
+import { loadXlsx } from '@/utils/xlsxLoader';
 
 /**
  * Экспорт результатов сверки в Excel с несколькими листами
  */
-export function exportReconciliationToExcel(result: ReconciliationResult): void {
+export async function exportReconciliationToExcel(result: ReconciliationResult): Promise<void> {
   const { summary, byStation, transactions, params } = result;
+  const XLSX = await loadXlsx();
 
   const wb = XLSX.utils.book_new();
 

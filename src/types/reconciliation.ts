@@ -9,6 +9,7 @@ export interface ReconciliationParams {
   dateTo: string;   // YYYY-MM-DD
   stationIds: number[]; // Пустой массив = все станции
   showAllShifts?: boolean; // Показать все смены (включая без корп. карт)
+  systemId?: number; // ID эмитента (system) из настроек сети
 }
 
 /**

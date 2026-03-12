@@ -21,6 +21,7 @@ const messagesRoutes = require('./routes/messagesRuntime');
 const tankCalibrationRoutes = require('./routes/tankCalibration');
 const mstoRoutes = require('./routes/msto');
 const supportRoutes = require('./routes/support');
+const receiptCostsRoutes = require('./routes/receiptCosts');
 const { initTelegramBot } = require('./telegram-bot-runtime');
 const postgres = require('./db/pool');
 
@@ -159,6 +160,9 @@ app.use('/api/msto', mstoRoutes);
 // Подключаем роуты для TSupport SDK (заявки + чат)
 app.use('/api/support', supportRoutes);
 
+// Себестоимость поступлений
+app.use('/api/receipt-costs', receiptCostsRoutes);
+
 // Smoke-test — полная проверка модулей (только для авторизованных)
 const { requireAuth: smokeAuth } = require('./middleware/auth');
 app.get('/api/smoke', smokeAuth, async (req, res) => {
@@ -198,6 +202,7 @@ app.get('/api/smoke', smokeAuth, async (req, res) => {
     checkTable('broadcastMessages', 'broadcast_messages'),
     checkTable('auditLog', 'audit_log'),
     checkTable('tankCalibration', 'tank_calibration_settings'),
+    checkTable('tankCalibrationTables', 'tank_calibration_tables'),
     checkTable('documentVersions', 'document_versions'),
     checkTable('nomenclature', 'nomenclature'),
   ]);
@@ -235,7 +240,7 @@ app.use((err, req, res, next) => {
 });
 
 // Запуск сервера
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   // Запуск планировщика уведомлений (можно отключить через DISABLE_NOTIFICATION_SCHEDULER=true)
   if (process.env.DISABLE_NOTIFICATION_SCHEDULER !== 'true') {
     notificationScheduler.start();
@@ -252,15 +257,40 @@ app.listen(PORT, () => {
   }
 });
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
+let isShuttingDown = false;
+
+async function shutdown() {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
   notificationScheduler.stop();
+
+  const forceCloseTimer = setTimeout(() => {
+    if (typeof server.closeAllConnections === 'function') {
+      server.closeAllConnections();
+    }
+  }, 10000);
+
+  if (typeof forceCloseTimer.unref === 'function') {
+    forceCloseTimer.unref();
+  }
+
+  await new Promise((resolve) => {
+    server.close(() => resolve());
+  }).catch(() => {});
+
+  clearTimeout(forceCloseTimer);
   await postgres.closePool().catch(() => {});
   process.exit(0);
+}
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  void shutdown();
 });
 
-process.on('SIGINT', async () => {
-  notificationScheduler.stop();
-  await postgres.closePool().catch(() => {});
-  process.exit(0);
+process.on('SIGINT', () => {
+  void shutdown();
 });

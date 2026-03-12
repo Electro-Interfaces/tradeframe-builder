@@ -74,13 +74,15 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
       case 'hourly':
         return `0 */${cfg.everyNHours || 1} * * *`;
 
-      case 'daily':
+      case 'daily': {
         const [dailyHour, dailyMinute] = (cfg.dailyTime || '09:00').split(':');
         return `${dailyMinute} ${dailyHour} * * *`;
+      }
 
-      case 'weekly':
+      case 'weekly': {
         const [weeklyHour, weeklyMinute] = (cfg.weeklyTime || '09:00').split(':');
         return `${weeklyMinute} ${weeklyHour} * * ${cfg.weekday || 1}`;
+      }
 
       case 'custom_time':
         if (cfg.customTimes && cfg.customTimes.length > 0) {
@@ -106,9 +108,10 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
       case 'daily':
         return `Ежедневно в ${cfg.dailyTime || '09:00'}`;
 
-      case 'weekly':
+      case 'weekly': {
         const weekday = WEEKDAYS.find(w => w.value === cfg.weekday);
         return `По ${weekday?.label.toLowerCase() || 'понедельникам'} в ${cfg.weeklyTime || '09:00'}`;
+      }
 
       case 'custom_time':
         if (cfg.customTimes && cfg.customTimes.length > 0) {

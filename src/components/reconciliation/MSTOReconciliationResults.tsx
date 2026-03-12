@@ -156,25 +156,13 @@ export function MSTOReconciliationResults({
   result,
   onNewReconciliation
 }: MSTOReconciliationResultsProps) {
-  // Защита от null/undefined
-  if (!result) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Нет данных для отображения
-      </div>
-    );
-  }
-
-  const { summary, byStation = [], byAggregator = [], transactions = [], params, executedAt, duration } = result;
-
-  // Защита от отсутствия summary
-  if (!summary) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Ошибка: отсутствуют данные сводки
-      </div>
-    );
-  }
+  const summary = result?.summary ?? null;
+  const byStation = result?.byStation ?? [];
+  const byAggregator = result?.byAggregator ?? [];
+  const transactions = result?.transactions ?? [];
+  const params = result?.params;
+  const executedAt = result?.executedAt;
+  const duration = result?.duration;
 
   // Состояние раскрытия станций и топлива
   const [expandedStations, setExpandedStations] = useState<Set<number>>(new Set());
@@ -311,6 +299,22 @@ export function MSTOReconciliationResults({
       document.getElementById('transactions-table')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   };
+
+  if (!result) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Нет данных для отображения
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Ошибка: отсутствуют данные сводки
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

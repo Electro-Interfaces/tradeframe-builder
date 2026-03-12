@@ -1,4 +1,4 @@
-// Сервис для работы с шаблонами оборудования из Supabase
+// Сервис для работы с шаблонами оборудования из БД
 // Обеспечивает связь между разделом "Типы оборудования" и страницей "Оборудование"
 
 import { supabaseService as supabase } from './supabaseServiceClient'
@@ -27,7 +27,7 @@ export interface EquipmentTemplate {
   updated_at: string;
 }
 
-// Конвертер из EquipmentTemplate (Supabase) в EquipmentType (legacy интерфейс)
+// Конвертер из EquipmentTemplate (БД) в EquipmentType (legacy интерфейс)
 function convertFromEquipmentTemplate(template: EquipmentTemplate): EquipmentType {
   return {
     id: template.id,
@@ -41,8 +41,8 @@ function convertFromEquipmentTemplate(template: EquipmentTemplate): EquipmentTyp
   };
 }
 
-// Функции для работы с Supabase
-async function getEquipmentTemplatesFromSupabase(): Promise<EquipmentTemplate[]> {
+// Функции для работы с БД
+async function getEquipmentTemplatesFromDB(): Promise<EquipmentTemplate[]> {
   try {
     const { data, error } = await supabase
       .from('equipment_templates')
@@ -56,17 +56,17 @@ async function getEquipmentTemplatesFromSupabase(): Promise<EquipmentTemplate[]>
     
     return data || []
   } catch (error) {
-    console.error('Error fetching equipment templates from Supabase:', error)
+    console.error('Error fetching equipment templates from DB:', error)
     return []
   }
 }
 
 
-// API для получения типов оборудования (теперь из Supabase equipment_templates)
+// API для получения типов оборудования (из таблицы equipment_templates)
 export const equipmentTypesAPI = {
   async list(): Promise<EquipmentType[]> {
     try {
-      const templates = await getEquipmentTemplatesFromSupabase()
+      const templates = await getEquipmentTemplatesFromDB()
       const activeTemplates = templates
       const convertedTypes = activeTemplates.map(convertFromEquipmentTemplate)
       return convertedTypes
@@ -179,11 +179,11 @@ export const equipmentTypesAPI = {
   }
 };
 
-// API для получения шаблонов оборудования напрямую из Supabase
+// API для получения шаблонов оборудования напрямую из БД
 export const equipmentTemplatesFromTypesAPI = {
   async list(): Promise<EquipmentTemplate[]> {
     try {
-      const templates = await getEquipmentTemplatesFromSupabase()
+      const templates = await getEquipmentTemplatesFromDB()
       return templates
     } catch (error) {
       console.error('Error in equipmentTemplatesFromTypesAPI.list():', error)

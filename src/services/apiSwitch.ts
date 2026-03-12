@@ -35,10 +35,21 @@ const API_CONFIG = {
   DEBUG_MODE: import.meta.env.DEV || false
 };
 
+type ApiSwitchWindow = Window & typeof globalThis & {
+  __FORCE_HTTP_API?: boolean;
+  apiTest?: {
+    testConnection: typeof testApiConnection;
+    getStatus: typeof getApiStatus;
+    forceHttp: typeof forceHttpMode;
+    forceMock: typeof forceMockMode;
+  };
+};
+
 // 📊 Логирование переключений
 const logApiUsage = (service: string, mode: 'MOCK' | 'HTTP') => {
-  if (API_CONFIG.DEBUG_MODE) {
-  }
+  void API_CONFIG.DEBUG_MODE;
+  void service;
+  void mode;
 };
 
 // ===== ПЕРЕКЛЮЧАЕМЫЕ СЕРВИСЫ =====
@@ -141,8 +152,7 @@ export const getApiStatus = () => ({
  * Принудительное переключение на HTTP API (для тестирования)
  */
 export const forceHttpMode = () => {
-  // @ts-ignore
-  window.__FORCE_HTTP_API = true;
+  (window as ApiSwitchWindow).__FORCE_HTTP_API = true;
   // Forced HTTP API mode
   location.reload();
 };
@@ -151,20 +161,17 @@ export const forceHttpMode = () => {
  * Принудительное переключение на Mock API (для тестирования)
  */
 export const forceMockMode = () => {
-  // @ts-ignore
-  window.__FORCE_HTTP_API = false;
+  (window as ApiSwitchWindow).__FORCE_HTTP_API = false;
   // Forced MOCK API mode
   location.reload();
 };
 
 // Добавляем функции в window для удобного тестирования в консоли
 if (API_CONFIG.DEBUG_MODE) {
-  // @ts-ignore
-  window.apiTest = {
+  (window as ApiSwitchWindow).apiTest = {
     testConnection: testApiConnection,
     getStatus: getApiStatus,
     forceHttp: forceHttpMode,
     forceMock: forceMockMode
   };
-  
 }

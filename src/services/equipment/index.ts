@@ -31,7 +31,7 @@ import { isApiMockMode } from '@/services/apiConfigService';
 import { mockEquipmentAPI, dynamicEquipmentTemplatesAPI } from './mockEquipment';
 import { realEquipmentAPI, realEquipmentTemplatesAPI } from './realEquipment';
 
-// Export current implementation — всегда через backend API (Supabase bypass удалён)
+// Export current implementation — всегда через backend API
 export const currentEquipmentAPI = isApiMockMode() ?
   mockEquipmentAPI : realEquipmentAPI;
 

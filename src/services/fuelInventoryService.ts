@@ -102,7 +102,7 @@ async function batchPromises<T>(
  * Backend агрегирует данные STS API с использованием NodeCache (2h TTL для shift_reports)
  */
 export async function getInventoryFromServer(params: InventoryParams): Promise<TankInventory[]> {
-  // Получаем список ТТ (из Supabase, кэшируется React Query)
+  // Получаем список ТТ (кэшируется React Query)
   const tradingPoints = await tradingPointsService.getByNetworkId(params.networkId);
 
   const stations = tradingPoints

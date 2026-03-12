@@ -1,13 +1,14 @@
 const express = require('express');
 
 const { requireAuth } = require('../middleware/auth');
+const { filterNetworksByScope, getUserScope, hasNetworkAccess } = require('../middleware/scopeFilter');
 const orgDataSource = require('../services/org/orgDataSource');
 
 const router = express.Router();
 
 router.use(requireAuth);
 
-router.get('/', async (req, res) => {
+router.get('/', filterNetworksByScope, async (req, res) => {
   try {
     const networks = await orgDataSource.getNetworks();
     res.json(networks);
@@ -21,6 +22,12 @@ router.get('/:id', async (req, res) => {
     const network = await orgDataSource.getNetworkById(req.params.id);
     if (!network) {
       return res.status(404).json({ error: 'Сеть не найдена' });
+    }
+
+    // Проверяем доступ по scope
+    const scope = getUserScope(req.user);
+    if (scope.hasRestrictions && !hasNetworkAccess(network, scope)) {
+      return res.status(403).json({ error: 'Нет доступа к этой сети' });
     }
 
     return res.json(network);

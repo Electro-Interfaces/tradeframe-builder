@@ -2,10 +2,9 @@
  * Сервис экспорта операций в различные форматы (Excel, PDF)
  */
 
-import * as XLSX from 'xlsx';
 import { normalizePaymentMethod } from '@/utils/paymentUtils';
-import { createChartCanvas } from '@/utils/chartUtils';
-import type { ChartConfiguration } from 'chart.js';
+import { loadPdfMake } from '@/utils/pdfMake';
+import { loadXlsx } from '@/utils/xlsxLoader';
 
 interface ExportOperation {
   id?: string;
@@ -36,12 +35,6 @@ interface ExportOptions {
   isMobile?: boolean;
 }
 
-interface LoadPdfMakeResult {
-  createPdf: (docDefinition: any) => {
-    download: (fileName: string) => void;
-  };
-}
-
 /**
  * Показывает уведомление пользователю
  */
@@ -61,16 +54,6 @@ function showNotification(message: string, type: 'success' | 'error' | 'warning'
 }
 
 /**
- * Динамическая загрузка pdfmake
- */
-async function loadPdfMake(): Promise<LoadPdfMakeResult> {
-  const pdfMake = await import('pdfmake/build/pdfmake');
-  const pdfFonts = await import('pdfmake/build/vfs_fonts');
-  (pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
-  return pdfMake as any;
-}
-
-/**
  * Экспорт операций в Excel
  */
 export async function exportToExcel(options: ExportOptions): Promise<void> {
@@ -82,6 +65,8 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
   }
 
   try {
+    const XLSX = await loadXlsx();
+
     const formatNumberDisplay = (value: number) =>
       value.toLocaleString('ru-RU', {
         minimumFractionDigits: 2,

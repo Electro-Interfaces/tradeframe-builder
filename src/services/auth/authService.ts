@@ -1,6 +1,6 @@
 /**
  * Сервис авторизации с безопасным переходным режимом.
- * `legacy` — текущая схема прямой работы с Supabase.
+ * `legacy` — устаревшая схема прямой работы с БД.
  * `backend` — работа только через backend `/api/auth`.
  */
 
@@ -86,12 +86,12 @@ class AuthService {
       || '';
   }
 
-  /** @deprecated Legacy Supabase mode отключён. Все запросы через backend API. */
+  /** @deprecated Legacy режим отключён. Все запросы через backend API. */
   private getSupabaseKey(): string {
     return '';
   }
 
-  /** @deprecated Legacy Supabase mode отключён. Все запросы через backend API. */
+  /** @deprecated Legacy режим отключён. Все запросы через backend API. */
   private getSupabaseUrl(): string {
     return '';
   }

@@ -10,7 +10,7 @@
 import type { MSTOTransaction, MSTOServicePoint, MSTOTariff, TFOnlineTransaction } from '@/types/mstoReconciliation';
 import { getMstoTransactions, getMstoServicePoints, getMstoTariffs } from '../mstoProxyClient';
 import { stsProxyRequest } from '../stsProxyClient';
-import { SYSTEM_ID, SUCCESSFUL_OPERATION_RESULTS } from './constants';
+import { SUCCESSFUL_OPERATION_RESULTS } from './constants';
 import { normalizeStationIds, normalizeMstoFuelName, normalizeAggregatorName } from './utils';
 
 /**
@@ -132,81 +132,92 @@ export async function fetchTfOnlineTransactions(
   stationIds: number[],
   systemId?: number
 ): Promise<TFOnlineTransaction[]> {
-  const transactions: TFOnlineTransaction[] = [];
+  if (!systemId) {
+    throw new Error('systemId обязателен для загрузки TF транзакций');
+  }
   const normalizedStationIds = normalizeStationIds(stationIds);
 
   // Преобразуем даты для фильтрации (STS API не фильтрует по датам!)
   const dateFromTs = new Date(dateFrom + 'T00:00:00').getTime();
   const dateToTs = new Date(dateTo + 'T23:59:59').getTime();
 
-  // Используем переданный systemId или дефолтный SYSTEM_ID
-  const effectiveSystemId = systemId ?? SYSTEM_ID;
-
   // Если станции не указаны, получаем все доступные
   const stationsToQuery = normalizedStationIds.length > 0
     ? normalizedStationIds
-    : await getAvailableStations(effectiveSystemId);
+    : await getAvailableStations(systemId);
 
-  for (const stationId of stationsToQuery) {
-    try {
-      // Получаем детальные транзакции для станции через /v1/transactions
-      const response = await stsProxyRequest<any[]>('/v1/transactions', {
-        params: {
-          system: effectiveSystemId,
-          station: stationId,
-          date_from: dateFrom,
-          date_to: dateTo
-        }
-      });
+  // Параллельная загрузка транзакций по станциям (батчами по 5)
+  const BATCH_SIZE = 5;
+  const allResults: TFOnlineTransaction[][] = [];
 
-      // /v1/transactions возвращает массив отдельных транзакций
-      const stationTxs = Array.isArray(response) ? response : [];
-
-      // Фильтруем только онлайн-заказы и нормализуем
-      for (const tx of stationTxs) {
-        // ВАЖНО: STS API не фильтрует по датам - фильтруем на клиенте
-        const txDate = tx.dt ? new Date(tx.dt).getTime() : 0;
-        if (txDate < dateFromTs || txDate > dateToTs) continue;
-
-        // Определяем тип оплаты из pay_type.name
-        const payType = (tx.pay_type?.name || '').toLowerCase();
-
-        // Онлайн-заказы через агрегаторы (Яндекс, FuelUp и др.)
-        // Названия в STS API: "МобилПр.", "Онлайн", "online" и др.
-        const isOnlineOrder = payType.includes('мобил') || payType.includes('mobil') ||
-                              payType.includes('онлайн') || payType.includes('online');
-
-        if (!isOnlineOrder) continue;
-
-        // Извлекаем данные из структуры /v1/transactions
-        // Поля: id, pos, shift, number, dt, tank, nozzle, fuel, fuel_name, card, order, quantity, cost, price, amount, density, pay_type
-        const fuelName = tx.fuel_name || 'Топливо';
-        const volume = parseFloat(tx.quantity || '0') || 0;
-        const price = parseFloat(tx.price || '0') || 0;
-        const total = parseFloat(tx.cost || '0') || 0;
-
-        // Пропускаем нулевые транзакции
-        if (volume === 0 && total === 0) continue;
-
-        transactions.push({
-          id: tx.id || transactions.length + 1,
-          transactionId: String(tx.id || ''),
-          date: tx.dt || '',
-          stationId,
-          stationName: `АЗС ${stationId}`,
-          fuelType: normalizeMstoFuelName(fuelName),
-          volume: Math.abs(volume),
-          price: Math.abs(price),
-          total: Math.abs(total),
-          paymentMethod: tx.pay_type?.name || 'online_order',
-          columnNumber: tx.pos,
-          nozzleNumber: tx.nozzle,
-          shiftId: tx.shift
-        });
+  for (let i = 0; i < stationsToQuery.length; i += BATCH_SIZE) {
+    const batch = stationsToQuery.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map(stationId => fetchStationTransactions(stationId, systemId, dateFrom, dateTo, dateFromTs, dateToTs))
+    );
+    for (const result of batchResults) {
+      if (result.status === 'fulfilled') {
+        allResults.push(result.value);
       }
-    } catch {
-      // Пропускаем ошибочные станции
     }
+  }
+
+  return allResults.flat();
+}
+
+/** Загрузка онлайн-транзакций одной станции */
+async function fetchStationTransactions(
+  stationId: number,
+  systemId: number,
+  dateFrom: string,
+  dateTo: string,
+  dateFromTs: number,
+  dateToTs: number
+): Promise<TFOnlineTransaction[]> {
+  const transactions: TFOnlineTransaction[] = [];
+
+  const response = await stsProxyRequest<any[]>('/v1/transactions', {
+    params: {
+      system: systemId,
+      station: stationId,
+      date_from: dateFrom,
+      date_to: dateTo
+    }
+  });
+
+  const stationTxs = Array.isArray(response) ? response : [];
+
+  for (const tx of stationTxs) {
+    const txDate = tx.dt ? new Date(tx.dt).getTime() : 0;
+    if (txDate < dateFromTs || txDate > dateToTs) continue;
+
+    const payType = (tx.pay_type?.name || '').toLowerCase();
+    const isOnlineOrder = payType.includes('мобил') || payType.includes('mobil') ||
+                          payType.includes('онлайн') || payType.includes('online');
+    if (!isOnlineOrder) continue;
+
+    const fuelName = tx.fuel_name || 'Топливо';
+    const volume = parseFloat(tx.quantity || '0') || 0;
+    const price = parseFloat(tx.price || '0') || 0;
+    const total = parseFloat(tx.cost || '0') || 0;
+
+    if (volume === 0 && total === 0) continue;
+
+    transactions.push({
+      id: tx.id || transactions.length + 1,
+      transactionId: String(tx.id || ''),
+      date: tx.dt || '',
+      stationId,
+      stationName: `АЗС ${stationId}`,
+      fuelType: normalizeMstoFuelName(fuelName),
+      volume: Math.abs(volume),
+      price: Math.abs(price),
+      total: Math.abs(total),
+      paymentMethod: tx.pay_type?.name || 'online_order',
+      columnNumber: tx.pos,
+      nozzleNumber: tx.nozzle,
+      shiftId: tx.shift
+    });
   }
 
   return transactions;
@@ -222,111 +233,117 @@ export async function fetchShiftsWithOnlineData(
   showAllShifts?: boolean,
   systemId?: number
 ): Promise<MSTOShiftInfo[]> {
-  const shiftsInfo: MSTOShiftInfo[] = [];
+  if (!systemId) {
+    throw new Error('systemId обязателен для загрузки смен');
+  }
 
   const normalizedStationIds = normalizeStationIds(stationIds);
-
-  // Используем переданный systemId или дефолтный SYSTEM_ID
-  const effectiveSystemId = systemId ?? SYSTEM_ID;
 
   // Если станции не указаны, получаем все доступные
   const stationsToQuery = normalizedStationIds.length > 0
     ? normalizedStationIds
-    : await getAvailableStations(effectiveSystemId);
+    : await getAvailableStations(systemId);
 
-  for (const stationId of stationsToQuery) {
-    try {
-      // Получаем смены для станции
-      const allShifts = await stsProxyRequest<any[]>('/v1/shifts', {
-        params: {
-          system: effectiveSystemId,
-          station: stationId,
-          date_from: dateFrom,
-          date_to: dateTo
-        }
-      });
+  // Шаг 1: Параллельная загрузка списков смен по всем станциям (батчами по 5)
+  const BATCH_SIZE = 5;
+  const stationShiftsMap = new Map<number, any[]>();
 
-      // Фильтруем по датам
-      const shifts = (allShifts || []).filter(shift => {
-        const shiftDate = shift.dt_open || shift.dt_close;
-        if (!shiftDate) return false;
-        const shiftDateStr = shiftDate.substring(0, 10);
-        return shiftDateStr >= dateFrom && shiftDateStr <= dateTo;
-      });
+  for (let i = 0; i < stationsToQuery.length; i += BATCH_SIZE) {
+    const batch = stationsToQuery.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(stationId =>
+        stsProxyRequest<any[]>('/v1/shifts', {
+          params: { system: systemId, station: stationId, date_from: dateFrom, date_to: dateTo }
+        }).then(allShifts => ({
+          stationId,
+          shifts: (allShifts || []).filter(shift => {
+            const shiftDate = shift.dt_open || shift.dt_close;
+            if (!shiftDate) return false;
+            const shiftDateStr = shiftDate.substring(0, 10);
+            return shiftDateStr >= dateFrom && shiftDateStr <= dateTo;
+          })
+        }))
+      )
+    );
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.shifts.length > 0) {
+        stationShiftsMap.set(result.value.stationId, result.value.shifts);
+      }
+    }
+  }
 
-      // Для каждой смены получаем сменный отчёт
-      for (const shift of shifts) {
-        try {
-          const shiftId = shift.shift;
+  // Шаг 2: Параллельная загрузка shift_report для ВСЕХ смен (батчами по 10)
+  const REPORT_BATCH_SIZE = 10;
+  const reportTasks: { stationId: number; shift: any }[] = [];
+  for (const [stationId, shifts] of stationShiftsMap) {
+    for (const shift of shifts) {
+      reportTasks.push({ stationId, shift });
+    }
+  }
 
-          const shiftReport = await stsProxyRequest<any>('/v1/report/shift_report', {
-            method: 'GET',
-            params: {
-              system: effectiveSystemId,
-              station: stationId,
-              shift: shiftId
-            }
-          });
+  const shiftsInfo: MSTOShiftInfo[] = [];
 
-          // Извлекаем данные онлайн-заказов из sales
-          // ВАЖНО: Берём ТОЛЬКО "МобилПр." — это мобильные платежи (Яндекс, FuelUp и др.)
-          // Не берём: СберБанк (банковские карты), Корп.карты, Безнал и т.д.
-          let sbpRevenue = 0;
-          let nonCashVolume = 0;
-          const fuelBreakdown: MSTOShiftInfo['fuelBreakdown'] = [];
+  for (let i = 0; i < reportTasks.length; i += REPORT_BATCH_SIZE) {
+    const batch = reportTasks.slice(i, i + REPORT_BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(({ stationId, shift }) =>
+        stsProxyRequest<any>('/v1/report/shift_report', {
+          method: 'GET',
+          params: { system: systemId, station: stationId, shift: shift.shift }
+        }).then(shiftReport => ({ stationId, shift, shiftReport }))
+      )
+    );
 
-          if (shiftReport?.sales) {
-            for (const sale of shiftReport.sales) {
-              const payTypeName = (sale.pay_type?.name || '').toLowerCase();
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue;
+      const { stationId, shift, shiftReport } = result.value;
 
-              // Онлайн-заказы через агрегаторы (Яндекс, FuelUp и др.)
-              const isOnlineOrder = payTypeName.includes('мобил') || payTypeName.includes('mobil') ||
-                                    payTypeName.includes('онлайн') || payTypeName.includes('online');
+      // Извлекаем данные онлайн-заказов из sales
+      // ВАЖНО: Берём ТОЛЬКО "МобилПр." — это мобильные платежи (Яндекс, FuelUp и др.)
+      let sbpRevenue = 0;
+      let nonCashVolume = 0;
+      const fuelBreakdown: MSTOShiftInfo['fuelBreakdown'] = [];
 
-              if (!isOnlineOrder) continue;
+      if (shiftReport?.sales) {
+        for (const sale of shiftReport.sales) {
+          const payTypeName = (sale.pay_type?.name || '').toLowerCase();
+          const isOnlineOrder = payTypeName.includes('мобил') || payTypeName.includes('mobil') ||
+                                payTypeName.includes('онлайн') || payTypeName.includes('online');
+          if (!isOnlineOrder) continue;
 
-              // Извлекаем данные по топливу
-              if (sale.fuel && Array.isArray(sale.fuel)) {
-                for (const fuelItem of sale.fuel) {
-                  const fuelName = fuelItem.service?.service_name || 'Топливо';
-                  const volume = parseFloat(fuelItem.release?.volume || '0') || 0;
-                  const revenue = parseFloat(fuelItem.release?.cost || '0') || 0;
+          if (sale.fuel && Array.isArray(sale.fuel)) {
+            for (const fuelItem of sale.fuel) {
+              const fuelName = fuelItem.service?.service_name || 'Топливо';
+              const volume = parseFloat(fuelItem.release?.volume || '0') || 0;
+              const revenue = parseFloat(fuelItem.release?.cost || '0') || 0;
 
-                  if (volume > 0) {
-                    nonCashVolume += Math.abs(volume);
-                    sbpRevenue += Math.abs(revenue);
-                    fuelBreakdown.push({
-                      fuelName: fuelName.toUpperCase(),
-                      volume: Math.abs(volume),
-                      revenue: Math.abs(revenue)
-                    });
-                  }
-                }
+              if (volume > 0) {
+                nonCashVolume += Math.abs(volume);
+                sbpRevenue += Math.abs(revenue);
+                fuelBreakdown.push({
+                  fuelName: fuelName.toUpperCase(),
+                  volume: Math.abs(volume),
+                  revenue: Math.abs(revenue)
+                });
               }
             }
           }
-
-          // Добавляем смену если есть данные или showAllShifts
-          const shouldAdd = sbpRevenue > 0 || nonCashVolume > 0 || showAllShifts;
-
-          if (shouldAdd) {
-            shiftsInfo.push({
-              id: shiftId,
-              stationId,
-              stationName: `АЗС ${stationId}`,
-              openedAt: shift.dt_open || '',
-              closedAt: shift.dt_close || null,
-              sbpRevenue: Math.abs(sbpRevenue),
-              nonCashVolume: Math.abs(nonCashVolume),
-              fuelBreakdown
-            });
-          }
-        } catch {
-          // Пропускаем смены с ошибкой отчёта
         }
       }
-    } catch {
-      // Пропускаем ошибочные станции
+
+      const shouldAdd = sbpRevenue > 0 || nonCashVolume > 0 || showAllShifts;
+      if (shouldAdd) {
+        shiftsInfo.push({
+          id: shift.shift,
+          stationId,
+          stationName: `АЗС ${stationId}`,
+          openedAt: shift.dt_open || '',
+          closedAt: shift.dt_close || null,
+          sbpRevenue: Math.abs(sbpRevenue),
+          nonCashVolume: Math.abs(nonCashVolume),
+          fuelBreakdown
+        });
+      }
     }
   }
 
@@ -336,11 +353,10 @@ export async function fetchShiftsWithOnlineData(
 /**
  * Получить список доступных станций
  */
-export async function getAvailableStations(systemId?: number): Promise<number[]> {
-  const effectiveSystemId = systemId ?? SYSTEM_ID;
+export async function getAvailableStations(systemId: number): Promise<number[]> {
   try {
     const info = await stsProxyRequest<any[]>('/v2/info', {
-      params: { system: effectiveSystemId }
+      params: { system: systemId }
     });
 
     if (Array.isArray(info)) {
@@ -349,8 +365,7 @@ export async function getAvailableStations(systemId?: number): Promise<number[]>
 
     return [];
   } catch {
-    // Fallback для БТО (STS API и TF используют одинаковые номера 1-4)
-    return [1, 2, 3, 4];
+    return [];
   }
 }
 

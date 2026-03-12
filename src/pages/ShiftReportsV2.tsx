@@ -294,7 +294,7 @@ export default function ShiftReportsV2() {
             isOpen={true}
             onClose={closeShiftDetails}
             shiftNumber={selectedShift.shiftNumber}
-            system={getSystemId(selectedNetwork)}
+            system={getSystemId(selectedNetwork) ?? 0}
             station={selectedShift.station || (tradingPoint ? extractStationNumber(tradingPoint) || 0 : 0)}
             stationName={selectedShift.stationName || tradingPoint?.name || 'Неизвестная станция'}
           />
@@ -414,7 +414,7 @@ export default function ShiftReportsV2() {
         <ReceiptsModal
           isOpen={isReceiptsModalOpen}
           onClose={() => setIsReceiptsModalOpen(false)}
-          systemId={getSystemId(selectedNetwork)}
+          systemId={getSystemId(selectedNetwork) ?? 0}
           stations={receiptsStations}
           stationNames={receiptsStationNames}
         />

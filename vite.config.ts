@@ -110,7 +110,8 @@ export default defineConfig(({ mode }) => {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         // Исключаем тяжёлые vendor-чанки из precache (грузятся по требованию)
         globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js',
-          '**/pdf-vendor-*.js', '**/xlsx-vendor-*.js', '**/exceljs*'],
+          '**/pdf-vendor-*.js', '**/jspdf-vendor-*.js', '**/pdfmake/*.js',
+          '**/xlsx-vendor-*.js', '**/exceljs*'],
         // Критично для SPA: fallback на index.html при навигации
         navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/^\/api\//, /\.[^/?]+$/],
@@ -216,7 +217,7 @@ export default defineConfig(({ mode }) => {
           }
 
           // PDF/Excel экспорт
-          if (id.includes('jspdf') || id.includes('pdfmake')) {
+          if (id.includes('jspdf')) {
             return 'pdf-vendor';
           }
           if (id.includes('xlsx')) {
@@ -239,8 +240,6 @@ export default defineConfig(({ mode }) => {
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "pdfmake/build/pdfmake": "pdfmake/build/pdfmake.js",
-      "pdfmake/build/vfs_fonts": "pdfmake/build/vfs_fonts.js",
     },
   },
   };

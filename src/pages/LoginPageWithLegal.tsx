@@ -295,9 +295,6 @@ const LoginPageWithLegal = () => {
       // Login first to get authentication with Remember Me option
       await login(email, password, rememberMe);
 
-      // Ждем 100ms чтобы данные пользователя сохранились в localStorage
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       // Пропускаем юридические документы для мобильных, МенеджерБТО и системных ролей
       const skipLegalDocs = isMobile ||
                            email.includes('bto.manager') ||

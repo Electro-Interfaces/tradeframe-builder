@@ -13,7 +13,7 @@ import { stsApiService } from '@/services/stsApi';
 interface UseEquipmentOptions {
   networkId?: string;
   tradingPointId?: string;
-  /** Объект станции из SelectionContext — если передан, пропускаем дублирующий запрос к Supabase */
+  /** Объект станции из SelectionContext — если передан, пропускаем дублирующий запрос к БД */
   station?: { external_id?: string; name?: string } | null;
   autoLoad?: boolean;
   showToasts?: boolean;

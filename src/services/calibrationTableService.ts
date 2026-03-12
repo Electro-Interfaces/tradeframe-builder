@@ -1,23 +1,60 @@
 /**
  * Сервис для работы с калибровочными таблицами резервуаров
- *
- * ВНИМАНИЕ: Бэкенд-эндпоинты для этих функций НЕ реализованы.
- * server/routes/tankCalibration.js содержит только GET/POST/DELETE настроек + /run (заглушка).
- * Эти функции сохранены как контракт для будущей реализации бэкенда.
  */
 
 import type {
+  CalibrationDiagnostics,
   CalibrationTable,
+  CalibrationTableComparison,
+  CalibrationTablePoint,
+  CalibrationTableStatistics,
   CalculateCalibrationTableParams,
-  CalculateCalibrationTableResult
+  CalculateCalibrationTableResult,
+  TankCalibrationSettings
 } from '@/types/tanks';
+
+const API_BASE_URL = '/api/tank-calibration';
+
+export interface CreateCalibrationTableParams {
+  tank_id: string;
+  table: CalibrationTablePoint[];
+  analysis_start_date: string;
+  analysis_end_date: string;
+  creation_notes?: string;
+  calibration_settings_snapshot?: TankCalibrationSettings;
+  statistics?: CalibrationTableStatistics;
+  diagnostics?: CalibrationDiagnostics;
+  comparison_with_previous?: CalibrationTableComparison;
+}
 
 const STUB_ERROR = (endpoint: string) =>
   new Error(`Backend endpoint not implemented: ${endpoint}. Используйте клиентский расчёт в AnalysisDialog.`);
 
+function getAuthToken(): string {
+  return localStorage.getItem('auth_token')
+    || sessionStorage.getItem('auth_token')
+    || '';
+}
+
+function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  const token = getAuthToken();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  };
+}
+
+async function parseError(response: Response): Promise<Error> {
+  try {
+    const payload = await response.json();
+    return new Error(payload?.error || response.statusText || 'Request failed');
+  } catch {
+    return new Error(response.statusText || 'Request failed');
+  }
+}
+
 /**
- * Рассчитать новую калибровочную таблицу
- * STUB: POST /:tankId/calculate — не реализован на бэкенде
+ * Серверный алгоритм пока не реализован, расчёт выполняется на клиенте.
  */
 export async function calculateCalibrationTable(
   params: CalculateCalibrationTableParams
@@ -25,67 +62,126 @@ export async function calculateCalibrationTable(
   throw STUB_ERROR(`POST /${params.tank_id}/calculate`);
 }
 
-/**
- * Получить список всех калибровочных таблиц резервуара
- * STUB: GET /:tankId/tables — не реализован на бэкенде
- */
+export async function createCalibrationTable(
+  params: CreateCalibrationTableParams
+): Promise<CalibrationTable> {
+  const response = await fetch(`${API_BASE_URL}/${params.tank_id}/tables`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return response.json();
+}
+
 export async function getCalibrationTables(tankId: string): Promise<CalibrationTable[]> {
-  throw STUB_ERROR(`GET /${tankId}/tables`);
+  const response = await fetch(`${API_BASE_URL}/${tankId}/tables`, {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return response.json();
 }
 
-/**
- * Получить конкретную калибровочную таблицу по ID
- * STUB: GET /tables/:tableId — не реализован на бэкенде
- */
 export async function getCalibrationTable(tableId: string): Promise<CalibrationTable> {
-  throw STUB_ERROR(`GET /tables/${tableId}`);
+  const response = await fetch(`${API_BASE_URL}/tables/${tableId}`, {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return response.json();
 }
 
-/**
- * Скачать калибровочную таблицу в указанном формате
- * STUB: GET /tables/:tableId/download — не реализован на бэкенде
- */
 export async function downloadCalibrationTable(
   tableId: string,
   format: 'csv' | 'json' | 'xlsx' = 'csv'
 ): Promise<void> {
-  throw STUB_ERROR(`GET /tables/${tableId}/download?format=${format}`);
+  const response = await fetch(`${API_BASE_URL}/tables/${tableId}/download?format=${format}`, {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const contentDisposition = response.headers.get('Content-Disposition') || '';
+  const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+
+  link.href = url;
+  link.download = filenameMatch?.[1] || `calibration_table.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
-/**
- * Утвердить калибровочную таблицу (только admin)
- * STUB: POST /tables/:tableId/approve — не реализован на бэкенде
- */
 export async function approveCalibrationTable(
   tableId: string,
   notes?: string
 ): Promise<CalibrationTable> {
-  throw STUB_ERROR(`POST /tables/${tableId}/approve`);
+  const response = await fetch(`${API_BASE_URL}/tables/${tableId}/approve`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ notes }),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return response.json();
 }
 
-/**
- * Отклонить калибровочную таблицу (только admin)
- * STUB: POST /tables/:tableId/reject — не реализован на бэкенде
- */
 export async function rejectCalibrationTable(
   tableId: string,
   reason: string
 ): Promise<CalibrationTable> {
-  throw STUB_ERROR(`POST /tables/${tableId}/reject`);
+  const response = await fetch(`${API_BASE_URL}/tables/${tableId}/reject`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return response.json();
 }
 
-/**
- * Применить калибровочную таблицу (сделать активной) - только admin
- * STUB: POST /tables/:tableId/apply — не реализован на бэкенде
- */
 export async function applyCalibrationTable(tableId: string): Promise<CalibrationTable> {
-  throw STUB_ERROR(`POST /tables/${tableId}/apply`);
+  const response = await fetch(`${API_BASE_URL}/tables/${tableId}/apply`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return response.json();
 }
 
-/**
- * Удалить калибровочную таблицу
- * STUB: DELETE /tables/:tableId — не реализован на бэкенде
- */
 export async function deleteCalibrationTable(tableId: string): Promise<void> {
-  throw STUB_ERROR(`DELETE /tables/${tableId}`);
+  const response = await fetch(`${API_BASE_URL}/tables/${tableId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
 }

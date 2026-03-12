@@ -78,9 +78,21 @@ class PermissionService {
           return true;
         }
 
-        // Парсим строку в формате "section.resource.action"
-        const permString = `${check.section}.${check.resource}.${check.action}`;
-        return perm === permString;
+        const permParts = perm.split('.');
+
+        // 3-part: "section.resource.action" — exact match
+        if (permParts.length === 3) {
+          return permParts[0] === check.section
+            && permParts[1] === check.resource
+            && permParts[2] === check.action;
+        }
+
+        // 2-part: "section.action" — matches any resource in section
+        if (permParts.length === 2) {
+          return permParts[0] === check.section && permParts[1] === check.action;
+        }
+
+        return false;
       }
 
       return false;
@@ -234,6 +246,8 @@ class PermissionService {
       'operator': 'Оператор',
       'driver': 'Водитель',
       'bto_manager': 'Менеджер БТО',
+      'bto_station_manager': 'Менеджер станций БТО',
+      'enticom_manager': 'Менеджер Энтиком',
       'user': 'Пользователь'
     };
 

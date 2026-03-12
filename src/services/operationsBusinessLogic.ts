@@ -302,11 +302,12 @@ export class OperationsBusinessLogic {
         case 'date':
           comparison = new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
           break;
-        case 'amount':
+        case 'amount': {
           const aAmount = a.totalCost || 0;
           const bAmount = b.totalCost || 0;
           comparison = aAmount - bAmount;
           break;
+        }
         case 'status':
           comparison = a.status.localeCompare(b.status);
           break;

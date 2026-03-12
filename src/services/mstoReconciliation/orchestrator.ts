@@ -44,6 +44,10 @@ export async function executeMstoReconciliation(
   const startTime = Date.now();
   const { dateFrom, dateTo, stationIds, mstoServicePointIds, showAllShifts, systemId } = params;
 
+  if (!systemId) {
+    throw new Error('Не указан systemId — выберите сеть перед запуском сверки');
+  }
+
   // Нормализуем ID станций
   const normalizedStationIds = normalizeStationIds(stationIds);
 

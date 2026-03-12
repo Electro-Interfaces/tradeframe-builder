@@ -49,12 +49,13 @@ const calculatePresetDates = (preset: PeriodPreset): { dateFrom: string; dateTo:
       dateFrom = startOfDay(today);
       break;
 
-    case 'yesterday':
+    case 'yesterday': {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       dateFrom = startOfDay(yesterday);
       dateTo = endOfDay(yesterday);
       break;
+    }
 
     case 'week':
       dateFrom = new Date(today);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   TankCalibrationSettings as CalibrationSettings,
   DEFAULT_CALIBRATION_SETTINGS,
@@ -7,15 +7,22 @@ import {
   TankShapeType,
   TankLocationType,
   LevelSensorType,
-  TankShape
+  TankShape,
+  CalibrationTable
 } from '@/types/tanks';
 import {
   calculateTankVolume,
   getSensorAccuracyDefaults,
   getSensorAccuracyHint,
   getDispenserAccuracyHint,
-  FUEL_COEFFICIENTS
+  FUEL_COEFFICIENTS,
+  interpolateVolume
 } from '@/utils/calibrationHelpers';
+import {
+  applyCalibrationTable,
+  approveCalibrationTable,
+  getCalibrationTables
+} from '@/services/calibrationTableService';
 import { CalculationDialog } from './dialogs/CalculationDialog';
 import { AnalysisDialog } from './dialogs/AnalysisDialog';
 import { CalibrationTablesHistory } from './CalibrationTablesHistory';
@@ -28,6 +35,16 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Settings,
   Thermometer,
@@ -49,6 +66,9 @@ interface TankCalibrationSettingsProps {
   tankId: string;
   tankName: string;
   tankCapacity: number;
+  networkName?: string;
+  stationName?: string;
+  fuelType?: string;
   initialSettings?: CalibrationSettings;
   onSave: (settings: CalibrationSettings) => Promise<void>;
 }
@@ -57,6 +77,9 @@ export function TankCalibrationSettingsComponent({
   tankId,
   tankName,
   tankCapacity,
+  networkName,
+  stationName,
+  fuelType,
   initialSettings,
   onSave
 }: TankCalibrationSettingsProps) {
@@ -88,6 +111,14 @@ export function TankCalibrationSettingsComponent({
 
   // Состояние для диалога анализа калибровки
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [calibrationTables, setCalibrationTables] = useState<CalibrationTable[]>([]);
+  const [isTablesLoading, setIsTablesLoading] = useState(true);
+  const [summaryActionInProgress, setSummaryActionInProgress] = useState<string | null>(null);
+  const [summaryActionFeedback, setSummaryActionFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [confirmApplyTableId, setConfirmApplyTableId] = useState<string | null>(null);
+  const [highlightedTableId, setHighlightedTableId] = useState<string | null>(null);
+  const historySectionRef = useRef<HTMLDivElement | null>(null);
 
   // Вычисляемый градиент: объём резервуара × коэффициент расширения
   const calculatedGradient = (tankCapacity * settings.thermal_expansion_coefficient).toFixed(2);
@@ -159,48 +190,791 @@ export function TankCalibrationSettingsComponent({
     } as CalibrationSettings);
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTables = async () => {
+      try {
+        setIsTablesLoading(true);
+        const tables = await getCalibrationTables(tankId);
+        if (isMounted) {
+          setCalibrationTables(tables);
+        }
+      } catch {
+        if (isMounted) {
+          setCalibrationTables([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsTablesLoading(false);
+        }
+      }
+    };
+
+    loadTables();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [tankId, historyRefreshKey]);
+
+  const sortedTables = [...calibrationTables].sort((left, right) => right.version - left.version);
+  const activeTable = sortedTables.find((table) => table.is_active) || null;
+  const latestTable = sortedTables[0] || null;
+  const latestDraftTrkTable = sortedTables.find((table) => table.creation_notes?.includes('[draft_trk_analysis]')) || null;
+  const latestApprovedInactiveTable = sortedTables.find((table) => table.status === 'approved' && !table.is_active) || null;
+  const baselineTablesCount = calibrationTables.filter((table) => table.creation_notes?.includes('[baseline_sensor]')).length;
+  const draftTrkTablesCount = calibrationTables.filter((table) => table.creation_notes?.includes('[draft_trk_analysis]')).length;
+  const approvedTablesCount = calibrationTables.filter((table) => table.status === 'approved').length;
+  const draftTablesCount = calibrationTables.filter((table) => table.status === 'draft').length;
+
+  const workflowBadge = activeTable
+    ? { variant: 'default' as const, label: `Активна v${activeTable.version}` }
+    : draftTablesCount > 0
+      ? { variant: 'secondary' as const, label: 'Есть черновики' }
+      : settings.calibration_status === 'completed'
+        ? { variant: 'default' as const, label: 'Откалиброван' }
+        : settings.calibration_status === 'in_progress'
+          ? { variant: 'secondary' as const, label: 'В процессе' }
+          : settings.calibration_status === 'failed'
+            ? { variant: 'destructive' as const, label: 'Ошибка' }
+            : { variant: 'outline' as const, label: 'Не настроено' };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) {
+      return '—';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '—';
+    }
+
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleTablesChanged = () => {
+    setHistoryRefreshKey((current) => current + 1);
+  };
+
+  const getStatusLabel = (status: CalibrationTable['status']) => {
+    switch (status) {
+      case 'draft':
+        return 'черновик';
+      case 'pending_approval':
+        return 'на утверждении';
+      case 'approved':
+        return 'утверждена';
+      case 'rejected':
+        return 'отклонена';
+      case 'archived':
+        return 'архив';
+      default:
+        return status;
+    }
+  };
+
+  const getTableSourceMeta = (table: CalibrationTable | null) => {
+    if (!table) {
+      return { label: 'Нет версии', className: 'border-border text-muted-foreground' };
+    }
+
+    const notes = table.creation_notes?.trim() || '';
+    if (notes.includes('[baseline_sensor]')) {
+      return {
+        label: 'Baseline датчика',
+        className: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+      };
+    }
+
+    if (notes.includes('[draft_trk_analysis]')) {
+      return {
+        label: 'Draft ТРК',
+        className: 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+      };
+    }
+
+    return {
+      label: 'Ручная версия',
+      className: 'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300'
+    };
+  };
+
+  const buildTableComparisonSummary = (
+    currentTable: CalibrationTable | null,
+    nextTable: CalibrationTable | null
+  ) => {
+    if (!currentTable || !nextTable) {
+      return null;
+    }
+
+    const currentMap = new Map(currentTable.table.map((point) => [point.level_mm, point.volume_liters]));
+    const nextMap = new Map(nextTable.table.map((point) => [point.level_mm, point.volume_liters]));
+    const levels = Array.from(new Set([
+      ...currentTable.table.map((point) => point.level_mm),
+      ...nextTable.table.map((point) => point.level_mm),
+    ])).sort((left, right) => left - right);
+
+    const maxPercentThreshold = settings.max_acceptable_deviation_percent > 0
+      ? settings.max_acceptable_deviation_percent
+      : 0.5;
+    const maxLitersThreshold = settings.max_acceptable_deviation_liters > 0
+      ? settings.max_acceptable_deviation_liters
+      : 50;
+
+    let comparedPoints = 0;
+    let changedPoints = 0;
+    let totalAbsLiters = 0;
+    let totalAbsPercent = 0;
+    let totalSignedLiters = 0;
+    let maxAbsLiters = 0;
+    let maxAbsPercent = 0;
+    let maxDifferenceLevel: number | null = null;
+    const comparisonPoints: Array<{
+      level: number;
+      diffLiters: number;
+      absLiters: number;
+      diffPercent: number;
+    }> = [];
+    const zoneStats = {
+      low: { totalAbsLiters: 0, count: 0 },
+      middle: { totalAbsLiters: 0, count: 0 },
+      high: { totalAbsLiters: 0, count: 0 },
+    };
+    const minLevel = levels[0];
+    const maxLevel = levels[levels.length - 1];
+    const zoneSize = Math.max(1, (maxLevel - minLevel) / 3);
+
+    levels.forEach((level) => {
+      const currentVolume = interpolateVolume(level, currentMap);
+      const nextVolume = interpolateVolume(level, nextMap);
+
+      if (currentVolume === null || nextVolume === null) {
+        return;
+      }
+
+      const diffLiters = nextVolume - currentVolume;
+      const absLiters = Math.abs(diffLiters);
+      const absPercent = currentVolume > 0 ? (absLiters / currentVolume) * 100 : 0;
+
+      comparedPoints += 1;
+      totalAbsLiters += absLiters;
+      totalAbsPercent += absPercent;
+      totalSignedLiters += diffLiters;
+      comparisonPoints.push({
+        level,
+        diffLiters,
+        absLiters,
+        diffPercent: absPercent,
+      });
+
+      const zoneKey = level < minLevel + zoneSize
+        ? 'low'
+        : level < minLevel + zoneSize * 2
+          ? 'middle'
+          : 'high';
+      zoneStats[zoneKey].totalAbsLiters += absLiters;
+      zoneStats[zoneKey].count += 1;
+
+      if (absLiters > maxAbsLiters) {
+        maxAbsLiters = absLiters;
+        maxDifferenceLevel = level;
+      }
+
+      if (absPercent > maxAbsPercent) {
+        maxAbsPercent = absPercent;
+      }
+
+      if (absLiters >= maxLitersThreshold || absPercent >= maxPercentThreshold) {
+        changedPoints += 1;
+      }
+    });
+
+    if (comparedPoints === 0) {
+      return null;
+    }
+
+    const status = changedPoints === 0
+      ? 'safe'
+      : maxAbsLiters >= maxLitersThreshold * 2 || maxAbsPercent >= maxPercentThreshold * 2
+        ? 'review_required'
+        : 'attention';
+
+    return {
+      comparedPoints,
+      changedPoints,
+      averageAbsLiters: totalAbsLiters / comparedPoints,
+      averageAbsPercent: totalAbsPercent / comparedPoints,
+      averageSignedLiters: totalSignedLiters / comparedPoints,
+      maxAbsLiters,
+      maxAbsPercent,
+      maxDifferenceLevel,
+      litersThreshold: maxLitersThreshold,
+      percentThreshold: maxPercentThreshold,
+      status,
+      chartPoints: (() => {
+        if (comparisonPoints.length <= 32) {
+          return comparisonPoints;
+        }
+
+        const step = Math.ceil(comparisonPoints.length / 32);
+        return comparisonPoints.filter((_, index) => (
+          index === 0
+          || index === comparisonPoints.length - 1
+          || index % step === 0
+        ));
+      })(),
+      zones: {
+        low: zoneStats.low.count > 0 ? zoneStats.low.totalAbsLiters / zoneStats.low.count : 0,
+        middle: zoneStats.middle.count > 0 ? zoneStats.middle.totalAbsLiters / zoneStats.middle.count : 0,
+        high: zoneStats.high.count > 0 ? zoneStats.high.totalAbsLiters / zoneStats.high.count : 0,
+      },
+    };
+  };
+
+  const buildMiniChartData = (
+    points: Array<{ level: number; diffLiters: number }>
+  ) => {
+    if (points.length === 0) {
+      return null;
+    }
+
+    const width = 320;
+    const height = 92;
+    const paddingX = 10;
+    const paddingY = 10;
+    const minLevel = points[0].level;
+    const maxLevel = points[points.length - 1].level;
+    const maxAbsDiff = Math.max(
+      1,
+      ...points.map((point) => Math.abs(point.diffLiters))
+    );
+    const zeroY = height / 2;
+
+    const normalizedPoints = points.map((point) => {
+      const x = maxLevel === minLevel
+        ? width / 2
+        : paddingX + ((point.level - minLevel) / (maxLevel - minLevel)) * (width - paddingX * 2);
+      const y = zeroY - (point.diffLiters / maxAbsDiff) * ((height / 2) - paddingY);
+
+      return { x, y, ...point };
+    });
+
+    const polyline = normalizedPoints.map((point) => `${point.x},${point.y}`).join(' ');
+    const maxPoint = normalizedPoints.reduce((currentMax, point) => (
+      Math.abs(point.diffLiters) > Math.abs(currentMax.diffLiters) ? point : currentMax
+    ), normalizedPoints[0]);
+
+    return {
+      width,
+      height,
+      zeroY,
+      polyline,
+      maxPoint,
+    };
+  };
+
+  const handleQuickApprove = async () => {
+    if (!latestDraftTrkTable || latestDraftTrkTable.status !== 'draft') {
+      return;
+    }
+
+    setSummaryActionInProgress(latestDraftTrkTable.id);
+    setSummaryActionFeedback(null);
+
+    try {
+      await approveCalibrationTable(latestDraftTrkTable.id, 'Утверждено из сводки калибровки');
+      setSummaryActionFeedback({
+        type: 'success',
+        text: `Draft ТРК v${latestDraftTrkTable.version} утвержден.`
+      });
+      handleTablesChanged();
+    } catch (error) {
+      setSummaryActionFeedback({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Не удалось утвердить draft ТРК'
+      });
+    } finally {
+      setSummaryActionInProgress(null);
+    }
+  };
+
+  const handleQuickApply = async () => {
+    if (!confirmApplyTableId) {
+      return;
+    }
+
+    setSummaryActionInProgress(confirmApplyTableId);
+    setSummaryActionFeedback(null);
+
+    try {
+      const appliedTable = await applyCalibrationTable(confirmApplyTableId);
+      setSummaryActionFeedback({
+        type: 'success',
+        text: `Версия v${appliedTable.version} применена как активная.`
+      });
+      handleTablesChanged();
+    } catch (error) {
+      setSummaryActionFeedback({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Не удалось применить таблицу'
+      });
+    } finally {
+      setSummaryActionInProgress(null);
+      setConfirmApplyTableId(null);
+    }
+  };
+
+  const handleOpenDetailedComparison = () => {
+    if (!latestApprovedInactiveTable) {
+      return;
+    }
+
+    setHighlightedTableId(latestApprovedInactiveTable.id);
+    historySectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
+  const activeSourceMeta = getTableSourceMeta(activeTable);
+  const latestDraftSourceMeta = getTableSourceMeta(latestDraftTrkTable);
+  const latestApprovedSourceMeta = getTableSourceMeta(latestApprovedInactiveTable);
+  const readyToApplyComparison = buildTableComparisonSummary(activeTable, latestApprovedInactiveTable);
+  const readyToApplyChart = readyToApplyComparison
+    ? buildMiniChartData(readyToApplyComparison.chartPoints)
+    : null;
+  const locationContextLabel = `${networkName || 'Компания не выбрана'} / ${stationName || 'Станция не выбрана'}`;
+
 
   return (
     <div className="space-y-4">
+      <AlertDialog open={confirmApplyTableId !== null} onOpenChange={(open) => { if (!open) setConfirmApplyTableId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Применить следующую версию?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {latestApprovedInactiveTable
+                ? `Версия v${latestApprovedInactiveTable.version} станет активной. Текущая активная таблица будет заменена.`
+                : 'Выбранная версия станет активной для резервуара.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleQuickApply}>
+              Применить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Заголовок */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Конфигурация параметров</h3>
+          <h3 className="text-lg font-semibold">Калибровка резервуара</h3>
           <p className="text-sm text-muted-foreground">
-            {tankName}
+            {networkName || 'Компания не выбрана'} / {stationName || 'Станция не выбрана'} / {tankName}{fuelType ? ` / ${fuelType}` : ''}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAnalysisDialog(true)}
-
-          // DUMMY - This won't actually be inserted, I need to find the right location in the JSX
-          >
-            <LineChart className="w-4 h-4 mr-2" />
-            Анализ Калибровки
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCalculationDialog(true)}
-          >
-            <Calculator className="w-4 h-4 mr-2" />
-            Автокалибровка
-          </Button>
-          <Badge variant={
-            settings.calibration_status === 'completed' ? 'default' :
-              settings.calibration_status === 'in_progress' ? 'secondary' :
-                settings.calibration_status === 'failed' ? 'destructive' :
-                  'outline'
-          }>
-            {settings.calibration_status === 'completed' ? 'Откалиброван' :
-              settings.calibration_status === 'in_progress' ? 'В процессе' :
-                settings.calibration_status === 'failed' ? 'Ошибка' :
-                  'Не калиброван'}
+          <Badge variant={workflowBadge.variant}>
+            {workflowBadge.label}
           </Badge>
         </div>
+      </div>
+
+      <Card className="border-border bg-card/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <LineChart className="h-5 w-5" />
+            Состояние калибровки
+          </CardTitle>
+          <CardDescription>
+            Рабочая сводка по активной версии, черновикам и следующему шагу по резервуару.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Активная версия</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {activeTable ? `v${activeTable.version}` : '—'}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Всего версий</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{calibrationTables.length}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Baseline</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{baselineTablesCount}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Draft ТРК</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{draftTrkTablesCount}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Утверждено</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{approvedTablesCount}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Последняя версия</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {latestTable ? `v${latestTable.version}` : '—'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Последнее применение</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {formatDateTime(activeTable?.applied_at || settings.last_calibration_date)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Последний расчет</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {formatDateTime(latestTable?.created_at)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Следующий шаг</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {activeTable
+                  ? 'Можно запускать новый анализ и готовить следующую версию.'
+                  : draftTrkTablesCount > 0
+                    ? 'Проверьте draft ТРК и при необходимости утвердите его.'
+                    : calibrationTables.length > 0
+                      ? 'Проверьте историю версий и выберите таблицу для применения.'
+                      : 'Сначала выполните анализ или расчет таблицы.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">Активная версия</p>
+                {activeTable && (
+                  <Badge variant="outline" className={activeSourceMeta.className}>
+                    {activeSourceMeta.label}
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-2 text-2xl font-semibold text-foreground">
+                {activeTable ? `v${activeTable.version}` : '—'}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {activeTable
+                  ? `Применена ${formatDateTime(activeTable.applied_at || activeTable.updated_at)}`
+                  : 'Активная таблица пока не выбрана.'}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {locationContextLabel}
+              </p>
+              {activeTable?.statistics && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Точек: {activeTable.statistics.data_points_used}, R²: {activeTable.statistics.r_squared?.toFixed(3) ?? '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">Последний draft ТРК</p>
+                {latestDraftTrkTable && (
+                  <Badge variant="outline" className={latestDraftSourceMeta.className}>
+                    {latestDraftSourceMeta.label}
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-2 text-2xl font-semibold text-foreground">
+                {latestDraftTrkTable ? `v${latestDraftTrkTable.version}` : '—'}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {latestDraftTrkTable
+                  ? `Статус: ${getStatusLabel(latestDraftTrkTable.status)}`
+                  : 'Draft ТРК еще не создавался.'}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {locationContextLabel}
+              </p>
+              {latestDraftTrkTable?.comparison_with_previous?.has_previous && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Макс. изменение к прошлой версии: {latestDraftTrkTable.comparison_with_previous.max_difference_percent?.toFixed(2) ?? '—'}%
+                </p>
+              )}
+              {latestDraftTrkTable?.status === 'draft' && (
+                <Button
+                  className="mt-3 w-full"
+                  size="sm"
+                  onClick={handleQuickApprove}
+                  disabled={summaryActionInProgress === latestDraftTrkTable.id}
+                >
+                  {summaryActionInProgress === latestDraftTrkTable.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Утверждение...
+                    </>
+                  ) : (
+                    'Утвердить draft'
+                  )}
+                </Button>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">Готово к применению</p>
+                {latestApprovedInactiveTable && (
+                  <Badge variant="outline" className={latestApprovedSourceMeta.className}>
+                    {latestApprovedSourceMeta.label}
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-2 text-2xl font-semibold text-foreground">
+                {latestApprovedInactiveTable ? `v${latestApprovedInactiveTable.version}` : '—'}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {latestApprovedInactiveTable
+                  ? `Утверждена ${formatDateTime(latestApprovedInactiveTable.approved_at || latestApprovedInactiveTable.updated_at)}`
+                  : 'Нет утвержденной версии, ожидающей применения.'}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {locationContextLabel}
+              </p>
+              {latestApprovedInactiveTable?.statistics && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Точек: {latestApprovedInactiveTable.statistics.data_points_used}, R²: {latestApprovedInactiveTable.statistics.r_squared?.toFixed(3) ?? '—'}
+                </p>
+              )}
+              {latestApprovedInactiveTable && (
+                <Button
+                  variant="outline"
+                  className="mt-3 w-full"
+                  size="sm"
+                  onClick={() => setConfirmApplyTableId(latestApprovedInactiveTable.id)}
+                  disabled={summaryActionInProgress === latestApprovedInactiveTable.id}
+                >
+                  {summaryActionInProgress === latestApprovedInactiveTable.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Применение...
+                    </>
+                  ) : (
+                    'Применить версию'
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {summaryActionFeedback && (
+            <div className={`rounded-md border p-3 text-sm ${
+              summaryActionFeedback.type === 'success'
+                ? 'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-300'
+                : 'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300'
+            }`}>
+              {summaryActionFeedback.text}
+            </div>
+          )}
+
+          {readyToApplyComparison && activeTable && latestApprovedInactiveTable && (
+            <div className={`rounded-lg border p-4 ${
+              readyToApplyComparison.status === 'safe'
+                ? 'border-green-500/20 bg-green-500/10'
+                : readyToApplyComparison.status === 'attention'
+                  ? 'border-yellow-500/20 bg-yellow-500/10'
+                  : 'border-red-500/20 bg-red-500/10'
+            }`}>
+              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Сравнение активной v{activeTable.version} и готовой v{latestApprovedInactiveTable.version}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Перед применением видно, насколько новая утвержденная версия отличается от текущей рабочей таблицы.
+                  </p>
+                </div>
+                <Badge variant="outline" className={
+                  readyToApplyComparison.status === 'safe'
+                    ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300'
+                    : readyToApplyComparison.status === 'attention'
+                      ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300'
+                      : 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
+                }>
+                  {readyToApplyComparison.status === 'safe'
+                    ? 'Изменения умеренные'
+                    : readyToApplyComparison.status === 'attention'
+                      ? 'Нужна проверка'
+                      : 'Высокое расхождение'}
+                </Badge>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-lg border border-border bg-background p-3">
+                  <p className="text-xs text-muted-foreground">Среднее расхождение</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {readyToApplyComparison.averageAbsLiters.toFixed(1)} л
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-background p-3">
+                  <p className="text-xs text-muted-foreground">Макс. расхождение</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {readyToApplyComparison.maxAbsLiters.toFixed(1)} л
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-background p-3">
+                  <p className="text-xs text-muted-foreground">Среднее расхождение %</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {readyToApplyComparison.averageAbsPercent.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-background p-3">
+                  <p className="text-xs text-muted-foreground">Значимых точек</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {readyToApplyComparison.changedPoints}/{readyToApplyComparison.comparedPoints}
+                  </p>
+                </div>
+              </div>
+
+              {readyToApplyChart && (
+                <div className="mt-3 rounded-lg border border-border bg-background p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-medium text-foreground">
+                      Где новая версия уходит от активной
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {readyToApplyComparison.averageSignedLiters >= 0 ? 'Новая версия в среднем выше' : 'Новая версия в среднем ниже'}
+                    </p>
+                  </div>
+                  <svg
+                    viewBox={`0 0 ${readyToApplyChart.width} ${readyToApplyChart.height}`}
+                    className="mt-3 h-28 w-full"
+                    role="img"
+                    aria-label="Мини-график расхождения по уровням"
+                  >
+                    <line
+                      x1="10"
+                      y1={readyToApplyChart.zeroY}
+                      x2={readyToApplyChart.width - 10}
+                      y2={readyToApplyChart.zeroY}
+                      stroke="hsl(var(--muted-foreground))"
+                      strokeDasharray="4 4"
+                      opacity="0.45"
+                    />
+                    <line
+                      x1={readyToApplyChart.width / 3}
+                      y1="10"
+                      x2={readyToApplyChart.width / 3}
+                      y2={readyToApplyChart.height - 10}
+                      stroke="hsl(var(--border))"
+                    />
+                    <line
+                      x1={(readyToApplyChart.width / 3) * 2}
+                      y1="10"
+                      x2={(readyToApplyChart.width / 3) * 2}
+                      y2={readyToApplyChart.height - 10}
+                      stroke="hsl(var(--border))"
+                    />
+                    <polyline
+                      fill="none"
+                      stroke={readyToApplyComparison.status === 'review_required' ? '#ef4444' : readyToApplyComparison.status === 'attention' ? '#f59e0b' : '#22c55e'}
+                      strokeWidth="2.5"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      points={readyToApplyChart.polyline}
+                    />
+                    <circle
+                      cx={readyToApplyChart.maxPoint.x}
+                      cy={readyToApplyChart.maxPoint.y}
+                      r="4"
+                      fill="#2563eb"
+                    />
+                  </svg>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    <div className="rounded-md border border-border px-2 py-1.5 text-center">
+                      <p className="text-muted-foreground">Низ</p>
+                      <p className="font-semibold text-foreground">{readyToApplyComparison.zones.low.toFixed(1)} л</p>
+                    </div>
+                    <div className="rounded-md border border-border px-2 py-1.5 text-center">
+                      <p className="text-muted-foreground">Середина</p>
+                      <p className="font-semibold text-foreground">{readyToApplyComparison.zones.middle.toFixed(1)} л</p>
+                    </div>
+                    <div className="rounded-md border border-border px-2 py-1.5 text-center">
+                      <p className="text-muted-foreground">Верх</p>
+                      <p className="font-semibold text-foreground">{readyToApplyComparison.zones.high.toFixed(1)} л</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-3 text-xs text-muted-foreground">
+                Порог значимого изменения: {readyToApplyComparison.litersThreshold.toFixed(0)} л или {readyToApplyComparison.percentThreshold.toFixed(2)}%.
+                {typeof readyToApplyComparison.maxDifferenceLevel === 'number' && ` Максимум на уровне ${readyToApplyComparison.maxDifferenceLevel} мм.`}
+              </p>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleOpenDetailedComparison}
+                >
+                  Открыть подробное сравнение
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 md:flex-row">
+            <Button
+              onClick={() => setShowAnalysisDialog(true)}
+              className="md:min-w-56"
+            >
+              <LineChart className="w-4 h-4 mr-2" />
+              Анализ калибровки
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowCalculationDialog(true)}
+              className="md:min-w-56"
+            >
+              <Calculator className="w-4 h-4 mr-2" />
+              Расчет таблицы
+            </Button>
+            <div className="flex items-center text-xs text-muted-foreground">
+              {isTablesLoading ? 'Загружаем историю версий...' : 'История и сводка обновляются после сохранения и применения таблиц.'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div ref={historySectionRef}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Версии калибровки
+          </CardTitle>
+          <CardDescription>
+            Baseline датчика, draft ТРК и примененные версии в одном месте.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CalibrationTablesHistory
+            tankId={tankId}
+            refreshKey={historyRefreshKey}
+            onChanged={handleTablesChanged}
+            highlightedTableId={highlightedTableId}
+          />
+        </CardContent>
+      </Card>
       </div>
 
       <Separator />
@@ -1127,9 +1901,14 @@ export function TankCalibrationSettingsComponent({
         open={showCalculationDialog}
         onOpenChange={setShowCalculationDialog}
         tankId={tankId}
+        tankName={tankName}
+        fuelType={fuelType}
+        networkName={networkName}
+        stationName={stationName}
         settings={settings}
         updateSetting={updateSetting}
         handleNumberInput={handleNumberInput}
+        onTableSaved={handleTablesChanged}
       />
 
       {/* Модальное окно анализа калибровки */}
@@ -1137,9 +1916,14 @@ export function TankCalibrationSettingsComponent({
         open={showAnalysisDialog}
         onOpenChange={setShowAnalysisDialog}
         tankId={tankId}
+        tankName={tankName}
+        fuelType={fuelType}
+        networkName={networkName}
+        stationName={stationName}
         settings={settings}
         updateSetting={updateSetting}
         handleNumberInput={handleNumberInput}
+        onTableSaved={handleTablesChanged}
       />
     </div>
   );

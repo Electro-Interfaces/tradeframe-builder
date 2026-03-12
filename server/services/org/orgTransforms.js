@@ -254,7 +254,7 @@ function transformTenantsToOrg(tenants) {
           services: ensureObject(station.services),
           bill_acceptor_thresholds: ensureObject(station.billAcceptorThresholds),
           fuel_level_thresholds: ensureObject(station.fuelLevelThresholds),
-          metadata: { source: 'supabase_tenants' },
+          metadata: { source: 'tenants' },
           is_active: station.active !== false,
           created_at: pointCreatedAt,
           updated_at: pointUpdatedAt,

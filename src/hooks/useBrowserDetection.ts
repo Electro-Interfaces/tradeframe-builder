@@ -386,7 +386,7 @@ function applyIOSSafariFixes() {
 
 function applyAndroidChromeFixes() {
   // Фикс для клавиатуры
-  let initialViewportHeight = window.visualViewport?.height || window.innerHeight;
+  const initialViewportHeight = window.visualViewport?.height || window.innerHeight;
   
   const handleViewportChange = () => {
     const currentHeight = window.visualViewport?.height || window.innerHeight;

@@ -24,7 +24,7 @@ export function manifestPlugin(): Plugin {
         return;
       }
 
-      let manifest = fs.readFileSync(manifestPath, 'utf-8');
+      const manifest = fs.readFileSync(manifestPath, 'utf-8');
       const manifestObj = JSON.parse(manifest);
 
       // Нормализуем basePath (убираем слэш в конце для проверок)

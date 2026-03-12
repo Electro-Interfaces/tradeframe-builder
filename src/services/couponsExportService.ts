@@ -3,6 +3,7 @@
  */
 
 import type { CouponsSearchResult } from '@/types/coupons';
+import { loadXlsx } from '@/utils/xlsxLoader';
 
 interface ExportOptions {
   networkName?: string;
@@ -21,8 +22,7 @@ class CouponsExportService {
       throw new Error('Нет данных для экспорта');
     }
 
-    // Динамический импорт библиотеки xlsx
-    const XLSX = await import('xlsx');
+    const XLSX = await loadXlsx();
     const allCoupons = searchResult.groups.flatMap(g => g.coupons) || [];
 
     if (allCoupons.length === 0) {
@@ -46,13 +46,13 @@ class CouponsExportService {
     );
 
     const analyticsSheet = XLSX.utils.aoa_to_sheet(analyticsData);
-    this.formatNumericColumns(analyticsSheet, 'analytics');
+    this.formatNumericColumns(XLSX, analyticsSheet, 'analytics');
     XLSX.utils.book_append_sheet(workbook, analyticsSheet, 'Аналитика');
 
     // Лист "Детальная информация"
     const detailsData = this.createDetailsSheet(allCoupons, searchResult);
     const detailsSheet = XLSX.utils.aoa_to_sheet(detailsData);
-    this.formatNumericColumns(detailsSheet, 'details');
+    this.formatNumericColumns(XLSX, detailsSheet, 'details');
     XLSX.utils.book_append_sheet(workbook, detailsSheet, 'Детальная информация');
 
     // Сохраняем Excel файл
@@ -186,8 +186,7 @@ class CouponsExportService {
   /**
    * Форматирование числовых столбцов
    */
-  private formatNumericColumns(sheet: any, type: 'analytics' | 'details'): void {
-    const XLSX = require('xlsx');
+  private formatNumericColumns(XLSX: typeof import('xlsx'), sheet: any, type: 'analytics' | 'details'): void {
     const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
 
     if (type === 'analytics') {

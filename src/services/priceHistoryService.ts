@@ -392,7 +392,7 @@ class PriceHistoryServiceClass {
     ];
 
     // Применяем фильтры
-    let filteredData = mockData.filter(record => {
+    const filteredData = mockData.filter(record => {
       if (filters.startDate && record.date < filters.startDate) return false;
       if (filters.endDate && record.date > filters.endDate) return false;
       if (filters.fuelTypeId && record.fuelType !== this.mapFuelTypeIdToName(filters.fuelTypeId)) return false;

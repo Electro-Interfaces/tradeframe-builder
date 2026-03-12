@@ -528,6 +528,7 @@ export const isApiMockMode = (): boolean => {
 
 // Экспорт для window (в dev режиме)
 if (import.meta.env.DEV) {
-  // @ts-ignore
-  window.apiConfigService = apiConfigService;
+  (window as Window & typeof globalThis & {
+    apiConfigService?: typeof apiConfigService;
+  }).apiConfigService = apiConfigService;
 }

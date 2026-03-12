@@ -38,7 +38,6 @@ export {
 
 // Константы
 export {
-  SYSTEM_ID,
   TIME_TOLERANCE_MS,
   SUM_TOLERANCE,
   VOLUME_TOLERANCE,

@@ -20,6 +20,7 @@ import { format, subDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useSelection } from '@/contexts/SelectionContext';
 import { tradingPointsService } from '@/services/tradingPointsService';
+import { getSystemId } from '@/config/stsConfig';
 import type { TradingPoint } from '@/types/tradingpoint';
 import type { ReconciliationParams } from '@/types/reconciliation';
 
@@ -79,11 +80,14 @@ export function ReconciliationParamsModal({
 
   // Обработчик отправки формы
   const handleSubmit = () => {
+    const systemId = getSystemId(selectedNetwork);
+    if (!systemId) return; // Сеть не выбрана
     onSubmit({
       dateFrom,
       dateTo,
       stationIds: allStations ? [] : selectedStationIds,
-      showAllShifts
+      showAllShifts,
+      systemId
     });
   };
 

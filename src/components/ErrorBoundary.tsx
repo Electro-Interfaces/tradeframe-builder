@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { clearTradeFrameAppStorage, clearTradeFrameAuthStorage } from '@/utils/storageCleanup';
 
 interface Props {
   children: ReactNode;
@@ -9,6 +10,21 @@ interface State {
   error?: Error;
   errorInfo?: ErrorInfo;
   retryCount: number;
+}
+
+function getLoginPath(): string {
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return `${basePath}/login`;
+}
+
+function handleLoginRedirect() {
+  clearTradeFrameAuthStorage();
+  window.location.assign(getLoginPath());
+}
+
+function handleStorageReset() {
+  clearTradeFrameAppStorage();
+  window.location.reload();
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -88,11 +104,7 @@ class ErrorBoundary extends Component<Props, State> {
 
                 {/* Кнопка возврата к авторизации */}
                 <button
-                  onClick={() => {
-                    localStorage.removeItem('tradeframe_user');
-                    localStorage.removeItem('authToken');
-                    window.location.href = '/login';
-                  }}
+                  onClick={handleLoginRedirect}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
                 >
                   Войти заново
@@ -100,11 +112,7 @@ class ErrorBoundary extends Component<Props, State> {
 
                 {/* Кнопка очистки данных и перезагрузки */}
                 <button
-                  onClick={() => {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.reload();
-                  }}
+                  onClick={handleStorageReset}
                   className="bg-secondary hover:bg-secondary text-foreground px-4 py-2 rounded"
                 >
                   Очистить данные

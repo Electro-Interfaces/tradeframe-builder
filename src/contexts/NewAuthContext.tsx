@@ -6,6 +6,7 @@ import React, { createContext, useCallback, useContext, useState, useEffect, use
 import { authService, type AppUser, type UserRole } from '../services/auth/authService';
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
 import { auditLogService } from '../services/auditLogService';
+import { queryClient } from '../lib/supabase/queryClient';
 import {
   saveRememberedCredentials,
   getRememberedCredentials,
@@ -162,6 +163,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         sessionStorage.removeItem('auth_token_expiry');
       }
     } catch (error) {
+      void error;
     }
   };
 
@@ -213,7 +215,10 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         'Администратор сети': 'network_admin',
         'Менеджер': 'manager',
         'Оператор': 'operator',
-        'Менеджер БТО': 'bto_manager'
+        'Менеджер БТО': 'bto_manager',
+        'Менеджер Энтиком': 'enticom_manager',
+        'Менеджер двух станций': 'bto_station_manager',
+        'Менеджер станций БТО': 'bto_station_manager',
       };
 
       const roles: UserRole[] = userRoles
@@ -362,6 +367,10 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       const authenticatedUser = authResult.user;
       const token = authResult.token || generateAuthToken(authenticatedUser);
       const expiresAt = authResult.expiresAt || new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+
+      // Очищаем react-query кэш — до логина запросы фейлились (нет токена),
+      // закэшированные ошибки помешали бы корректной загрузке данных
+      queryClient.clear();
 
       // Сохраняем пользователя и токен
       setUser(authenticatedUser);

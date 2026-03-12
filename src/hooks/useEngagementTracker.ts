@@ -49,9 +49,6 @@ export const useEngagementTracker = () => {
         const wasEngaged = prev.isEngaged;
         const nowEngaged = isEngagementSufficient(newMetrics);
 
-        if (!wasEngaged && nowEngaged) {
-        }
-
         return { ...newMetrics, isEngaged: nowEngaged };
       });
     }, 1000);

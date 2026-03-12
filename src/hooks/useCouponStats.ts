@@ -71,7 +71,7 @@ export function useCouponStats(
 
   // Отфильтрованные купоны (дополнительная фильтрация поверх API)
   const filteredCoupons = useMemo(() => {
-    let filtered = allCoupons.filter(coupon => {
+    const filtered = allCoupons.filter(coupon => {
       // Фильтр по поиску (дополнительный)
       if (filters.search && !coupon.number.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;

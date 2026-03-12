@@ -14,6 +14,7 @@ import type {
   CalibrationTablePoint,
   ReceiptItem
 } from '@/types/tanks';
+import { createCalibrationTable } from '@/services/calibrationTableService';
 import {
   calculateCalibrationTable as runCalibrationAlgorithm,
   type CalibrationCalculationResult
@@ -21,7 +22,6 @@ import {
 import { getTankHistory } from '@/services/tankHistoryService';
 import { getTransactions, getReceipts } from '@/services/tankBookService';
 import { useSelection } from '@/contexts/SelectionContext';
-import { CalibrationTablesHistory } from '../CalibrationTablesHistory';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -47,9 +47,14 @@ interface CalculationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tankId: string;
+  tankName?: string;
+  fuelType?: string;
+  networkName?: string;
+  stationName?: string;
   settings: CalibrationSettings;
   updateSetting: <K extends keyof CalibrationSettings>(key: K, value: CalibrationSettings[K]) => void;
   handleNumberInput: (key: keyof CalibrationSettings, value: string, isInteger?: boolean) => void;
+  onTableSaved?: () => void;
 }
 
 /** Скачать таблицу как CSV/JSON файл (клиентская генерация) */
@@ -83,9 +88,14 @@ export function CalculationDialog({
   open,
   onOpenChange,
   tankId,
+  tankName,
+  fuelType,
+  networkName,
+  stationName,
   settings,
   updateSetting,
-  handleNumberInput
+  handleNumberInput,
+  onTableSaved
 }: CalculationDialogProps) {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   const [startDate, setStartDate] = useState('');
@@ -195,10 +205,13 @@ export function CalculationDialog({
         throw new Error(details || 'Недостаточно реальных отпусков ТРК и показаний датчика для расчета калибровочной таблицы.');
       }
 
-      setCalculatedTable(result.table);
-      setCalculationResult({
-        success: true,
+      const savedTable = await createCalibrationTable({
+        tank_id: tankId,
         table: result.table,
+        analysis_start_date: startDate,
+        analysis_end_date: endDate,
+        creation_notes: calculationNotes.trim() || undefined,
+        calibration_settings_snapshot: settings,
         statistics: {
           data_points_total: result.data_points_count,
           data_points_filtered: result.data_points_count - result.filtered_points_count,
@@ -209,6 +222,24 @@ export function CalculationDialog({
         },
         diagnostics: result.diagnostics,
       });
+
+      setCalculatedTable(savedTable.table);
+      setCalculationResult({
+        success: true,
+        calibration_id: savedTable.id,
+        table_version: savedTable.version,
+        table: savedTable.table,
+        statistics: {
+          data_points_total: result.data_points_count,
+          data_points_filtered: result.data_points_count - result.filtered_points_count,
+          data_points_used: result.filtered_points_count,
+          average_deviation_percent: result.quality_metrics?.rmse ?? 0,
+          max_deviation_percent: result.quality_metrics?.max_error ?? 0,
+          r_squared: result.quality_metrics?.r_squared ?? 0,
+        },
+        diagnostics: result.diagnostics,
+      });
+      onTableSaved?.();
     } catch (error) {
       console.error('Calculation error:', error);
       setCalculationResult({
@@ -231,10 +262,13 @@ export function CalculationDialog({
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            Расчет калибровочной таблицы
+            Расчет таблицы по ТРК
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-base">
-            Таблица рассчитывается на основе реальных отпусков ТРК за выбранный период с учетом установленных параметров
+            Создание новой версии таблицы по реальным отпускам ТРК и показаниям резервуара за выбранный период
+            <span className="mt-2 block text-blue-600 dark:text-blue-300 font-semibold">
+              {networkName || 'Компания не выбрана'} / {stationName || 'Станция не выбрана'} / {tankName || 'Резервуар'}{fuelType ? ` (${fuelType})` : ''}
+            </span>
           </DialogDescription>
         </DialogHeader>
 
@@ -402,6 +436,11 @@ export function CalculationDialog({
                     <CheckCircle2 className="w-4 h-4" />
                     Расчет завершен успешно
                   </h4>
+                  {calculationResult.table_version && (
+                    <p className="text-sm text-foreground mb-3">
+                      Сохранена версия таблицы: <span className="font-semibold">v{calculationResult.table_version}</span>
+                    </p>
+                  )}
                   {calculationResult.statistics && (
                     <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                       <div className="flex justify-between">
@@ -446,18 +485,6 @@ export function CalculationDialog({
             </div>
           )}
 
-          {/* История таблиц */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>История калибровочных таблиц</CardTitle>
-              <CardDescription>
-                Все расчитанные таблицы для этого резервуара. Применение таблицы требует прав администратора.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CalibrationTablesHistory tankId={tankId} />
-            </CardContent>
-          </Card>
         </div>
       </DialogContent>
     </Dialog>

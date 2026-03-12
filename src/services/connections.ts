@@ -156,7 +156,7 @@ export const mockConnections: Connection[] = [
     type: 'API_DB',
     connectionType: 'OTHER',
     purpose: 'Основная база данных приложения',
-    baseUrl: 'https://example.supabase.co',
+    baseUrl: 'https://db.example.com',
     transport: 'HTTPS',
     format: 'JSON',
     auth: {

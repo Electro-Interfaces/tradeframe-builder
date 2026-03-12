@@ -366,26 +366,22 @@ export const auditLogService = {
    * Получает записи журнала с фильтрами
    */
   async getAuditLogs(filters?: AuditLogFilters): Promise<AuditLogEntry[]> {
-    try {
-      const query = new URLSearchParams();
+    const query = new URLSearchParams();
 
-      if (filters?.date_from) query.set('date_from', filters.date_from);
-      if (filters?.date_to) query.set('date_to', filters.date_to);
-      if (filters?.user_id) query.set('user_id', filters.user_id);
-      if (filters?.user_email) query.set('user_email', filters.user_email);
-      if (filters?.action_type) query.set('action_type', filters.action_type);
-      if (filters?.object_type) query.set('object_type', filters.object_type);
-      if (filters?.object_id) query.set('object_id', filters.object_id);
-      if (filters?.search_query) query.set('search_query', filters.search_query);
-      if (filters?.limit) query.set('limit', String(filters.limit));
-      if (filters?.offset) query.set('offset', String(filters.offset));
+    if (filters?.date_from) query.set('date_from', filters.date_from);
+    if (filters?.date_to) query.set('date_to', filters.date_to);
+    if (filters?.user_id) query.set('user_id', filters.user_id);
+    if (filters?.user_email) query.set('user_email', filters.user_email);
+    if (filters?.action_type) query.set('action_type', filters.action_type);
+    if (filters?.object_type) query.set('object_type', filters.object_type);
+    if (filters?.object_id) query.set('object_id', filters.object_id);
+    if (filters?.search_query) query.set('search_query', filters.search_query);
+    if (filters?.limit) query.set('limit', String(filters.limit));
+    if (filters?.offset) query.set('offset', String(filters.offset));
 
-      const suffix = query.toString() ? `?${query.toString()}` : '';
-      const result = await auditApiRequest(suffix, { method: 'GET' }, true);
-      return result.data || [];
-    } catch (error) {
-      throw error;
-    }
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    const result = await auditApiRequest(suffix, { method: 'GET' }, true);
+    return result.data || [];
   },
 
   /**

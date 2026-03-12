@@ -48,7 +48,7 @@ const convertMarkdownToHtml = (markdown: string): string => {
   html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
   
   // Списки (упрощенная версия)
-  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
+  html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
   html = html.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
   
   // Параграфы (очень упрощенно)

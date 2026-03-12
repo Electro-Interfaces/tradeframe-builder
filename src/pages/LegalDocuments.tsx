@@ -24,6 +24,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { HelpButton } from "@/components/help/HelpButton";
 import { legalDocumentsService } from '@/services/legalDocumentsService';
+import { loadXlsx } from '@/utils/xlsxLoader';
 import { 
   DocumentTypeInfo, 
   DocumentStatistics,
@@ -248,8 +249,7 @@ export default function LegalDocuments() {
 
   const handleExportAcceptances = async () => {
     try {
-      // Динамический импорт xlsx для уменьшения размера бандла
-      const XLSX = await import('xlsx');
+      const XLSX = await loadXlsx();
 
       // Получаем все согласия
       const acceptances = await legalDocumentsService.getAcceptanceJournal();

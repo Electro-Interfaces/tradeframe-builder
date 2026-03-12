@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useSelection } from '@/contexts/SelectionContext';
 import { TankCalibrationSettingsComponent } from './TankCalibrationSettings';
 import { saveCalibrationSettings, getCalibrationSettings } from '@/services/tankCalibrationService';
 import type { Tank, TankCalibrationSettings } from '@/types/tanks';
@@ -21,6 +22,7 @@ interface TankCalibrationDialogProps {
 }
 
 export function TankCalibrationDialog({ tank, open, onOpenChange }: TankCalibrationDialogProps) {
+  const { selectedNetwork, selectedStation } = useSelection();
   const [initialSettings, setInitialSettings] = useState<TankCalibrationSettings | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -47,10 +49,13 @@ export function TankCalibrationDialog({ tank, open, onOpenChange }: TankCalibrat
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">
-            Параметры резервуара
+            Калибровка резервуара
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-base">
-            Настройка параметров и калибровки для резервуара: <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">{tank.name} ({tank.fuelType})</span>
+            Параметры, анализ и версии калибровки:
+            <span className="ml-1 text-blue-600 dark:text-blue-400 font-semibold text-lg">
+              {selectedNetwork?.name || 'Компания не выбрана'} / {selectedStation?.name || 'Станция не выбрана'} / {tank.name} ({tank.fuelType})
+            </span>
           </DialogDescription>
         </DialogHeader>
 
@@ -63,6 +68,9 @@ export function TankCalibrationDialog({ tank, open, onOpenChange }: TankCalibrat
             tankId={tank.id.toString()}
             tankName={tank.name}
             tankCapacity={tank.capacityLiters}
+            networkName={selectedNetwork?.name}
+            stationName={selectedStation?.name}
+            fuelType={tank.fuelType}
             initialSettings={initialSettings}
             onSave={async (settings: TankCalibrationSettings) => {
               await saveCalibrationSettings(settings);

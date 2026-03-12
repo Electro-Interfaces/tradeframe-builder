@@ -76,15 +76,6 @@ export function PriceDynamicsChart({ statistics, networkPrices, priceHistoryMap,
 
   const priceRange = calculatePriceRange();
 
-  if (statsWithHistory.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p className="text-lg mb-2">Нет данных по истории цен</p>
-        <p className="text-sm">История цен станет доступна после накопления данных</p>
-      </div>
-    );
-  }
-
   // Вычисляем дату начала периода
   const getStartDate = () => {
     const now = new Date();
@@ -168,6 +159,15 @@ export function PriceDynamicsChart({ statistics, networkPrices, priceHistoryMap,
       });
     }
   }, [priceHistoryMap, selectedStation, selectedFuels, startDate, statsWithHistory]);
+
+  if (statsWithHistory.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <p className="text-lg mb-2">Нет данных по истории цен</p>
+        <p className="text-sm">История цен станет доступна после накопления данных</p>
+      </div>
+    );
+  }
 
   // Переключение видимости вида топлива
   const toggleFuel = (fuelType: string) => {

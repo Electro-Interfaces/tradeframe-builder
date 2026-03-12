@@ -685,7 +685,7 @@ class STSApiService {
     // state_trm может быть на верхнем уровне или внутри pos[0]
     const posData0 = data?.pos?.[0] || {};
     const stateTrm = data?.state_trm || posData0?.state_trm;
-    let terminalState = stateTrm !== undefined ? {
+    const terminalState = stateTrm !== undefined ? {
       code: typeof stateTrm === 'number' ? stateTrm : (typeof stateTrm === 'object' ? stateTrm?.code ?? 0 : 0),
       description: typeof stateTrm === 'object' && stateTrm?.description
         ? stateTrm.description

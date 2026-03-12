@@ -85,6 +85,9 @@ export function MSTOReconciliationParamsModal({
 
   // Обработчик отправки формы
   const handleSubmit = () => {
+    const systemId = getSystemId(selectedNetwork);
+    if (!systemId) return; // Сеть не выбрана
+
     // Формируем информацию о станциях из настроек торговых точек
     // external_id это строка типа "1", "2" и соответствует коду станции в STS API
     // mstoServicePointIds берём из externalCodes с system="msto"
@@ -127,7 +130,7 @@ export function MSTOReconciliationParamsModal({
       stationIds: stationIdsToSend,
       showAllShifts,
       stations: filteredStationsInfo,
-      systemId: getSystemId(selectedNetwork)
+      systemId
     });
   };
 

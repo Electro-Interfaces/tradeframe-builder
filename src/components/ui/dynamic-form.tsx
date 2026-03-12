@@ -212,25 +212,39 @@ const renderField = (key: string, schema: any, control: any, errors: any) => {
 };
 
 export function DynamicForm({ jsonSchema, onSubmit, onCancel, isLoading = false, submitText = "Выполнить" }: DynamicFormProps) {
-  let parsedSchema;
-  
-  try {
-    parsedSchema = typeof jsonSchema === "string" ? JSON.parse(jsonSchema) : jsonSchema;
-  } catch (error) {
-    return (
-      <div className="p-4 border border-destructive rounded-lg">
-        <p className="text-destructive text-sm">Ошибка парсинга JSON Schema: {error instanceof Error ? error.message : "Неизвестная ошибка"}</p>
-      </div>
-    );
-  }
-  
-  const zodSchema = jsonSchemaToZodSchema(parsedSchema);
+  const parsedSchemaResult = React.useMemo(() => {
+    try {
+      return {
+        schema: typeof jsonSchema === "string" ? JSON.parse(jsonSchema) : jsonSchema,
+        error: null as string | null
+      };
+    } catch (error) {
+      return {
+        schema: null,
+        error: error instanceof Error ? error.message : "Неизвестная ошибка"
+      };
+    }
+  }, [jsonSchema]);
+
+  const parsedSchema = parsedSchemaResult.schema;
+  const zodSchema = React.useMemo(
+    () => jsonSchemaToZodSchema(parsedSchema ?? { properties: {}, required: [] }),
+    [parsedSchema]
+  );
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(zodSchema),
     defaultValues: {},
   });
   
-  const properties = parsedSchema.properties || {};
+  if (parsedSchemaResult.error) {
+    return (
+      <div className="p-4 border border-destructive rounded-lg">
+        <p className="text-destructive text-sm">Ошибка парсинга JSON Schema: {parsedSchemaResult.error}</p>
+      </div>
+    );
+  }
+
+  const properties = parsedSchema?.properties || {};
   
   if (Object.keys(properties).length === 0) {
     return (

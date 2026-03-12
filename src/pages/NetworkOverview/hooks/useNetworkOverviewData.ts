@@ -91,10 +91,10 @@ export function useNetworkOverviewData() {
     return results.flat();
   }, []);
 
-  // Фильтрация транзакций по мультиселекту точек
-  // Всегда фильтруем по справочнику — STS может возвращать станции, не зарегистрированные в системе
+  // Фильтрация транзакций по справочнику зарегистрированных станций
+  // Всегда фильтруем — STS может возвращать станции, не зарегистрированные в системе
   const filterBySelectedPoints = useCallback(async (txns: any[]) => {
-    if (!isAllTradingPoints || selectedTradingPoints.length === 0 || selectedNetworkIds.length === 0) {
+    if (selectedTradingPoints.length === 0 || selectedNetworkIds.length === 0) {
       return txns;
     }
     try {
@@ -113,7 +113,7 @@ export function useNetworkOverviewData() {
       return txns.filter(t => allowedExtIds.has(String(t.stationNumber)));
     } catch { /* ignore */ }
     return txns;
-  }, [isAllTradingPoints, selectedTradingPoints, selectedNetworkIds]);
+  }, [selectedTradingPoints, selectedNetworkIds]);
 
   // Функция загрузки транзакций
   const loadTransactions = useCallback(async (signal?: AbortSignal) => {

@@ -1,4 +1,5 @@
 import { loadPdfMake } from "@/utils/pdfMake";
+import { loadXlsx } from "@/utils/xlsxLoader";
 import { getFuelPriority } from "../hooks/useNetworkOverviewStats";
 
 interface ExportToExcelParams {
@@ -37,7 +38,7 @@ export async function exportToExcel({
   toast,
 }: ExportToExcelParams) {
   try {
-    const XLSX = await import('xlsx');
+    const XLSX = await loadXlsx();
 
     const workbook = XLSX.utils.book_new();
 
@@ -372,7 +373,7 @@ export async function exportToExcel({
 
       const heatmapRange = XLSX.utils.decode_range(heatmapWorksheet['!ref']!);
 
-      let allValues: number[] = [];
+      const allValues: number[] = [];
       heatmapData.forEach((day: any) => {
         day.hours.forEach((hourData: any) => {
           if (hourData.transactions > 0) {

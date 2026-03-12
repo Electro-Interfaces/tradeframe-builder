@@ -48,14 +48,14 @@ export function normalizePaymentMethod(paymentMethod: string): string {
     return 'VIAcard';
   }
 
-  // МобилПр. / Мобильная оплата
+  // МобилПр. / Мобильная оплата → Онлайн (мобильная прокачка = онлайн-заказ)
   if (method.includes('мобилпр') || method.includes('мобил.пр') || method.includes('мобил.п')) {
-    return 'МобилПр.';
+    return 'Онлайн';
   }
 
-  // Банковские карты (включая "банковские" из STS v2)
+  // Банковские карты (включая "банковские" из STS v2, "Карта МПС" из STS)
   if (['bank_card', 'карта', 'сбербанк', 'card', 'credit_card', 'debit_card'].includes(method) ||
-      method.includes('банковск')) {
+      method.includes('банковск') || method.includes('мпс')) {
     return 'Банковские';
   }
 

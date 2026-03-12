@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { FileSearch, Download, RefreshCw } from 'lucide-react';
 import type { ReconciliationResult } from '@/types/reconciliation';
 import { exportReconciliationToExcel } from '@/utils/reconciliationExport';
+import { useToast } from '@/hooks/use-toast';
 import { formatDate } from './reconciliationUtils';
 
 interface ReconciliationHeaderProps {
@@ -18,6 +19,19 @@ export function ReconciliationHeader({
   onNewReconciliation
 }: ReconciliationHeaderProps) {
   const { params } = result;
+  const { toast } = useToast();
+
+  const handleExport = async () => {
+    try {
+      await exportReconciliationToExcel(result);
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка экспорта',
+        description: 'Не удалось сформировать Excel-файл сверки',
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -36,7 +50,7 @@ export function ReconciliationHeader({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => exportReconciliationToExcel(result)}
+          onClick={() => { void handleExport(); }}
           className="border-border text-foreground/80 hover:bg-secondary flex-1 sm:flex-none"
         >
           <Download className="h-4 w-4 sm:mr-2" />

@@ -29,7 +29,9 @@ import {
   PackagePlus,
   Smartphone,
   Ticket,
-  MessageCircleMore
+  MessageCircleMore,
+  TrendingUp,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSupportContext } from "@/contexts/SupportContext";
@@ -170,6 +172,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   ];
 
   const adminMenuItems = [
+    { title: "Маркетинг", url: "/analytics/margins", icon: TrendingUp },
     { title: "Сети и ТТ", url: "/admin/networks", icon: Building2 },
     { title: "Пользователи", url: "/admin/users-and-roles", icon: Users },
     { title: "Роли", url: "/admin/roles", icon: Shield },
@@ -291,7 +294,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
                       <item.icon className="w-4 h-4 flex-shrink-0" />
                       <span className="truncate flex-1">{item.title}</span>
                       {badge > 0 && (
-                        <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                        <span className="bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
                           {badge}
                         </span>
                       )}

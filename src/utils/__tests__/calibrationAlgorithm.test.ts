@@ -188,6 +188,12 @@ describe('correctVolumeForTemperature', () => {
     expect(vol).toBeLessThan(10000);
   });
 
+  it('при 0°C объём тоже корректируется, а не пропускается как falsy', () => {
+    const vol = correctVolumeForTemperature(10000, 0, settings);
+    expect(vol).toBeLessThan(10000);
+    expect(vol).not.toBe(10000);
+  });
+
   it('при NaN температуре возвращает исходный объём', () => {
     expect(correctVolumeForTemperature(10000, NaN, settings)).toBe(10000);
   });
@@ -203,6 +209,14 @@ describe('normalizeVolumeToBaseTemperature', () => {
     const normalized = normalizeVolumeToBaseTemperature(corrected, temp, settings);
     expect(normalized).toBeCloseTo(original, 2);
   });
+
+  it('корректно работает при 0°C', () => {
+    const original = 10000;
+    const temp = 0;
+    const corrected = correctVolumeForTemperature(original, temp, settings);
+    const normalized = normalizeVolumeToBaseTemperature(corrected, temp, settings);
+    expect(normalized).toBeCloseTo(original, 2);
+  });
 });
 
 // =============================================================================
@@ -210,7 +224,12 @@ describe('normalizeVolumeToBaseTemperature', () => {
 // =============================================================================
 describe('buildGeometricCalibrationTable', () => {
   it('генерирует таблицу с шагом calibration_step_mm', () => {
-    const settings = makeSettings({ calibration_step_mm: 100 });
+    const settings = makeSettings({
+      calibration_step_mm: 100,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+    });
     const result = buildGeometricCalibrationTable(settings);
 
     expect(result.table.length).toBeGreaterThan(0);
@@ -224,13 +243,22 @@ describe('buildGeometricCalibrationTable', () => {
   });
 
   it('первая точка level=0, volume=0', () => {
-    const result = buildGeometricCalibrationTable(makeSettings());
+    const result = buildGeometricCalibrationTable(makeSettings({
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+    }));
     expect(result.table[0].level_mm).toBe(0);
     expect(result.table[0].volume_liters).toBe(0);
   });
 
   it('последняя точка — полный диаметр', () => {
-    const settings = makeSettings({ calibration_step_mm: 100 });
+    const settings = makeSettings({
+      calibration_step_mm: 100,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+    });
     const result = buildGeometricCalibrationTable(settings);
     const lastPoint = result.table[result.table.length - 1];
     expect(lastPoint.level_mm).toBe(settings.tank_diameter_mm);
@@ -241,6 +269,55 @@ describe('buildGeometricCalibrationTable', () => {
     for (let i = 1; i < result.table.length; i++) {
       expect(result.table[i].volume_liters).toBeGreaterThanOrEqual(result.table[i - 1].volume_liters);
     }
+  });
+
+  it('для вертикального резервуара использует высоту и добавляет верхнюю точку даже при неделимом шаге', () => {
+    const settings = makeSettings({
+      tank_shape_type: 'vertical_cylinder',
+      tank_diameter_mm: 2000,
+      tank_height_mm: 5000,
+      calibration_step_mm: 300,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+    });
+
+    const result = buildGeometricCalibrationTable(settings);
+    const lastPoint = result.table[result.table.length - 1];
+    const expectedFullVolume = Math.PI * 1000 * 1000 * 5000 / 1000000;
+
+    expect(lastPoint.level_mm).toBe(5000);
+    expect(lastPoint.volume_liters).toBeCloseTo(expectedFullVolume, 2);
+  });
+
+  it('по умолчанию строит рабочую геомодель только по измеряемому диапазону и с учетом мертвого остатка', () => {
+    const settings = makeSettings({ calibration_step_mm: 100 });
+    const result = buildGeometricCalibrationTable(settings);
+    const firstPoint = result.table[0];
+    const lastPoint = result.table[result.table.length - 1];
+    const expectedFirstVolume = Math.max(
+      0,
+      calculateHorizontalCylinderVolume(
+        settings.sensor_blind_zone_bottom_mm,
+        settings.tank_diameter_mm,
+        settings.tank_length_mm,
+        settings.tank_tilt_angle_degrees
+      ) - settings.dead_stock_liters
+    );
+    const expectedLastVolume = Math.max(
+      0,
+      calculateHorizontalCylinderVolume(
+        settings.tank_diameter_mm - settings.sensor_blind_zone_top_mm,
+        settings.tank_diameter_mm,
+        settings.tank_length_mm,
+        settings.tank_tilt_angle_degrees
+      ) - settings.dead_stock_liters
+    );
+
+    expect(firstPoint.level_mm).toBe(settings.sensor_blind_zone_bottom_mm);
+    expect(lastPoint.level_mm).toBe(settings.tank_diameter_mm - settings.sensor_blind_zone_top_mm);
+    expect(firstPoint.volume_liters).toBeCloseTo(expectedFirstVolume, 3);
+    expect(lastPoint.volume_liters).toBeCloseTo(expectedLastVolume, 3);
   });
 });
 
@@ -339,6 +416,27 @@ describe('buildCurrentCalibrationTable', () => {
     const result = buildCurrentCalibrationTable(history, settings);
     // Невалидные записи отфильтрованы, но остальные 10 дают таблицу
     expect(result.table.length).toBeGreaterThan(0);
+  });
+
+  it('включает последнюю измеренную точку в таблицу при шаге, который не делит диапазон', () => {
+    const settings = makeSettings({
+      calibration_method: 'direct_interpolation',
+      calibration_step_mm: 128,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      outlier_filter_enabled: false,
+    });
+    const history = [
+      makeHistoryRecord({ level: '153', volume: '15300', dt: '2025-01-15T10:00:00Z' }),
+      makeHistoryRecord({ level: '173', volume: '17300', dt: '2025-01-15T10:10:00Z' }),
+      makeHistoryRecord({ level: '193', volume: '19300', dt: '2025-01-15T10:20:00Z' }),
+    ];
+
+    const result = buildCurrentCalibrationTable(history, settings);
+    const lastPoint = result.table[result.table.length - 1];
+
+    expect(lastPoint.level_mm).toBe(1930);
+    expect(lastPoint.volume_liters).toBeCloseTo(19300, 0);
   });
 });
 
@@ -607,6 +705,120 @@ describe('calculateCalibrationTable', () => {
     expect(result.table.length).toBeGreaterThan(0);
     expect(result.diagnostics?.transactionsProcessed).toBe(2);
     expect(result.diagnostics?.warnings.some(w => w.includes('коду топлива 3'))).toBe(true);
+  });
+
+  it('предпочитает прямое сопоставление по номеру резервуара и не смешивает соседние резервуары с тем же топливом', () => {
+    const settings = makeSettings({
+      calibration_method: 'direct_interpolation',
+      calibration_step_mm: 100,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+      outlier_filter_enabled: false,
+      bias_offset_percent: 0,
+    });
+
+    const baseTime = new Date('2025-01-15T00:00:00Z').getTime();
+    const history = generateLinearHistory(12, 1, {
+      startLevel: 200,
+      levelStep: -5,
+      volumePerMm: 10,
+      fuel: 2,
+    });
+
+    const transactions: TransactionItem[] = [
+      {
+        id: 1,
+        pos: 1,
+        shift: 1,
+        number: 1,
+        tank: 1,
+        nozzle: 1,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '120',
+        cost: '6000',
+        price: '50',
+        amount: '90',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: new Date(baseTime + 2 * 600000).toISOString(),
+      },
+      {
+        id: 2,
+        pos: 1,
+        shift: 1,
+        number: 2,
+        tank: 2,
+        nozzle: 2,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '900',
+        cost: '45000',
+        price: '50',
+        amount: '675',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: new Date(baseTime + 5 * 600000).toISOString(),
+      }
+    ];
+
+    const result = calculateCalibrationTable(history, transactions, settings, 1);
+
+    expect(result.table.length).toBeGreaterThan(0);
+    expect(result.diagnostics?.transactionsProcessed).toBe(1);
+    expect(result.diagnostics?.warnings.some(w => w.includes('резервуара 1'))).toBe(true);
+  });
+
+  it('для reference_source=current_table уходит в геометрию, если опорная точка вне диапазона активной таблицы', () => {
+    const settings = makeSettings({
+      calibration_method: 'direct_interpolation',
+      calibration_step_mm: 100,
+      sensor_blind_zone_bottom_mm: 0,
+      sensor_blind_zone_top_mm: 0,
+      dead_stock_liters: 0,
+      outlier_filter_enabled: false,
+      bias_offset_percent: 0,
+      reference_source: 'current_table',
+    });
+
+    const history = generateLinearHistory(12, 1, {
+      startLevel: 200,
+      levelStep: -5,
+      volumePerMm: 10,
+      fuel: 2,
+    });
+
+    const transactions: TransactionItem[] = [
+      {
+        id: 1,
+        pos: 1,
+        shift: 1,
+        number: 1,
+        tank: 999,
+        nozzle: 1,
+        fuel: 2,
+        fuel_name: 'АИ-92',
+        quantity: '180',
+        cost: '9000',
+        price: '50',
+        amount: '135',
+        density: '750',
+        pay_type: { id: 1, name: 'Наличные' },
+        dt: '2025-01-15T00:20:00Z',
+      }
+    ];
+
+    const currentTable = [
+      { level_mm: 0, volume_liters: 0 },
+      { level_mm: 1500, volume_liters: 15000 }
+    ];
+
+    const result = calculateCalibrationTable(history, transactions, settings, 1, [], currentTable, 2);
+    const refWarning = result.diagnostics?.warnings.find(w => w.includes('⭐ Опорная точка'));
+
+    expect(result.table.length).toBeGreaterThan(0);
+    expect(refWarning).toContain('геометрия (фоллбек)');
   });
 
   it('усредняет измерения по averaging_period_minutes и пишет это в диагностику', () => {

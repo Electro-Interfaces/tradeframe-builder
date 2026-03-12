@@ -73,7 +73,7 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
             onClick={() => setShowCalibration(true)}
           >
             <Settings className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-            Параметры
+            Калибровка
           </Button>
         </div>
 

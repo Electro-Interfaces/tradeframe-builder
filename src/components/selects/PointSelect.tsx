@@ -129,6 +129,10 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
     if (disabled) return "Сначала выберите сеть";
     if (values.length === 0) return "Выберите торговые точки";
     if (isAllSelected) {
+      // Если единственная станция в сети — показываем её имя
+      if (tradingPoints.length === 1 && selectedPoints.length === 1) {
+        return selectedPoints[0].name;
+      }
       return hasRestrictedAccess
         ? `Все доступные (${tradingPoints.length})`
         : "Все торговые точки";

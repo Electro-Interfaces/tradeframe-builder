@@ -146,7 +146,7 @@ function log(message: string, type: 'info' | 'success' | 'error' | 'warn' = 'inf
 async function loadStationCodes(args: CommandLineArgs): Promise<{ success: number; errors: number }> {
   log('Загрузка кодов для торговых точек (АЗС)...');
   
-  let stats = { success: 0, errors: 0 };
+  const stats = { success: 0, errors: 0 };
   
   // Фильтруем маппинги по сети если указана
   const mappings = args.network 
@@ -279,7 +279,7 @@ async function loadStationCodes(args: CommandLineArgs): Promise<{ success: numbe
 async function loadFuelCodes(args: CommandLineArgs): Promise<{ success: number; errors: number }> {
   log('\nЗагрузка кодов для номенклатуры (виды топлива)...');
   
-  let stats = { success: 0, errors: 0 };
+  const stats = { success: 0, errors: 0 };
   
   // Фильтруем маппинги по сети если указана
   const mappings = args.network 
@@ -465,7 +465,7 @@ async function main() {
     log(`\nФильтр по сети: ${args.network}`, 'warn');
   }
   
-  let totalStats = { success: 0, errors: 0 };
+  const totalStats = { success: 0, errors: 0 };
   
   // Загружаем коды для станций
   if (!args.fuelsOnly) {

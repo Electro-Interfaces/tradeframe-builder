@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { legalDocumentsService } from '@/services/legalDocumentsService';
+import { loadXlsx } from '@/utils/xlsxLoader';
 import { 
   UserDocumentAcceptance,
   DocumentType,
@@ -180,8 +181,7 @@ export default function LegalUsersAcceptances() {
 
   const handleExportAcceptances = async () => {
     try {
-      // Динамический импорт xlsx для уменьшения размера бандла
-      const XLSX = await import('xlsx');
+      const XLSX = await loadXlsx();
 
       if (users.length === 0) {
         alert('Нет данных для экспорта');

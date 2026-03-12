@@ -1,31 +1,23 @@
 /**
  * Конфигурация STS API
+ * Сети: БТО=15, ГИГ=65, Энтиком=29
  */
-
-/**
- * Код системы по умолчанию для STS API (БТО)
- * Используется как fallback если external_id сети не задан
- */
-export const STS_SYSTEM_ID = 15;
 
 /**
  * Получить system ID для выбранной сети
- * Использует external_id из настроек сети
- *
- * @param network - Объект сети с settings.external_id
- * @returns System ID для STS API
+ * Возвращает null если сеть не выбрана (нормальная ситуация при загрузке)
+ * Бросает ошибку если сеть выбрана, но external_id не задан (ошибка конфигурации)
  */
-export function getSystemId(network?: { settings?: { external_id?: string }; external_id?: string } | null): number {
+export function getSystemId(network?: { settings?: { external_id?: string }; external_id?: string } | null): number | null {
   if (!network) {
-    return STS_SYSTEM_ID;
+    return null;
   }
 
-  // Проверяем external_id в settings
   const externalId = network.settings?.external_id || network.external_id;
 
   if (externalId && !isNaN(parseInt(externalId))) {
     return parseInt(externalId);
   }
 
-  return STS_SYSTEM_ID;
+  throw new Error(`У сети не задан external_id — невозможно определить system ID для STS API`);
 }

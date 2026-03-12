@@ -428,6 +428,7 @@ export interface CalibrationTable {
 
   // Статистика и сравнение
   statistics?: CalibrationTableStatistics;
+  diagnostics?: CalibrationDiagnostics;
   comparison_with_previous?: CalibrationTableComparison;
 
   // Workflow
@@ -481,6 +482,7 @@ export interface CalibrationDiagnostics {
 export interface CalculateCalibrationTableResult {
   success: boolean;
   calibration_id?: string;
+  table_version?: number;
   table?: CalibrationTablePoint[];
   statistics?: CalibrationTableStatistics;
   comparison?: CalibrationTableComparison;
