@@ -26,38 +26,28 @@ interface StsProxyRequestOptions {
  * Передаются как X-User-Id и X-User-Name заголовки в каждом запросе к backend proxy
  */
 function getUserHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+
   try {
-    // Источник 1: auth_user из нашей БД (NewAuthContext)
+    // Auth token для requireAuth middleware
+    const token = localStorage.getItem('tradeframe_token_v2');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // User info для X-User-Id / X-User-Name
     const appUserRaw = localStorage.getItem('auth_user');
     if (appUserRaw) {
       const appUser = JSON.parse(appUserRaw);
-      if (appUser?.id || appUser?.name) {
-        const headers: Record<string, string> = {};
-        if (appUser.id) headers['X-User-Id'] = appUser.id;
-        if (appUser.name) headers['X-User-Name'] = encodeURIComponent(appUser.name);
-        else if (appUser.email) headers['X-User-Name'] = encodeURIComponent(appUser.email);
-        return headers;
-      }
-    }
-
-    // Источник 2: Legacy auth token (fallback)
-    const projectRef = (import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').split('.')[0];
-    const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const user = parsed?.user;
-      if (user) {
-        const headers: Record<string, string> = {};
-        if (user.id) headers['X-User-Id'] = user.id;
-        const name = user.user_metadata?.name || user.email || '';
-        if (name) headers['X-User-Name'] = encodeURIComponent(name);
-        return headers;
-      }
+      if (appUser?.id) headers['X-User-Id'] = appUser.id;
+      if (appUser?.name) headers['X-User-Name'] = encodeURIComponent(appUser.name);
+      else if (appUser?.email) headers['X-User-Name'] = encodeURIComponent(appUser.email);
     }
   } catch {
     // Если не удалось получить данные пользователя — не критично
   }
-  return {};
+
+  return headers;
 }
 
 import { getBackendOrigin } from '@/utils/backendUrl';
