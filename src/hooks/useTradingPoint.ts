@@ -25,7 +25,7 @@ export function useTradingPoint({ tradingPointId, networkId }: UseTradingPointOp
         setLoading(true);
         setError(null);
 
-        const tradingPointsService = (await import('@/services/tradingPointsService')).default;
+        const { tradingPointsService } = await import('@/services/tradingPointsService');
         const points = await tradingPointsService.getByNetworkId(networkId);
         const point = points.find(p => p.id === tradingPointId);
 
