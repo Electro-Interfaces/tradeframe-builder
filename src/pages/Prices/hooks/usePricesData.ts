@@ -154,7 +154,7 @@ const ensureSTSApiConfigured = () => {
 };
 
 export function usePricesData() {
-  const { selectedTradingPoint } = useSelection();
+  const { selectedTradingPoint, selectedNetwork } = useSelection();
   const stationNetworkId = useStationNetworkId();
   const { hasExternalDatabase } = useDataSourceInfo();
 
