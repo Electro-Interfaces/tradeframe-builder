@@ -280,47 +280,35 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
             </div>
           ) : (
             <>
-              {/* Мобильный вид - карточки */}
-              <div className="sm:hidden space-y-2 py-2">
+              {/* Мобильный вид - компактные строки */}
+              <div className="sm:hidden divide-y divide-border/50 py-1">
                 {stations.map((station) => (
                   <div
                     key={station.id}
-                    className={`p-3 rounded-lg border ${
-                      station.status === 'online'
-                        ? 'border-green-600/30 bg-emerald-100 dark:bg-emerald-900/10'
-                        : station.status === 'offline'
-                        ? 'border-red-600/30 bg-red-100 dark:bg-red-900/10'
-                        : 'border-border bg-card/50'
+                    className={`py-2 px-2 flex items-center gap-2 ${
+                      station.status === 'offline'
+                        ? 'bg-red-50 dark:bg-red-900/10'
+                        : ''
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(station.status)}
-                          <span className="text-foreground font-medium text-sm truncate">
-                            {station.name}
+                    {getStatusIcon(station.status)}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-foreground truncate">{station.name}</div>
+                      <div className={`flex items-center gap-1 text-[11px] ${getTimeAgoColor(station.lastConnection)}`}>
+                        <Clock className="w-2.5 h-2.5" />
+                        <span>{formatLastConnection(station.lastConnection, true)}</span>
+                        {station.lastConnection && (
+                          <span className="text-muted-foreground">
+                            ({station.lastConnection.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })})
                           </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          ID: {station.externalId}
-                        </div>
+                        )}
                       </div>
-                      {station.shiftNumber && (
-                        <div className="text-right shrink-0">
-                          <div className="text-xs text-muted-foreground">Смена</div>
-                          <div className="text-foreground text-sm font-medium">#{station.shiftNumber}</div>
-                        </div>
-                      )}
                     </div>
-                    <div className={`flex items-center gap-1 mt-2 text-xs ${getTimeAgoColor(station.lastConnection)}`}>
-                      <Clock className="w-3 h-3" />
-                      <span className="font-medium">{formatLastConnection(station.lastConnection)}</span>
-                      {station.lastConnection && (
-                        <span className="text-muted-foreground ml-1">
-                          ({station.lastConnection.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })})
-                        </span>
-                      )}
-                    </div>
+                    {station.shiftNumber && (
+                      <div className="text-right shrink-0 text-xs text-muted-foreground">
+                        #{station.shiftNumber}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

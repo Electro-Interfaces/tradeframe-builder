@@ -28,7 +28,7 @@ export const FuelInventoryFilters = ({
   return (
     <Card className="bg-card border-border">
       <CardContent className="py-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {/* Дата от */}
           <div>
             <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>

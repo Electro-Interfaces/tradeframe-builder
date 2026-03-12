@@ -3,8 +3,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Bell, MessageCircle, MoonStar, Save, Link as LinkIcon, CheckCircle, Send } from 'lucide-react';
+import { Bell, MessageCircle, MoonStar, Save, Link as LinkIcon, CheckCircle, Send, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +28,8 @@ import type { UserNotificationSettings } from '@/types/notification';
 export default function UserNotificationSettingsPage() {
   const { user } = useNewAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -193,8 +197,13 @@ export default function UserNotificationSettingsPage() {
         {/* Заголовок */}
         <div>
           <div className="flex items-center gap-3">
-            <Bell className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            <h1 className="text-3xl font-bold text-foreground">
+            {isMobile && (
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0 -ml-2">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <Bell className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-blue-600 dark:text-blue-400`} />
+            <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-foreground`}>
               Настройки уведомлений
             </h1>
           </div>

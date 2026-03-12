@@ -117,3 +117,19 @@ coverage/
 !robots.txt
 bun.lockb
 ~$*
+
+# ESLint reports (large)
+eslint-report*.json
+
+# Screenshot scripts and output
+screenshot-*.mjs
+check-standalone.mjs
+screenshots/
+
+# Landing pages and marketing assets
+landing*.html
+banners-au92/
+au92-logo.png
+
+# Server temp files
+server/tmp/

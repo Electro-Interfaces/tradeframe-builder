@@ -368,7 +368,7 @@ export function NetworkOverview() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="p-4 border-t border-border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {/* Дата начала */}
                     <div>
                       <Label htmlFor="dateFrom" className="text-xs text-muted-foreground">Дата от</Label>

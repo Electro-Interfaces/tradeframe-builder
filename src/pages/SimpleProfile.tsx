@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNewAuth } from "@/contexts/NewAuthContext";
-import { Shield, Mail, Lock, User, Calendar, LogOut, Edit, Save, X } from "lucide-react";
+import { Shield, Mail, Lock, User, Calendar, LogOut, Edit, Save, X, ArrowLeft } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 
 interface PasswordFormData {
@@ -161,11 +161,18 @@ export default function SimpleProfile() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">Мой профиль</h1>
-              <p className="text-muted-foreground mt-2">
-                Личная информация и настройки аккаунта
-              </p>
+            <div className="flex items-center gap-3">
+              {isMobile && (
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0 -ml-2">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              )}
+              <div>
+                <h1 className="text-2xl font-semibold text-foreground">Мой профиль</h1>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Личная информация и настройки аккаунта
+                </p>
+              </div>
             </div>
             <HelpButton route="/profile" variant="text" size="sm" className="flex-shrink-0" />
           </div>

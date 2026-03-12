@@ -71,7 +71,7 @@ export function CouponFilters({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="p-4 border-t border-border">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {/* Поиск */}
               <div>
                 <Label htmlFor="search" className="text-xs text-muted-foreground">

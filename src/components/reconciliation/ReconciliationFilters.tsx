@@ -60,7 +60,7 @@ export function ReconciliationFilters({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0 pb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3">
               <Select value={stationFilter} onValueChange={onStationFilterChange}>
                 <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Станция" />

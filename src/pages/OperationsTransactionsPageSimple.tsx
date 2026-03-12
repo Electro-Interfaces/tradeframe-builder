@@ -802,7 +802,7 @@ export default function OperationsTransactionsPageSimple() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="p-4 border-t border-border">
-                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
+                <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
                   {/* Дата от */}
                   <div>
                     <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
@@ -869,7 +869,7 @@ export default function OperationsTransactionsPageSimple() {
                   )}
 
                   {/* Поиск */}
-                  <div>
+                  <div className={isMobile ? 'col-span-2' : ''}>
                     <Label htmlFor="search" className="text-xs text-muted-foreground">Поиск</Label>
                     <Input
                       id="search"

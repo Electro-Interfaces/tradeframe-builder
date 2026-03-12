@@ -694,7 +694,7 @@ export default function Receipts() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="p-4 border-t border-border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* Дата от */}
                     <div>
                       <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
@@ -863,7 +863,7 @@ export default function Receipts() {
             <div className="text-sm font-medium text-violet-800 dark:text-violet-200 mb-3">
               Массовая расценка — заполнение себестоимости по виду топлива
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
               <div>
                 <Label className="text-xs text-muted-foreground">Вид топлива</Label>
                 <Select value={bulkFillFuel || undefined} onValueChange={setBulkFillFuel}>

@@ -115,7 +115,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
           </div>
           
           {/* Фильтры */}
-          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-4'}`}>
+          <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
             {/* Дата начала */}
             <div>
               <Label htmlFor="dateFrom" className="text-sm text-muted-foreground mb-2 block">Дата начала</Label>

@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
-import { BottomNav } from "./BottomNav";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
 import { PointSelect } from "@/components/selects/PointSelect";
@@ -37,7 +37,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
 
   return (
     <SidebarProvider>
-      <div className={`bg-background text-foreground w-full max-w-none ${fullWidth ? 'h-screen' : 'min-h-screen'} ${isMobile ? 'flex flex-col' : ''}`}>
+      <div className={`bg-background text-foreground w-full max-w-none overflow-x-hidden ${fullWidth ? 'h-screen' : 'min-h-screen'} ${isMobile ? 'flex flex-col' : ''}`}>
         <Header
           selectedNetwork={selectedNetwork?.id || ""}
           selectedNetworkIds={selectedNetworkIds}
@@ -64,7 +64,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
             </Sheet>
 
             <div className="flex flex-col flex-1 min-h-0">
-              <main className="flex-1 min-h-0 min-w-0 w-full max-w-none overflow-y-auto pb-16" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+              <main className="flex-1 min-h-0 min-w-0 w-full max-w-none overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
                 <div className={fullWidth ? "w-full max-w-none min-h-full" : "w-full max-w-none"}>
                   {/* Mobile Trading Point Selector */}
                   {selectedNetwork && (
@@ -84,7 +84,6 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
               </main>
             </div>
 
-            <BottomNav onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
           </>
         ) : (
           // Desktop Layout
