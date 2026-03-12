@@ -37,7 +37,7 @@ export const FuelInventoryFilters = ({
               type="date"
               value={dateFrom}
               onChange={(e) => onDateFromChange(e.target.value)}
-              className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              className="mt-1"
             />
           </div>
 
@@ -49,7 +49,7 @@ export const FuelInventoryFilters = ({
               type="date"
               value={dateTo}
               onChange={(e) => onDateToChange(e.target.value)}
-              className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              className="mt-1"
             />
           </div>
 

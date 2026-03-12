@@ -1365,7 +1365,7 @@ export function AnalysisDialog({
                     value={analysisStartDate}
                     onChange={(e) => setAnalysisStartDate(e.target.value)}
                     max={analysisEndDate || undefined}
-                    className="mt-1.5 bg-background border-border [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="mt-1.5 bg-background border-border"
                   />
                 </div>
                 <div>
@@ -1377,7 +1377,7 @@ export function AnalysisDialog({
                     onChange={(e) => setAnalysisEndDate(e.target.value)}
                     min={analysisStartDate || undefined}
                     max={new Date().toISOString().split('T')[0]}
-                    className="mt-1.5 bg-background border-border [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="mt-1.5 bg-background border-border"
                   />
                 </div>
               </div>

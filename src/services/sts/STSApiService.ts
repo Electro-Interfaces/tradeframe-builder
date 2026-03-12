@@ -62,8 +62,16 @@ class STSApiService {
         const url = new URL(`${origin}/api/sts/v1/services`);
         if (systemId) url.searchParams.set('system', systemId);
 
+        const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        try {
+          const token = localStorage.getItem('tradeframe_token_v2');
+          if (token) {
+            authHeaders['Authorization'] = `Bearer ${token}`;
+          }
+        } catch { /* ignore */ }
+
         const response = await fetch(url.toString(), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           signal: AbortSignal.timeout(10000),
         });
 

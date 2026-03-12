@@ -134,7 +134,7 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
                   type="date"
                   value={filters.dateFrom}
                   onChange={(e) => handleDateFromChange(e.target.value)}
-                  className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="mt-1"
                 />
               </div>
 
@@ -147,7 +147,7 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
                   type="date"
                   value={filters.dateTo}
                   onChange={(e) => handleDateToChange(e.target.value)}
-                  className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="mt-1"
                 />
               </div>
 

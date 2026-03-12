@@ -249,7 +249,8 @@ class OnlineOrdersService {
   startMonitoring(
     filters: OnlineOrdersFilters,
     onUpdate: (orders: OnlineOrder[], newOrders: OnlineOrder[]) => void,
-    intervalMs: number = 10000
+    intervalMs: number = 10000,
+    onError?: (error: string) => void
   ): () => void {
     // Очищаем предыдущий интервал
     this.stopMonitoring();
@@ -268,6 +269,10 @@ class OnlineOrdersService {
         onUpdate(orders, newOrders);
       } catch (error) {
         console.error('Ошибка polling онлайн-заказов MSTO:', error);
+        if (onError) {
+          const msg = error instanceof Error ? error.message : 'Ошибка загрузки данных из MSTO';
+          onError(msg);
+        }
       }
     };
 

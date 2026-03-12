@@ -35,7 +35,8 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Timer
+  Timer,
+  Info
 } from 'lucide-react';
 import {
   onlineOrdersService,
@@ -202,6 +203,14 @@ export default function OnlineOrdersMonitor() {
     return ids.length > 0 ? ids : null;
   }, [isAllTradingPoints, networkTradingPoints]);
 
+  // Флаг: MSTO не настроен для текущей сети/станции
+  const mstoNotConfigured = useMemo(() => {
+    if (networkTradingPoints.length === 0) return false; // ещё загружаются
+    if (isAllTradingPoints) return networkMstoServicePointIds === null;
+    if (globalSelectedStation) return globalMstoServicePointId === null;
+    return false;
+  }, [isAllTradingPoints, networkMstoServicePointIds, globalSelectedStation, globalMstoServicePointId, networkTradingPoints]);
+
   // Список видов топлива из заказов (для фильтра)
   // Формируется из заказов, уже отфильтрованных по станциям сети
   const fuelOptions = useMemo(() => {
@@ -325,7 +334,11 @@ export default function OnlineOrdersMonitor() {
     stopMonitoringRef.current = onlineOrdersService.startMonitoring(
       filters,
       handleOrdersUpdate,
-      10000 // 10 секунд
+      10000, // 10 секунд
+      (errorMsg) => {
+        setError(errorMsg);
+        setLoading(false);
+      }
     );
 
     return () => {
@@ -639,7 +652,16 @@ export default function OnlineOrdersMonitor() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {loading && orders.length === 0 ? (
+            {mstoNotConfigured ? (
+              <div className="p-8 text-center">
+                <Info className="w-12 h-12 text-blue-500 mx-auto mb-3" />
+                <p className="text-base font-medium text-foreground mb-1">Сервис онлайн-заказов не настроен</p>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Для работы с онлайн-заказами необходимо указать коды MSTO
+                  в настройках торговых точек (раздел «Сети и ТТ» → внешние коды).
+                </p>
+              </div>
+            ) : loading && orders.length === 0 ? (
               <div className="p-8 text-center">
                 <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
                 <p className="text-lg font-medium text-foreground/80 mb-2">Загрузка онлайн-заказов...</p>

@@ -291,7 +291,7 @@ export function CalculationDialog({
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     max={endDate || undefined}
-                    className="mt-1.5 bg-background border-border [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="mt-1.5 bg-background border-border"
                   />
                 </div>
                 <div>
@@ -303,7 +303,7 @@ export function CalculationDialog({
                     onChange={(e) => setEndDate(e.target.value)}
                     min={startDate || undefined}
                     max={new Date().toISOString().split('T')[0]}
-                    className="mt-1.5 bg-background border-border [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="mt-1.5 bg-background border-border"
                   />
                 </div>
               </div>

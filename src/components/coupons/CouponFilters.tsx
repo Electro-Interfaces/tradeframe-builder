@@ -101,7 +101,7 @@ export function CouponFilters({
                   onChange={(e) =>
                     setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))
                   }
-                  className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="mt-1"
                 />
               </div>
 
@@ -117,7 +117,7 @@ export function CouponFilters({
                   onChange={(e) =>
                     setFilters((prev) => ({ ...prev, dateTo: e.target.value }))
                   }
-                  className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="mt-1"
                 />
               </div>
             </div>

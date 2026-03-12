@@ -2,12 +2,29 @@ const express = require('express');
 const axios = require('axios');
 const NodeCache = require('node-cache');
 
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, tryAuth } = require('../middleware/auth');
 const { validateStsAccess } = require('../middleware/scopeFilter');
 
 const router = express.Router();
 
-// Авторизация + проверка scope для всех STS-запросов
+// /v1/services — справочник типов топлива, не требует строгой авторизации
+// (загружается STSApiService.loadServicesMap до установки контекста пользователя)
+router.get('/v1/services', tryAuth, async (req, res) => {
+  try {
+    const client = await getStsClient(req);
+    const response = await client.get('/v1/services', {
+      params: req.query,
+      headers: jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {},
+      timeout: 10000,
+    });
+    res.json(response.data);
+  } catch (error) {
+    const status = error.response?.status || 500;
+    res.status(status).json({ error: error.message });
+  }
+});
+
+// Авторизация + проверка scope для остальных STS-запросов
 router.use(requireAuth);
 router.use(validateStsAccess);
 
