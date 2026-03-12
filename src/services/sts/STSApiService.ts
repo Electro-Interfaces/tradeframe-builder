@@ -275,9 +275,18 @@ class STSApiService {
       url.searchParams.set('station', stationParam);
     }
 
-    // Backend Proxy сам добавляет авторизацию, не нужно отправлять токен с frontend
+    // Auth token для requireAuth middleware на backend
+    const authHeaders: Record<string, string> = {};
+    try {
+      const token = localStorage.getItem('tradeframe_token_v2');
+      if (token) {
+        authHeaders['Authorization'] = `Bearer ${token}`;
+      }
+    } catch { /* ignore */ }
+
     const headers = {
       'Content-Type': 'application/json',
+      ...authHeaders,
       ...options.headers,
     };
 
