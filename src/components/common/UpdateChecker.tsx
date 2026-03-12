@@ -73,7 +73,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
           // Service Worker not registered, attempting registration
 
           try {
-            const swPath = import.meta.env.PROD ? '/tradeframe-builder/sw.js' : '/sw.js';
+            const swPath = `${import.meta.env.BASE_URL}sw.js`;
             const registration = await navigator.serviceWorker.register(swPath);
 
             // После регистрации ждем немного и проверяем обновления

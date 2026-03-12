@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useSelection } from "@/contexts/SelectionContext";
+import { useStationNetworkId } from "@/hooks/useStationNetworkId";
 import { useDataSourceInfo } from "@/components/data-source/DataSourceIndicator";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import {
@@ -153,7 +154,8 @@ const ensureSTSApiConfigured = () => {
 };
 
 export function usePricesData() {
-  const { selectedTradingPoint, selectedNetwork } = useSelection();
+  const { selectedTradingPoint } = useSelection();
+  const stationNetworkId = useStationNetworkId();
   const { hasExternalDatabase } = useDataSourceInfo();
 
   const [currentPrices, setCurrentPrices] = useState<FuelPrice[]>([]);
@@ -218,7 +220,7 @@ export function usePricesData() {
       }
 
       const contextParams = {
-        networkId: selectedNetwork?.external_id || selectedNetwork?.code || '1',
+        networkId: stationNetworkId || '1',
         tradingPointId: tradingPointObject.external_id || '1'
       };
 

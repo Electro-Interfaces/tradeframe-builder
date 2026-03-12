@@ -3,12 +3,12 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useSelection } from '@/contexts/SelectionContext';
+import { useStationNetworkId } from '@/hooks/useStationNetworkId';
 import type { CouponsFilter } from '@/types/coupons';
 import { daysAgoString } from '@/utils/dateUtils';
 
 export function useCouponFilters() {
-  const { selectedNetwork } = useSelection();
+  const stationNetworkId = useStationNetworkId();
 
   // Состояния фильтров
   const [filters, setFilters] = useState<CouponsFilter>({
@@ -26,15 +26,15 @@ export function useCouponFilters() {
   const [selectedKpiStates, setSelectedKpiStates] = useState<Set<string>>(new Set());
   const [selectedFuelType, setSelectedFuelType] = useState<string>('all');
 
-  // Обновляем system в фильтрах при изменении выбранной сети
+  // Обновляем system в фильтрах при изменении выбранной сети/точки
   useEffect(() => {
-    if (selectedNetwork?.external_id && !isNaN(Number(selectedNetwork.external_id))) {
+    if (stationNetworkId && !isNaN(Number(stationNetworkId))) {
       setFilters(prev => ({
         ...prev,
-        system: Number(selectedNetwork.external_id)
+        system: Number(stationNetworkId)
       }));
     }
-  }, [selectedNetwork]);
+  }, [stationNetworkId]);
 
   /**
    * Обработка клика по KPI карточке статуса

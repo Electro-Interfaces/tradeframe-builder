@@ -221,12 +221,10 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
                   <div
                     className="min-w-0 flex-1 flex items-center gap-2 cursor-pointer"
                     onClick={() => {
-                      if (onPointClick) {
-                        onPointClick(point.id);
-                        setOpen(false);
-                      } else {
-                        handleToggle(point.id);
-                      }
+                      // Клик по строке (тексту) → выбрать ТОЛЬКО эту точку + закрыть
+                      onValuesChange?.([point.id]);
+                      onPointClick?.(point.id);
+                      setOpen(false);
                     }}
                   >
                     <span
@@ -250,12 +248,26 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
             })}
           </ul>
         </div>
-        {/* Кнопка «Применить» — закрыть dropdown после мультиселекта */}
+        {/* Кнопки «Сбросить» + «Применить» */}
         {values.length > 0 && (
-          <div className={cn("border-t border-border px-2", isMobile ? "py-2.5 px-3" : "py-2")}>
+          <div className={cn("border-t border-border px-2 flex gap-2", isMobile ? "py-2.5 px-3" : "py-2")}>
+            {values.length > 1 && values.length < tradingPoints.length && (
+              <button
+                className={cn(
+                  "font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 rounded-md transition-colors",
+                  isMobile ? "px-3 py-2.5 text-sm" : "px-3 py-1.5 text-sm"
+                )}
+                onClick={() => {
+                  // Сбросить → выбрать все доступные точки
+                  onValuesChange?.(allIds);
+                }}
+              >
+                Все
+              </button>
+            )}
             <button
               className={cn(
-                "w-full font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
+                "flex-1 font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
                 isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm"
               )}
               onClick={() => setOpen(false)}

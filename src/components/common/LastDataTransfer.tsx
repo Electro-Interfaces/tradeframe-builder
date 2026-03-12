@@ -5,6 +5,7 @@
 
 import { useEquipment } from '@/hooks/useEquipment';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useStationNetworkId } from '@/hooks/useStationNetworkId';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LastDataTransferProps {
@@ -12,12 +13,13 @@ interface LastDataTransferProps {
 }
 
 export function LastDataTransfer({ className = '' }: LastDataTransferProps) {
-  const { selectedNetwork, selectedTradingPoint, selectedStation } = useSelection();
+  const { selectedTradingPoint, selectedStation } = useSelection();
+  const stationNetworkId = useStationNetworkId();
   const isMobile = useIsMobile();
 
   // Загружаем информацию о терминале
   const { terminalInfo, loading } = useEquipment({
-    networkId: selectedNetwork?.external_id,
+    networkId: stationNetworkId,
     tradingPointId: selectedTradingPoint,
     station: selectedStation,
     autoLoad: true,

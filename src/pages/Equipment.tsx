@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
+import { useStationNetworkId } from "@/hooks/useStationNetworkId";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useThresholds } from "@/hooks/useThresholds";
 import { useCashoutHistory } from "@/hooks/useCashoutHistory";
@@ -25,6 +26,7 @@ const FuelLevelThresholdsCard = lazy(() => import("@/components/equipment/FuelLe
 
 export default function Equipment() {
   const { selectedNetwork, selectedTradingPoint, selectedStation, isInitialized } = useSelection();
+  const stationNetworkId = useStationNetworkId();
   const isMobile = useIsMobile();
 
   // Хук для управления пороговыми значениями
@@ -46,7 +48,7 @@ export default function Equipment() {
     restartTerminal,
     restartingTerminal
   } = useEquipment({
-    networkId: selectedNetwork?.external_id,
+    networkId: stationNetworkId,
     tradingPointId: selectedTradingPoint,
     station: selectedStation,
     autoLoad: true,
@@ -58,7 +60,7 @@ export default function Equipment() {
     cashoutRecords,
     loading: cashoutLoading
   } = useCashoutHistory({
-    networkId: selectedNetwork?.external_id,
+    networkId: stationNetworkId,
     tradingPointId: selectedTradingPoint,
     autoLoad: true
   });
@@ -221,7 +223,7 @@ export default function Equipment() {
                       isMobile={isMobile}
                       thresholds={fuelLevelThresholds}
                       onSaveThresholds={saveFuelLevelThresholds}
-                      networkId={selectedNetwork?.external_id}
+                      networkId={stationNetworkId}
                       stationCode={selectedTradingPoint}
                     />
                   </Suspense>
@@ -257,7 +259,7 @@ export default function Equipment() {
                       isMobile={isMobile}
                       thresholds={fuelLevelThresholds}
                       onSaveThresholds={saveFuelLevelThresholds}
-                      networkId={selectedNetwork?.external_id}
+                      networkId={stationNetworkId}
                       stationCode={selectedTradingPoint}
                     />
                   </Suspense>

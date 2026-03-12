@@ -1,23 +1,30 @@
 const express = require('express');
 
-const { tryAuth } = require('../middleware/auth');
+const { requireAuth, tryAuth } = require('../middleware/auth');
+const { requireAdminAccess } = require('../middleware/requireAdmin');
 const legalDataSource = require('../services/legal/legalDataSource');
 const { isLegalDocumentType } = require('../services/legal/legalTransforms');
 
 const router = express.Router();
 
-router.use(tryAuth);
+// НЕ используем глобальный tryAuth — авторизация применяется per-route
 
-function resolveUserContext(req, body = {}) {
+/**
+ * Извлекает контекст пользователя ТОЛЬКО из токена авторизации.
+ * Body-fallback убран: пользователь не должен иметь возможность подменить userId через запрос.
+ */
+function resolveUserContext(req) {
   return {
-    userId: req.user?.id || body.userId || body.user_id,
-    userEmail: req.user?.email || body.userEmail || body.user_email || '',
+    userId: req.user?.id || null,
+    userEmail: req.user?.email || '',
     userAgent: req.get('user-agent') || '',
     ipAddress: req.ip || '',
   };
 }
 
-router.get('/document-types', async (req, res) => {
+// ─── Публичные GET-ы (чтение опубликованных документов для формы согласия) ───
+
+router.get('/document-types', tryAuth, async (req, res) => {
   try {
     const items = await legalDataSource.getDocumentTypes();
     return res.json(items);
@@ -26,7 +33,7 @@ router.get('/document-types', async (req, res) => {
   }
 });
 
-router.get('/document-types/:docType', async (req, res) => {
+router.get('/document-types/:docType', tryAuth, async (req, res) => {
   if (!isLegalDocumentType(req.params.docType)) {
     return res.status(400).json({ error: 'Неизвестный тип документа' });
   }
@@ -43,7 +50,7 @@ router.get('/document-types/:docType', async (req, res) => {
   }
 });
 
-router.get('/document-versions', async (req, res) => {
+router.get('/document-versions', tryAuth, async (req, res) => {
   try {
     const items = await legalDataSource.getDocumentVersions(req.query.docTypeCode);
     return res.json(items);
@@ -52,7 +59,7 @@ router.get('/document-versions', async (req, res) => {
   }
 });
 
-router.get('/document-versions/:versionId', async (req, res) => {
+router.get('/document-versions/:versionId', tryAuth, async (req, res) => {
   try {
     const item = await legalDataSource.getDocumentVersion(req.params.versionId);
     if (!item) {
@@ -65,31 +72,7 @@ router.get('/document-versions/:versionId', async (req, res) => {
   }
 });
 
-router.patch('/document-versions/:versionId', async (req, res) => {
-  try {
-    const item = await legalDataSource.updateDocumentVersion(req.params.versionId, {
-      version: req.body?.version,
-      contentMd: req.body?.content_md,
-      changelog: req.body?.changelog,
-      locale: req.body?.locale,
-    });
-
-    return res.json(item);
-  } catch (error) {
-    return res.status(400).json({ error: error.message || 'Ошибка обновления версии документа' });
-  }
-});
-
-router.post('/document-versions/:versionId/publish', async (req, res) => {
-  try {
-    const item = await legalDataSource.publishDocumentVersion(req.params.versionId);
-    return res.json(item);
-  } catch (error) {
-    return res.status(400).json({ error: error.message || 'Ошибка публикации версии документа' });
-  }
-});
-
-router.get('/current-version/:docType', async (req, res) => {
+router.get('/current-version/:docType', tryAuth, async (req, res) => {
   if (!isLegalDocumentType(req.params.docType)) {
     return res.status(400).json({ error: 'Неизвестный тип документа' });
   }
@@ -106,7 +89,9 @@ router.get('/current-version/:docType', async (req, res) => {
   }
 });
 
-router.post('/acceptances', async (req, res) => {
+// ─── Запись согласия — requireAuth (пользователь должен быть авторизован) ───
+
+router.post('/acceptances', requireAuth, async (req, res) => {
   const docType = req.body?.docType;
   const versionId = req.body?.versionId;
 
@@ -114,9 +99,9 @@ router.post('/acceptances', async (req, res) => {
     return res.status(400).json({ error: 'Не указана версия документа или тип документа' });
   }
 
-  const userContext = resolveUserContext(req, req.body);
+  const userContext = resolveUserContext(req);
   if (!userContext.userId) {
-    return res.status(400).json({ error: 'Не указан пользователь' });
+    return res.status(400).json({ error: 'Не удалось определить пользователя' });
   }
 
   try {
@@ -136,7 +121,9 @@ router.post('/acceptances', async (req, res) => {
   }
 });
 
-router.get('/users/:userId/acceptances', async (req, res) => {
+// ─── Чувствительные чтения — requireAuth ───
+
+router.get('/users/:userId/acceptances', requireAuth, async (req, res) => {
   try {
     const items = await legalDataSource.getUserAcceptances(req.params.userId);
     return res.json(items);
@@ -145,7 +132,7 @@ router.get('/users/:userId/acceptances', async (req, res) => {
   }
 });
 
-router.get('/users/:userId/consent-requirement', async (req, res) => {
+router.get('/users/:userId/consent-requirement', requireAuth, async (req, res) => {
   try {
     const item = await legalDataSource.getUserConsentRequirement(req.params.userId);
     return res.json(item);
@@ -154,7 +141,33 @@ router.get('/users/:userId/consent-requirement', async (req, res) => {
   }
 });
 
-router.put('/users/:userId/status', async (req, res) => {
+// ─── Админские мутации — requireAuth + requireAdminAccess ───
+
+router.patch('/document-versions/:versionId', requireAuth, requireAdminAccess, async (req, res) => {
+  try {
+    const item = await legalDataSource.updateDocumentVersion(req.params.versionId, {
+      version: req.body?.version,
+      contentMd: req.body?.content_md,
+      changelog: req.body?.changelog,
+      locale: req.body?.locale,
+    });
+
+    return res.json(item);
+  } catch (error) {
+    return res.status(400).json({ error: error.message || 'Ошибка обновления версии документа' });
+  }
+});
+
+router.post('/document-versions/:versionId/publish', requireAuth, requireAdminAccess, async (req, res) => {
+  try {
+    const item = await legalDataSource.publishDocumentVersion(req.params.versionId);
+    return res.json(item);
+  } catch (error) {
+    return res.status(400).json({ error: error.message || 'Ошибка публикации версии документа' });
+  }
+});
+
+router.put('/users/:userId/status', requireAuth, requireAdminAccess, async (req, res) => {
   if (!isLegalDocumentType(req.body?.docType) || !req.body?.versionId) {
     return res.status(400).json({ error: 'Тип документа и версия обязательны' });
   }
@@ -173,7 +186,33 @@ router.put('/users/:userId/status', async (req, res) => {
   }
 });
 
-router.get('/acceptance-journal', async (req, res) => {
+router.post('/document-drafts', requireAuth, requireAdminAccess, async (req, res) => {
+  if (!isLegalDocumentType(req.body?.doc_type_code) || !req.body?.version) {
+    return res.status(400).json({ error: 'Тип документа и версия обязательны' });
+  }
+
+  const userContext = resolveUserContext(req);
+
+  try {
+    const item = await legalDataSource.createDocumentDraft({
+      docTypeCode: req.body.doc_type_code,
+      version: req.body.version,
+      contentMd: req.body.content_md || '',
+      changelog: req.body.changelog || '',
+      locale: req.body.locale || 'ru',
+      editorId: userContext.userId,
+      editorName: req.user?.name || '',
+    });
+
+    return res.status(201).json(item);
+  } catch (error) {
+    return res.status(400).json({ error: error.message || 'Ошибка создания черновика' });
+  }
+});
+
+// ─── Журнал и статистика — requireAuth + requireAdminAccess ───
+
+router.get('/acceptance-journal', requireAuth, requireAdminAccess, async (req, res) => {
   try {
     const items = await legalDataSource.getAcceptanceJournal({
       doc_type: req.query.docType,
@@ -193,7 +232,7 @@ router.get('/acceptance-journal', async (req, res) => {
   }
 });
 
-router.get('/statistics', async (req, res) => {
+router.get('/statistics', requireAuth, requireAdminAccess, async (req, res) => {
   try {
     const items = await legalDataSource.getDocumentStatistics();
     return res.json(items);
@@ -202,31 +241,7 @@ router.get('/statistics', async (req, res) => {
   }
 });
 
-router.post('/document-drafts', async (req, res) => {
-  if (!isLegalDocumentType(req.body?.doc_type_code) || !req.body?.version) {
-    return res.status(400).json({ error: 'Тип документа и версия обязательны' });
-  }
-
-  const userContext = resolveUserContext(req, req.body);
-
-  try {
-    const item = await legalDataSource.createDocumentDraft({
-      docTypeCode: req.body.doc_type_code,
-      version: req.body.version,
-      contentMd: req.body.content_md || '',
-      changelog: req.body.changelog || '',
-      locale: req.body.locale || 'ru',
-      editorId: userContext.userId || req.body.editor_id || null,
-      editorName: req.user?.name || req.body.editor_name || '',
-    });
-
-    return res.status(201).json(item);
-  } catch (error) {
-    return res.status(400).json({ error: error.message || 'Ошибка создания черновика' });
-  }
-});
-
-router.get('/audit-log', async (req, res) => {
+router.get('/audit-log', requireAuth, requireAdminAccess, async (req, res) => {
   try {
     const items = await legalDataSource.getAuditLog({
       actor_id: req.query.actorId,

@@ -59,8 +59,8 @@ location /api/ {
     proxy_cache_bypass $http_upgrade;
 
     proxy_connect_timeout 30s;
-    proxy_send_timeout 30s;
-    proxy_read_timeout 30s;
+    proxy_send_timeout 120s;
+    proxy_read_timeout 120s;  # STS API может отвечать до 95 сек
 }
 ```
 

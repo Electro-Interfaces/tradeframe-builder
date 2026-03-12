@@ -36,6 +36,7 @@ import { getTankAnalysis, getPeriodDates } from '@/services/tankHistoryService';
 import { calculateBookReleaseFromTransactions, getBookData } from '@/services/tankBookService';
 // import { MarginTab } from './MarginTab';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useStationNetworkId } from '@/hooks/useStationNetworkId';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   normalizeTransactions,
@@ -319,7 +320,8 @@ const densityDomain: [(dataMin: number) => number, (dataMax: number) => number] 
 export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDialogProps) {
   const isMobile = useIsMobile();
   const chartHeight = isMobile ? 260 : 380;
-  const { selectedNetwork, selectedStation } = useSelection();
+  const { selectedStation } = useSelection();
+  const stationNetworkId = useStationNetworkId();
   const [period, setPeriod] = useState<AnalysisPeriod>('7d');
   const [customStart, setCustomStart] = useState<string>('');
   const [customEnd, setCustomEnd] = useState<string>('');
@@ -346,7 +348,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
   // Загрузка данных
   const loadHistory = async () => {
-    if (!selectedNetwork?.external_id) {
+    if (!stationNetworkId) {
       setError('Не выбрана сеть с external_id');
       return;
     }
@@ -374,7 +376,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
       setPeriodDates(dates); // Сохраняем для использования в нормализации
 
       const params = {
-        system: parseInt(selectedNetwork.external_id),
+        system: parseInt(stationNetworkId),
         station: parseInt(selectedStation.external_id),
         tank: tankNumber,
         dt_beg: dates.dt_beg,

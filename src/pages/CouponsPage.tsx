@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useStationNetworkId } from '@/hooks/useStationNetworkId';
 import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { Download, Plus, RefreshCw } from 'lucide-react';
 
@@ -36,6 +37,7 @@ import type { Coupon } from '@/types/coupons';
 export default function CouponsPage() {
   const isMobile = useIsMobile();
   const { selectedTradingPoint, selectedNetwork, selectedStation } = useSelection();
+  const stationNetworkId = useStationNetworkId();
   const { selectedExternalIds } = useSelectedNetworks();
 
   // Хуки для управления данными и фильтрами
@@ -158,7 +160,7 @@ export default function CouponsPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-foreground">Купоны</h1>
             <div className="flex items-center gap-2">
-              {selectedNetwork?.external_id && selectedStation?.external_id && (
+              {stationNetworkId && selectedStation?.external_id && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -256,11 +258,11 @@ export default function CouponsPage() {
       />
 
       {/* Модальное окно создания купона */}
-      {selectedNetwork?.external_id && selectedStation?.external_id && (
+      {stationNetworkId && selectedStation?.external_id && (
         <CreateCouponModal
           isOpen={isCreateOpen}
           onOpenChange={setIsCreateOpen}
-          systemId={Number(selectedNetwork.external_id)}
+          systemId={Number(stationNetworkId)}
           stationId={Number(selectedStation.external_id)}
           fuelOptions={stationFuelOptions}
           networkName={selectedNetwork.name}

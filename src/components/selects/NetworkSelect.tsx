@@ -83,7 +83,11 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
   };
 
   const handleRowClick = (networkId: string) => {
+    // Клик по строке (тексту) → выбрать ТОЛЬКО эту сеть + закрыть
     onValueChange?.(networkId);
+    if (isMultiMode) {
+      onValuesChange!([networkId]);
+    }
     setOpen(false);
   };
 
@@ -198,12 +202,28 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
             })}
           </ul>
         </div>
-        {/* Кнопка «Применить» — закрыть dropdown после мультиселекта */}
+        {/* Кнопки «Сбросить» + «Применить» */}
         {isMultiMode && selectedIds.length > 0 && (
-          <div className={cn("border-t border-border px-2", isMobile ? "py-2.5 px-3" : "py-2")}>
+          <div className={cn("border-t border-border px-2 flex gap-2", isMobile ? "py-2.5 px-3" : "py-2")}>
+            {selectedIds.length > 1 && (
+              <button
+                className={cn(
+                  "font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 rounded-md transition-colors",
+                  isMobile ? "px-3 py-2.5 text-sm" : "px-3 py-1.5 text-sm"
+                )}
+                onClick={() => {
+                  // Сбросить → оставить только primary сеть
+                  const primary = value || selectedIds[0];
+                  onValuesChange!([primary]);
+                  onValueChange?.(primary);
+                }}
+              >
+                Сбросить
+              </button>
+            )}
             <button
               className={cn(
-                "w-full font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
+                "flex-1 font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
                 isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm"
               )}
               onClick={() => setOpen(false)}

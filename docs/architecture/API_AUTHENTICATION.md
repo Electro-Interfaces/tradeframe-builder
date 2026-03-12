@@ -278,7 +278,49 @@ node index.js
 
 ---
 
+---
+
+## 🔑 Двухуровневая аутентификация
+
+В TradeFrame используются **два уровня** авторизации для STS запросов:
+
+### Уровень 1: Frontend → Backend (requireAuth)
+
+Frontend отправляет **app-токен** (`tradeframe_token_v2`) в заголовке `Authorization: Bearer` при каждом запросе к backend proxy `/api/sts/*`.
+
+- Middleware `requireAuth` (`server/middleware/auth.js`) проверяет JWT и ищет пользователя в PostgreSQL
+- Токен хранится в `localStorage` под ключом `tradeframe_token_v2`
+- Без этого токена backend вернёт **401 Unauthorized**
+
+**Два frontend STS клиента** (оба обязаны отправлять Bearer token):
+
+| Клиент | Файл | Используется для |
+|--------|------|-----------------|
+| `stsProxyClient` | `src/services/stsProxyClient.ts` | Смены, резервуары, сверка |
+| `STSApiService` | `src/services/sts/STSApiService.ts` | Операции, оборудование, цены |
+
+### Уровень 2: Backend → STS API (JWT)
+
+Backend проксирует запрос к внешнему STS API с **STS JWT-токеном** (получается через `/v1/login`).
+
+- Учётные данные STS API хранятся **только в `server/.env`** — никогда не попадают во frontend
+- STS JWT токен действителен 20 минут, обновляется автоматически каждые 18 минут
+
+```
+Frontend → [Bearer tradeframe_token_v2] → Backend requireAuth
+                                           ↓
+Backend  → [Bearer STS_JWT] → External STS API (pos.autooplata.ru)
+```
+
+---
+
 ## 📝 История изменений
+
+### 2026-03-12 - v2.0
+- ✅ Добавлен `requireAuth` middleware на все STS-роуты (`server/routes/sts.js`)
+- ✅ `STSApiService.ts` — добавлена отправка Bearer token из localStorage
+- ✅ `stsProxyClient.ts` — добавлена отправка Bearer token из localStorage
+- ✅ Документирована двухуровневая схема аутентификации
 
 ### 2025-10-18 - v1.0
 - ✅ Переход с Basic Auth на JWT авторизацию
@@ -295,7 +337,10 @@ node index.js
 ## 🔗 Связанные документы
 
 - `API_INTEGRATION.md` - Полная документация по интеграции с внешним API
-- `server/routes/sts.js` - Реализация проксирования
+- `server/routes/sts.js` - Реализация проксирования + requireAuth
+- `server/middleware/auth.js` - JWT-валидация app-токена
+- `src/services/stsProxyClient.ts` - Frontend STS клиент (смены, резервуары, сверка)
+- `src/services/sts/STSApiService.ts` - Frontend STS клиент (операции, оборудование, цены)
 - `vite.config.ts` - Конфигурация proxy для dev режима
 - Swagger: https://pos.autooplata.ru/tms/docs
 
@@ -303,8 +348,9 @@ node index.js
 
 ## 💡 Важные замечания
 
-1. **JWT токен НЕ хранится в frontend** - только на backend
-2. **Токен автоматически обновляется** - не требуется ручное вмешательство
-3. **Учетные данные НИКОГДА не попадают в frontend bundle** - только в server/.env
-4. **Один токен на весь backend** - переиспользуется для всех запросов
-5. **Время жизни токена 20 минут** - обновление за 2 минуты до истечения
+1. **STS JWT токен НЕ хранится в frontend** — только на backend
+2. **App-токен (tradeframe_token_v2) хранится в localStorage** — отправляется с каждым запросом к backend
+3. **Два отдельных STS-клиента на frontend** — оба обязаны отправлять Bearer token
+4. **Учетные данные STS API НИКОГДА не попадают в frontend bundle** — только в server/.env
+5. **Один STS JWT токен на весь backend** — переиспользуется для всех запросов
+6. **Время жизни STS токена 20 минут** — обновление за 2 минуты до истечения

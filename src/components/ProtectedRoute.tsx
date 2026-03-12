@@ -6,10 +6,12 @@ import '../types/window';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  /** Требовать административный доступ (super_admin, system_admin, network_admin или permission manage) */
+  requireAdmin?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useNewAuth();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin }) => {
+  const { user, loading, isAdmin } = useNewAuth();
   const location = useLocation();
 
   // Показываем загрузку пока проверяем аутентификацию
@@ -34,6 +36,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (!user) {
     // Сохраняем текущий путь для возврата после входа
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Если требуется админский доступ, проверяем роль
+  if (requireAdmin && !isAdmin()) {
+    return <Navigate to="/" replace />;
   }
 
   // Пользователь авторизован - показываем защищенное содержимое

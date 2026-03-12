@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { requireAuth } = require('../middleware/auth');
+const { requireAdminAccess } = require('../middleware/requireAdmin');
 const { filterTradingPointsByScope } = require('../middleware/scopeFilter');
 const orgDataSource = require('../services/org/orgDataSource');
 
@@ -30,7 +31,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdminAccess, async (req, res) => {
   try {
     if (!req.body?.networkId || !req.body?.name) {
       return res.status(400).json({ error: 'networkId и name обязательны' });
@@ -43,7 +44,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdminAccess, async (req, res) => {
   try {
     const point = await orgDataSource.updateTradingPoint(req.params.id, req.body || {});
     if (!point) {
@@ -56,7 +57,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdminAccess, async (req, res) => {
   try {
     await orgDataSource.deleteTradingPoint(req.params.id);
     return res.status(204).send();
@@ -65,7 +66,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id/bill-acceptor-thresholds', async (req, res) => {
+router.put('/:id/bill-acceptor-thresholds', requireAdminAccess, async (req, res) => {
   try {
     await orgDataSource.updateBillAcceptorThresholds(req.params.id, req.body || {});
     return res.json({ ok: true });
@@ -74,7 +75,7 @@ router.put('/:id/bill-acceptor-thresholds', async (req, res) => {
   }
 });
 
-router.put('/:id/fuel-level-thresholds', async (req, res) => {
+router.put('/:id/fuel-level-thresholds', requireAdminAccess, async (req, res) => {
   try {
     await orgDataSource.updateFuelLevelThresholds(req.params.id, req.body || {});
     return res.json({ ok: true });
@@ -83,7 +84,7 @@ router.put('/:id/fuel-level-thresholds', async (req, res) => {
   }
 });
 
-router.post('/:id/external-codes', async (req, res) => {
+router.post('/:id/external-codes', requireAdminAccess, async (req, res) => {
   try {
     const externalCode = await orgDataSource.addExternalCode(req.params.id, req.body || {});
     return res.status(201).json(externalCode);
@@ -92,7 +93,7 @@ router.post('/:id/external-codes', async (req, res) => {
   }
 });
 
-router.put('/:id/external-codes/:codeId', async (req, res) => {
+router.put('/:id/external-codes/:codeId', requireAdminAccess, async (req, res) => {
   try {
     const externalCode = await orgDataSource.updateExternalCode(
       req.params.id,
@@ -110,7 +111,7 @@ router.put('/:id/external-codes/:codeId', async (req, res) => {
   }
 });
 
-router.delete('/:id/external-codes/:codeId', async (req, res) => {
+router.delete('/:id/external-codes/:codeId', requireAdminAccess, async (req, res) => {
   try {
     await orgDataSource.removeExternalCode(req.params.id, req.params.codeId);
     return res.status(204).send();

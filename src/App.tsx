@@ -223,11 +223,11 @@ const App = () => {
                   <Route path="/network/coupons" element={<ProtectedRoute><LazyLoader><CouponsPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/fuel-inventory" element={<ProtectedRoute><LazyLoader><FuelInventory /></LazyLoader></ProtectedRoute>} />
 
-                  {/* Admin страницы - приоритет 2 */}
-                  <Route path="/admin/users-and-roles" element={<ProtectedRoute><LazyLoader><Users /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/roles" element={<ProtectedRoute><LazyLoader><Roles /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/audit" element={<ProtectedRoute><LazyLoader><AuditLog /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/data-migration" element={<ProtectedRoute><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
+                  {/* Admin страницы - приоритет 2 (requireAdmin — проверка роли) */}
+                  <Route path="/admin/users-and-roles" element={<ProtectedRoute requireAdmin><LazyLoader><Users /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/roles" element={<ProtectedRoute requireAdmin><LazyLoader><Roles /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/audit" element={<ProtectedRoute requireAdmin><LazyLoader><AuditLog /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/data-migration" element={<ProtectedRoute requireAdmin><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
 
                   {/* Settings страницы - приоритет 2 */}
                   <Route path="/settings/notifications" element={<ProtectedRoute><LazyLoader><UserNotificationSettings /></LazyLoader></ProtectedRoute>} />
@@ -247,21 +247,21 @@ const App = () => {
                   <Route path="/point/equipment" element={<ProtectedRoute><LazyLoader><Equipment /></LazyLoader></ProtectedRoute>} />
 
                   {/* Остальные страницы - приоритет 4 */}
-                  <Route path="/admin/users-and-roles-new" element={<ProtectedRoute><LazyLoader><NewUsersAndRoles /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/networks" element={<ProtectedRoute><LazyLoader><NetworksPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/users-and-roles-new" element={<ProtectedRoute requireAdmin><LazyLoader><NewUsersAndRoles /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/networks" element={<ProtectedRoute requireAdmin><LazyLoader><NetworksPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/point/shift-reports-v2" element={<ProtectedRoute><LazyLoader><ShiftReportsV2 /></LazyLoader></ProtectedRoute>} />
                   <Route path="/point/shift-dashboard" element={<ProtectedRoute><LazyLoader><ShiftDashboard /></LazyLoader></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><LazyLoader><SimpleProfile /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/test-services" element={<ProtectedRoute><LazyLoader><TestServices /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/test-simple" element={<ProtectedRoute><LazyLoader><TestServicesSimple /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/test-debug" element={<ProtectedRoute><LazyLoader><TestDebug /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/mobile-browser-test" element={<ProtectedRoute><LazyLoader><MobileBrowserTest /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/legal-documents" element={<ProtectedRoute><LazyLoader><LegalDocuments /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/legal-documents/users-acceptances" element={<ProtectedRoute><LazyLoader><LegalUsersAcceptances /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/legal-documents/:docType/history" element={<ProtectedRoute><LazyLoader><LegalDocumentHistory /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/legal-documents/:docType/edit" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/legal-documents/:docType/create" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/legal-documents/:docType/view" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/test-services" element={<ProtectedRoute requireAdmin><LazyLoader><TestServices /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/test-simple" element={<ProtectedRoute requireAdmin><LazyLoader><TestServicesSimple /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/test-debug" element={<ProtectedRoute requireAdmin><LazyLoader><TestDebug /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/mobile-browser-test" element={<ProtectedRoute requireAdmin><LazyLoader><MobileBrowserTest /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocuments /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/users-acceptances" element={<ProtectedRoute requireAdmin><LazyLoader><LegalUsersAcceptances /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/:docType/history" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocumentHistory /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/:docType/edit" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/:docType/create" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/:docType/view" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
                   <Route path="/logos" element={<LazyLoader><LogoVariants /></LazyLoader>} />
 
                   {/* Support страницы */}

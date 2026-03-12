@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { requireAuth } = require('../middleware/auth');
+const { requireAdminAccess } = require('../middleware/requireAdmin');
 const nomenclatureDataSource = require('../services/nomenclature/nomenclatureDataSource');
 
 const router = express.Router();
@@ -50,7 +51,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdminAccess, async (req, res) => {
   const validationError = validateBody(req.body);
   if (validationError) {
     return res.status(400).json({ error: validationError });
@@ -64,7 +65,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdminAccess, async (req, res) => {
   const validationError = validateBody(req.body);
   if (validationError) {
     return res.status(400).json({ error: validationError });
@@ -82,7 +83,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdminAccess, async (req, res) => {
   try {
     await nomenclatureDataSource.deleteNomenclature(req.params.id);
     return res.status(204).send();
@@ -91,7 +92,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/archive', async (req, res) => {
+router.post('/:id/archive', requireAdminAccess, async (req, res) => {
   try {
     const item = await nomenclatureDataSource.archiveNomenclature(req.params.id, req.user?.id);
     if (!item) {
@@ -104,7 +105,7 @@ router.post('/:id/archive', async (req, res) => {
   }
 });
 
-router.post('/:id/activate', async (req, res) => {
+router.post('/:id/activate', requireAdminAccess, async (req, res) => {
   try {
     const item = await nomenclatureDataSource.activateNomenclature(req.params.id, req.user?.id);
     if (!item) {
@@ -126,7 +127,7 @@ router.get('/:id/external-codes', async (req, res) => {
   }
 });
 
-router.post('/:id/external-codes', async (req, res) => {
+router.post('/:id/external-codes', requireAdminAccess, async (req, res) => {
   if (!req.body?.systemType || !req.body?.externalCode) {
     return res.status(400).json({ error: 'Тип системы и внешний код обязательны' });
   }
@@ -139,7 +140,7 @@ router.post('/:id/external-codes', async (req, res) => {
   }
 });
 
-router.delete('/:id/external-codes/:mappingId', async (req, res) => {
+router.delete('/:id/external-codes/:mappingId', requireAdminAccess, async (req, res) => {
   try {
     await nomenclatureDataSource.removeExternalCode(req.params.id, req.params.mappingId);
     return res.status(204).send();

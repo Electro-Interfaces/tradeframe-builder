@@ -1,103 +1,75 @@
-# 🔧 Исправление ошибки аутентификации STS API на production
+# Исправления аутентификации STS API на production
 
-## Проблема
-Backend прокси на https://prod.dataworker.ru возвращает:
+## Инцидент 2026-03-12: Сменные отчёты + операции не загружаются
+
+### Симптомы
+1. **Сменные отчёты** — «Смены не найдены (0 из 0)», запросы `/v1/shifts` не отправляются
+2. **Операции** — пустая страница (0 операций), `STSApiService` получает 401
+
+### Причина 1: Сломанный импорт в useTradingPoint.ts
+
+После миграции PostgreSQL (коммит `6dfd049`, 9 марта) из `tradingPointsService.ts` был удалён `export default`.
+Хук `useTradingPoint.ts` использовал `.default` при динамическом импорте:
+
+```typescript
+// СЛОМАНО (молчаливый fail — tradingPoint всегда null):
+const tradingPointsService = (await import('@/services/tradingPointsService')).default;
+
+// ИСПРАВЛЕНО:
+const { tradingPointsService } = await import('@/services/tradingPointsService');
+```
+
+Ошибка была **бесшумной**: try/catch ловил undefined, tradingPoint оставался null → useShiftReports делал early return.
+
+### Причина 2: STSApiService не отправлял Bearer token
+
+После добавления `requireAuth` middleware на `server/routes/sts.js`, все запросы через `STSApiService` стали получать **401 Unauthorized**.
+
+`stsProxyClient.ts` уже был исправлен ранее, но `STSApiService.ts` (второй STS-клиент) — нет.
+
+```typescript
+// ДОБАВЛЕНО в STSApiService.apiRequest():
+const token = localStorage.getItem('tradeframe_token_v2');
+if (token) {
+  authHeaders['Authorization'] = `Bearer ${token}`;
+}
+```
+
+### Причина 3: Nginx timeout на test (30s → 120s)
+
+Test-окружение (`testtf.dataworker.ru`) имело `proxy_read_timeout 30s`, а STS API может отвечать до 95 секунд.
+
+```nginx
+# /etc/nginx/sites-enabled/testtf.dataworker.ru
+proxy_read_timeout 120s;
+```
+
+### Затронутые файлы
+
+| Файл | Изменение |
+|------|-----------|
+| `src/hooks/useTradingPoint.ts` | `.default` → named import |
+| `src/services/sts/STSApiService.ts` | Добавлен Bearer token |
+| `src/services/stsProxyClient.ts` | Bearer token (исправлен ранее) |
+| Nginx test config | timeout 30s → 120s |
+
+### Уроки
+
+1. **Два STS-клиента** — при изменении auth нужно обновлять оба (`stsProxyClient` + `STSApiService`)
+2. **`.default` импорт** — при миграции проверять все динамические импорты на наличие `export default`
+3. **Бесшумные ошибки** — catch-блоки скрывают проблемы; если данные не грузятся, проверить промежуточные хуки
+
+---
+
+## Инцидент 2025-10-18: Missing .env на production
+
+### Симптом
 ```
 HTTP 500: Failed to authenticate with STS API
 ```
 
-## Причина
-Файл `.env` с учетными данными STS API не установлен на production сервере.
+### Причина
+Файл `server/.env` с учетными данными STS API не установлен на production.
 
-## Решение
-
-### 1. SSH подключение к серверу
-```bash
-ssh user@prod.dataworker.ru
-```
-
-### 2. Перейти в директорию с backend сервером
-```bash
-cd /path/to/backend  # Уточните путь у администратора
-```
-
-### 3. Создать файл .env с правильными учетными данными
-```bash
-cat > .env << 'ENVFILE'
-# Backend Proxy Configuration
-# Эти переменные НИКОГДА не попадут в frontend bundle
-
-# STS API Configuration (External Trading System)
-STS_API_URL=https://pos.autooplata.ru/tms
-STS_API_USERNAME=UserApi
-STS_API_PASSWORD=lHQfLZHzB3tn
-
-# Backend Server Configuration
-PORT=3001
-NODE_ENV=production
-
-# CORS Configuration (разрешенные домены для frontend)
-ALLOWED_ORIGINS=https://prod.dataworker.ru,http://localhost:3000,http://localhost:3002
-ENVFILE
-```
-
-### 4. Перезапустить backend сервер
-```bash
-# Если используется PM2
-pm2 restart ecosystem.config.cjs
-
-# Или если используется systemd
-sudo systemctl restart tradeframe-backend
-```
-
-### 5. Проверить логи
-```bash
-# PM2
-pm2 logs
-
-# Systemd
-sudo journalctl -u tradeframe-backend -f
-```
-
-### 6. Проверить работоспособность
-Откройте в браузере:
-```
-https://prod.dataworker.ru/health
-```
-
-Должен вернуть:
-```json
-{
-  "status": "ok",
-  "timestamp": "...",
-  "environment": "production",
-  "version": "1.0.0"
-}
-```
-
-## Альтернативное решение
-
-Если у вас нет прямого доступа к серверу, можно установить переменные окружения через панель управления хостингом или через PM2:
-
-```bash
-pm2 start ecosystem.config.cjs --update-env
-```
-
-Убедитесь, что в `ecosystem.config.cjs` прописаны переменные окружения:
-```javascript
-env: {
-  STS_API_URL: 'https://pos.autooplata.ru/tms',
-  STS_API_USERNAME: 'UserApi',
-  STS_API_PASSWORD: 'lHQfLZHzB3tn',
-  PORT: 3001,
-  NODE_ENV: 'production',
-  ALLOWED_ORIGINS: 'https://prod.dataworker.ru,http://localhost:3000'
-}
-```
-
-## Проверка после исправления
-
-1. Откройте https://prod.dataworker.ru в браузере
-2. Перейдите на страницу "Оборудование"
-3. Данные резервуаров и терминалов должны загрузиться успешно
-4. Проверьте консоль браузера - ошибок не должно быть
+### Решение
+Создать `server/.env` на сервере с `STS_API_URL`, `STS_API_USERNAME`, `STS_API_PASSWORD` и перезапустить PM2.

@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { requireAuth } = require('../middleware/auth');
+const { requireAdminAccess } = require('../middleware/requireAdmin');
 const { filterNetworksByScope, getUserScope, hasNetworkAccess } = require('../middleware/scopeFilter');
 const orgDataSource = require('../services/org/orgDataSource');
 
@@ -36,7 +37,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdminAccess, async (req, res) => {
   try {
     if (!req.body?.name) {
       return res.status(400).json({ error: 'Название сети обязательно' });
@@ -49,7 +50,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdminAccess, async (req, res) => {
   try {
     if (!req.body?.name) {
       return res.status(400).json({ error: 'Название сети обязательно' });
@@ -66,7 +67,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdminAccess, async (req, res) => {
   try {
     await orgDataSource.deleteNetwork(req.params.id);
     return res.status(204).send();
