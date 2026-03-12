@@ -139,26 +139,29 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
     const { networkIds, networkCodes, hasRestrictions } = getAccessibleNetworks(user.roles, []);
 
-    // Если нет ограничений - ничего не делаем
-    if (!hasRestrictions) return;
-
     // Функция для выбора первой доступной сети
     const selectFirstAvailableNetwork = async () => {
       const allNetworks = await networksService.getAll();
-      const availableNetworks = allNetworks.filter(n =>
-        hasNetworkAccess(n, networkIds, networkCodes, hasRestrictions)
-      );
+      const availableNetworks = hasRestrictions
+        ? allNetworks.filter(n => hasNetworkAccess(n, networkIds, networkCodes, hasRestrictions))
+        : allNetworks;
 
       if (availableNetworks.length > 0) {
         setSelectedNetworkId(availableNetworks[0].id);
+      } else {
+        // Сетей нет совсем — отмечаем инициализацию чтобы не зависнуть
+        setIsInitialized(true);
       }
     };
 
-    // Если нет выбранной сети - выбираем первую доступную
+    // Если нет выбранной сети — выбираем первую доступную (для всех пользователей)
     if (!selectedNetworkId) {
       selectFirstAvailableNetwork();
       return;
     }
+
+    // Если нет ограничений и сеть уже выбрана - ничего не делаем
+    if (!hasRestrictions) return;
 
     // Проверяем, есть ли доступ к текущей сети
     networksService.getById(selectedNetworkId).then(network => {
@@ -254,8 +257,12 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
         });
     } else {
       setSelectedNetworkState(null);
-      // Если нет выбранной сети, всё равно отмечаем инициализацию
-      setIsInitialized(true);
+      // Если пользователь залогинен но сеть не выбрана — НЕ отмечаем инициализацию,
+      // т.к. эффект автовыбора сети (выше) сейчас загружает первую доступную сеть
+      // и потом этот эффект перезапустится с selectedNetworkId
+      if (!userId) {
+        setIsInitialized(true);
+      }
     }
   }, [selectedNetworkId, userId]);
   // ↑ userId в зависимостях: после логина (null→user) эффект перезапускается,
