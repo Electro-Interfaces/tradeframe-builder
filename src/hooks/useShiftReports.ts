@@ -20,6 +20,17 @@ interface UseShiftReportsOptions {
   filters: ShiftFilters;
 }
 
+/** Выполняет асинхронные запросы батчами для ограничения параллелизма */
+async function batchRequests<T, I>(items: I[], fn: (item: I) => Promise<T>, batchSize = 5): Promise<T[]> {
+  const results: T[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
 export function useShiftReports({ tradingPoint, networkId, network, networkIds, networks, isAllTradingPoints, filters }: UseShiftReportsOptions) {
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,10 +115,10 @@ export function useShiftReports({ tradingPoint, networkId, network, networkIds, 
             });
           }
 
-          // Загружаем смены для всех станций параллельно
-          const allShiftsPromises = tradingPoints.map(async (tp) => {
+          // Загружаем смены батчами по 5 запросов (ограничение параллелизма)
+          const allShiftsArrays = await batchRequests(tradingPoints, async (tp) => {
             const stationNumber = extractStationNumber(tp);
-            if (!stationNumber) return [];
+            if (!stationNumber) return [] as ShiftListItem[];
 
             const requestParams: any = {
               system: (tp as any)._systemId || systemId,
@@ -120,11 +131,10 @@ export function useShiftReports({ tradingPoint, networkId, network, networkIds, 
               return await shiftReportsV2Service.getShifts(requestParams, tp.name);
             } catch (err) {
               console.error(`Ошибка загрузки смен для ${tp.name}:`, err);
-              return [];
+              return [] as ShiftListItem[];
             }
           });
 
-          const allShiftsArrays = await Promise.all(allShiftsPromises);
           const allShifts = allShiftsArrays.flat();
 
           setShifts(allShifts);

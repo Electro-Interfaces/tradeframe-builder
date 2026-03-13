@@ -48,7 +48,7 @@ router.get('/:tankId/tables', async (req, res) => {
   }
 });
 
-router.post('/:tankId/tables', async (req, res) => {
+router.post('/:tankId/tables', requireCalibrationAdmin, async (req, res) => {
   try {
     const payload = {
       ...req.body,
@@ -152,7 +152,7 @@ router.get('/:tankId', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireCalibrationAdmin, async (req, res) => {
   try {
     const settings = req.body;
 
@@ -167,7 +167,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.delete('/:tankId', async (req, res) => {
+router.delete('/:tankId', requireCalibrationAdmin, async (req, res) => {
   try {
     const { tankId } = req.params;
     await tankCalibrationDataSource.deleteCalibrationSettings(tankId);
@@ -178,7 +178,7 @@ router.delete('/:tankId', async (req, res) => {
   }
 });
 
-router.post('/:tankId/run', async (req, res) => {
+router.post('/:tankId/run', requireCalibrationAdmin, async (req, res) => {
   try {
     const { tankId } = req.params;
 

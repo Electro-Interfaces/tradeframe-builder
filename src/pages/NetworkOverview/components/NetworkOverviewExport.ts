@@ -549,6 +549,15 @@ export async function exportToExcel({
   }
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Таймаут генерации изображения')), ms)
+    ),
+  ]);
+}
+
 interface ExportDashboardToPdfParams {
   initializing: boolean;
   selectedNetwork: any;
@@ -618,11 +627,14 @@ export async function exportDashboardToPdf({
       if (!element) return null;
 
       const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(element, {
-        backgroundColor: 'hsl(var(--background))',
-        scale: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2,
-        useCORS: true,
-      });
+      const canvas = await withTimeout(
+        html2canvas(element, {
+          backgroundColor: 'hsl(var(--background))',
+          scale: Math.min(window.devicePixelRatio || 1, 2),
+          useCORS: true,
+        }),
+        15000
+      );
 
       return canvas.toDataURL('image/png');
     };

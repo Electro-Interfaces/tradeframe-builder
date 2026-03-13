@@ -11,6 +11,7 @@
 const express = require('express');
 const axios = require('axios');
 const NodeCache = require('node-cache');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -232,7 +233,8 @@ async function proxyRequest(req, res, overridePath) {
 }
 
 // === Health check ===
-router.get('/health', async (req, res) => {
+// Защищён: возвращает детали JWT токена (tokenValid, tokenExpiry)
+router.get('/health', requireAuth, async (req, res) => {
   try {
     const client = await getMstoClient();
     res.json({
@@ -250,13 +252,13 @@ router.get('/health', async (req, res) => {
 });
 
 // === Очистка кэша ===
-router.post('/_cache/clear', (req, res) => {
+router.post('/_cache/clear', requireAuth, (req, res) => {
   cache.flushAll();
   res.json({ message: 'Cache cleared successfully' });
 });
 
 // === Принудительное обновление JWT токена ===
-router.post('/_token/refresh', async (req, res) => {
+router.post('/_token/refresh', requireAuth, async (req, res) => {
   try {
     await invalidateAndRefreshToken();
     res.json({
