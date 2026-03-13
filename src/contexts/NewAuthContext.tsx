@@ -60,6 +60,16 @@ const STORAGE_KEYS = {
  * Синхронно получает пользователя из localStorage при инициализации
  * Это предотвращает "мигание" на страницу логина при обновлении
  */
+function isTokenExpired(): boolean {
+  const expiry = localStorage.getItem('auth_token_expiry');
+  if (!expiry) return false; // Нет данных — проверим на сервере
+  try {
+    return new Date(expiry).getTime() < Date.now();
+  } catch {
+    return false;
+  }
+}
+
 function getInitialUserFromStorage(): AppUser | null {
   try {
     // Проверяем новые ключи
@@ -73,6 +83,10 @@ function getInitialUserFromStorage(): AppUser | null {
     }
 
     if (savedUserJson && savedToken) {
+      // Проверяем, не истёк ли токен
+      if (isTokenExpired()) {
+        return null;
+      }
       const savedUser = JSON.parse(savedUserJson) as AppUser;
       if (savedUser && savedUser.id && savedUser.email) {
         return savedUser;
@@ -404,14 +418,17 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
    * Выход из системы
    */
   const logout = useCallback(async () => {
+    // Сохраняем данные пользователя для логирования ДО очистки состояния
+    const currentUser = user;
+
     try {
       await authService.logout();
 
       // Логируем выход перед очисткой данных
-      if (user?.email) {
-        await auditLogService.logAuthentication('logout', user.email, {
-          user_id: user.id,
-          user_name: user.name,
+      if (currentUser?.email) {
+        await auditLogService.logAuthentication('logout', currentUser.email, {
+          user_id: currentUser.id,
+          user_name: currentUser.name,
           success: true
         });
       }
@@ -424,6 +441,8 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
 
     setUser(null);
     await clearAuthData();
+    // Очищаем кэш данных предыдущего пользователя
+    queryClient.clear();
     // Очищаем также сессионные данные
     sessionStorage.removeItem('current_user_email');
     sessionStorage.removeItem('auth_timestamp');
@@ -534,6 +553,23 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   const canViewReports = useCallback((): boolean => {
     if (!user) return false;
     return permissionService.canViewReports(user);
+  }, [user]);
+
+  // Cross-tab sync: если пользователь разлогинился в другой вкладке — синхронизируем
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // Ключ авторизации удалён в другой вкладке → logout
+      if (e.key === STORAGE_KEYS.TOKEN && !e.newValue && user) {
+        setUser(null);
+        queryClient.clear();
+      }
+      // Ключ авторизации появился в другой вкладке → перезагрузить для init
+      if (e.key === STORAGE_KEYS.TOKEN && e.newValue && !user) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [user]);
 
   const value = useMemo<AuthContextType>(() => ({
