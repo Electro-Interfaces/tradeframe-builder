@@ -94,13 +94,13 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
 
         {/* Баннер: нет данных уровнемера */}
         {tank.noSensorData && (
-          <div className={`flex items-center gap-2 bg-amber-50 dark:bg-amber-900/40 border border-amber-400/50 rounded-lg mb-3 ${isMobile ? 'p-2' : 'p-3'}`}>
+          <div className={`flex items-center gap-2 bg-secondary/50 border border-amber-400/50 rounded-lg mb-3 ${isMobile ? 'p-2' : 'p-3'}`}>
             <AlertTriangle className={`text-amber-600 dark:text-amber-400 flex-shrink-0 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
             <div className="min-w-0 flex-1">
-              <span className={`text-amber-600 dark:text-amber-400 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+              <span className={`text-foreground/80 dark:text-amber-400 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 Нет данных уровнемера
               </span>
-              <p className={`text-amber-600 dark:text-amber-300/80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+              <p className={`text-muted-foreground dark:text-amber-300/80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                 Книжный остаток: {(tank.apiData?.volume_begin || 0).toLocaleString()} л − отпуск {(tank.apiData?.release?.volume || 0).toLocaleString()} л = {currentLevel.toLocaleString()} л
               </p>
             </div>

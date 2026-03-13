@@ -58,8 +58,8 @@ function getBorderColor(currentPercent: number, warning: number = 20, critical: 
  * Получить цвет фона карточки
  */
 function getBgColor(currentPercent: number, warning: number = 20, critical: number = 10) {
-  if (currentPercent <= critical) return 'bg-red-100 dark:bg-red-900/10';
-  if (currentPercent <= warning) return 'bg-amber-50 dark:bg-amber-900/10';
+  if (currentPercent <= critical) return 'bg-red-50/50 dark:bg-red-900/10';
+  if (currentPercent <= warning) return 'bg-card/80';
   return 'bg-card/50';
 }
 
@@ -275,10 +275,10 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
   }
 
   return (
-    <div className={`rounded-lg ${isMobile ? 'p-4' : 'p-6'} border-2 ${
-      criticalTanks.length > 0 ? 'border-red-500 bg-red-100 dark:bg-red-900/10' :
-      warningTanks.length > 0 ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/10' :
-      'border-border bg-card/50'
+    <div className={`rounded-lg ${isMobile ? 'p-4' : 'p-6'} border-2 bg-card/50 ${
+      criticalTanks.length > 0 ? 'border-red-500 dark:border-red-500/60' :
+      warningTanks.length > 0 ? 'border-amber-400 dark:border-amber-400/60' :
+      'border-border'
     } hover:border-border transition-colors`}>
       {/* Заголовок */}
       <div className={`${isMobile ? 'space-y-3 mb-3' : 'flex items-center justify-between mb-4'}`}>
@@ -390,14 +390,14 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
       {/* Баннер: нет данных от уровнемеров */}
       {noSensorTanks.length > 0 && (
-        <div className="mb-4 p-3 rounded-lg border-l-4 bg-amber-50 dark:bg-amber-900/20 border-amber-400">
+        <div className="mb-4 p-3 rounded-lg border-l-4 bg-secondary/50 dark:bg-secondary/30 border-amber-400">
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-500" />
             <div>
-              <p className="text-sm font-semibold text-amber-700 dark:text-amber-200">
+              <p className="text-sm font-semibold text-foreground/90 dark:text-amber-200">
                 Нет данных от уровнемеров для {noSensorTanks.length} {noSensorTanks.length === 1 ? 'резервуара' : 'резервуаров'}
               </p>
-              <p className="text-xs text-amber-600 dark:text-amber-300/80 mt-0.5">
+              <p className="text-xs text-muted-foreground dark:text-amber-300/80 mt-0.5">
                 Отображается книжный остаток (начало смены минус отпуск)
               </p>
             </div>
@@ -407,17 +407,15 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
       {/* Предупреждающее сообщение */}
       {(criticalTanks.length > 0 || warningTanks.length > 0) && (
-        <div className={`mb-4 p-3 rounded-lg border-l-4 ${
-          criticalTanks.length > 0
-            ? 'bg-red-100 dark:bg-red-900/20 border-red-500'
-            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-400'
+        <div className={`mb-4 p-3 rounded-lg border-l-4 bg-secondary/50 dark:bg-secondary/30 ${
+          criticalTanks.length > 0 ? 'border-red-500' : 'border-amber-400'
         }`}>
           <div className="flex items-start gap-2">
             <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
               criticalTanks.length > 0 ? 'text-red-500' : 'text-amber-500'
             }`} />
             <p className={`text-sm ${
-              criticalTanks.length > 0 ? 'text-red-700 dark:text-red-200' : 'text-amber-700 dark:text-amber-200'
+              criticalTanks.length > 0 ? 'text-red-600 dark:text-red-200' : 'text-foreground/90 dark:text-amber-200'
             }`}>
               {criticalTanks.length > 0
                 ? `Критически низкий уровень топлива: ${criticalTanks.map(t => t.name).join(', ')}!`
@@ -455,7 +453,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
               return (
                 <div
                   key={index}
-                  className={`rounded-lg p-4 border-2 ${isBlocked ? 'border-red-600 bg-red-100 dark:bg-red-900/20' : tank.noSensorData ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/10' : `${getBorderColor(currentPercent, warning, critical)} ${getBgColor(currentPercent, warning, critical)}`}`}
+                  className={`rounded-lg p-4 border-2 bg-card/80 ${isBlocked ? 'border-red-600' : tank.noSensorData ? 'border-amber-400' : getBorderColor(currentPercent, warning, critical)}`}
                 >
                   {/* Баннер блокировки для мобильного вида */}
                   {isBlocked && (
@@ -467,9 +465,9 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
                   {/* Баннер: нет данных уровнемера */}
                   {tank.noSensorData && (
-                    <div className="mb-3 p-2 rounded bg-amber-50 dark:bg-amber-900/30 border border-amber-400 flex items-center gap-2">
+                    <div className="mb-3 p-2 rounded bg-secondary/50 border border-amber-400 flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-200">Книжный остаток (нет данных уровнемера)</span>
+                      <span className="text-xs font-semibold text-foreground/80 dark:text-amber-200">Книжный остаток (нет данных уровнемера)</span>
                     </div>
                   )}
 
@@ -642,7 +640,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                 const isBlocked = !tank.noSensorData && tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
 
                 return (
-                  <tr key={index} className={`border-b border-border hover:bg-secondary/30 ${isBlocked ? 'bg-red-100 dark:bg-red-900/20' : tank.noSensorData ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}>
+                  <tr key={index} className={`border-b border-border hover:bg-secondary/30 ${isBlocked ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-2">
                         <Fuel className="w-4 h-4 text-blue-600 dark:text-blue-400" />

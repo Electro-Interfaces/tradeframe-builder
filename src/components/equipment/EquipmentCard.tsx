@@ -39,7 +39,7 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
       return 'bg-red-100 dark:bg-red-900/40 border-red-600 hover:border-red-500';
     }
     if (isKKT && hasUnpunchedReceipts) {
-      return 'bg-amber-50 dark:bg-amber-900/40 border-amber-400 hover:border-amber-500';
+      return 'bg-secondary border-amber-400 hover:border-amber-500';
     }
     return 'bg-secondary border-border hover:border-border';
   };

@@ -77,11 +77,11 @@ export function EquipmentHeader({
 
       {/* Предупреждение о разных статусах постов */}
       {hasMixedPosStatuses && (
-        <div className={`flex items-center gap-2 bg-amber-50 dark:bg-amber-900/50 border border-amber-400 rounded-lg mb-3 ${
+        <div className={`flex items-center gap-2 bg-secondary/50 border border-amber-400 rounded-lg mb-3 ${
           isMobile ? 'px-3 py-2' : 'px-4 py-3'
         }`}>
           <AlertTriangle className={`flex-shrink-0 text-amber-600 dark:text-amber-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-          <span className={`text-amber-700 dark:text-amber-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+          <span className={`text-foreground/80 dark:text-amber-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             Статусы постов различаются: {terminalInfo!.pos.map(p => `Пост ${p.number} — ${p.status === 'online' ? 'онлайн' : 'офлайн'}`).join(', ')}
           </span>
         </div>

@@ -200,17 +200,15 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
 
       {/* Предупреждающее сообщение */}
       {thresholdStatus.message && (
-        <div className={`mb-4 p-3 rounded-lg border-l-4 ${
-          thresholdStatus.level === 'critical'
-            ? 'bg-red-100 dark:bg-red-900/20 border-red-500'
-            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-400'
+        <div className={`mb-4 p-3 rounded-lg border-l-4 bg-secondary/50 dark:bg-secondary/30 ${
+          thresholdStatus.level === 'critical' ? 'border-red-500' : 'border-amber-400'
         }`}>
           <div className="flex items-start gap-2">
             <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
               thresholdStatus.level === 'critical' ? 'text-red-500' : 'text-amber-500'
             }`} />
             <p className={`text-sm ${
-              thresholdStatus.level === 'critical' ? 'text-red-700 dark:text-red-200' : 'text-amber-700 dark:text-amber-200'
+              thresholdStatus.level === 'critical' ? 'text-red-600 dark:text-red-200' : 'text-foreground/90 dark:text-amber-200'
             }`}>
               {thresholdStatus.message}
             </p>
