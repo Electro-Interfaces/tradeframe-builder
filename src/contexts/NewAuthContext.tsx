@@ -90,7 +90,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   // и useEffect([initialUser]) зацикливается в backend-режиме
   const initialUser = useMemo(() => getInitialUserFromStorage(), []);
   const [user, setUser] = useState<AppUser | null>(initialUser);
-  const [loading, setLoading] = useState(!initialUser); // Если есть пользователь - не показываем загрузку
+  const [loading, setLoading] = useState(true); // Всегда начинаем с loading — предотвращает запросы API до проверки токена
 
   /**
    * Очищает все данные авторизации
@@ -307,6 +307,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
               // Не разлогиниваем, данные обновятся при следующем успешном запросе
             }
           }
+          setLoading(false);
           return;
         }
 
@@ -368,19 +369,21 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       const token = authResult.token || generateAuthToken(authenticatedUser);
       const expiresAt = authResult.expiresAt || new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
 
-      // Очищаем react-query кэш — до логина запросы фейлились (нет токена),
-      // закэшированные ошибки помешали бы корректной загрузке данных
-      queryClient.clear();
-
-      // Сохраняем пользователя и токен
-      setUser(authenticatedUser);
-      saveAuthSession(authenticatedUser, token, expiresAt);
-
-      // Сохраняем данные для httpClient (без пароля — при истечении токена редирект на логин)
+      // Сохраняем токен ДО очистки кэша и установки user,
+      // чтобы при перезапросе данных токен уже был доступен httpClient
       localStorage.setItem('auth_login', email);
       localStorage.setItem('auth_token', token);
       localStorage.setItem('auth_token_expiry', expiresAt);
       localStorage.setItem('auth_user', JSON.stringify(authenticatedUser));
+
+      // Очищаем react-query кэш — до логина запросы фейлились (нет токена),
+      // закэшированные ошибки помешали бы корректной загрузке данных
+      queryClient.clear();
+
+      // Сохраняем пользователя — триггерит ре-рендер ProtectedRoute,
+      // маунт страниц и запуск хуков с чистым кэшем
+      setUser(authenticatedUser);
+      saveAuthSession(authenticatedUser, token, expiresAt);
 
       // Если выбрано "Запомнить меня", сохраняем в IndexedDB
       if (rememberMe) {

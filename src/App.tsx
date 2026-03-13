@@ -17,6 +17,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import PWAInstaller from "./components/pwa/PWAInstaller";
 import SafariPWAInstaller from "./components/pwa/SafariPWAInstaller";
 import UpdateNotification from "./components/pwa/UpdateNotification";
+import OfflineIndicator from "./components/common/OfflineIndicator";
 import "./cache-buster"; // Принудительное обновление кеша
 
 // Критически важные страницы - загружаются сразу (первый экран / fallback)
@@ -206,6 +207,7 @@ const App = () => {
                 }}
               >
                 <div data-testid="router-ready" style={{ display: 'none' }}></div>
+                <OfflineIndicator />
                 <SupportProvider>
                 <CreateTicketDialog />
                 <Routes>

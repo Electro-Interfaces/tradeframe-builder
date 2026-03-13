@@ -36,6 +36,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
   const [isChrome, setIsChrome] = useState(false);
   const [isSafari, setIsSafari] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isEdge, setIsEdge] = useState(false);
 
   // Отслеживание активности пользователя
   const { metrics, isEngagementSufficient, isUserActive, boostEngagement } = useEngagementTracker();
@@ -98,6 +99,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     setIsChrome(isChrome);
     setIsSafari(detectedSafari);
     setIsIOS(detectedIOS);
+    setIsEdge(isEdge);
 
     // Проверяем, установлено ли уже приложение
     const checkInstalled = () => {
@@ -124,15 +126,16 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
 
     // Слушаем событие beforeinstallprompt
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
+      // Предотвращаем показ нативного браузерного промпта
       e.preventDefault();
+      // Сохраняем deferred prompt для вызова из кастомного UI
       setDeferredPrompt(e);
       setCanInstall(true);
 
-      // Показываем промпт только если есть deferredPrompt
+      // Показываем кастомный UI промпт с задержкой
+      // Используем e напрямую, т.к. deferredPrompt из замыкания ещё null
       setTimeout(() => {
-        if (!isInstalled && deferredPrompt) {
-          setShowPrompt(true);
-        }
+        setShowPrompt(true);
       }, 1000);
     };
 
@@ -164,6 +167,8 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
 
   const handleInstallClick = async () => {
     // КРИТИЧЕСКИЙ ФИК ДЛЯ iOS PWA: Создаем резервную копию auth данных
+    // sessionStorage НЕ переносится в standalone PWA контекст на iOS,
+    // поэтому сохраняем бэкап в localStorage, который доступен из обоих контекстов
     if (isIOS) {
       const currentUser = localStorage.getItem('tradeframe_user');
       const authToken = localStorage.getItem('authToken');
@@ -174,7 +179,17 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
           token: authToken,
           timestamp: new Date().toISOString()
         };
-        sessionStorage.setItem('pwa-auth-backup', JSON.stringify(authBackup));
+        // Сохраняем в localStorage — он доступен и из Safari, и из standalone PWA
+        localStorage.setItem('pwa-auth-backup', JSON.stringify(authBackup));
+      }
+
+      // Дополнительно копируем все auth-ключи из sessionStorage в localStorage
+      const sessionAuthKeys = ['auth_token', 'auth_user', 'sb-access-token', 'sb-refresh-token'];
+      for (const key of sessionAuthKeys) {
+        const val = sessionStorage.getItem(key);
+        if (val) {
+          localStorage.setItem(`pwa-backup-${key}`, val);
+        }
       }
     }
 
@@ -259,10 +274,14 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
         );
       } else if (isFirefox) {
         alert(
-          '🦊 Firefox PWA установка:\n\n' +
-          '• Меню Firefox (☰) → "Установить сайт как приложение"\n' +
-          '• Или создайте закладку и добавьте на главный экран\n\n' +
-          'Firefox поддерживает PWA ограниченно, но приложение будет работать!'
+          '🦊 Firefox — ограниченная поддержка PWA:\n\n' +
+          '⚠️ Для полноценной установки PWA рекомендуем Google Chrome.\n\n' +
+          'В Firefox:\n' +
+          '• Меню (☰) → «Добавить на домашний экран» (Android)\n' +
+          '• Или создайте закладку для быстрого доступа\n\n' +
+          'В Chrome:\n' +
+          '• Меню (⋮) → «Установить приложение» — полная PWA поддержка\n' +
+          '• Работа офлайн, push-уведомления, автообновления'
         );
       } else if (isEdge) {
         alert(
@@ -326,7 +345,9 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
               ) : (isIOS && !isSafari) && !deferredPrompt ? (
                 <>На iOS только Safari может устанавливать PWA. Откройте эту страницу в Safari</>
               ) : isYandex && !deferredPrompt ? (
-                <>Используйте меню браузера (≡) → "Установить приложение" для установки PWA в Яндекс.Браузере</>
+                <>Используйте меню браузера (≡) → &laquo;Установить приложение&raquo; для установки PWA в Яндекс.Браузере</>
+              ) : isFirefox && !deferredPrompt ? (
+                <>Для полной поддержки PWA рекомендуем Chrome. В Firefox: меню (☰) → &laquo;Добавить на домашний экран&raquo;</>
               ) : (
                 <>Установите приложение на домашний экран для быстрого доступа и лучшего опыта использования</>
               )}

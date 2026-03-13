@@ -130,7 +130,7 @@ export default defineConfig(({ mode }) => {
               networkTimeoutSeconds: 5, // Быстрый fallback на кэш
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 часа
+                maxAgeSeconds: 60 * 60 // 1 час — динамические данные (цены, уровни, смены)
               },
               cacheableResponse: {
                 statuses: [0, 200]

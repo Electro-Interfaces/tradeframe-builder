@@ -189,10 +189,10 @@ const LoginPageWithLegal = () => {
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   
-  // Legal documents states - согласия по умолчанию
-  const [acceptedTerms, setAcceptedTerms] = useState(true);
-  const [acceptedPrivacy, setAcceptedPrivacy] = useState(true);
-  const [acceptedPdn, setAcceptedPdn] = useState(true);
+  // Legal documents states - пользователь должен явно согласиться
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [acceptedPdn, setAcceptedPdn] = useState(false);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const [showPdnDialog, setShowPdnDialog] = useState(false);
@@ -350,9 +350,9 @@ const LoginPageWithLegal = () => {
           setEmail(state.email || '');
           setPassword(state.password || '');
           setRememberMe(state.rememberMe || false);
-          setAcceptedTerms(state.acceptedTerms !== undefined ? state.acceptedTerms : true);
-          setAcceptedPrivacy(state.acceptedPrivacy !== undefined ? state.acceptedPrivacy : true);
-          setAcceptedPdn(state.acceptedPdn !== undefined ? state.acceptedPdn : true);
+          setAcceptedTerms(state.acceptedTerms !== undefined ? state.acceptedTerms : false);
+          setAcceptedPrivacy(state.acceptedPrivacy !== undefined ? state.acceptedPrivacy : false);
+          setAcceptedPdn(state.acceptedPdn !== undefined ? state.acceptedPdn : false);
           return; // Если есть данные в сессии, используем их
         } catch (error) {
           // Игнорируем ошибки парсинга

@@ -23,8 +23,13 @@ const STALE_TIMES = {
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error: any, query) => {
+      // Не показываем ошибки авторизации — они обрабатываются AuthContext
+      if (error?.status === 401 || error?.status === 403) {
+        return;
+      }
+
       console.error(`❌ Query error for ${query.queryKey}:`, error);
-      
+
       // Показываем toast только для важных ошибок
       if (query.meta?.showErrorToast !== false) {
         toast({

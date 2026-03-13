@@ -54,10 +54,14 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
       .catch(() => {}); // Игнорируем ошибки - не критично для работы приложения
 
     // Обработка обновления SW (перезагрузка при смене контроллера)
-    let refreshing = false;
+    // Используем sessionStorage вместо локальной переменной для защиты от reload-цикла:
+    // локальная переменная сбрасывается при reload(), а sessionStorage — нет
+    if (sessionStorage.getItem('sw_refreshing')) {
+      sessionStorage.removeItem('sw_refreshing');
+    }
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
+      if (!sessionStorage.getItem('sw_refreshing')) {
+        sessionStorage.setItem('sw_refreshing', '1');
         window.location.reload();
       }
     });
@@ -114,11 +118,13 @@ if (typeof window !== 'undefined') {
   if (isStandalone) {
     document.documentElement.classList.add('pwa-installed');
 
-    // iOS PWA auth fix
-    const authFromBrowser = sessionStorage.getItem('pwa-auth-backup');
-    if (authFromBrowser && !localStorage.getItem('tradeframe_user_v2') && !localStorage.getItem('tradeframe_user')) {
+    // iOS PWA auth fix: восстановление из localStorage-бэкапа
+    // PWAInstaller сохраняет бэкап в localStorage (не sessionStorage),
+    // т.к. sessionStorage не переносится в standalone PWA контекст на iOS
+    const authFromBackup = localStorage.getItem('pwa-auth-backup');
+    if (authFromBackup && !localStorage.getItem('tradeframe_user_v2') && !localStorage.getItem('tradeframe_user')) {
       try {
-        const authData = JSON.parse(authFromBrowser);
+        const authData = JSON.parse(authFromBackup);
         localStorage.setItem('tradeframe_user_v2', authData.user);
         localStorage.setItem('tradeframe_token_v2', authData.token);
         localStorage.setItem('tradeframe_user', authData.user);
@@ -127,6 +133,15 @@ if (typeof window !== 'undefined') {
         localStorage.setItem('auth_user', authData.user);
         sessionStorage.setItem('auth_token', authData.token);
         sessionStorage.setItem('auth_user', authData.user);
+
+        // Восстанавливаем дополнительные ключи из бэкапа
+        const backupKeys = ['auth_token', 'auth_user', 'sb-access-token', 'sb-refresh-token'];
+        for (const key of backupKeys) {
+          const val = localStorage.getItem(`pwa-backup-${key}`);
+          if (val) {
+            sessionStorage.setItem(key, val);
+          }
+        }
       } catch (e) {
         void e;
       }

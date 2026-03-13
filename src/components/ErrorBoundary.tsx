@@ -23,6 +23,7 @@ function handleLoginRedirect() {
 }
 
 function handleStorageReset() {
+  if (!window.confirm('Все локальные данные будут удалены. Продолжить?')) return;
   clearTradeFrameAppStorage();
   window.location.reload();
 }

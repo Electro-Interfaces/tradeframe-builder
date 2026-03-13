@@ -4,6 +4,7 @@ import { tradingPointsService } from "@/services/tradingPointsService";
 import { Network } from "@/types/network";
 import { TradingPoint } from "@/types/tradingpoint";
 import { useNewAuth } from "@/contexts/NewAuthContext";
+import { toast } from "sonner";
 
 type SelectionContextValue = {
   selectedNetwork: Network | null;
@@ -80,6 +81,17 @@ function hasNetworkAccess(
          networkCodes.has(network.external_id);
 }
 
+/** Оборачивает промис в таймаут */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Таймаут ${label} (${ms}мс)`)), ms);
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const [selectedNetworkId, setSelectedNetworkId] = useState<string>(() => {
     if (typeof window === 'undefined') return "";
@@ -139,17 +151,27 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
     const { networkIds, networkCodes, hasRestrictions } = getAccessibleNetworks(user.roles, []);
 
-    // Функция для выбора первой доступной сети
+    // Функция для выбора первой доступной сети (с таймаутом 10с)
     const selectFirstAvailableNetwork = async () => {
-      const allNetworks = await networksService.getAll();
-      const availableNetworks = hasRestrictions
-        ? allNetworks.filter(n => hasNetworkAccess(n, networkIds, networkCodes, hasRestrictions))
-        : allNetworks;
+      try {
+        const allNetworks = await withTimeout(
+          networksService.getAll(),
+          10000,
+          'загрузка сетей'
+        );
+        const availableNetworks = hasRestrictions
+          ? allNetworks.filter(n => hasNetworkAccess(n, networkIds, networkCodes, hasRestrictions))
+          : allNetworks;
 
-      if (availableNetworks.length > 0) {
-        setSelectedNetworkId(availableNetworks[0].id);
-      } else {
-        // Сетей нет совсем — отмечаем инициализацию чтобы не зависнуть
+        if (availableNetworks.length > 0) {
+          setSelectedNetworkId(availableNetworks[0].id);
+        } else {
+          // Сетей нет совсем — отмечаем инициализацию чтобы не зависнуть
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки сетей:', error);
+        toast.error('Не удалось загрузить список сетей. Попробуйте обновить страницу.');
         setIsInitialized(true);
       }
     };

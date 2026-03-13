@@ -305,9 +305,32 @@
             }
           }, 100); // Уменьшен интервал для быстрой детекции
 
-          // Fallback для clearInterval через 6 секунд (быстрее)
+          // Fallback: если React не загрузился за 6 секунд — показать ошибку
           setTimeout(() => {
             clearInterval(checkReact);
+            if (!loadingRemoved) {
+              var loadingText = document.getElementById('loading-text');
+              if (loadingText) {
+                loadingText.textContent = 'Приложение не загрузилось. Попробуйте обновить страницу.';
+                loadingText.style.color = '#ef4444';
+              }
+              // Добавляем кнопку перезагрузки
+              var loadingEl = document.getElementById('initial-loading');
+              if (loadingEl) {
+                var reloadBtn = document.createElement('button');
+                reloadBtn.textContent = 'Обновить страницу';
+                reloadBtn.style.cssText = 'margin-top: 16px; padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: inherit;';
+                reloadBtn.onclick = function() { window.location.reload(); };
+                loadingEl.appendChild(reloadBtn);
+              }
+              // Останавливаем анимацию спиннера
+              var spinner = loadingEl && loadingEl.querySelector('div[style*="border-radius: 50%"]');
+              if (spinner) {
+                spinner.style.animation = 'none';
+                spinner.style.borderColor = '#ef4444';
+                spinner.style.borderTopColor = '#ef4444';
+              }
+            }
           }, 6000);
         });
       </script>
