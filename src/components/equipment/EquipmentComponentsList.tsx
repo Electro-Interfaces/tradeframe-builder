@@ -104,10 +104,10 @@ const getStatusConfig = (status: ComponentStatus) => {
     case 'offline':
       return {
         icon: AlertCircle,
-        color: 'text-yellow-500',
-        bgColor: 'bg-yellow-50',
-        borderColor: 'border-yellow-200',
-        badgeColor: 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+        color: 'text-amber-500',
+        bgColor: 'bg-amber-50',
+        borderColor: 'border-amber-200',
+        badgeColor: 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
         text: 'Офлайн'
       };
     case 'disabled':

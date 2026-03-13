@@ -317,52 +317,34 @@ export function Prices() {
         {/* Price tiles */}
         {isInitialLoading ? (
           <div className="pb-6">
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'}`}>
-              {/* Skeleton tiles for loading state */}
+            <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'}`}>
               {[1, 2, 3, 4].map((n) => (
-                <div key={n} className="bg-card border border-border rounded-lg p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-secondary rounded-lg animate-pulse"></div>
+                isMobile ? (
+                  <div key={n} className="bg-card border border-border rounded-lg p-2.5">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <div className="h-4 w-16 bg-secondary rounded animate-pulse mb-2"></div>
-                        <div className="h-3 w-12 bg-secondary rounded animate-pulse"></div>
+                        <div className="h-3.5 w-14 bg-secondary rounded animate-pulse mb-1.5"></div>
+                        <div className="h-2.5 w-10 bg-secondary rounded animate-pulse"></div>
+                      </div>
+                      <div>
+                        <div className="h-5 w-16 bg-secondary rounded animate-pulse mb-1"></div>
+                        <div className="h-2 w-8 bg-secondary rounded animate-pulse ml-auto"></div>
                       </div>
                     </div>
-                    <div className="h-5 w-20 bg-secondary rounded animate-pulse"></div>
                   </div>
-
-                  <div className="space-y-3 mb-4">
-                    <div className="flex justify-between">
-                      <div className="h-3 w-24 bg-secondary rounded animate-pulse"></div>
-                      <div className="h-3 w-16 bg-secondary rounded animate-pulse"></div>
+                ) : (
+                  <div key={n} className="bg-card border border-border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-4 h-4 bg-secondary rounded animate-pulse"></div>
+                      <div className="h-4 w-20 bg-secondary rounded animate-pulse"></div>
                     </div>
-                    <div className="flex justify-between">
-                      <div className="h-3 w-20 bg-secondary rounded animate-pulse"></div>
-                      <div className="h-3 w-14 bg-secondary rounded animate-pulse"></div>
-                    </div>
-                    <div className="flex justify-between border-t border-border pt-2">
-                      <div className="h-3 w-16 bg-secondary rounded animate-pulse"></div>
-                      <div className="h-5 w-20 bg-secondary rounded animate-pulse"></div>
+                    <div className="h-5 w-16 bg-secondary rounded animate-pulse mb-3"></div>
+                    <div className="border-t border-border pt-3 text-right">
+                      <div className="h-7 w-24 bg-secondary rounded animate-pulse ml-auto mb-1"></div>
+                      <div className="h-3 w-10 bg-secondary rounded animate-pulse ml-auto"></div>
                     </div>
                   </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between">
-                      <div className="h-3 w-14 bg-secondary rounded animate-pulse"></div>
-                      <div className="h-3 w-8 bg-secondary rounded animate-pulse"></div>
-                    </div>
-                    <div className="flex justify-between">
-                      <div className="h-3 w-24 bg-secondary rounded animate-pulse"></div>
-                      <div className="h-3 w-20 bg-secondary rounded animate-pulse"></div>
-                    </div>
-                  </div>
-
-                  <div className={`flex gap-2 pt-3 border-t border-border ${isMobile ? 'flex-col' : 'flex-row'}`}>
-                    <div className="h-8 flex-1 bg-secondary rounded animate-pulse"></div>
-                    <div className="h-8 w-8 bg-secondary rounded animate-pulse"></div>
-                  </div>
-                </div>
+                )
               ))}
             </div>
           </div>
@@ -390,7 +372,7 @@ export function Prices() {
           </div>
         ) : (
           <div className="mb-6">
-            <div className={`grid gap-4 ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+            <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'}`}>
               {filteredPrices.map((price) => (
                 <PriceCard
                   key={price.id}

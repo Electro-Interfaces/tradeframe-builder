@@ -203,14 +203,14 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
         <div className={`mb-4 p-3 rounded-lg border-l-4 ${
           thresholdStatus.level === 'critical'
             ? 'bg-red-100 dark:bg-red-900/20 border-red-500'
-            : 'bg-yellow-100 dark:bg-yellow-900/20 border-yellow-500'
+            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-400'
         }`}>
           <div className="flex items-start gap-2">
             <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
-              thresholdStatus.level === 'critical' ? 'text-red-500' : 'text-yellow-500'
+              thresholdStatus.level === 'critical' ? 'text-red-500' : 'text-amber-500'
             }`} />
             <p className={`text-sm ${
-              thresholdStatus.level === 'critical' ? 'text-red-700 dark:text-red-200' : 'text-yellow-700 dark:text-yellow-200'
+              thresholdStatus.level === 'critical' ? 'text-red-700 dark:text-red-200' : 'text-amber-700 dark:text-amber-200'
             }`}>
               {thresholdStatus.message}
             </p>
@@ -305,7 +305,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">Пороги купюр</div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-yellow-500">⚠️</span>
+                  <span className="text-amber-500">⚠️</span>
                   <span className="text-foreground">{thresholds.billCountWarning || '—'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
@@ -316,7 +316,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">Пороги суммы</div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-yellow-500">⚠️</span>
+                  <span className="text-amber-500">⚠️</span>
                   <span className="text-foreground">{thresholds.cashAmountWarning?.toLocaleString() || '—'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">

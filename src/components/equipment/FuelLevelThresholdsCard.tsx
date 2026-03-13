@@ -41,7 +41,7 @@ interface FuelRemaining {
  */
 function getFuelLevelColor(currentPercent: number, warning: number = 20, critical: number = 10) {
   if (currentPercent <= critical) return 'text-red-500';
-  if (currentPercent <= warning) return 'text-yellow-500';
+  if (currentPercent <= warning) return 'text-amber-500';
   return 'text-green-500';
 }
 
@@ -50,7 +50,7 @@ function getFuelLevelColor(currentPercent: number, warning: number = 20, critica
  */
 function getBorderColor(currentPercent: number, warning: number = 20, critical: number = 10) {
   if (currentPercent <= critical) return 'border-red-500';
-  if (currentPercent <= warning) return 'border-yellow-500';
+  if (currentPercent <= warning) return 'border-amber-400';
   return 'border-border';
 }
 
@@ -59,7 +59,7 @@ function getBorderColor(currentPercent: number, warning: number = 20, critical: 
  */
 function getBgColor(currentPercent: number, warning: number = 20, critical: number = 10) {
   if (currentPercent <= critical) return 'bg-red-100 dark:bg-red-900/10';
-  if (currentPercent <= warning) return 'bg-yellow-100 dark:bg-yellow-900/10';
+  if (currentPercent <= warning) return 'bg-amber-50 dark:bg-amber-900/10';
   return 'bg-card/50';
 }
 
@@ -68,7 +68,7 @@ function getBgColor(currentPercent: number, warning: number = 20, critical: numb
  */
 function getFillLevelColor(level: number, warning: number = 20, critical: number = 10) {
   if (level <= critical) return 'bg-red-500';
-  if (level <= warning) return 'bg-yellow-500';
+  if (level <= warning) return 'bg-amber-500';
   return 'bg-emerald-600';
 }
 
@@ -277,7 +277,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
   return (
     <div className={`rounded-lg ${isMobile ? 'p-4' : 'p-6'} border-2 ${
       criticalTanks.length > 0 ? 'border-red-500 bg-red-100 dark:bg-red-900/10' :
-      warningTanks.length > 0 ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900/10' :
+      warningTanks.length > 0 ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/10' :
       'border-border bg-card/50'
     } hover:border-border transition-colors`}>
       {/* Заголовок */}
@@ -302,7 +302,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                 </Badge>
               )}
               {warningTanks.length > 0 && (
-                <Badge className="bg-yellow-600 text-white hover:bg-yellow-700 text-xs px-2 py-0.5">
+                <Badge className="bg-amber-600 text-white hover:bg-amber-700 text-xs px-2 py-0.5">
                   ⚠️ {warningTanks.length}
                 </Badge>
               )}
@@ -319,7 +319,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
               </Badge>
             )}
             {warningTanks.length > 0 && (
-              <Badge className="bg-yellow-600 text-white hover:bg-yellow-700">
+              <Badge className="bg-amber-600 text-white hover:bg-amber-700">
                 Предупреждение: {warningTanks.length}
               </Badge>
             )}
@@ -390,14 +390,14 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
       {/* Баннер: нет данных от уровнемеров */}
       {noSensorTanks.length > 0 && (
-        <div className="mb-4 p-3 rounded-lg border-l-4 bg-yellow-100 dark:bg-yellow-900/20 border-yellow-500">
+        <div className="mb-4 p-3 rounded-lg border-l-4 bg-amber-50 dark:bg-amber-900/20 border-amber-400">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-5 h-5 flex-shrink-0 text-yellow-500" />
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-500" />
             <div>
-              <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-200">
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-200">
                 Нет данных от уровнемеров для {noSensorTanks.length} {noSensorTanks.length === 1 ? 'резервуара' : 'резервуаров'}
               </p>
-              <p className="text-xs text-yellow-600 dark:text-yellow-300/80 mt-0.5">
+              <p className="text-xs text-amber-600 dark:text-amber-300/80 mt-0.5">
                 Отображается книжный остаток (начало смены минус отпуск)
               </p>
             </div>
@@ -410,14 +410,14 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
         <div className={`mb-4 p-3 rounded-lg border-l-4 ${
           criticalTanks.length > 0
             ? 'bg-red-100 dark:bg-red-900/20 border-red-500'
-            : 'bg-yellow-100 dark:bg-yellow-900/20 border-yellow-500'
+            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-400'
         }`}>
           <div className="flex items-start gap-2">
             <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
-              criticalTanks.length > 0 ? 'text-red-500' : 'text-yellow-500'
+              criticalTanks.length > 0 ? 'text-red-500' : 'text-amber-500'
             }`} />
             <p className={`text-sm ${
-              criticalTanks.length > 0 ? 'text-red-700 dark:text-red-200' : 'text-yellow-700 dark:text-yellow-200'
+              criticalTanks.length > 0 ? 'text-red-700 dark:text-red-200' : 'text-amber-700 dark:text-amber-200'
             }`}>
               {criticalTanks.length > 0
                 ? `Критически низкий уровень топлива: ${criticalTanks.map(t => t.name).join(', ')}!`
@@ -455,7 +455,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
               return (
                 <div
                   key={index}
-                  className={`rounded-lg p-4 border-2 ${isBlocked ? 'border-red-600 bg-red-100 dark:bg-red-900/20' : tank.noSensorData ? 'border-yellow-600 bg-yellow-100 dark:bg-yellow-900/10' : `${getBorderColor(currentPercent, warning, critical)} ${getBgColor(currentPercent, warning, critical)}`}`}
+                  className={`rounded-lg p-4 border-2 ${isBlocked ? 'border-red-600 bg-red-100 dark:bg-red-900/20' : tank.noSensorData ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/10' : `${getBorderColor(currentPercent, warning, critical)} ${getBgColor(currentPercent, warning, critical)}`}`}
                 >
                   {/* Баннер блокировки для мобильного вида */}
                   {isBlocked && (
@@ -467,9 +467,9 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
                   {/* Баннер: нет данных уровнемера */}
                   {tank.noSensorData && (
-                    <div className="mb-3 p-2 rounded bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-600 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                      <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-200">Книжный остаток (нет данных уровнемера)</span>
+                    <div className="mb-3 p-2 rounded bg-amber-50 dark:bg-amber-900/30 border border-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-200">Книжный остаток (нет данных уровнемера)</span>
                     </div>
                   )}
 
@@ -484,7 +484,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {tank.noSensorData ? (
-                        <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">—</div>
+                        <div className="text-xl font-bold text-amber-600 dark:text-amber-400">—</div>
                       ) : (
                         <div className={`text-xl font-bold ${getFuelLevelColor(currentPercent, warning, critical)}`}>
                           {Math.round(currentPercent)}%
@@ -496,7 +496,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                           Блок
                         </Badge>
                       ) : tank.noSensorData ? (
-                        <Badge className="bg-yellow-600 text-white text-[10px] px-1.5 py-0">
+                        <Badge className="bg-amber-600 text-white text-[10px] px-1.5 py-0">
                           книжный
                         </Badge>
                       ) : (
@@ -584,7 +584,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                   ) : (
                     <div className="border-t border-border pt-2 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="text-yellow-500">⚠️</span>
+                        <span className="text-amber-500">⚠️</span>
                         {!isMobile && <span className="text-muted-foreground">Предупреждение:</span>}
                         <span className="text-foreground font-medium">{warning}%</span>
                       </div>
@@ -642,7 +642,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                 const isBlocked = !tank.noSensorData && tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
 
                 return (
-                  <tr key={index} className={`border-b border-border hover:bg-secondary/30 ${isBlocked ? 'bg-red-100 dark:bg-red-900/20' : tank.noSensorData ? 'bg-yellow-100 dark:bg-yellow-900/10' : ''}`}>
+                  <tr key={index} className={`border-b border-border hover:bg-secondary/30 ${isBlocked ? 'bg-red-100 dark:bg-red-900/20' : tank.noSensorData ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-2">
                         <Fuel className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -655,7 +655,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                     </td>
                     <td className="py-2 px-2 text-blue-600 dark:text-blue-400 font-bold">
                       {tank.currentLevelLiters.toLocaleString()} л
-                      {tank.noSensorData && <span className="text-yellow-600 dark:text-yellow-400 text-xs ml-1">(книж.)</span>}
+                      {tank.noSensorData && <span className="text-amber-600 dark:text-amber-400 text-xs ml-1">(книж.)</span>}
                     </td>
                     {/* Колонка статуса */}
                     <td className="py-2 px-2 text-center">
@@ -665,7 +665,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                           Блокировка
                         </Badge>
                       ) : tank.noSensorData ? (
-                        <Badge className="bg-yellow-600 text-white hover:bg-yellow-700 text-xs">
+                        <Badge className="bg-amber-600 text-white hover:bg-amber-700 text-xs">
                           <AlertTriangle className="w-3 h-3 mr-1" />
                           Книжный
                         </Badge>
@@ -678,7 +678,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                     </td>
                     <td className="py-2 px-2">
                       {tank.noSensorData ? (
-                        <span className="text-sm text-yellow-600 dark:text-yellow-400">—</span>
+                        <span className="text-sm text-amber-600 dark:text-amber-400">—</span>
                       ) : (
                         <div className="flex items-center gap-3">
                           <div className="flex-1 bg-secondary rounded-full h-2 min-w-[60px]">

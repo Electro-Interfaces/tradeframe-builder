@@ -20,7 +20,7 @@ export function TankProgressIndicator({
 
   const getColor = () => {
     if (percentage <= 10) return '#ef4444'; // red-500 - критический уровень (10% или менее)
-    if (percentage <= 30) return '#eab308'; // yellow-500 - предупреждение (30% или менее)
+    if (percentage <= 30) return '#d97706'; // amber-600 - предупреждение (30% или менее)
     return '#22c55e'; // green-500 - нормальный уровень (более 30%)
   };
 
@@ -48,7 +48,7 @@ export function TankProgressIndicator({
 
       {/* Min level indicator */}
       <div
-        className="absolute w-full h-0.5 bg-yellow-500/50"
+        className="absolute w-full h-0.5 bg-amber-500/50"
         style={{ bottom: `${(minLevel / 100) * height}px` }}
       />
 

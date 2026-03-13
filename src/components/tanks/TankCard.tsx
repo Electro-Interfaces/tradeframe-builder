@@ -94,13 +94,13 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
 
         {/* Баннер: нет данных уровнемера */}
         {tank.noSensorData && (
-          <div className={`flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-500/50 rounded-lg mb-3 ${isMobile ? 'p-2' : 'p-3'}`}>
-            <AlertTriangle className={`text-yellow-600 dark:text-yellow-400 flex-shrink-0 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          <div className={`flex items-center gap-2 bg-amber-50 dark:bg-amber-900/40 border border-amber-400/50 rounded-lg mb-3 ${isMobile ? 'p-2' : 'p-3'}`}>
+            <AlertTriangle className={`text-amber-600 dark:text-amber-400 flex-shrink-0 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
             <div className="min-w-0 flex-1">
-              <span className={`text-yellow-600 dark:text-yellow-400 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+              <span className={`text-amber-600 dark:text-amber-400 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 Нет данных уровнемера
               </span>
-              <p className={`text-yellow-600 dark:text-yellow-300/80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+              <p className={`text-amber-600 dark:text-amber-300/80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                 Книжный остаток: {(tank.apiData?.volume_begin || 0).toLocaleString()} л − отпуск {(tank.apiData?.release?.volume || 0).toLocaleString()} л = {currentLevel.toLocaleString()} л
               </p>
             </div>
@@ -110,7 +110,7 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
         {/* Заголовок резервуара */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className={`w-3 h-8 rounded-full shadow-md flex-shrink-0 ${isBlocked ? 'bg-gradient-to-b from-red-400 to-red-600' : tank.noSensorData ? 'bg-gradient-to-b from-yellow-400 to-yellow-600' : 'bg-gradient-to-b from-blue-400 to-blue-600'}`}></div>
+            <div className={`w-3 h-8 rounded-full shadow-md flex-shrink-0 ${isBlocked ? 'bg-gradient-to-b from-red-400 to-red-600' : tank.noSensorData ? 'bg-gradient-to-b from-amber-400 to-amber-600' : 'bg-gradient-to-b from-blue-400 to-blue-600'}`}></div>
             <div className="min-w-0 flex-1">
               <CardTitle className={`text-foreground font-bold truncate ${isMobile ? 'text-base' : 'text-lg'}`}>
                 {tank.name}
@@ -120,11 +120,11 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
                   isBlocked
                     ? 'text-red-600 dark:text-red-400'
                     : tank.noSensorData
-                    ? 'text-yellow-600 dark:text-yellow-400'
+                    ? 'text-amber-600 dark:text-amber-400'
                     : tankStatus === 'normal'
                     ? 'text-green-600 dark:text-green-400'
                     : tankStatus === 'warning'
-                    ? 'text-yellow-600 dark:text-yellow-400'
+                    ? 'text-amber-600 dark:text-amber-400'
                     : 'text-red-600 dark:text-red-400'
                 }`}
               >
@@ -149,7 +149,7 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
                 {currentLevel.toLocaleString()} л
               </span>
               {tank.noSensorData ? (
-                <span className={`font-bold text-yellow-600 dark:text-yellow-400 flex-shrink-0 ${isMobile ? 'text-xs' : 'text-lg'}`}>
+                <span className={`font-bold text-amber-600 dark:text-amber-400 flex-shrink-0 ${isMobile ? 'text-xs' : 'text-lg'}`}>
                   (книж.)
                 </span>
               ) : (

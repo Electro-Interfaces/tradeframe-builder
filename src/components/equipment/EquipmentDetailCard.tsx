@@ -72,7 +72,7 @@ interface EquipmentDetailCardProps {
 const getStatusIcon = (status: EquipmentStatus) => {
   switch (status) {
     case 'online': return <CheckCircle2 className="w-4 h-4 text-green-600" />;
-    case 'offline': return <AlertCircle className="w-4 h-4 text-yellow-600" />;
+    case 'offline': return <AlertCircle className="w-4 h-4 text-amber-600" />;
     case 'error': return <XCircle className="w-4 h-4 text-red-600" />;
     case 'disabled': return <PowerOff className="w-4 h-4 text-muted-foreground" />;
     case 'archived': return <Archive className="w-4 h-4 text-muted-foreground" />;
@@ -94,7 +94,7 @@ const getStatusText = (status: EquipmentStatus) => {
 const getStatusColor = (status: EquipmentStatus) => {
   switch (status) {
     case 'online': return 'bg-emerald-600';
-    case 'offline': return 'bg-yellow-500';
+    case 'offline': return 'bg-amber-500';
     case 'error': return 'bg-red-500';
     case 'disabled': return 'bg-muted-foreground';
     case 'archived': return 'bg-muted-foreground';

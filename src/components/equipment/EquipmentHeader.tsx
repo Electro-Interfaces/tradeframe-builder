@@ -77,11 +77,11 @@ export function EquipmentHeader({
 
       {/* Предупреждение о разных статусах постов */}
       {hasMixedPosStatuses && (
-        <div className={`flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-600 rounded-lg mb-3 ${
+        <div className={`flex items-center gap-2 bg-amber-50 dark:bg-amber-900/50 border border-amber-400 rounded-lg mb-3 ${
           isMobile ? 'px-3 py-2' : 'px-4 py-3'
         }`}>
-          <AlertTriangle className={`flex-shrink-0 text-yellow-600 dark:text-yellow-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-          <span className={`text-yellow-700 dark:text-yellow-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+          <AlertTriangle className={`flex-shrink-0 text-amber-600 dark:text-amber-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          <span className={`text-amber-700 dark:text-amber-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             Статусы постов различаются: {terminalInfo!.pos.map(p => `Пост ${p.number} — ${p.status === 'online' ? 'онлайн' : 'офлайн'}`).join(', ')}
           </span>
         </div>
@@ -190,7 +190,7 @@ export function EquipmentHeader({
                   Вы уверены, что хотите перезагрузить терминал?
                   <br />
                   <br />
-                  <strong className="text-yellow-600 dark:text-yellow-400">⚠️ ВНИМАНИЕ:</strong>
+                  <strong className="text-amber-600 dark:text-amber-400">⚠️ ВНИМАНИЕ:</strong>
                   <br />
                   • Терминал будет недоступен во время перезагрузки
                   <br />
