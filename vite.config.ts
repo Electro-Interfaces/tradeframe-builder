@@ -77,7 +77,7 @@ export default defineConfig(({ mode }) => {
         short_name: 'TradeControl',
         description: 'Платформа управления торговыми сетями АЗС',
         theme_color: '#1e293b',
-        background_color: '#0f172a',
+        background_color: '#1e293b',
         display: 'standalone',
         // ⚠️ ВАЖНО: scope и start_url используют динамический base
         // TEST: /tradeframe-builder/
