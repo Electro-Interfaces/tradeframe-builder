@@ -12,6 +12,7 @@ module.exports = {
   getRequestedSource,
   getSource,
   assignRoleToUser: (input) => getSource().assignRoleToUser(input),
+  countUsers: (options) => getSource().countUsers(options),
   createRole: (input) => getSource().createRole(input),
   createUser: (input) => getSource().createUser(input),
   deleteRole: (roleId) => getSource().deleteRole(roleId),

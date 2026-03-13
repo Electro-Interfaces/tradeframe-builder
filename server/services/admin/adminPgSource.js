@@ -52,13 +52,35 @@ function buildRoleWhereClause(options = {}) {
   };
 }
 
+async function countUsers(options = {}) {
+  const { sql, params } = buildUserWhereClause(options);
+  const { rows } = await postgres.query(
+    `SELECT COUNT(*)::int AS total FROM users ${sql}`,
+    params
+  );
+
+  return rows[0]?.total || 0;
+}
+
 async function getUsers(options = {}) {
   const { sql, params } = buildUserWhereClause(options);
+
+  const limit = Number.isFinite(options.limit) ? options.limit : null;
+  const offset = Number.isFinite(options.offset) ? options.offset : 0;
+
+  let paginationSql = '';
+  if (limit !== null) {
+    params.push(limit);
+    paginationSql += ` LIMIT $${params.length}`;
+    params.push(offset);
+    paginationSql += ` OFFSET $${params.length}`;
+  }
+
   const { rows } = await postgres.query(
     `SELECT *
        FROM users
        ${sql}
-      ORDER BY created_at DESC`,
+      ORDER BY created_at DESC${paginationSql}`,
     params
   );
 
@@ -104,7 +126,14 @@ async function getUsersWithRoles(options = {}) {
   const users = await getUsers(options);
   const userRoles = await loadUserRoles(users.map((user) => user.id));
   const roles = await loadRolesByIds([...new Set(userRoles.map((userRole) => userRole.role_id))]);
-  return attachRolesToUsers(users, userRoles, roles);
+  const enrichedUsers = attachRolesToUsers(users, userRoles, roles);
+
+  if (options.paginated) {
+    const total = await countUsers(options);
+    return { data: enrichedUsers, total };
+  }
+
+  return enrichedUsers;
 }
 
 async function getUserById(userId, options = {}) {
@@ -556,6 +585,7 @@ async function getUserRoles(userId) {
 
 module.exports = {
   assignRoleToUser,
+  countUsers,
   createRole,
   createUser,
   deleteRole,

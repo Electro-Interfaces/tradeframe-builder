@@ -7,7 +7,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Fuel, Save, X } from "lucide-react";
+import { Fuel, Loader2, Save, X } from "lucide-react";
 import { FuelPrice } from "@/types/price";
 
 interface PriceCardProps {
@@ -16,6 +16,7 @@ interface PriceCardProps {
   editingPriceId: string | null;
   editingValue: string;
   hasChanges: boolean;
+  isSavingInline: boolean;
   onInlineEdit: (priceId: string, currentPrice: number) => void;
   onSaveInlinePrice: () => void;
   onCancelInlineEdit: () => void;
@@ -32,6 +33,7 @@ export function PriceCard({
   editingPriceId,
   editingValue,
   hasChanges,
+  isSavingInline,
   onInlineEdit,
   onSaveInlinePrice,
   onCancelInlineEdit,
@@ -78,6 +80,7 @@ export function PriceCard({
                   value={editingValue}
                   onChange={(e) => onEditingValueChange(e.target.value)}
                   className="w-28 h-11 md:h-9 text-right bg-secondary border-border text-foreground font-bold text-base md:text-sm"
+                  disabled={isSavingInline}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       onSaveInlinePrice();
@@ -111,16 +114,21 @@ export function PriceCard({
               variant="ghost"
               size="sm"
               onClick={onSaveInlinePrice}
-              disabled={!hasChanges}
+              disabled={!hasChanges || isSavingInline}
               className="flex-1 text-green-600 dark:text-green-400 hover:text-green-300 hover:bg-emerald-500/10 disabled:text-muted-foreground disabled:hover:text-muted-foreground"
             >
-              <Save className="w-4 h-4 mr-1" />
-              Сохранить
+              {isSavingInline ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-1" />
+              )}
+              {isSavingInline ? 'Сохранение...' : 'Сохранить'}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={onCancelInlineEdit}
+              disabled={isSavingInline}
               className="text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
             >
               <X className="w-4 h-4" />

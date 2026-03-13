@@ -39,12 +39,40 @@ router.use(requireAuth, requireAdminAccess);
 
 router.get('/', async (req, res) => {
   try {
-    const users = await adminDataSource.getUsersWithRoles({
+    const paginated = req.query.paginated === 'true';
+    const rawLimit = parseInt(req.query.limit, 10);
+    const rawOffset = parseInt(req.query.offset, 10);
+
+    // Default 200, max 1000. Без параметра limit — 200 (защита от OOM).
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(rawLimit, 1), 1000)
+      : 200;
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0
+      ? rawOffset
+      : 0;
+
+    const options = {
       includeDeleted: req.query.includeDeleted === 'true',
       deletedOnly: req.query.deletedOnly === 'true',
-    });
+      limit,
+      offset,
+      paginated,
+    };
 
-    return res.json(users);
+    const result = await adminDataSource.getUsersWithRoles(options);
+
+    if (paginated) {
+      // Новый формат: { data: [...], total, limit, offset }
+      return res.json({
+        data: result.data,
+        total: result.total,
+        limit,
+        offset,
+      });
+    }
+
+    // Обратная совместимость: возвращаем массив
+    return res.json(result);
   } catch (error) {
     return res.status(500).json({ error: error.message || 'Ошибка загрузки пользователей' });
   }

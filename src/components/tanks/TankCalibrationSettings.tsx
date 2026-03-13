@@ -567,8 +567,15 @@ export function TankCalibrationSettingsComponent({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleQuickApply}>
-              Применить
+            <AlertDialogAction onClick={handleQuickApply} disabled={summaryActionInProgress !== null}>
+              {summaryActionInProgress !== null ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Применение...
+                </>
+              ) : (
+                'Применить'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

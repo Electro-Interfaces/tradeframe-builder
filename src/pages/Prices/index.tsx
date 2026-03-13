@@ -84,6 +84,7 @@ export function Prices() {
     editingPriceId,
     editingValue,
     hasChanges,
+    isSavingInline,
     stsApiConfigured,
     loadingFromSTSAPI,
     isSetPricesDialogOpen,
@@ -398,6 +399,7 @@ export function Prices() {
                   editingPriceId={editingPriceId}
                   editingValue={editingValue}
                   hasChanges={hasChanges}
+                  isSavingInline={isSavingInline}
                   onInlineEdit={handleInlineEdit}
                   onSaveInlinePrice={() => handleSaveInlinePrice(isMobile)}
                   onCancelInlineEdit={handleCancelInlineEdit}

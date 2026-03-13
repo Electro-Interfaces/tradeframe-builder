@@ -20,7 +20,7 @@ export function useReceipts(params: UseReceiptsParams) {
   const effectiveSystems = (systems && systems.length > 0) ? systems : [baseParams.system];
 
   return useQuery({
-    queryKey: ['receipts', effectiveSystems, baseParams.station, baseParams.shift, baseParams.dt_beg, baseParams.dt_end],
+    queryKey: ['receipts', effectiveSystems, baseParams],
     queryFn: async (): Promise<ReceiptsResponse> => {
       if (effectiveSystems.length === 1) {
         return fetchReceipts({ ...baseParams, system: effectiveSystems[0] });

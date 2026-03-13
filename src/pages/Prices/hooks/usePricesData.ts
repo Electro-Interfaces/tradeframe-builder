@@ -170,6 +170,7 @@ export function usePricesData() {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSavingInline, setIsSavingInline] = useState(false);
 
   // States for external API
   const [dataSourceType, setDataSourceType] = useState<'external-api' | 'cache' | 'sts-api'>('cache');
@@ -530,11 +531,12 @@ export function usePricesData() {
   };
 
   const handleSaveInlinePrice = async (isMobile: boolean) => {
-    if (!editingPriceId || !hasChanges) return;
+    if (!editingPriceId || !hasChanges || isSavingInline) return;
 
     const price = currentPrices.find(p => p.id === editingPriceId);
     if (!price) return;
 
+    setIsSavingInline(true);
     try {
       const newGrossPrice = Math.round(parseFloat(editingValue) * 100);
       const newNetPrice = newGrossPrice;
@@ -599,6 +601,8 @@ export function usePricesData() {
           variant: "destructive"
         });
       }
+    } finally {
+      setIsSavingInline(false);
     }
   };
 
@@ -644,6 +648,7 @@ export function usePricesData() {
     editingPriceId,
     editingValue,
     hasChanges,
+    isSavingInline,
     dataSourceType,
     externalPricesConfigured,
     loadingFromExternalAPI,
