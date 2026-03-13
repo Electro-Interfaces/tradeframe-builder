@@ -156,6 +156,14 @@ class CouponsExportService {
     ];
     detailsData.push(headers);
 
+    // Построение маппинга купон → станция за O(n) вместо O(n²)
+    const couponToStation = new Map<unknown, string>();
+    for (const group of searchResult.groups) {
+      for (const c of group.coupons) {
+        couponToStation.set(c, group.stationId || '');
+      }
+    }
+
     // Данные купонов
     const rows = allCoupons.map(coupon => {
       const date = new Date(coupon.dt);
@@ -172,7 +180,7 @@ class CouponsExportService {
         coupon.summ_used,
         coupon.rest_summ,
         coupon.state.name,
-        `Станция ${searchResult.groups.find(g => g.coupons.includes(coupon))?.stationId || ''}`,
+        `Станция ${couponToStation.get(coupon) || ''}`,
         coupon.shift,
         coupon.opernum
       ];

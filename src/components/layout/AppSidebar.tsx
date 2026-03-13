@@ -23,7 +23,6 @@ import {
   Component,
   Receipt,
   Fuel,
-  Database,
   Building2,
   History,
   PackagePlus,
@@ -186,7 +185,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
 
   const settingsMenuItems = [
     { title: "API CTC настройки", url: "/settings/api-cts", icon: Cog },
-    { title: "Внешняя БД", url: "/settings/external-database", icon: Database },
   ];
 
   const databaseMenuItems = [

@@ -311,7 +311,7 @@ export function NetworkOverview() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44 bg-card border-border shadow-xl rounded-lg">
-                    <DropdownMenuItem onClick={handleExportExcel} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                    <DropdownMenuItem onClick={handleExportExcel} disabled={loading || exportingPdf} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
                       <FileSpreadsheet className="w-4 h-4 text-green-600 dark:text-green-400" />
                       <span className="text-sm font-medium">Экспорт в Excel</span>
                     </DropdownMenuItem>
