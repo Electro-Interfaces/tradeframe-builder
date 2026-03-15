@@ -78,6 +78,10 @@ async function refreshMstoToken() {
   }
 
   try {
+    // Очищаем протухший токен перед логином, иначе MSTO отклонит запрос
+    delete mstoClient.defaults.headers['Authorization'];
+    mstoToken = null;
+
     // MSTO использует POST /session с JSON body
     // ВАЖНО: поле называется "username", НЕ "login"
     const response = await mstoClient.post('/session', {
