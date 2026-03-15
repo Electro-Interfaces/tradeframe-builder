@@ -80,7 +80,11 @@ async function refreshMstoToken() {
   try {
     // Очищаем протухший токен перед логином, иначе MSTO отклонит запрос
     delete mstoClient.defaults.headers['Authorization'];
+    delete mstoClient.defaults.headers.common?.['Authorization'];
     mstoToken = null;
+
+    const loginUrl = `${mstoClient.defaults.baseURL}/session`;
+    console.log(`[MSTO Proxy] Authenticating: ${loginUrl} user=${MSTO_USERNAME} passLen=${MSTO_PASSWORD.length}`);
 
     // MSTO использует POST /session с JSON body
     // ВАЖНО: поле называется "username", НЕ "login"
@@ -105,7 +109,9 @@ async function refreshMstoToken() {
   } catch (error) {
     console.error('[MSTO Proxy] Failed to refresh JWT token:', error.message);
     if (error.response) {
-      console.error('[MSTO Proxy] Response:', error.response.status, error.response.data);
+      console.error('[MSTO Proxy] Response:', error.response.status, JSON.stringify(error.response.data));
+      console.error('[MSTO Proxy] Request URL:', error.config?.url);
+      console.error('[MSTO Proxy] Request headers:', JSON.stringify(error.config?.headers));
     }
     throw new Error('Failed to authenticate with MSTO API');
   }
