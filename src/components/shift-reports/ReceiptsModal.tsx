@@ -77,7 +77,12 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stations, stationName
     try {
       const baseUrl = getBackendOrigin();
       const url = `${baseUrl}/api/sts/v2/info?system=${systemId}&station=${station}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      const headers: Record<string, string> = {};
+      const token = localStorage.getItem('tradeframe_token_v2');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
       if (!res.ok) return null;
       return res.json();
     } catch {
