@@ -692,41 +692,7 @@ export default function Receipts() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h1 className="text-2xl font-semibold text-foreground">Поступления топлива</h1>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Расценка: две кнопки-метода */}
-              <Button
-                variant={showMargin && !bulkFillOpen ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => { setShowMargin(true); setBulkFillOpen(false); }}
-                disabled={filteredReceipts.length === 0}
-                className={showMargin && !bulkFillOpen
-                  ? ''
-                  : 'border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white'}
-              >
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Поштучная расценка
-              </Button>
-              <Button
-                variant={bulkFillOpen ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => { setShowMargin(true); setBulkFillOpen(v => !v); }}
-                disabled={filteredReceipts.length === 0}
-                className={bulkFillOpen
-                  ? 'bg-violet-600 hover:bg-violet-700'
-                  : 'border-violet-600 text-violet-600 hover:bg-violet-600 hover:text-white'}
-              >
-                <Layers className="h-4 w-4 mr-2" />
-                Массовая расценка
-              </Button>
-              {showMargin && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { setShowMargin(false); setBulkFillOpen(false); }}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+              {/* Расценка вынесена на отдельную страницу */}
               <Button
                 variant="outline"
                 size="sm"
