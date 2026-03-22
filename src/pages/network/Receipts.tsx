@@ -28,6 +28,12 @@ import {
   type ReceiptCostRecord,
   type UpsertReceiptCostData,
 } from '@/services/receiptCostApiService';
+import {
+  fetchConfirmations,
+  buildConfirmationIndex,
+  makeConfirmationKey,
+  type ReceiptConfirmation,
+} from '@/services/receiptConfirmationApiService';
 import { extractStationNumber } from '@/utils/tradingPointUtils';
 import type { ReceiptsQueryParams, FlatReceipt } from '@/types/receipts';
 import type { Network } from '@/types/network';
@@ -52,13 +58,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Filter, Download, RefreshCw, TrendingUp, Layers, X } from 'lucide-react';
+import { AlertCircle, Filter, Download, RefreshCw, TrendingUp, Layers, X, Check, Pencil, XCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ReceiptDetailsModal } from '@/components/receipts/ReceiptDetailsModal';
 import { MobileReceiptsTable } from '@/components/receipts/MobileReceiptsTable';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -345,6 +352,24 @@ export default function Receipts() {
     setBaseId('');
     setTtnNumber('');
   };
+
+  // ── Подтверждения менеджером ─────────────────────────────
+  const [confirmations, setConfirmations] = useState<Map<string, ReceiptConfirmation>>(new Map());
+
+  const loadConfirmations = useCallback(() => {
+    if (!systemId) return;
+    fetchConfirmations({
+      systemId,
+      stationNumber: stationNumber ?? undefined,
+      dtBeg: dateFrom || undefined,
+      dtEnd: dateTo || undefined,
+    })
+      .then(items => setConfirmations(buildConfirmationIndex(items)))
+      .catch(() => {});
+  }, [systemId, stationNumber, dateFrom, dateTo]);
+
+  // Загрузка подтверждений при изменении фильтров
+  useEffect(() => { loadConfirmations(); }, [loadConfirmations]);
 
   // ── Режим маржи ──────────────────────────────────────────
   const [showMargin, setShowMargin] = useState(false);
@@ -954,6 +979,8 @@ export default function Receipts() {
           <MobileReceiptsTable
             receipts={filteredReceipts}
             onReceiptClick={handleSelectReceipt}
+            confirmations={confirmations}
+            getConfirmationKey={(r) => systemId ? makeConfirmationKey(systemId, r.stationNumber, r.tank, r.ttn, r.dt) : ''}
           />
         ) : (
           <Table>
@@ -967,6 +994,7 @@ export default function Receipts() {
                 <TableHead className="text-right text-muted-foreground">Объем (л)</TableHead>
                 <TableHead className="text-right text-muted-foreground">Масса (кг)</TableHead>
                 <TableHead className="text-right text-muted-foreground">Отклонение (кг)</TableHead>
+                <TableHead className="text-center text-muted-foreground w-10"></TableHead>
                 {showMargin && (
                   <>
                     <TableHead className="text-right text-muted-foreground w-28">{marginInputUnit === 'liter' ? '₽/л' : '₽/кг'}</TableHead>
@@ -1016,6 +1044,35 @@ export default function Receipts() {
                         {amountDiff > 0 ? '+' : ''}{amountDiff.toFixed(2)}
                       </span>
                     </TableCell>
+
+                    {/* Статус подтверждения */}
+                    <TableCell className="text-center px-1">
+                      {(() => {
+                        const confKey = systemId
+                          ? makeConfirmationKey(systemId, receipt.stationNumber, receipt.tank, receipt.ttn, receipt.dt)
+                          : '';
+                        const conf = confirmations.get(confKey);
+                        if (!conf) return null;
+                        return (
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  {conf.status === 'confirmed' && <Check className="h-4 w-4 text-green-500" />}
+                                  {conf.status === 'corrected' && <Pencil className="h-4 w-4 text-amber-500" />}
+                                  {conf.status === 'rejected' && <XCircle className="h-4 w-4 text-red-500" />}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                <div>{conf.status === 'confirmed' ? 'Подтверждено' : conf.status === 'corrected' ? 'Скорректировано' : 'Отклонено'}</div>
+                                <div className="text-muted-foreground">{conf.confirmedByName}</div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+                    </TableCell>
+
                     {showMargin && (() => {
                       const costKey = systemId
                         ? makeReceiptCostKey(systemId, receipt.stationNumber, receipt.tank, receipt.ttn, receipt.dt)
@@ -1055,6 +1112,12 @@ export default function Receipts() {
           isOpen={selectedReceipt !== null}
           onClose={handleCloseModal}
           receipt={selectedReceipt}
+          systemId={systemId}
+          confirmation={selectedReceipt && systemId
+            ? confirmations.get(makeConfirmationKey(systemId, selectedReceipt.stationNumber, selectedReceipt.tank, selectedReceipt.ttn, selectedReceipt.dt)) ?? null
+            : null
+          }
+          onConfirmationChanged={loadConfirmations}
         />
       </div>
     </MainLayout>
