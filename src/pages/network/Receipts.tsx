@@ -30,6 +30,7 @@ import {
 } from '@/services/receiptCostApiService';
 import {
   fetchConfirmations,
+  bulkConfirmReceipts,
   buildConfirmationIndex,
   makeConfirmationKey,
   type ReceiptConfirmation,
@@ -58,6 +59,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertCircle, Filter, Download, RefreshCw, TrendingUp, Layers, X, Check, Pencil, XCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -123,6 +125,10 @@ export default function Receipts() {
 
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [selectedReceipt, setSelectedReceipt] = useState<FlatReceipt | null>(null);
+
+  // ── Массовое подтверждение ────────────────────────────
+  const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   // Загрузка списка сетей
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -370,6 +376,61 @@ export default function Receipts() {
 
   // Загрузка подтверждений при изменении фильтров
   useEffect(() => { loadConfirmations(); }, [loadConfirmations]);
+
+  // Сброс чекбоксов при смене фильтров
+  useEffect(() => { setCheckedKeys(new Set()); }, [systemId, stationNumber, dateFrom, dateTo]);
+
+  const getReceiptKey = useCallback((r: FlatReceipt) => {
+    return systemId ? makeConfirmationKey(systemId, r.stationNumber, r.tank, r.ttn, r.dt) : '';
+  }, [systemId]);
+
+  // Неподтверждённые строки из текущего отфильтрованного списка
+  const unconfirmedReceipts = useMemo(() => {
+    return filteredReceipts.filter(r => {
+      const key = getReceiptKey(r);
+      return key && !confirmations.has(key);
+    });
+  }, [filteredReceipts, confirmations, getReceiptKey]);
+
+  const toggleCheck = useCallback((key: string) => {
+    setCheckedKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleCheckAll = useCallback(() => {
+    setCheckedKeys(prev => {
+      if (prev.size >= unconfirmedReceipts.length && unconfirmedReceipts.length > 0) return new Set();
+      return new Set(unconfirmedReceipts.map(r => getReceiptKey(r)));
+    });
+  }, [unconfirmedReceipts, getReceiptKey]);
+
+  const handleBulkConfirm = useCallback(async () => {
+    if (!systemId || checkedKeys.size === 0) return;
+    setBulkSaving(true);
+    try {
+      const items = filteredReceipts
+        .filter(r => checkedKeys.has(getReceiptKey(r)))
+        .map(r => ({
+          systemId: systemId!,
+          stationNumber: r.stationNumber,
+          shiftNumber: r.shiftNumber,
+          tankNumber: r.tank,
+          ttn: r.ttn,
+          receiptDt: r.dt,
+          status: 'confirmed' as const,
+        }));
+      await bulkConfirmReceipts(items);
+      setCheckedKeys(new Set());
+      loadConfirmations();
+    } catch {
+      // Ошибка обработана
+    } finally {
+      setBulkSaving(false);
+    }
+  }, [systemId, checkedKeys, filteredReceipts, getReceiptKey, loadConfirmations]);
 
   // ── Режим маржи ──────────────────────────────────────────
   const [showMargin, setShowMargin] = useState(false);
@@ -958,6 +1019,31 @@ export default function Receipts() {
           </div>
 
           <Card className="bg-background border-border">
+        {/* Панель массового подтверждения */}
+        {checkedKeys.size > 0 && (
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-muted/30">
+            <span className="text-sm text-muted-foreground">
+              Выбрано: <span className="font-medium text-foreground">{checkedKeys.size}</span>
+            </span>
+            <Button
+              size="sm"
+              onClick={handleBulkConfirm}
+              disabled={bulkSaving}
+              className="bg-green-600 hover:bg-green-700 text-white text-xs"
+            >
+              <Check className="h-3 w-3 mr-1" />
+              {bulkSaving ? 'Подтверждение...' : 'Подтвердить выбранные'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCheckedKeys(new Set())}
+              className="text-xs text-muted-foreground"
+            >
+              Снять выбор
+            </Button>
+          </div>
+        )}
         {isLoading ? (
           <div className="p-6 space-y-4">
             <Skeleton className="h-8 w-full" />
@@ -986,6 +1072,13 @@ export default function Receipts() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                <TableHead className="w-8 px-2">
+                  <Checkbox
+                    checked={unconfirmedReceipts.length > 0 && checkedKeys.size >= unconfirmedReceipts.length}
+                    onCheckedChange={toggleCheckAll}
+                    aria-label="Выбрать все"
+                  />
+                </TableHead>
                 <TableHead className="text-muted-foreground">Дата и время</TableHead>
                 <TableHead className="text-muted-foreground">ТТ</TableHead>
                 <TableHead className="text-muted-foreground">Смена</TableHead>
@@ -1012,12 +1105,23 @@ export default function Receipts() {
                 const factAmount = parseFloat(receipt.fact.amount);
                 const amountDiff = factAmount - docAmount;
 
+                const rKey = getReceiptKey(receipt);
+                const isConfirmed = confirmations.has(rKey);
+
                 return (
                   <TableRow
                     key={receiptId}
                     className="cursor-pointer hover:bg-secondary/50 transition-colors border-border"
                     onClick={() => handleSelectReceipt(receipt)}
                   >
+                    <TableCell className="px-2" onClick={e => e.stopPropagation()}>
+                      <Checkbox
+                        checked={checkedKeys.has(rKey)}
+                        onCheckedChange={() => toggleCheck(rKey)}
+                        disabled={isConfirmed}
+                        aria-label="Выбрать поступление"
+                      />
+                    </TableCell>
                     <TableCell className="text-foreground/80">
                       {format(new Date(receipt.dt), 'dd.MM.yyyy HH:mm', { locale: ru })}
                     </TableCell>

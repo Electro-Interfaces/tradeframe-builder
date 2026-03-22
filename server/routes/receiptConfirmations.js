@@ -55,6 +55,35 @@ router.post('/', async (req, res) => {
   }
 });
 
+// POST /api/receipt-confirmations/bulk — массовое подтверждение
+router.post('/bulk', async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'items — непустой массив' });
+    }
+    if (items.length > 200) {
+      return res.status(400).json({ error: 'Максимум 200 записей за раз' });
+    }
+
+    const VALID_STATUSES = ['confirmed', 'corrected', 'rejected'];
+    for (const item of items) {
+      if (!item.systemId || item.stationNumber == null || item.tankNumber == null || !item.ttn || !item.receiptDt) {
+        return res.status(400).json({ error: 'Каждый элемент должен содержать systemId, stationNumber, tankNumber, ttn, receiptDt' });
+      }
+      if (!VALID_STATUSES.includes(item.status)) {
+        return res.status(400).json({ error: `Невалидный status: ${item.status}` });
+      }
+    }
+
+    const confirmedByName = req.user?.name || req.user?.email || '';
+    const result = await confirmationSource.bulkUpsertConfirmations(items, req.user?.id, confirmedByName);
+    return res.json({ count: result.length, items: result });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Ошибка массового подтверждения' });
+  }
+});
+
 // DELETE /api/receipt-confirmations/:id — отменить подтверждение
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

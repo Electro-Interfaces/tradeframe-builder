@@ -113,6 +113,18 @@ export async function confirmReceipt(data: ConfirmReceiptData): Promise<ReceiptC
   return res.json();
 }
 
+/** Массовое подтверждение */
+export async function bulkConfirmReceipts(
+  items: ConfirmReceiptData[],
+): Promise<{ count: number; items: ReceiptConfirmation[] }> {
+  const res = await apiRequest('/receipt-confirmations/bulk', {
+    method: 'POST',
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res, `Ошибка массового подтверждения: ${res.status}`));
+  return res.json();
+}
+
 /** Отменить подтверждение */
 export async function deleteConfirmation(id: string): Promise<void> {
   const res = await apiRequest(`/receipt-confirmations/${encodeURIComponent(id)}`, { method: 'DELETE' });

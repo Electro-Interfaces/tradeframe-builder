@@ -103,6 +103,61 @@ async function upsertConfirmation(data, userId) {
   return normalizeRow(row);
 }
 
+async function bulkUpsertConfirmations(items, userId, confirmedByName) {
+  if (!items.length) return [];
+
+  const COLS = 14;
+  const params = [];
+  const valueRows = [];
+
+  for (const d of items) {
+    const offset = params.length;
+    params.push(
+      d.systemId,
+      d.stationNumber,
+      d.shiftNumber || 0,
+      d.tankNumber,
+      d.ttn,
+      d.receiptDt,
+      d.status || 'confirmed',
+      d.correctedVolume ?? null,
+      d.correctedAmount ?? null,
+      d.correctedDensity ?? null,
+      d.correctedTemp ?? null,
+      d.comment ?? '',
+      userId,
+      confirmedByName,
+    );
+    const placeholders = Array.from({ length: COLS }, (_, i) => `$${offset + i + 1}`);
+    valueRows.push(`(${placeholders.join(',')})`);
+  }
+
+  const { rows } = await postgres.query(
+    `INSERT INTO receipt_confirmations (
+       system_id, station_number, shift_number, tank_number, ttn, receipt_dt,
+       status,
+       corrected_volume, corrected_amount, corrected_density, corrected_temp,
+       comment,
+       confirmed_by, confirmed_by_name
+     ) VALUES ${valueRows.join(',')}
+     ON CONFLICT (system_id, station_number, tank_number, ttn, receipt_dt)
+     DO UPDATE SET
+       shift_number = EXCLUDED.shift_number,
+       status = EXCLUDED.status,
+       corrected_volume = EXCLUDED.corrected_volume,
+       corrected_amount = EXCLUDED.corrected_amount,
+       corrected_density = EXCLUDED.corrected_density,
+       corrected_temp = EXCLUDED.corrected_temp,
+       comment = EXCLUDED.comment,
+       confirmed_by = EXCLUDED.confirmed_by,
+       confirmed_by_name = EXCLUDED.confirmed_by_name
+     RETURNING *`,
+    params
+  );
+
+  return rows.map(normalizeRow);
+}
+
 async function deleteConfirmation(id) {
   const result = await postgres.query(
     'DELETE FROM receipt_confirmations WHERE id = $1::uuid RETURNING id',
@@ -138,5 +193,6 @@ module.exports = {
   getConfirmations,
   getConfirmationByKey,
   upsertConfirmation,
+  bulkUpsertConfirmations,
   deleteConfirmation,
 };
