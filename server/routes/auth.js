@@ -154,6 +154,18 @@ router.post('/change-password', requireAuth, async (req, res) => {
   }
 });
 
+router.post('/refresh', requireAuth, async (req, res) => {
+  try {
+    const accessToken = tokenService.createAccessToken(req.user);
+    return res.json({
+      token: accessToken.token,
+      expires_at: accessToken.expiresAt,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Ошибка обновления токена' });
+  }
+});
+
 router.post('/logout', requireAuth, async (req, res) => {
   return res.json({ ok: true });
 });

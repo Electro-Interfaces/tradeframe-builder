@@ -122,20 +122,10 @@ export default defineConfig(({ mode }) => {
         clientsClaim: true,
         runtimeCaching: [
           {
-            // API запросы - сначала сеть, потом кэш (с таймаутом)
+            // API запросы — НЕ кэшировать в SW (авторизация, динамические данные)
+            // NetworkOnly пропускает запрос напрямую, без кэша и без no-response ошибок
             urlPattern: /^https?:\/\/.*\/api\//i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 5, // Быстрый fallback на кэш
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 // 1 час — динамические данные (цены, уровни, смены)
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+            handler: 'NetworkOnly',
           },
           {
             // Статические ресурсы - сначала кэш

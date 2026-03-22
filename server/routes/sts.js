@@ -242,6 +242,9 @@ function getTTL(urlPath) {
 // Middleware для логирования запросов к STS API и измерения времени
 router.use((req, res, next) => {
   req.startTime = Date.now();
+  if (req.method !== 'GET') {
+    console.log(`[STS Proxy] ${req.method} ${req.path}`, req.query, req.method === 'POST' ? JSON.stringify(req.body).slice(0, 200) : '');
+  }
   next();
 });
 
@@ -323,13 +326,20 @@ async function proxyRequest(req, res) {
         invalidateCache(urlPath);
       }
 
+      // Логируем POST-ответы для диагностики
+      if (method !== 'GET') {
+        const elapsed = Date.now() - (req.startTime || Date.now());
+        console.log(`[STS Proxy] ${method} ${urlPath} → ${response.status} (${elapsed}ms)`);
+      }
+
       // Возвращаем ответ клиенту
       res.status(response.status).json(response.data);
     } finally {
       inflightRequests.delete(cacheKey);
     }
   } catch (error) {
-    console.error(`[STS Proxy Error] ${error.message}`);
+    const elapsed = Date.now() - (req.startTime || Date.now());
+    console.error(`[STS Proxy Error] ${req.method} ${req.path} (${elapsed}ms): ${error.message}`);
     if (error.response) {
       console.error('[STS Proxy Error] Response data:', error.response.data);
       console.error('[STS Proxy Error] Request params:', req.query);

@@ -30,6 +30,12 @@ function getUserHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
   try {
+    // Authorization token
+    const token = localStorage.getItem('tradeframe_token_v2') || localStorage.getItem('auth_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const savedUser = localStorage.getItem('tradeframe_user_v2') || localStorage.getItem('tradeframe_user');
     if (savedUser) {
       const user = JSON.parse(savedUser);

@@ -555,6 +555,68 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     return permissionService.canViewReports(user);
   }, [user]);
 
+  // Фоновое обновление токена за 15 минут до истечения
+  useEffect(() => {
+    if (!user) return;
+
+    const scheduleRefresh = () => {
+      const expiry = localStorage.getItem('auth_token_expiry');
+      if (!expiry) return undefined;
+
+      const expiresAt = new Date(expiry).getTime();
+      const now = Date.now();
+      // Обновляем за 15 минут до истечения
+      const refreshIn = expiresAt - now - 15 * 60 * 1000;
+
+      if (refreshIn <= 0) {
+        // Токен уже близок к истечению — обновить сейчас
+        doTokenRefresh();
+        return undefined;
+      }
+
+      return window.setTimeout(doTokenRefresh, refreshIn);
+    };
+
+    const doTokenRefresh = async () => {
+      const token = localStorage.getItem('auth_token')
+        || localStorage.getItem('tradeframe_token_v2');
+      if (!token) return;
+
+      try {
+        const backendOrigin = (await import('@/utils/backendUrl')).getBackendOrigin();
+        const resp = await fetch(`${backendOrigin}/api/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!resp.ok) return;
+
+        const data = await resp.json();
+        const newToken = data.token;
+        const expiresAt = data.expires_at;
+
+        localStorage.setItem('auth_token', newToken);
+        localStorage.setItem('tradeframe_token_v2', newToken);
+        sessionStorage.setItem('auth_token', newToken);
+        if (expiresAt) {
+          localStorage.setItem('auth_token_expiry', expiresAt);
+          sessionStorage.setItem('auth_token_expiry', expiresAt);
+        }
+
+        // Запланировать следующее обновление
+        timerId = scheduleRefresh();
+      } catch {
+        // Сеть недоступна — попробуем при следующем scheduleRefresh
+      }
+    };
+
+    let timerId = scheduleRefresh();
+    return () => { if (timerId) clearTimeout(timerId); };
+  }, [user]);
+
   // Cross-tab sync: если пользователь разлогинился в другой вкладке — синхронизируем
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {

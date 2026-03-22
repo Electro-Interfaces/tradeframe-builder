@@ -26,10 +26,12 @@ import {
 
 // Конфигурация API
 import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
+import { getBackendOrigin } from '@/utils/backendUrl';
 const API_BASE_URL = getApiBaseUrl();
 
 // Утилита для HTTP запросов с полной поддержкой заголовков
 class HttpApiClient {
+  private refreshPromise: Promise<string | null> | null = null;
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -129,13 +131,72 @@ class HttpApiClient {
   }
 
   /**
-   * При истечении токена — редирект на логин
-   * Пароль больше не хранится в localStorage
+   * Обновление токена через /api/auth/refresh
+   * При неудаче — очистка auth и редирект на логин
+   * Дедупликация: параллельные вызовы ждут один и тот же промис
    */
   private async refreshToken(): Promise<string | null> {
-    this.clearAuth();
-    window.location.href = '/login';
-    return null;
+    if (this.refreshPromise) return this.refreshPromise;
+
+    this.refreshPromise = this.doRefresh();
+    try {
+      return await this.refreshPromise;
+    } finally {
+      this.refreshPromise = null;
+    }
+  }
+
+  private async doRefresh(): Promise<string | null> {
+    const currentToken = localStorage.getItem('auth_token')
+      || localStorage.getItem('tradeframe_token_v2')
+      || sessionStorage.getItem('auth_token');
+
+    if (!currentToken) {
+      this.clearAuth();
+      window.location.href = '/login';
+      return null;
+    }
+
+    try {
+      const resp = await fetch(`${getBackendOrigin()}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentToken}`,
+        },
+      });
+
+      if (!resp.ok) {
+        this.clearAuth();
+        window.location.href = '/login';
+        return null;
+      }
+
+      const data = await resp.json();
+      const newToken = data.token;
+      const expiresAt = data.expires_at;
+
+      // Обновляем все хранилища
+      localStorage.setItem('auth_token', newToken);
+      localStorage.setItem('tradeframe_token_v2', newToken);
+      sessionStorage.setItem('auth_token', newToken);
+      if (expiresAt) {
+        localStorage.setItem('auth_token_expiry', expiresAt);
+        sessionStorage.setItem('auth_token_expiry', expiresAt);
+      }
+
+      // Диспатчим storage event для синхронизации между вкладками
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'tradeframe_token_v2',
+        newValue: newToken,
+      }));
+
+      return newToken;
+    } catch {
+      this.clearAuth();
+      window.location.href = '/login';
+      return null;
+    }
   }
 
   /**
