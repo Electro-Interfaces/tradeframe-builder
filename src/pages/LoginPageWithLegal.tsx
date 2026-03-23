@@ -187,7 +187,7 @@ const LoginPageWithLegal = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   
   // Legal documents states - пользователь должен явно согласиться
   const [acceptedTerms, setAcceptedTerms] = useState(false);

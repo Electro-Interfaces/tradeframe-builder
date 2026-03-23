@@ -109,7 +109,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   /**
    * Очищает все данные авторизации
    */
-  const clearAuthData = async () => {
+  const clearAuthData = async (clearRemembered: boolean = false) => {
     // Новые ключи
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -128,8 +128,11 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     sessionStorage.removeItem('auth_token_expiry');
     sessionStorage.removeItem('auth_user');
 
-    // Очищаем IndexedDB
-    await clearRememberedCredentials();
+    // IndexedDB чистим только по явному запросу (смена пароля, блокировка)
+    // При обычном logout — сохраняем для автовхода при следующем открытии
+    if (clearRemembered) {
+      await clearRememberedCredentials();
+    }
   };
 
   /**
@@ -484,8 +487,12 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     }
 
     try {
-      // Вызываем метод authService для смены пароля
       await authService.changePassword(user.id, user.email, currentPassword, newPassword);
+      // Обновляем сохранённые credentials с новым паролем
+      const creds = await getRememberedCredentials();
+      if (creds) {
+        await saveRememberedCredentials(user.email, newPassword, 30);
+      }
     } catch (error: any) {
       throw new Error(error.message || 'Не удалось изменить пароль');
     }
