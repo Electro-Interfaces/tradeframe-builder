@@ -1077,7 +1077,7 @@ export default function Receipts() {
                 return (
                   <TableRow
                     key={receiptId}
-                    className="cursor-pointer hover:bg-secondary/50 transition-colors border-border"
+                    className={`cursor-pointer hover:bg-secondary/50 transition-colors border-border ${isConfirmed ? 'bg-green-500/5' : ''}`}
                     onClick={() => handleSelectReceipt(receipt)}
                   >
                     <TableCell className="px-2" onClick={e => e.stopPropagation()}>
