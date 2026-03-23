@@ -372,7 +372,7 @@ export const ReceiptDetailsModal: React.FC<ReceiptDetailsModalProps> = ({
                 /* Режим коррекции — editable поля */
                 <div className="space-y-3">
                   <h3 className="text-xs font-semibold text-foreground/80">Корректировка данных</h3>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className={cn("grid gap-2", isMobile ? "grid-cols-1" : "grid-cols-2")}>
                     <div>
                       <label className="text-[10px] text-muted-foreground">Объем (л)</label>
                       <Input

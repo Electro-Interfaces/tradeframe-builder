@@ -3,9 +3,11 @@
  * Оптимизирована для сенсорных экранов
  */
 
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { FlatReceipt } from '@/types/receipts';
 import type { ReceiptConfirmation } from '@/services/receiptConfirmationApiService';
@@ -16,6 +18,7 @@ interface MobileReceiptsTableProps {
   onReceiptClick: (receipt: FlatReceipt) => void;
   confirmations?: Map<string, ReceiptConfirmation>;
   getConfirmationKey?: (receipt: FlatReceipt) => string;
+  onBulkConfirm?: (receipts: FlatReceipt[]) => Promise<void>;
 }
 
 const statusConfig = {
@@ -24,7 +27,9 @@ const statusConfig = {
   rejected: { label: 'Отклонено', icon: XCircle, color: 'text-red-500' },
 } as const;
 
-export function MobileReceiptsTable({ receipts, onReceiptClick, confirmations, getConfirmationKey }: MobileReceiptsTableProps) {
+export function MobileReceiptsTable({ receipts, onReceiptClick, confirmations, getConfirmationKey, onBulkConfirm }: MobileReceiptsTableProps) {
+  const [bulkSaving, setBulkSaving] = useState(false);
+
   if (receipts.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -34,8 +39,36 @@ export function MobileReceiptsTable({ receipts, onReceiptClick, confirmations, g
     );
   }
 
+  const unconfirmedReceipts = confirmations && getConfirmationKey
+    ? receipts.filter(r => !confirmations.has(getConfirmationKey(r)))
+    : [];
+
+  const handleBulkConfirm = async () => {
+    if (!onBulkConfirm || unconfirmedReceipts.length === 0) return;
+    setBulkSaving(true);
+    try {
+      await onBulkConfirm(unconfirmedReceipts);
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
+      {/* Кнопка массового подтверждения */}
+      {onBulkConfirm && unconfirmedReceipts.length > 0 && (
+        <div className="flex items-center gap-2 px-1">
+          <Button
+            size="sm"
+            onClick={handleBulkConfirm}
+            disabled={bulkSaving}
+            className="bg-green-600 hover:bg-green-700 text-white text-xs flex-1"
+          >
+            <Check className="h-3 w-3 mr-1" />
+            {bulkSaving ? 'Подтверждение...' : `Подтвердить все (${unconfirmedReceipts.length})`}
+          </Button>
+        </div>
+      )}
       {receipts.map((receipt, index) => {
         const confKey = getConfirmationKey?.(receipt) || '';
         const conf = confirmations?.get(confKey);

@@ -1033,6 +1033,18 @@ export default function Receipts() {
             onReceiptClick={handleSelectReceipt}
             confirmations={confirmations}
             getConfirmationKey={(r) => systemId ? makeConfirmationKey(systemId, r.stationNumber, r.tank, r.ttn, r.dt) : ''}
+            onBulkConfirm={systemId ? async (items) => {
+              await bulkConfirmReceipts(items.map(r => ({
+                systemId: systemId!,
+                stationNumber: r.stationNumber,
+                shiftNumber: r.shiftNumber,
+                tankNumber: r.tank,
+                ttn: r.ttn,
+                receiptDt: r.dt,
+                status: 'confirmed' as const,
+              })));
+              loadConfirmations();
+            } : undefined}
           />
         ) : (
           <Table>
