@@ -425,8 +425,8 @@ export default function Receipts() {
       await bulkConfirmReceipts(items);
       setCheckedKeys(new Set());
       loadConfirmations();
-    } catch {
-      // Ошибка обработана
+    } catch (err: any) {
+      alert(err.message || 'Ошибка массового подтверждения');
     } finally {
       setBulkSaving(false);
     }

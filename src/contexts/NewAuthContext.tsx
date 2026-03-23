@@ -565,26 +565,26 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   // Фоновое обновление токена за 15 минут до истечения
   useEffect(() => {
     if (!user) return;
+    let mounted = true;
+    let timerId: ReturnType<typeof setTimeout> | undefined;
 
     const scheduleRefresh = () => {
       const expiry = localStorage.getItem('auth_token_expiry');
-      if (!expiry) return undefined;
+      if (!expiry) return;
 
       const expiresAt = new Date(expiry).getTime();
-      const now = Date.now();
-      // Обновляем за 15 минут до истечения
-      const refreshIn = expiresAt - now - 15 * 60 * 1000;
+      const refreshIn = expiresAt - Date.now() - 15 * 60 * 1000;
 
       if (refreshIn <= 0) {
-        // Токен уже близок к истечению — обновить сейчас
         doTokenRefresh();
-        return undefined;
+        return;
       }
 
-      return window.setTimeout(doTokenRefresh, refreshIn);
+      timerId = window.setTimeout(doTokenRefresh, refreshIn);
     };
 
     const doTokenRefresh = async () => {
+      if (!mounted) return;
       const token = localStorage.getItem('auth_token')
         || localStorage.getItem('tradeframe_token_v2');
       if (!token) return;
@@ -599,29 +599,39 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
           },
         });
 
-        if (!resp.ok) return;
+        if (!mounted) return;
 
-        const data = await resp.json();
-        const newToken = data.token;
-        const expiresAt = data.expires_at;
-
-        localStorage.setItem('auth_token', newToken);
-        localStorage.setItem('tradeframe_token_v2', newToken);
-        sessionStorage.setItem('auth_token', newToken);
-        if (expiresAt) {
-          localStorage.setItem('auth_token_expiry', expiresAt);
-          sessionStorage.setItem('auth_token_expiry', expiresAt);
+        if (!resp.ok) {
+          // 401 — токен невалиден, не пытаемся повторно
+          if (resp.status === 401) return;
+          // Другие ошибки — повторить через 5 минут
+          timerId = window.setTimeout(doTokenRefresh, 5 * 60 * 1000);
+          return;
         }
 
-        // Запланировать следующее обновление
-        timerId = scheduleRefresh();
+        const data = await resp.json();
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('tradeframe_token_v2', data.token);
+        sessionStorage.setItem('auth_token', data.token);
+        if (data.expires_at) {
+          localStorage.setItem('auth_token_expiry', data.expires_at);
+          sessionStorage.setItem('auth_token_expiry', data.expires_at);
+        }
+
+        if (mounted) scheduleRefresh();
       } catch {
-        // Сеть недоступна — попробуем при следующем scheduleRefresh
+        // Сеть недоступна — повторить через 5 минут
+        if (mounted) {
+          timerId = window.setTimeout(doTokenRefresh, 5 * 60 * 1000);
+        }
       }
     };
 
-    let timerId = scheduleRefresh();
-    return () => { if (timerId) clearTimeout(timerId); };
+    scheduleRefresh();
+    return () => {
+      mounted = false;
+      if (timerId) clearTimeout(timerId);
+    };
   }, [user]);
 
   // Cross-tab sync: если пользователь разлогинился в другой вкладке — синхронизируем
