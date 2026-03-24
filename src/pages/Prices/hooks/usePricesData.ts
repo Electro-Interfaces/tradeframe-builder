@@ -257,13 +257,6 @@ export function usePricesData() {
       } else {
         setCurrentPrices([]);
         setIsInitialLoading(false);
-
-        // Fallback to cache if no STS data
-        if (selectedTradingPoint) {
-          const tradingPointId = typeof selectedTradingPoint === 'string' ?
-            selectedTradingPoint : selectedTradingPoint.id;
-          await loadPricesFromCache(tradingPointId);
-        }
       }
     } catch (error: any) {
       setIsInitialLoading(false);

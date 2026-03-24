@@ -118,7 +118,7 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
               className="bg-secondary border-border text-foreground placeholder-muted-foreground font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              Используется для синхронизации с торговой системой. Демо сеть АЗС = 1, БТО = 15
+              Используется для синхронизации с торговой системой. Демо = 1, БТО = 15, ВиБенз = 19
             </p>
           </div>
 
