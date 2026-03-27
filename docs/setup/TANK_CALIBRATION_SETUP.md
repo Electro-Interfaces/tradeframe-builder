@@ -13,23 +13,23 @@
 
 ## ⚡ Быстрый старт
 
-### Шаг 1: Применить миграцию в Supabase
+### Шаг 1: Применить PostgreSQL миграции
 
-1. **Откройте Supabase SQL Editor:**
-   ```
-   https://supabase.com/dashboard/project/ssvazdgnmatbdynkhkqo/editor/sql
-   ```
+1. **Убедитесь, что в `server/.env` задан `DATABASE_URL`**
 
-2. **Откройте файл миграции:**
-   ```
-   database/migrations/create_tank_calibration_settings_full.sql
+2. **Примените миграции:**
+   ```bash
+   cd server
+   node db/migrate.js
    ```
 
-3. **Скопируйте содержимое** и вставьте в SQL Editor
+3. **При необходимости проверьте SQL-файлы:**
+   ```
+   server/db/migrations/030_equipment.sql
+   server/db/migrations/100_tank_calibration_tables.sql
+   ```
 
-4. **Выполните запрос** (кнопка "Run" или Ctrl+Enter)
-
-5. **Проверьте результат:**
+4. **Проверьте результат:**
    - Должно быть создано ~50 полей
    - 4 CHECK constraints
    - 6 индексов

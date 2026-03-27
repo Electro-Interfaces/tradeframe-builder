@@ -47,7 +47,7 @@ const token = `token_${btoa(JSON.stringify(payload))}_${timestamp}`
 ### 🌐 API Безопасность
 
 #### Внутренний API (PostgreSQL)
-- **Аутентификация**: Service Role Key
+- **Аутентификация**: JWT + middleware `auth` / `scopeFilter`
 - **HTTPS**: Обязательно
 - **Row Level Security**: Реализован через middleware (auth, scopeFilter)
 - **Ограничения**: По ролям пользователей
@@ -64,7 +64,6 @@ const token = `token_${btoa(JSON.stringify(payload))}_${timestamp}`
 ```bash
 # PostgreSQL
 DATABASE_URL=postgresql://user:password@host:5432/tradeframe
-SUPABASE_SERVICE_KEY=your-service-key
 
 # Внешний API STS (только server/.env)
 STS_API_URL=https://pos.autooplata.ru/tms/

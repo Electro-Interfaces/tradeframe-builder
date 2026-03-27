@@ -62,16 +62,15 @@ Telegram Bot используется для отправки уведомлен
 Выполните SQL миграцию для создания таблицы временных кодов:
 
 ```bash
-# Подключитесь к Supabase через SQL Editor или используйте CLI
-psql -h <your-supabase-host> -U postgres -d postgres -f supabase/migrations/20251018_create_telegram_link_codes.sql
+# Примените backend миграции PostgreSQL
+cd server
+node db/migrate.js
 ```
 
-Или через **Supabase Dashboard**:
-1. Откройте SQL Editor
-2. Скопируйте содержимое файла `supabase/migrations/20251018_create_telegram_link_codes.sql`
-3. Выполните запрос
+Нужная таблица создаётся миграцией:
+`server/db/migrations/060_notifications.sql`
 
-**Результат:** Создана таблица `telegram_link_codes` с индексами и RLS политиками.
+**Результат:** Создана таблица `telegram_link_codes` с индексами.
 
 ---
 
@@ -320,7 +319,7 @@ WHERE telegram_verified = true;
 
 - `server/routes/telegram.js` - Основная логика бота
 - `server/routes/notifications.js` - Интеграция отправки
-- `supabase/migrations/20251018_create_telegram_link_codes.sql` - Миграция БД
+- `server/db/migrations/060_notifications.sql` - Миграция БД для уведомлений и Telegram link codes
 - `src/services/notificationService.ts` - Frontend API
 - `src/pages/UserNotificationSettings.tsx` - UI настроек
 

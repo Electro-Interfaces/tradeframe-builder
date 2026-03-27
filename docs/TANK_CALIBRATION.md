@@ -265,8 +265,8 @@ CREATE TRIGGER ...
 
 При возникновении вопросов или проблем:
 1. Проверьте логи backend сервера
-2. Убедитесь, что таблица `tank_calibration_settings` создана в Supabase
-3. Проверьте наличие переменных окружения `SUPABASE_URL` и `SUPABASE_SERVICE_KEY`
+2. Убедитесь, что таблицы `tank_calibration_settings` и `tank_calibration_tables` созданы в PostgreSQL
+3. Проверьте наличие переменной окружения `DATABASE_URL`
 
 ## Версия
 

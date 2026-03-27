@@ -188,7 +188,7 @@ URL: networks?select=*
    ```bash
    # Проверить файлы, использующие networks API
    - src/services/networksService.ts
-   - src/services/supabaseServiceClient.ts
+   - src/contexts/SelectionContext.tsx
    ```
 
 2. **Проверить необходимость запроса**

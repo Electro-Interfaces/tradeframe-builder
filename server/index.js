@@ -118,7 +118,6 @@ async function sendHealth(_req, res) {
     timestamp: new Date().toISOString(),
     version: '2.1.0',
     dataSource: 'pg',
-    supabase: 'removed',
     postgres: { configured: postgresConfigured, connected: postgresConnected },
   });
 }

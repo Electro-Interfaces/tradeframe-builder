@@ -48,7 +48,7 @@ VITE_BASE_URL=http://localhost:3000
 VITE_API_URL=http://localhost:3001
 ```
 
-> **Важно:** Frontend больше не использует `VITE_SUPABASE_*` переменные для работы с данными. Все запросы проксируются через backend.
+> **Важно:** Frontend использует только `VITE_BASE_URL` и `VITE_API_URL`. Прямого доступа к БД и Supabase-переменных в рабочей схеме больше нет.
 
 ## Схема базы данных
 

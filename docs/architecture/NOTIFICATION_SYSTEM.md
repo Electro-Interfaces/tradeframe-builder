@@ -9,7 +9,7 @@
 
 ## 🎯 Что реализовано
 
-### ✅ База данных (Supabase)
+### ✅ База данных (PostgreSQL)
 Созданы 6 таблиц в PostgreSQL:
 
 1. **notification_rules** - правила автоматических уведомлений
@@ -19,7 +19,9 @@
 5. **role_notification_subscriptions** - подписки роли (наследуются пользователями)
 6. **notification_delivery_log** - журнал доставки уведомлений
 
-**Файл миграции**: `supabase-migrations/001_notifications_tables_simple.sql`
+**Файлы миграций**:
+- `server/db/migrations/060_notifications.sql`
+- `server/db/migrations/070_messaging.sql`
 
 ### ✅ Backend (Node.js + Express)
 
@@ -49,7 +51,7 @@
 - `RoleNotificationSubscription` - подписка роли
 
 #### Сервисы
-**`src/services/notificationService.ts`** - прямая работа с Supabase:
+**`src/services/notificationService.ts`** - работа с backend API:
 - `getNotificationRules()` - получить правила
 - `createNotificationRule()` - создать правило
 - `updateNotificationRule()` - обновить правило
@@ -70,10 +72,6 @@
 Создайте файл `server/.env`:
 
 ```env
-# База данных (уже настроено в коде)
-SUPABASE_URL=https://ynwbmxvqucmvjhmsxtqh.supabase.co
-SUPABASE_SERVICE_KEY=ваш-service-role-key
-
 # Email (nodemailer)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -100,7 +98,6 @@ npm install
 
 Зависимости (уже добавлены в package.json):
 - `node-cron` - планировщик задач
-- `@supabase/supabase-js` - Supabase клиент
 - `nodemailer` - отправка email
 
 ### Запуск
@@ -126,15 +123,15 @@ Port: 3001
 
 ```
 Frontend (React)
-    ↓ прямой доступ
-Supabase (PostgreSQL)
-    ↑ чтение данных
-Backend Notification Engine
-    ↓ отправка
-Email Service / Telegram Service
+    ↓ fetch /api/telegram/*
+Backend API (Express)
+    ↓ чтение/запись
+PostgreSQL
+    ↑ события и настройки
+Notification Engine / Delivery Services
 ```
 
-**Важно**: Frontend работает с Supabase НАПРЯМУЮ, без REST API прослойки.
+**Важно**: Frontend больше не работает с БД напрямую. Все запросы идут через backend API.
 
 ### Типы событий
 
@@ -267,7 +264,7 @@ const { linkCode, telegramLink, expiresAt } =
 
 ## 🐛 Отладка
 
-### Проверить таблицы в Supabase
+### Проверить таблицы в PostgreSQL
 
 ```sql
 SELECT table_name
@@ -339,9 +336,9 @@ scheduler.runManualCheck('checkBillAcceptors')
 
 При проблемах проверьте:
 1. Переменные окружения в `server/.env`
-2. Подключение к Supabase
+2. Подключение к PostgreSQL
 3. Логи сервера
-4. Таблицы в Supabase Dashboard
+4. Таблицы и миграции в `server/db/migrations`
 
 ---
 

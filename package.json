@@ -27,11 +27,7 @@
     "start": "node scripts/js/server.js",
     "start:prod": "npm run build:prod && npm run start",
     "start:backend": "npm --prefix server start",
-    "dev:backend": "npm --prefix server dev",
-    "agent1:setup": "bash scripts/agent1-infrastructure.sh",
-    "agent2:migrate": "bash scripts/agent2-business-logic.sh",
-    "agent3:api": "bash scripts/agent3-api-endpoints.sh",
-    "agents:run": "concurrently \"npm run agent1:setup\" \"npm run agent2:migrate\" \"npm run agent3:api\""
+    "dev:backend": "npm --prefix server dev"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -271,6 +271,6 @@ const messageData = {
 
 - **Frontend страница**: `/network/broadcast-messages`
 - **API Documentation**: `server/routes/messages.js`
-- **Database Migration**: `supabase/migrations/20251019_create_messaging_system.sql`
+- **Database Migration**: `server/db/migrations/070_messaging.sql`
 - **Telegram Bot**: `server/telegram-bot.js`
 - **Email Service**: `server/services/emailService.js`
