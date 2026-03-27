@@ -10,6 +10,11 @@
  * - Централизованное управление credentials
  */
 
+import { getBackendOrigin } from '@/utils/backendUrl';
+import { getToken, getUser } from '@/utils/authStorage';
+
+const AUTH_REQUIRED_ERROR = 'Сессия истекла. Войдите в систему повторно.';
+
 interface ProxyError extends Error {
   status?: number;
   isTimeout?: boolean;
@@ -30,18 +35,17 @@ function getUserHeaders(): Record<string, string> {
 
   try {
     // Auth token для requireAuth middleware
-    const token = localStorage.getItem('tradeframe_token_v2');
+    const token = getToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
     // User info для X-User-Id / X-User-Name
-    const appUserRaw = localStorage.getItem('auth_user');
-    if (appUserRaw) {
-      const appUser = JSON.parse(appUserRaw);
-      if (appUser?.id) headers['X-User-Id'] = appUser.id;
-      if (appUser?.name) headers['X-User-Name'] = encodeURIComponent(appUser.name);
-      else if (appUser?.email) headers['X-User-Name'] = encodeURIComponent(appUser.email);
+    const appUser = getUser<{ id?: string; name?: string; email?: string }>();
+    if (appUser) {
+      if (appUser.id) headers['X-User-Id'] = appUser.id;
+      if (appUser.name) headers['X-User-Name'] = encodeURIComponent(appUser.name);
+      else if (appUser.email) headers['X-User-Name'] = encodeURIComponent(appUser.email);
     }
   } catch {
     // Если не удалось получить данные пользователя — не критично
@@ -50,7 +54,15 @@ function getUserHeaders(): Record<string, string> {
   return headers;
 }
 
-import { getBackendOrigin } from '@/utils/backendUrl';
+function getAuthorizedUserHeaders(): Record<string, string> {
+  const headers = getUserHeaders();
+
+  if (!headers['Authorization']) {
+    throw new Error(AUTH_REQUIRED_ERROR);
+  }
+
+  return headers;
+}
 
 const getProxyBaseUrl = getBackendOrigin;
 
@@ -73,6 +85,10 @@ export async function stsProxyRequest<T>(
   const { method = 'GET', params, body } = options;
   const maxRetries = 3;
   const retryDelays = [1000, 2000, 4000]; // Exponential backoff в миллисекундах
+  const requestHeaders = {
+    'Content-Type': 'application/json',
+    ...getAuthorizedUserHeaders(),
+  };
 
   let lastError: Error | null = null;
 
@@ -108,10 +124,7 @@ export async function stsProxyRequest<T>(
       try {
         const response = await fetch(url.toString(), {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...getUserHeaders(),
-          },
+          headers: requestHeaders,
           signal: controller.signal,
           ...(body && { body: JSON.stringify(body) }),
         });

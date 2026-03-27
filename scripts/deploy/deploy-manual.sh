@@ -16,6 +16,8 @@ NC='\033[0m' # No Color
 # Конфигурация
 PROD_SERVER="root@194.135.36.195"
 PROD_DIR="/var/www/www-root/data/www/prod.dataworker.ru"
+FRONTEND_PM2="tradeframe-prod-frontend"
+BACKEND_PM2="tradeframe-prod-backend"
 
 echo -e "${BLUE}📦 Шаг 1: Сборка production bundle...${NC}"
 npm run build:prod
@@ -29,7 +31,7 @@ echo -e "${BLUE}📤 Шаг 3: Загрузка архива на сервер..
 scp dist.tar.gz ${PROD_SERVER}:/tmp/
 
 echo -e "${BLUE}🔄 Шаг 4: Остановка PM2 процесса...${NC}"
-ssh ${PROD_SERVER} "pm2 stop tradeframe-prod"
+ssh ${PROD_SERVER} "pm2 stop ${FRONTEND_PM2}"
 
 echo -e "${BLUE}📂 Шаг 5: Развертывание файлов...${NC}"
 ssh ${PROD_SERVER} "cd ${PROD_DIR} && rm -rf dist && mkdir dist && cd dist && tar -xzf /tmp/dist.tar.gz && rm /tmp/dist.tar.gz"
@@ -38,7 +40,7 @@ echo -e "${BLUE}🔄 Шаг 6: Копирование обновленного s
 scp server/routes/sts.js ${PROD_SERVER}:${PROD_DIR}/server/routes/
 
 echo -e "${BLUE}🔄 Шаг 7: Перезапуск PM2 процессов...${NC}"
-ssh ${PROD_SERVER} "pm2 restart tradeframe-prod tradeframe-backend-proxy"
+ssh ${PROD_SERVER} "pm2 restart ${FRONTEND_PM2} ${BACKEND_PM2}"
 
 echo -e "${BLUE}📊 Шаг 8: Проверка статуса PM2...${NC}"
 ssh ${PROD_SERVER} "pm2 list"

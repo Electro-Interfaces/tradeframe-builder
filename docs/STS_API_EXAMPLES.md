@@ -462,9 +462,9 @@ export function ShiftsPage() {
 
 ```bash
 # STS API Configuration
-VITE_STS_API_URL=https://pos.autooplata.ru/tms
-VITE_STS_API_USERNAME=your_username
-VITE_STS_API_PASSWORD=your_password
+STS_API_URL=https://pos.autooplata.ru/tms
+STS_API_USERNAME=your_username
+STS_API_PASSWORD=your_password
 ```
 
 ### Проверка конфигурации
@@ -472,9 +472,9 @@ VITE_STS_API_PASSWORD=your_password
 ```typescript
 // Проверить, настроены ли учетные данные
 const isConfigured = Boolean(
-  import.meta.env.VITE_STS_API_URL &&
-  import.meta.env.VITE_STS_API_USERNAME &&
-  import.meta.env.VITE_STS_API_PASSWORD
+  process.env.STS_API_URL &&
+  process.env.STS_API_USERNAME &&
+  process.env.STS_API_PASSWORD
 );
 
 if (!isConfigured) {

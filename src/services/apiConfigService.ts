@@ -77,22 +77,20 @@ const initialConfig: ApiConfig = {
       }
     },
     {
-      id: 'trading-network-api',
-      name: 'API торговой сети',
-      url: import.meta.env.VITE_STS_API_URL || '',
+      id: 'backend-proxy',
+      name: 'Backend Proxy',
+      url: '/api',
       type: 'external-api',
-      description: 'Внешний API торговой сети для интеграции с POS-системой',
+      description: 'Доступ к внешним интеграциям только через backend proxy без браузерных секретов',
       isActive: false,
       isDefault: false,
       createdAt: new Date(),
       updatedAt: new Date(),
       settings: {
-        timeout: 30000, // Увеличено для мобильных: 30 секунд
+        timeout: 30000,
         retryAttempts: 3,
         ssl: true,
-        authType: 'basic',
-        username: import.meta.env.VITE_STS_API_USERNAME || '',
-        password: import.meta.env.VITE_STS_API_PASSWORD || ''
+        authType: 'none'
       }
     }
   ]

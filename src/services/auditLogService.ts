@@ -4,6 +4,7 @@
  */
 
 import { auditApiRequest } from './auditApiClient';
+import { getSessionEmail, getUser } from '@/utils/authStorage';
 import type {
   AuditLogEntry,
   CreateAuditLogInput,
@@ -17,23 +18,17 @@ import type {
 // Получение текущего пользователя из localStorage/sessionStorage
 const getCurrentUser = () => {
   try {
-    // Проверяем старый формат (AuthContext)
-    const savedUser = localStorage.getItem('tradeframe_user');
-    if (savedUser && !savedUser.includes('[object Object]')) {
-      const parsedUser = JSON.parse(savedUser);
-      if (parsedUser && parsedUser.id && parsedUser.email) {
-        return {
-          id: parsedUser.id,
-          name: parsedUser.name || parsedUser.firstName || 'User',
-          email: parsedUser.email
-        };
-      }
+    const savedUser = getUser<{ id?: string; name?: string; firstName?: string; email?: string }>();
+    if (savedUser?.email) {
+      return {
+        id: savedUser.id || null,
+        name: savedUser.name || savedUser.firstName || 'User',
+        email: savedUser.email
+      };
     }
 
-    // Проверяем новый формат (NewAuthContext)
-    const sessionEmail = sessionStorage.getItem('current_user_email');
+    const sessionEmail = getSessionEmail();
     if (sessionEmail) {
-      // Для NewAuthContext возвращаем только email
       return {
         id: null,
         name: sessionEmail.split('@')[0],

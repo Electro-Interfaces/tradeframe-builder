@@ -5,6 +5,7 @@
 
 import { authService } from './auth/authService';
 import { legalDocumentsApiClient } from './legalDocumentsApiClient';
+import { getSessionEmail, getUser } from '@/utils/authStorage';
 import type {
   AcceptanceJournalFilters,
   AcceptanceSource,
@@ -45,20 +46,17 @@ const isDocumentTypeValue = (value: string): value is DocumentType =>
 
 const getCurrentUser = () => {
   try {
-    const savedUser = localStorage.getItem('tradeframe_user');
-    if (savedUser && !savedUser.includes('[object Object]')) {
-      const parsedUser = JSON.parse(savedUser);
-      if (parsedUser && parsedUser.id && parsedUser.email) {
-        return {
-          id: parsedUser.id,
-          name: parsedUser.name || parsedUser.firstName || 'User',
-          email: parsedUser.email,
-          role: parsedUser.role || 'user'
-        };
-      }
+    const savedUser = getUser<{ id?: string; name?: string; firstName?: string; email?: string; role?: string }>();
+    if (savedUser?.email) {
+      return {
+        id: savedUser.id || null,
+        name: savedUser.name || savedUser.firstName || 'User',
+        email: savedUser.email,
+        role: savedUser.role || 'user'
+      };
     }
 
-    const sessionEmail = sessionStorage.getItem('current_user_email');
+    const sessionEmail = getSessionEmail();
     if (sessionEmail) {
       return {
         email: sessionEmail,

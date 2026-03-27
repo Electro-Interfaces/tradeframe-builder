@@ -57,6 +57,29 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AppUser | null>(initialUser);
   const [loading, setLoading] = useState(true);
 
+  const syncUserFromStorage = useCallback(() => {
+    const nextUser = getInitialUserFromStorage();
+
+    if (!nextUser) {
+      setUser(null);
+      queryClient.clear();
+      return;
+    }
+
+    setUser((prev) => {
+      if (
+        prev?.id === nextUser.id &&
+        prev?.email === nextUser.email &&
+        prev?.name === nextUser.name &&
+        prev?.role === nextUser.role
+      ) {
+        return prev;
+      }
+
+      return nextUser;
+    });
+  }, []);
+
   const generateAuthToken = (u: AppUser): string => {
     return jsonToBase64({ userId: u.id, email: u.email, role: u.role, timestamp: Date.now() });
   };
@@ -274,17 +297,28 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === authStorage.AUTH_KEYS.TOKEN && !e.newValue && user) {
-        setUser(null);
-        queryClient.clear();
-      }
-      if (e.key === authStorage.AUTH_KEYS.TOKEN && e.newValue && !user) {
-        window.location.reload();
+      if (
+        e.key === null ||
+        e.key === authStorage.AUTH_KEYS.TOKEN ||
+        e.key === authStorage.AUTH_KEYS.USER ||
+        e.key === authStorage.AUTH_KEYS.EXPIRY
+      ) {
+        syncUserFromStorage();
       }
     };
+
+    const handleAuthStateChanged = () => {
+      syncUserFromStorage();
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [user]);
+    window.addEventListener(authStorage.AUTH_STATE_CHANGED_EVENT, handleAuthStateChanged);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(authStorage.AUTH_STATE_CHANGED_EVENT, handleAuthStateChanged);
+    };
+  }, [syncUserFromStorage]);
 
   // ─── Context value ─────────────────────────────────────
 

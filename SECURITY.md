@@ -53,8 +53,8 @@ const token = `token_${btoa(JSON.stringify(payload))}_${timestamp}`
 - **Ограничения**: По ролям пользователей
 
 #### Внешний API (STS)
-- **Аутентификация**: HTTP Basic Auth
-- **Учетные данные**: В переменных окружения
+- **Аутентификация**: backend получает JWT через `server/.env`
+- **Учетные данные**: Только на backend, не в frontend build
 - **Timeout**: 10 секунд
 - **Retry**: До 3 попыток
 
@@ -66,10 +66,10 @@ const token = `token_${btoa(JSON.stringify(payload))}_${timestamp}`
 DATABASE_URL=postgresql://user:password@host:5432/tradeframe
 SUPABASE_SERVICE_KEY=your-service-key
 
-# Внешний API STS
-VITE_STS_API_URL=https://pos.autooplata.ru/tms/
-VITE_STS_API_USERNAME=your-username
-VITE_STS_API_PASSWORD=your-password
+# Внешний API STS (только server/.env)
+STS_API_URL=https://pos.autooplata.ru/tms/
+STS_API_USERNAME=your-username
+STS_API_PASSWORD=your-password
 ```
 
 #### Безопасное хранение

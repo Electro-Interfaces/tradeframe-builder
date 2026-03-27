@@ -119,8 +119,8 @@ curl http://localhost:3002/health  # Для testing (если PORT=3002)
 
 **3. Проверить Nginx proxy:**
 ```bash
-curl https://testtf.dataworker.ru/health  # Для testing
-curl https://prod.dataworker.ru/health    # Для production
+curl https://testtf.dataworker.ru/api/healthz  # Для testing
+curl https://prod.dataworker.ru/api/healthz    # Для production
 ```
 
 ---
@@ -196,7 +196,7 @@ pm2 restart tradeframe-backend
 - [ ] Backend запущен через PM2
 - [ ] Nginx конфигурация содержит `location /api/` блок
 - [ ] `.env` содержит правильный `ALLOWED_ORIGINS`
-- [ ] Health check доступен: `curl https://[domain]/health`
+- [ ] Health check доступен: `curl https://[domain]/api/healthz`
 - [ ] В браузере нет CORS ошибок
 - [ ] API запросы идут на `https://[domain]/api/...`, а не `localhost:3001`
 

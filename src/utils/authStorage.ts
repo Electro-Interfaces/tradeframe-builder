@@ -14,6 +14,8 @@ export const AUTH_KEYS = {
   SESSION_TS: 'auth_timestamp',
 } as const;
 
+export const AUTH_STATE_CHANGED_EVENT = 'tradeframe:auth-state-changed';
+
 // Legacy ключи — удаляются при миграции и logout
 const LEGACY_KEYS = [
   'tradeframe_token_v2',
@@ -31,6 +33,11 @@ const LEGACY_KEYS = [
 // ─── Миграция legacy ключей (одноразово) ───────────────
 
 let migrated = false;
+
+function emitAuthStateChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(AUTH_STATE_CHANGED_EVENT));
+}
 
 function migrateLegacyKeys(): void {
   if (migrated) return;
@@ -136,6 +143,7 @@ export function setUser(user: any): void {
   const json = JSON.stringify(user);
   localStorage.setItem(AUTH_KEYS.USER, json);
   sessionStorage.setItem(AUTH_KEYS.USER, json);
+  emitAuthStateChanged();
 }
 
 export function setSessionInfo(email: string): void {
@@ -160,4 +168,5 @@ export function clearAll(): void {
     localStorage.removeItem(key);
     sessionStorage.removeItem(key);
   }
+  emitAuthStateChanged();
 }

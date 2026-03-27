@@ -16,15 +16,21 @@
 npm install
 
 # 2. Backend (порт 3001) — запускаем ПЕРВЫМ
-cd server && node index.js
+npm run start:backend
 
 # 3. Frontend (порт 3000) — в новом терминале
 npm run dev
 ```
 
+Production preview из корня:
+```bash
+npm run build:prod
+npm run start
+```
+
 **ENV-файлы** (не в репозитории, запросите у МАГа):
-- `.env` — frontend переменные (`VITE_*`)
-- `server/.env` — backend (STS, TradeCorp, MSTO, Telegram, PostgreSQL)
+- `.env` — frontend переменные (`VITE_*`, опционально `VITE_FALLBACK_BACKEND_URL`)
+- `server/.env` — backend (`STS_*`, TradeCorp, MSTO, Telegram, PostgreSQL)
 
 ## Тестирование
 

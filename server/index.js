@@ -97,7 +97,7 @@ app.use(express.json({ limit: '1mb' }));
 // Логирование запросов в режиме разработки (disabled — use morgan/pino if needed)
 
 // Health check — публичный, минимальная информация наружу
-app.get('/health', async (req, res) => {
+async function sendHealth(_req, res) {
   const postgresConfigured = Boolean(process.env.DATABASE_URL);
   let postgresConnected = false;
 
@@ -121,7 +121,10 @@ app.get('/health', async (req, res) => {
     supabase: 'removed',
     postgres: { configured: postgresConfigured, connected: postgresConnected },
   });
-});
+}
+
+app.get('/health', sendHealth);
+app.get('/api/healthz', sendHealth);
 
 // Общий rate limit на все API
 app.use('/api', apiLimiter);

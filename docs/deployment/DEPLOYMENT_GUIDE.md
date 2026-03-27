@@ -33,11 +33,13 @@
 | `SSH_PRIVATE_KEY` | SSH ключ для доступа к серверу | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 | `REMOTE_HOST` | IP адрес сервера | `194.135.36.195` |
 | `REMOTE_USER` | Пользователь SSH | `root` |
-| `VITE_SUPABASE_URL` | URL Supabase | `https://ssvazdgnmatbdynkhkqo.supabase.co` |
-| `VITE_SUPABASE_SERVICE_ROLE_KEY` | Service Role Key | `eyJhbGciOiJIUzI1NiIsInR5cCI6...` |
-| `VITE_STS_API_URL` | URL STS API | `https://pos.autooplata.ru/tms` |
-| `VITE_STS_API_USERNAME` | STS API Username | `UserApi` |
-| `VITE_STS_API_PASSWORD` | STS API Password | `lHQfLZHzB3tn` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` |
+| `JWT_SECRET` | Секрет подписи app-токенов | `your_jwt_secret` |
+| `STS_API_URL` | URL STS API | `https://pos.autooplata.ru/tms` |
+| `STS_API_USERNAME` | STS API Username | `UserApi` |
+| `STS_API_PASSWORD` | STS API Password | `your_sts_api_password` |
+
+`deploy-test.yml` и `deploy-prod.yml` уже читают новые `STS_API_*`. Старые `VITE_STS_*` поддерживаются только как временный fallback на период миграции и после переноса должны быть удалены.
 
 ### Для репозитория `TradeControl` (PRODUCTION)
 

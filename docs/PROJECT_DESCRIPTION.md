@@ -406,7 +406,7 @@ TradeControl/
 
 | Метод | Endpoint | Описание |
 |-------|----------|----------|
-| GET | `/health` | Health check сервера |
+| GET | `/health`, `/api/healthz` | Health check сервера |
 | GET | `/api/equipment-templates` | Шаблоны оборудования |
 | GET/POST/DELETE | `/api/tank-calibration/*` | Калибровка резервуаров |
 
@@ -465,7 +465,7 @@ TradeControl/
 - Статус активности — `is_active` (boolean), НЕ `status` (string)
 - Настройки сетей/станций — JSONB в `tenants.settings`
 - Внешние коды станций — `settings.stations[].external_codes[]`
-- Backend использует SERVICE_ROLE_KEY (обход RLS)
+- Backend работает напрямую с PostgreSQL через `pg`
 - Frontend использует ANON_KEY с JWT токенами пользователей
 
 ---
@@ -727,7 +727,7 @@ error        — Красный (hsl 0 84% 60%)
 | Категория | Переменные |
 |-----------|-----------|
 | PostgreSQL | DATABASE_URL, JWT_SECRET |
-| STS API | VITE_STS_API_URL, VITE_STS_API_USERNAME, VITE_STS_API_PASSWORD |
+| STS API | STS_API_URL, STS_API_USERNAME, STS_API_PASSWORD |
 | MSTO | MSTO_API_URL, MSTO_USERNAME, MSTO_PASSWORD |
 | TradeCorp | TRADECORP_API_URL, TRADECORP_LOGIN, TRADECORP_PASSWORD, TRADECORP_EMITENT_ID |
 | Telegram | TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_TOKEN_TEST |

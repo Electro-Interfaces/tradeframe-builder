@@ -10,6 +10,7 @@ import { SelectionProvider } from "./contexts/SelectionContext";
 import { NewAuthProvider } from "./contexts/NewAuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SupportProvider } from "./contexts/SupportContext";
+import { getToken } from "./utils/authStorage";
 import CreateTicketDialog from "./components/support/CreateTicketDialog";
 import { lazy, useEffect, useState } from "react";
 import LazyLoader from "./components/LazyLoader";
@@ -147,7 +148,7 @@ const App = () => {
         }
 
         // ВАЖНО: Если пользователь авторизован, не перенаправляем на /login
-        const isUserLoggedIn = !!localStorage.getItem('auth_token');
+        const isUserLoggedIn = !!getToken();
         if (targetPath === '/login' && isUserLoggedIn) {
           targetPath = '/';
         }

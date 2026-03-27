@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Download, X, Smartphone, MoreVertical, Share } from 'lucide-react';
 import { useEngagementTracker } from '@/hooks/useEngagementTracker';
+import { AUTH_KEYS, getToken, getUser } from '@/utils/authStorage';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -170,8 +171,8 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     // sessionStorage НЕ переносится в standalone PWA контекст на iOS,
     // поэтому сохраняем бэкап в localStorage, который доступен из обоих контекстов
     if (isIOS) {
-      const currentUser = localStorage.getItem('tradeframe_user');
-      const authToken = localStorage.getItem('authToken');
+      const currentUser = getUser();
+      const authToken = getToken();
 
       if (currentUser && authToken) {
         const authBackup = {
@@ -184,7 +185,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       }
 
       // Дополнительно копируем все auth-ключи из sessionStorage в localStorage
-      const sessionAuthKeys = ['auth_token', 'auth_user', 'sb-access-token', 'sb-refresh-token'];
+      const sessionAuthKeys = [AUTH_KEYS.TOKEN, AUTH_KEYS.USER, 'sb-access-token', 'sb-refresh-token'];
       for (const key of sessionAuthKeys) {
         const val = sessionStorage.getItem(key);
         if (val) {

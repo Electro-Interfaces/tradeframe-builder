@@ -55,7 +55,7 @@ nano .env
 # STS API Configuration
 STS_API_URL=https://pos.autooplata.ru/tms
 STS_API_USERNAME=UserApi
-STS_API_PASSWORD=lHQfLZHzB3tn
+STS_API_PASSWORD=your_sts_api_password
 
 # Backend Server Configuration
 PORT=3001
@@ -82,7 +82,7 @@ pm2 start ecosystem.config.cjs
 pm2 status
 
 # Просмотр логов
-pm2 logs tradeframe-backend-proxy
+pm2 logs tradeframe-prod-backend
 
 # Сохранить конфигурацию для автозапуска
 pm2 save
@@ -141,29 +141,29 @@ curl http://localhost:3001/api/sts/v1/info
 
 ### Тест через nginx (с production домена)
 ```bash
-curl https://prod.dataworker.ru/api/sts/v1/info
+curl https://prod.dataworker.ru/api/healthz
 ```
 
 ## Управление PM2
 
 ```bash
 # Перезапуск после изменений кода
-pm2 restart tradeframe-backend-proxy
+pm2 restart tradeframe-prod-backend
 
 # Остановка
-pm2 stop tradeframe-backend-proxy
+pm2 stop tradeframe-prod-backend
 
 # Удаление из PM2
-pm2 delete tradeframe-backend-proxy
+pm2 delete tradeframe-prod-backend
 
 # Просмотр логов в реальном времени
-pm2 logs tradeframe-backend-proxy --lines 100
+pm2 logs tradeframe-prod-backend --lines 100
 
 # Только ошибки
-pm2 logs tradeframe-backend-proxy --err
+pm2 logs tradeframe-prod-backend --err
 
 # Очистка логов
-pm2 flush tradeframe-backend-proxy
+pm2 flush tradeframe-prod-backend
 ```
 
 ## Доступные STS API endpoints
@@ -202,6 +202,7 @@ npm run dev
 
 # Тестирование
 curl http://localhost:3001/health
+curl http://localhost:3001/api/healthz
 curl http://localhost:3001/api/sts/v1/info
 ```
 
@@ -238,7 +239,7 @@ npm install
 
 - Проверить учетные данные в `.env`
 - Проверить что IP сервера в whitelist STS API
-- Проверить логи: `pm2 logs tradeframe-backend-proxy`
+- Проверить логи: `pm2 logs tradeframe-prod-backend`
 
 ## Переменные окружения
 
@@ -258,7 +259,7 @@ npm install
 pm2 status
 
 # Детальная информация
-pm2 show tradeframe-backend-proxy
+pm2 show tradeframe-prod-backend
 
 # Мониторинг в реальном времени
 pm2 monit

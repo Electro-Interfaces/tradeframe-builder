@@ -341,45 +341,9 @@ export default function OperationsTransactionsPageSimple() {
     }
   };
 
-  // Функция для настройки STS API с правильными параметрами
-  const ensureSTSApiConfigured = () => {
-    
-    const correctConfig = {
-      url: import.meta.env.VITE_STS_API_URL || '',
-      username: import.meta.env.VITE_STS_API_USERNAME || '',
-      password: import.meta.env.VITE_STS_API_PASSWORD || '',
-      enabled: true,
-      timeout: 30000,
-      retryAttempts: 3,
-      refreshInterval: 20 * 60 * 1000 // 20 минут
-    };
-    
-    // Проверяем текущую конфигурацию
-    const currentConfig = localStorage.getItem('sts-api-config');
-    let needsUpdate = false;
-    
-    if (currentConfig) {
-      try {
-        const parsed = JSON.parse(currentConfig);
-        // Проверяем, что все нужные параметры совпадают
-        if (parsed.url !== correctConfig.url || 
-            parsed.username !== correctConfig.username || 
-            parsed.password !== correctConfig.password ||
-            !parsed.enabled) {
-          needsUpdate = true;
-        }
-      } catch {
-        needsUpdate = true;
-      }
-    } else {
-      needsUpdate = true;
-    }
-    
-    if (needsUpdate) {
-      localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
-    }
-    
-    return correctConfig;
+  const ensureSTSProxyMode = () => {
+    localStorage.removeItem('sts-api-config');
+    return true;
   };
 
   // Автоматическая загрузка данных при монтировании компонента
@@ -388,9 +352,8 @@ export default function OperationsTransactionsPageSimple() {
       return;
     }
 
-    // Обеспечиваем правильную настройку STS API
-    ensureSTSApiConfigured();
-    setStsApiConfigured(true);
+    // Фронтенд больше не хранит STS-конфиг — всё идёт через backend proxy
+    setStsApiConfigured(ensureSTSProxyMode());
 
     // Автоматически загружаем данные при выборе сети и торговых точек
     if (selectedExternalIds.length > 0 && (isAllTradingPoints || selectedTradingPoint)) {

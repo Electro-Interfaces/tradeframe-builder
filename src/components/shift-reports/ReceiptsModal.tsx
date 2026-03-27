@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { getToken } from '@/utils/authStorage';
 import { getBackendOrigin } from '@/utils/backendUrl';
 
 interface V2PosInfo {
@@ -78,7 +79,7 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stations, stationName
       const baseUrl = getBackendOrigin();
       const url = `${baseUrl}/api/sts/v2/info?system=${systemId}&station=${station}`;
       const headers: Record<string, string> = {};
-      const token = localStorage.getItem('tradeframe_token_v2');
+      const token = getToken();
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }

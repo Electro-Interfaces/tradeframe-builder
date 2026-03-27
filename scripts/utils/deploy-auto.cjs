@@ -10,22 +10,31 @@ const path = require('path');
 const fs = require('fs');
 
 const ssh = new NodeSSH();
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+const FRONTEND_PM2 = 'tradeframe-prod-frontend';
+const BACKEND_PM2 = 'tradeframe-prod-backend';
 
 // Конфигурация
 const config = {
-  host: '194.135.36.195',
-  username: 'root',
-  password: 'n3cBMDPU2@N*C',
-  port: 22
+  host: process.env.TRADEFRAME_DEPLOY_SSH_HOST || '194.135.36.195',
+  username: process.env.TRADEFRAME_DEPLOY_SSH_USER || 'root',
+  password: process.env.TRADEFRAME_DEPLOY_SSH_PASSWORD || '',
+  port: Number(process.env.TRADEFRAME_DEPLOY_SSH_PORT || 22)
 };
 
 const PROD_DIR = '/var/www/www-root/data/www/prod.dataworker.ru';
-const LOCAL_ARCHIVE = path.join(__dirname, 'dist.tar.gz');
+const LOCAL_ARCHIVE = path.join(PROJECT_ROOT, 'dist.tar.gz');
+const LOCAL_STS_PATH = path.join(PROJECT_ROOT, 'server', 'routes', 'sts.js');
 
 console.log('🚀 Начинаем автоматический деплой на production...\n');
 
 async function deploy() {
   try {
+    if (!config.password) {
+      console.error('❌ Не задан TRADEFRAME_DEPLOY_SSH_PASSWORD');
+      process.exit(1);
+    }
+
     // Проверка наличия архива
     if (!fs.existsSync(LOCAL_ARCHIVE)) {
       console.error('❌ Архив dist.tar.gz не найден! Запустите npm run build:prod');
@@ -42,7 +51,7 @@ async function deploy() {
 
     // Шаг 1: Остановка PM2 процесса
     console.log('\n🔄 Шаг 1: Остановка PM2 процесса...');
-    const stopResult = await ssh.execCommand('pm2 stop tradeframe-prod');
+    const stopResult = await ssh.execCommand(`pm2 stop ${FRONTEND_PM2}`);
     console.log(stopResult.stdout);
 
     // Шаг 2: Загрузка архива
@@ -62,14 +71,13 @@ async function deploy() {
 
     // Шаг 4: Копирование sts.js
     console.log('\n🔄 Шаг 4: Копирование обновленного sts.js...');
-    const localStsPath = path.join(__dirname, 'server', 'routes', 'sts.js');
     const remoteStsPath = `${PROD_DIR}/server/routes/sts.js`;
-    await ssh.putFile(localStsPath, remoteStsPath);
+    await ssh.putFile(LOCAL_STS_PATH, remoteStsPath);
     console.log('✅ sts.js обновлен');
 
     // Шаг 5: Перезапуск PM2 процессов
     console.log('\n🔄 Шаг 5: Перезапуск PM2 процессов...');
-    const restartResult = await ssh.execCommand('pm2 restart tradeframe-prod tradeframe-backend-proxy');
+    const restartResult = await ssh.execCommand(`pm2 restart ${FRONTEND_PM2} ${BACKEND_PM2}`);
     console.log(restartResult.stdout);
 
     // Шаг 6: Проверка статуса

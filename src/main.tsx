@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import './styles/mobile.css'
+import { AUTH_KEYS, setToken, setUser } from './utils/authStorage'
 import { clearTradeFrameAppStorage } from './utils/storageCleanup'
 
 const DOM_MUTATION_ERROR_PATTERNS = ['insertBefore', 'appendChild', 'removeChild'] as const
@@ -122,16 +123,22 @@ if (typeof window !== 'undefined') {
     // PWAInstaller сохраняет бэкап в localStorage (не sessionStorage),
     // т.к. sessionStorage не переносится в standalone PWA контекст на iOS
     const authFromBackup = localStorage.getItem('pwa-auth-backup');
-    if (authFromBackup && !localStorage.getItem('auth_token')) {
+    if (authFromBackup && !localStorage.getItem(AUTH_KEYS.TOKEN)) {
       try {
         const authData = JSON.parse(authFromBackup);
-        localStorage.setItem('auth_token', authData.token);
-        localStorage.setItem('auth_user', authData.user);
-        sessionStorage.setItem('auth_token', authData.token);
-        sessionStorage.setItem('auth_user', authData.user);
+        if (typeof authData.token === 'string' && authData.token) {
+          setToken(authData.token);
+        }
+
+        if (typeof authData.user === 'string' && authData.user) {
+          localStorage.setItem(AUTH_KEYS.USER, authData.user);
+          sessionStorage.setItem(AUTH_KEYS.USER, authData.user);
+        } else if (authData.user) {
+          setUser(authData.user);
+        }
 
         // Восстанавливаем дополнительные ключи из бэкапа
-        const backupKeys = ['auth_token', 'auth_user', 'sb-access-token', 'sb-refresh-token'];
+        const backupKeys = [AUTH_KEYS.TOKEN, AUTH_KEYS.USER, 'sb-access-token', 'sb-refresh-token'];
         for (const key of backupKeys) {
           const val = localStorage.getItem(`pwa-backup-${key}`);
           if (val) {

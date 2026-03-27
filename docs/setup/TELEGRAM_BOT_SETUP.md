@@ -34,7 +34,7 @@ Telegram Bot используется для отправки уведомлен
 
 5. Сохраните **токен бота**, который вам выдаст BotFather:
    ```
-   1234567890:ABCdefGHIjklMNOpqrsTUVwxyz-123456
+   <telegram_bot_token_from_botfather>
    ```
 
 ### Дополнительные настройки (опционально):
@@ -258,7 +258,7 @@ curl -X POST http://localhost:3001/api/notifications/test-send \
 
 ```bash
 # Проверка логов в production
-pm2 logs tradeframe-backend --lines 100 | grep "Telegram Bot"
+pm2 logs tradeframe-prod-backend --lines 100 | grep "Telegram Bot"
 ```
 
 ### Статистика отправки

@@ -23,7 +23,7 @@ TradeControl использует **ДВА ОТДЕЛЬНЫХ** Telegram бот�
 
 ### Токен
 ```
-8049816280:AAEHimSlNiuyRIRA_sjrG9f78lvc9aprwa8
+<prod_bot_token_from_botfather>
 ```
 
 ### Конфигурация на сервере
@@ -41,7 +41,7 @@ ssh root@194.135.36.195
 pm2 logs tradeframe-prod-backend --lines 20 | grep Telegram
 
 # Проверка через Telegram API
-curl "https://api.telegram.org/bot8049816280:AAEHimSlNiuyRIRA_sjrG9f78lvc9aprwa8/getMe"
+curl "https://api.telegram.org/bot<PROD_TOKEN>/getMe"
 ```
 
 ### Telegram ссылка
@@ -59,7 +59,7 @@ https://t.me/TradeControlDW_Bot
 
 ### Токен
 ```
-8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0
+<test_bot_token_from_botfather>
 ```
 
 ### Конфигурация на сервере
@@ -77,7 +77,7 @@ ssh root@testtf.dataworker.ru
 pm2 logs tradeframe-test-backend --lines 20 | grep Telegram
 
 # Проверка через Telegram API
-curl "https://api.telegram.org/bot8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0/getMe"
+curl "https://api.telegram.org/bot<TEST_TOKEN>/getMe"
 ```
 
 ### Telegram ссылка
@@ -96,7 +96,7 @@ https://t.me/TradeControlTest_Bot
 **Вариант 1: Использовать TEST токен**
 ```env
 # В локальном server/.env
-TELEGRAM_BOT_TOKEN=8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0
+TELEGRAM_BOT_TOKEN=<test_bot_token_from_botfather>
 TELEGRAM_BOT_NAME=TradeControl Test Notifications
 TELEGRAM_BOT_USERNAME=TradeControlTest_Bot
 ```
@@ -180,10 +180,10 @@ ssh root@testtf.dataworker.ru "pm2 logs tradeframe-test-backend --lines 20 --nos
 ### Проверка обоих через API
 ```bash
 # PROD
-curl -s "https://api.telegram.org/bot8049816280:AAEHimSlNiuyRIRA_sjrG9f78lvc9aprwa8/getMe" | jq
+curl -s "https://api.telegram.org/bot<PROD_TOKEN>/getMe" | jq
 
 # TEST
-curl -s "https://api.telegram.org/bot8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0/getMe" | jq
+curl -s "https://api.telegram.org/bot<TEST_TOKEN>/getMe" | jq
 ```
 
 ---
@@ -195,6 +195,7 @@ curl -s "https://api.telegram.org/bot8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyR
 3. **Используйте GitHub Secrets** для CI/CD
 4. **Регулярно проверяйте** доступ к @BotFather
 5. **При компрометации** создайте нового бота через @BotFather
+6. **Если токен хоть раз попал в репозиторий**, немедленно выполните `/revoke` в @BotFather и обновите `server/.env` и GitHub Secrets
 
 ---
 

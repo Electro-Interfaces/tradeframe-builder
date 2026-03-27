@@ -29,7 +29,7 @@ const { tradingPointsService } = await import('@/services/tradingPointsService')
 
 ```typescript
 // ДОБАВЛЕНО в STSApiService.apiRequest():
-const token = localStorage.getItem('tradeframe_token_v2');
+const token = localStorage.getItem('auth_token');
 if (token) {
   authHeaders['Authorization'] = `Bearer ${token}`;
 }

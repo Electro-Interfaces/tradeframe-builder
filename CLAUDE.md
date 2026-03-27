@@ -75,8 +75,8 @@ npm run test:e2e:ui   # Playwright UI
 **Vite** автоматически подхватывает все `VITE_*` из корневого `.env` — блок `define` в `vite.config.ts` не нужен.
 
 Необходимые переменные:
-- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_SERVICE_ROLE_KEY`
-- `VITE_STS_API_URL`, `VITE_STS_API_USERNAME`, `VITE_STS_API_PASSWORD`
+- `VITE_FALLBACK_BACKEND_URL` (опционально, для GitHub Pages / test окружения)
+- `STS_API_URL`, `STS_API_USERNAME`, `STS_API_PASSWORD` (только в `server/.env`)
 - `TSUPPORT_API_URL`, `TSUPPORT_SDK_API_KEY`, `TSUPPORT_SDK_SECRET` (только в `server/.env`)
 
 ## Production-сервер
@@ -141,9 +141,9 @@ docs/               # Документация (architecture, deployment, mobile
 
 ### ENV-переменные для STS
 
-В `server/.env` и корневом `.env`:
-- `VITE_STS_API_URL` — базовый URL STS API
-- `VITE_STS_API_USERNAME` / `VITE_STS_API_PASSWORD` — авторизация
+В `server/.env`:
+- `STS_API_URL` — базовый URL STS API
+- `STS_API_USERNAME` / `STS_API_PASSWORD` — авторизация backend proxy
 
 ---
 > Связи: [[CLAUDE|Мастер-контекст]] | [[Dashboard]] | [[DW_Business/products/tradesuite-overview|TradeSuite обзор]] | [[ELSYPLUS/TradeCorp/CLAUDE|TradeCorp]] | [[OnlineOrders/MSTO-Terminal/CLAUDE|TradeGate]] | [[ELSYPLUS/poscontrol|STS (poscontrol)]]

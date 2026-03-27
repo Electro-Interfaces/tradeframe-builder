@@ -12,6 +12,7 @@ import { getUnreadCounts } from '@/services/supportService';
 import type { AppContext, UnreadCounts } from '@/types/support';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useSelection } from '@/contexts/SelectionContext';
+import { getToken } from '@/utils/authStorage';
 
 interface PageContextData {
   [key: string]: unknown;
@@ -220,7 +221,7 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
   }, [location.pathname, searchParams, user, pageContext, selectedNetwork, selectedTradingPoint, selectedStation, collectPageContext]);
 
   const refreshUnreadCounts = useCallback(async () => {
-    if (!user) return;
+    if (!user || !getToken()) return;
     try {
       const counts = await getUnreadCounts();
       setUnreadCounts(counts);
@@ -239,7 +240,7 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
 
   // Polling непрочитанных (с visibility check — не опрашиваем на неактивной вкладке)
   useEffect(() => {
-    if (!user) return;
+    if (!user || !getToken()) return;
 
     refreshUnreadCounts();
 

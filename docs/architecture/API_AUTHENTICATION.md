@@ -39,7 +39,7 @@
 # STS API Configuration (External Trading System)
 STS_API_URL=https://pos.autooplata.ru/tms
 STS_API_USERNAME=UserApi
-STS_API_PASSWORD=lHQfLZHzB3tn
+STS_API_PASSWORD=your_sts_api_password
 ```
 
 ### Важные параметры
@@ -48,7 +48,7 @@ STS_API_PASSWORD=lHQfLZHzB3tn
 |----------|----------|----------|
 | `STS_API_URL` | https://pos.autooplata.ru/tms | Базовый URL API |
 | `STS_API_USERNAME` | UserApi | Логин для получения токена |
-| `STS_API_PASSWORD` | lHQfLZHzB3tn | Пароль для получения токена |
+| `STS_API_PASSWORD` | `your_sts_api_password` | Пароль для получения токена |
 | Срок действия токена | 20 минут | Токен автоматически обновляется |
 | Время обновления | 18 минут | За 2 минуты до истечения |
 
@@ -286,10 +286,10 @@ node index.js
 
 ### Уровень 1: Frontend → Backend (requireAuth)
 
-Frontend отправляет **app-токен** (`tradeframe_token_v2`) в заголовке `Authorization: Bearer` при каждом запросе к backend proxy `/api/sts/*`.
+Frontend отправляет **app-токен** (`auth_token`) в заголовке `Authorization: Bearer` при каждом запросе к backend proxy `/api/sts/*`.
 
 - Middleware `requireAuth` (`server/middleware/auth.js`) проверяет JWT и ищет пользователя в PostgreSQL
-- Токен хранится в `localStorage` под ключом `tradeframe_token_v2`
+- Токен хранится в каноническом storage под ключом `auth_token`
 - Без этого токена backend вернёт **401 Unauthorized**
 
 **Два frontend STS клиента** (оба обязаны отправлять Bearer token):
@@ -307,7 +307,7 @@ Backend проксирует запрос к внешнему STS API с **STS J
 - STS JWT токен действителен 20 минут, обновляется автоматически каждые 18 минут
 
 ```
-Frontend → [Bearer tradeframe_token_v2] → Backend requireAuth
+Frontend → [Bearer auth_token] → Backend requireAuth
                                            ↓
 Backend  → [Bearer STS_JWT] → External STS API (pos.autooplata.ru)
 ```
@@ -349,7 +349,7 @@ Backend  → [Bearer STS_JWT] → External STS API (pos.autooplata.ru)
 ## 💡 Важные замечания
 
 1. **STS JWT токен НЕ хранится в frontend** — только на backend
-2. **App-токен (tradeframe_token_v2) хранится в localStorage** — отправляется с каждым запросом к backend
+2. **App-токен (`auth_token`) хранится в каноническом auth storage** — отправляется с каждым запросом к backend
 3. **Два отдельных STS-клиента на frontend** — оба обязаны отправлять Bearer token
 4. **Учетные данные STS API НИКОГДА не попадают в frontend bundle** — только в server/.env
 5. **Один STS JWT токен на весь backend** — переиспользуется для всех запросов

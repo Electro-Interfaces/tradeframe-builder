@@ -19,7 +19,20 @@ NC='\033[0m' # No Color
 # Конфигурация
 PROD_SERVER="root@194.135.36.195"
 PROD_DIR="/var/www/www-root/data/www/prod.dataworker.ru"
-SSH_PASSWORD="n3cBMDPU2@N*C"
+FRONTEND_PM2="tradeframe-prod-frontend"
+BACKEND_PM2="tradeframe-prod-backend"
+SSH_PASSWORD="${TRADEFRAME_DEPLOY_SSH_PASSWORD:-}"
+
+if [ -z "$SSH_PASSWORD" ]; then
+    echo -e "${YELLOW}🔐 Переменная TRADEFRAME_DEPLOY_SSH_PASSWORD не задана, запрашиваю пароль...${NC}"
+    read -rsp "Введите SSH пароль: " SSH_PASSWORD
+    echo
+fi
+
+if [ -z "$SSH_PASSWORD" ]; then
+    echo -e "${RED}❌ SSH пароль не задан. Установите TRADEFRAME_DEPLOY_SSH_PASSWORD или введите пароль при запуске.${NC}"
+    exit 1
+fi
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}🚀 Быстрый деплой TradeFrame v1.5.30${NC}"
@@ -51,13 +64,12 @@ echo -e "${GREEN}✅ Архив создан: ${ARCHIVE_SIZE}${NC}\n"
 
 # Шаг 3: Загрузка архива на сервер
 echo -e "${YELLOW}📤 Шаг 3/7: Загрузка архива на сервер...${NC}"
-echo -e "${BLUE}   Пароль: ${SSH_PASSWORD}${NC}"
 scp dist.tar.gz ${PROD_SERVER}:/tmp/
 echo -e "${GREEN}✅ Архив загружен${NC}\n"
 
 # Шаг 4: Остановка PM2 процесса
 echo -e "${YELLOW}🔄 Шаг 4/7: Остановка PM2 процесса...${NC}"
-ssh ${PROD_SERVER} "pm2 stop tradeframe-prod"
+ssh ${PROD_SERVER} "pm2 stop ${FRONTEND_PM2}"
 echo -e "${GREEN}✅ Процесс остановлен${NC}\n"
 
 # Шаг 5: Развертывание файлов
@@ -76,7 +88,7 @@ fi
 
 # Шаг 7: Перезапуск PM2 процессов
 echo -e "${YELLOW}🔄 Шаг 7/7: Перезапуск PM2 процессов...${NC}"
-ssh ${PROD_SERVER} "pm2 restart tradeframe-prod tradeframe-backend-proxy"
+ssh ${PROD_SERVER} "pm2 restart ${FRONTEND_PM2} ${BACKEND_PM2}"
 echo -e "${GREEN}✅ Процессы перезапущены${NC}\n"
 
 # Проверка статуса

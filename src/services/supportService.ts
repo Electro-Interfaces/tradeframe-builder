@@ -18,7 +18,9 @@ import type {
  * Базовый URL бэкенда (по аналогии с mstoProxyClient.ts)
  */
 import { getBackendOrigin } from '@/utils/backendUrl';
-import { getToken } from '@/utils/authStorage';
+import { getToken, getUser } from '@/utils/authStorage';
+
+const AUTH_REQUIRED_ERROR = 'Сессия истекла. Войдите в систему повторно.';
 
 function getBaseUrl(): string {
   return getBackendOrigin();
@@ -37,9 +39,8 @@ function getUserHeaders(): Record<string, string> {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const savedUser = localStorage.getItem('tradeframe_user_v2') || localStorage.getItem('tradeframe_user');
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
+    const user = getUser<{ id?: string; email?: string; name?: string; role?: string }>();
+    if (user) {
       if (user.id) headers['X-TF-User-Id'] = user.id;
       if (user.email) headers['X-TF-User-Email'] = user.email;
       if (user.name) headers['X-TF-User-Name'] = encodeURIComponent(user.name);
@@ -53,6 +54,16 @@ function getUserHeaders(): Record<string, string> {
     }
   } catch {
     // Ignore parse errors
+  }
+
+  return headers;
+}
+
+function getAuthorizedUserHeaders(): Record<string, string> {
+  const headers = getUserHeaders();
+
+  if (!headers['Authorization'] || !headers['X-TF-User-Id']) {
+    throw new Error(AUTH_REQUIRED_ERROR);
   }
 
   return headers;
@@ -78,7 +89,7 @@ async function supportRequest<T>(
 
   const fetchOptions: RequestInit = {
     method,
-    headers: getUserHeaders(),
+    headers: getAuthorizedUserHeaders(),
     cache: 'no-store',
   };
 
@@ -208,6 +219,9 @@ export async function uploadFiles(ticketId: string, files: File[]): Promise<Uplo
   files.forEach(f => formData.append('files', f));
 
   const headers = getUserHeaders();
+  if (!headers['Authorization'] || !headers['X-TF-User-Id']) {
+    throw new Error(AUTH_REQUIRED_ERROR);
+  }
   delete headers['Content-Type']; // FormData сам поставит boundary
 
   const response = await fetch(`${base}/api/support/upload/${ticketId}`, {
@@ -315,6 +329,9 @@ export async function uploadChatFiles(roomId: string, files: File[]): Promise<Up
   files.forEach(f => formData.append('files', f));
 
   const headers = getUserHeaders();
+  if (!headers['Authorization'] || !headers['X-TF-User-Id']) {
+    throw new Error(AUTH_REQUIRED_ERROR);
+  }
   delete headers['Content-Type'];
 
   const response = await fetch(`${base}/api/support/upload/chat-${roomId}`, {

@@ -8,10 +8,25 @@ Write-Host "🚀 Начинаем деплой на production..." -ForegroundCo
 # Конфигурация
 $PROD_SERVER = "root@194.135.36.195"
 $PROD_DIR = "/var/www/www-root/data/www/prod.dataworker.ru"
-$SSH_PASSWORD = "n3cBMDPU2@N*C"
+$FRONTEND_PM2 = "tradeframe-prod-frontend"
+$BACKEND_PM2 = "tradeframe-prod-backend"
+$SSH_PASSWORD = $env:TRADEFRAME_DEPLOY_SSH_PASSWORD
 
-# Конвертируем пароль в SecureString
-$SecurePassword = ConvertTo-SecureString $SSH_PASSWORD -AsPlainText -Force
+if ([string]::IsNullOrWhiteSpace($SSH_PASSWORD)) {
+    Write-Host "🔐 Переменная TRADEFRAME_DEPLOY_SSH_PASSWORD не задана, запрашиваю пароль..." -ForegroundColor Yellow
+    $SecureInput = Read-Host "Введите SSH пароль" -AsSecureString
+    $Ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureInput)
+    try {
+        $SSH_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($Ptr)
+    }
+    finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($Ptr)
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($SSH_PASSWORD)) {
+    throw "SSH пароль не задан. Установите TRADEFRAME_DEPLOY_SSH_PASSWORD или введите пароль при запуске."
+}
 
 Write-Host "📦 Шаг 1: Сборка production bundle..." -ForegroundColor Blue
 npm run build:prod
@@ -34,7 +49,7 @@ $pscp = "pscp"
 & $pscp -pw $SSH_PASSWORD dist.tar.gz "${PROD_SERVER}:/tmp/"
 
 Write-Host "🔄 Шаг 4: Остановка PM2 процесса..." -ForegroundColor Blue
-& $plink -pw $SSH_PASSWORD $PROD_SERVER "pm2 stop tradeframe-prod"
+& $plink -pw $SSH_PASSWORD $PROD_SERVER "pm2 stop $FRONTEND_PM2"
 
 Write-Host "📂 Шаг 5: Развертывание файлов..." -ForegroundColor Blue
 & $plink -pw $SSH_PASSWORD $PROD_SERVER "cd $PROD_DIR && rm -rf dist && mkdir dist && cd dist && tar -xzf /tmp/dist.tar.gz && rm /tmp/dist.tar.gz"
@@ -43,7 +58,7 @@ Write-Host "🔄 Шаг 6: Копирование обновленного sts.j
 & $pscp -pw $SSH_PASSWORD server/routes/sts.js "${PROD_SERVER}:${PROD_DIR}/server/routes/"
 
 Write-Host "🔄 Шаг 7: Перезапуск PM2 процессов..." -ForegroundColor Blue
-& $plink -pw $SSH_PASSWORD $PROD_SERVER "pm2 restart tradeframe-prod tradeframe-backend-proxy"
+& $plink -pw $SSH_PASSWORD $PROD_SERVER "pm2 restart $FRONTEND_PM2 $BACKEND_PM2"
 
 Write-Host "📊 Шаг 8: Проверка статуса PM2..." -ForegroundColor Blue
 & $plink -pw $SSH_PASSWORD $PROD_SERVER "pm2 list"

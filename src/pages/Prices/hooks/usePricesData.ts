@@ -114,42 +114,9 @@ export const fuelNomenclature = [
   { id: '5', name: 'Газ', internal_code: 'GAS', network_api_code: '6', status: 'active' as const }
 ];
 
-// Configure STS API with correct parameters
-const ensureSTSApiConfigured = () => {
-  const correctConfig = {
-    url: import.meta.env.VITE_STS_API_URL || '',
-    username: import.meta.env.VITE_STS_API_USERNAME || '',
-    password: import.meta.env.VITE_STS_API_PASSWORD || '',
-    enabled: true,
-    timeout: 30000,
-    retryAttempts: 3,
-    refreshInterval: 20 * 60 * 1000 // 20 minutes
-  };
-
-  const currentConfig = localStorage.getItem('sts-api-config');
-  let needsUpdate = false;
-
-  if (currentConfig) {
-    try {
-      const parsed = JSON.parse(currentConfig);
-      if (parsed.url !== correctConfig.url ||
-        parsed.username !== correctConfig.username ||
-        parsed.password !== correctConfig.password ||
-        !parsed.enabled) {
-        needsUpdate = true;
-      }
-    } catch {
-      needsUpdate = true;
-    }
-  } else {
-    needsUpdate = true;
-  }
-
-  if (needsUpdate) {
-    localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
-  }
-
-  return correctConfig;
+const ensureSTSProxyMode = () => {
+  localStorage.removeItem('sts-api-config');
+  return true;
 };
 
 export function usePricesData() {
@@ -208,7 +175,7 @@ export function usePricesData() {
     setIsInitialLoading(true);
 
     try {
-      ensureSTSApiConfigured();
+      ensureSTSProxyMode();
 
       if (!selectedTradingPoint || selectedTradingPoint === 'all') {
         throw new Error('Выберите конкретную торговую точку для получения цен из STS API');
@@ -600,8 +567,7 @@ export function usePricesData() {
 
   // Auto-load prices when trading point is selected
   useEffect(() => {
-    const config = ensureSTSApiConfigured();
-    const isConfigured = !!(config && config.enabled && config.url && config.username && config.password);
+    const isConfigured = ensureSTSProxyMode();
     setStsApiConfigured(isConfigured);
 
     if (selectedTradingPoint && selectedTradingPoint !== 'all') {

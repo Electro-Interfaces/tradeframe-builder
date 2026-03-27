@@ -2,6 +2,8 @@
  * Сервис для работы с API СТС (pos.autooplata.ru/tms)
  */
 
+import { getBackendOrigin } from '@/utils/backendUrl';
+import { getToken } from '@/utils/authStorage';
 import type {
   STSApiConfig,
   Tank,
@@ -13,6 +15,8 @@ import type {
   PriceScheduleEntry,
   Transaction,
 } from './types';
+
+const AUTH_REQUIRED_ERROR = 'Сессия истекла. Войдите в систему повторно.';
 
 // Fallback-маппинг видов топлива (используется пока не загружен справочник из API)
 const DEFAULT_FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = {
@@ -66,17 +70,17 @@ class STSApiService {
 
     servicesLoadPromise = (async () => {
       try {
-        const origin = window.location.origin;
-        const url = new URL(`${origin}/api/sts/v1/services`);
+        const token = getToken();
+        if (!token) return;
+
+        const baseUrl = getBackendOrigin();
+        const url = new URL(`${baseUrl}/api/sts/v1/services`);
         if (systemId) url.searchParams.set('system', systemId);
 
-        const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-        try {
-          const token = localStorage.getItem('tradeframe_token_v2');
-          if (token) {
-            authHeaders['Authorization'] = `Bearer ${token}`;
-          }
-        } catch { /* ignore */ }
+        const authHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        };
 
         const response = await fetch(url.toString(), {
           headers: authHeaders,
@@ -185,18 +189,21 @@ class STSApiService {
     // Backend Proxy управляет токенами сам, проверка не нужна
     await this.refreshTokenIfNeeded();
 
-    // Используем Backend Proxy вместо прямого обращения к STS API
-    // Формат: /api/sts/v1/tanks вместо https://pos.autooplata.ru/tms/v1/tanks
-    // Всегда используем текущий домен (откуда загружено приложение)
-    const origin = window.location.origin;
-
-    // Проверка на корректность origin
-    if (!origin || origin === 'null' || origin === 'undefined') {
-      console.error('❌ window.location.origin некорректен:', origin);
-      throw new Error('Cannot determine origin for STS API');
+    const token = getToken();
+    if (!token) {
+      throw new Error(AUTH_REQUIRED_ERROR);
     }
 
-    const baseUrl = origin;
+    // Используем Backend Proxy вместо прямого обращения к STS API
+    // Формат: /api/sts/v1/tanks вместо https://pos.autooplata.ru/tms/v1/tanks
+    // Всегда используем backend origin для текущего окружения
+    const baseUrl = getBackendOrigin();
+
+    // Проверка на корректность origin
+    if (!baseUrl || baseUrl === 'null' || baseUrl === 'undefined') {
+      console.error('❌ getBackendOrigin() вернул некорректное значение:', baseUrl);
+      throw new Error('Cannot determine origin for STS API');
+    }
 
     const url = new URL(`${baseUrl}/api/sts${endpoint}`);
 
@@ -219,13 +226,9 @@ class STSApiService {
     }
 
     // Auth token для requireAuth middleware на backend
-    const authHeaders: Record<string, string> = {};
-    try {
-      const token = localStorage.getItem('tradeframe_token_v2');
-      if (token) {
-        authHeaders['Authorization'] = `Bearer ${token}`;
-      }
-    } catch { /* ignore */ }
+    const authHeaders: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+    };
 
     const headers = {
       'Content-Type': 'application/json',
@@ -327,7 +330,7 @@ class STSApiService {
       // Если получили 401 - ошибка авторизации на Backend Proxy
       // Backend Proxy сам управляет токенами, повторные запросы не нужны
       if (response.status === 401) {
-        throw new Error('Ошибка авторизации Backend Proxy. Проверьте настройки сервера.');
+        throw new Error(AUTH_REQUIRED_ERROR);
       }
 
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);

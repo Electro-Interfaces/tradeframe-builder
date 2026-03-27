@@ -70,7 +70,7 @@ node index.js
 
 Или через PM2:
 ```bash
-pm2 restart tradeframe-backend-proxy
+pm2 restart tradeframe-prod-backend
 ```
 
 ### 5. Открыть страницу в браузере
@@ -163,7 +163,7 @@ LIMIT 10;
 
 ```bash
 # Просмотр логов PM2
-pm2 logs tradeframe-backend-proxy
+pm2 logs tradeframe-prod-backend
 
 # Или если запущен напрямую
 # Смотрите вывод в консоли

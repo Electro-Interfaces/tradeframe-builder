@@ -137,7 +137,7 @@ curl "http://localhost:3001/api/sts/v1/info?system=15&station=4"
 
 ### 4. Проверить логи backend
 ```bash
-pm2 logs tradeframe-backend-proxy --lines 20
+pm2 logs tradeframe-prod-backend --lines 20
 ```
 
 **НЕ должно быть:**
@@ -211,9 +211,9 @@ echo ""
 nslookup pos.autooplata.ru
 
 echo "7. Перезапуск backend..."
-pm2 restart tradeframe-backend-proxy
+pm2 restart tradeframe-prod-backend
 
-echo "✅ Готово! Проверьте работу через 'pm2 logs tradeframe-backend-proxy'"
+echo "✅ Готово! Проверьте работу через 'pm2 logs tradeframe-prod-backend'"
 ```
 
 ---
@@ -282,7 +282,7 @@ crontab -e
    netplan apply
    systemctl restart systemd-networkd
    systemctl restart systemd-resolved
-   pm2 restart tradeframe-backend-proxy
+   pm2 restart tradeframe-prod-backend
    ```
 
 4. **Проверить логи:**

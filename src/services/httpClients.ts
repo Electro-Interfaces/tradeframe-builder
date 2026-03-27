@@ -27,7 +27,7 @@ import {
 // Конфигурация API
 import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
 import { getBackendOrigin } from '@/utils/backendUrl';
-import { getToken } from '@/utils/authStorage';
+import { AUTH_KEYS, getExpiry, getToken } from '@/utils/authStorage';
 const API_BASE_URL = getApiBaseUrl();
 
 // Утилита для HTTP запросов с полной поддержкой заголовков
@@ -117,14 +117,14 @@ class HttpApiClient {
    */
   private async getValidToken(): Promise<string | null> {
     const token = getToken() || null;
-    const tokenExpiry = localStorage.getItem('auth_token_expiry') || sessionStorage.getItem('auth_token_expiry');
+    const tokenExpiry = getExpiry();
     
     if (!token) {
       return null;
     }
     
     // Проверяем срок действия токена
-    if (tokenExpiry && new Date(tokenExpiry) <= new Date()) {
+    if (tokenExpiry && tokenExpiry <= Date.now()) {
       return await this.refreshToken();
     }
     
@@ -181,7 +181,7 @@ class HttpApiClient {
 
       // Диспатчим storage event для cross-tab sync
       window.dispatchEvent(new StorageEvent('storage', {
-        key: 'auth_token',
+        key: AUTH_KEYS.TOKEN,
         newValue: newToken,
       }));
 

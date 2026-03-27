@@ -1,5 +1,5 @@
 {
-  "name": "tradeframe-backend-proxy",
+  "name": "tradeframe-backend",
   "version": "1.0.0",
   "description": "Backend proxy server for TradeControl Builder to securely handle STS API authentication",
   "type": "commonjs",

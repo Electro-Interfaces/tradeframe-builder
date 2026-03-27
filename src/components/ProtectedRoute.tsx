@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useNewAuth } from '../contexts/NewAuthContext';
 import { Loader2 } from 'lucide-react';
+import { getToken } from '../utils/authStorage';
 import '../types/window';
 
 interface ProtectedRouteProps {
@@ -13,6 +14,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin }) => {
   const { user, loading, isAdmin } = useNewAuth();
   const location = useLocation();
+  const isAuthenticated = !!user && !!getToken();
 
   // Показываем загрузку пока проверяем аутентификацию
   if (loading) {
@@ -33,7 +35,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
   }
 
   // Если пользователь не авторизован - перенаправляем на страницу входа
-  if (!user) {
+  if (!isAuthenticated) {
     // Сохраняем текущий путь для возврата после входа
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

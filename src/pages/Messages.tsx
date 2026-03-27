@@ -125,7 +125,7 @@ const mockTelegramBots: TelegramBotWithId[] = [
   {
     id: "1",
     name: "TradeControl Network Bot",
-    token: "1234567890:AABBCCDDEEFFgghhiijjkkllmmnnooppqq",
+    token: "telegram_bot_token_network_demo",
     isActive: true,
     channels: ["@tradeframe_network", "@tradeframe_managers"],
     createdAt: "2024-08-15 10:00",
@@ -135,7 +135,7 @@ const mockTelegramBots: TelegramBotWithId[] = [
   {
     id: "2",
     name: "TradeControl Support Bot", 
-    token: "9876543210:ZZYYXXWWVVuuttssrrqqppoonn",
+    token: "telegram_bot_token_support_demo",
     isActive: true,
     channels: ["@tradeframe_support"],
     createdAt: "2024-08-10 15:30",

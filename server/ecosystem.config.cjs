@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'tradeframe-backend-proxy',
+    name: 'tradeframe-prod-backend',
     script: 'index.js',
     cwd: '/var/www/www-root/data/www/prod.dataworker.ru/server',
     instances: 1,

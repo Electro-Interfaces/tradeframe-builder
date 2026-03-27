@@ -101,9 +101,9 @@ const report = await getShiftReport({
 
 ### Переменные окружения (.env)
 ```bash
-VITE_STS_API_URL=https://pos.autooplata.ru/tms
-VITE_STS_API_USERNAME=ваш_логин
-VITE_STS_API_PASSWORD=ваш_пароль
+STS_API_URL=https://pos.autooplata.ru/tms
+STS_API_USERNAME=ваш_логин
+STS_API_PASSWORD=ваш_пароль
 ```
 
 ### Аутентификация
