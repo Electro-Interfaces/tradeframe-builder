@@ -4,14 +4,9 @@
  */
 
 import { getBackendOrigin } from '@/utils/backendUrl';
+import { getToken } from '@/utils/authStorage';
 
 const BASE = `${getBackendOrigin()}/api`;
-
-function getAuthToken(): string {
-  return localStorage.getItem('auth_token')
-    || sessionStorage.getItem('auth_token')
-    || '';
-}
 
 async function parseResponse(response: Response): Promise<any> {
   const text = await response.text();
@@ -34,7 +29,7 @@ export async function apiRequest(
   options: RequestInit = {},
   requiresAuth = true,
 ): Promise<any> {
-  const token = getAuthToken();
+  const token = getToken();
 
   if (requiresAuth && !token) {
     throw new Error('Требуется повторный вход в систему');

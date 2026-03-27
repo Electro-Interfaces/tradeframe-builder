@@ -122,13 +122,9 @@ if (typeof window !== 'undefined') {
     // PWAInstaller сохраняет бэкап в localStorage (не sessionStorage),
     // т.к. sessionStorage не переносится в standalone PWA контекст на iOS
     const authFromBackup = localStorage.getItem('pwa-auth-backup');
-    if (authFromBackup && !localStorage.getItem('tradeframe_user_v2') && !localStorage.getItem('tradeframe_user')) {
+    if (authFromBackup && !localStorage.getItem('auth_token')) {
       try {
         const authData = JSON.parse(authFromBackup);
-        localStorage.setItem('tradeframe_user_v2', authData.user);
-        localStorage.setItem('tradeframe_token_v2', authData.token);
-        localStorage.setItem('tradeframe_user', authData.user);
-        localStorage.setItem('authToken', authData.token);
         localStorage.setItem('auth_token', authData.token);
         localStorage.setItem('auth_user', authData.user);
         sessionStorage.setItem('auth_token', authData.token);

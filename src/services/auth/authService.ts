@@ -3,6 +3,7 @@
  */
 
 import { getBackendOrigin } from '@/utils/backendUrl';
+import { getToken } from '@/utils/authStorage';
 
 export interface DatabaseUser {
   id: string;
@@ -65,11 +66,7 @@ class AuthService {
   private readonly BACKEND_AUTH_URL = `${getBackendOrigin()}/api/auth`;
 
   private getStoredAuthToken(): string {
-    return localStorage.getItem('auth_token')
-      || sessionStorage.getItem('auth_token')
-      || localStorage.getItem('tradeframe_token_v2')
-      || localStorage.getItem('authToken')
-      || '';
+    return getToken();
   }
 
   private async parseResponse(response: Response): Promise<any> {

@@ -3,6 +3,7 @@
  */
 
 import axios from 'axios';
+import { getToken } from '@/utils/authStorage';
 import type {
   BroadcastMessage,
   CreateMessageData,
@@ -17,15 +18,9 @@ import type {
 // ВАЖНО: trailing slash нужен для корректной работы с nginx на production (301 redirect)
 const API_BASE_URL = '/api/messages';
 
-function getAuthToken(): string {
-  return localStorage.getItem('auth_token')
-    || sessionStorage.getItem('auth_token')
-    || '';
-}
-
 const apiClient = axios.create();
 apiClient.interceptors.request.use((config) => {
-  const token = getAuthToken();
+  const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

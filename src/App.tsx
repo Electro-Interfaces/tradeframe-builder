@@ -147,11 +147,7 @@ const App = () => {
         }
 
         // ВАЖНО: Если пользователь авторизован, не перенаправляем на /login
-        // Проверяем оба варианта ключей: старые и новые
-        const isUserLoggedIn = (
-          (localStorage.getItem('tradeframe_user') && localStorage.getItem('authToken')) ||
-          (localStorage.getItem('tradeframe_user_v2') && localStorage.getItem('tradeframe_token_v2'))
-        );
+        const isUserLoggedIn = !!localStorage.getItem('auth_token');
         if (targetPath === '/login' && isUserLoggedIn) {
           targetPath = '/';
         }

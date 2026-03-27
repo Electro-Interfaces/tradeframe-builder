@@ -27,6 +27,7 @@ import {
 // Конфигурация API
 import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
 import { getBackendOrigin } from '@/utils/backendUrl';
+import { getToken } from '@/utils/authStorage';
 const API_BASE_URL = getApiBaseUrl();
 
 // Утилита для HTTP запросов с полной поддержкой заголовков
@@ -115,7 +116,7 @@ class HttpApiClient {
    * Получение валидного токена с проверкой срока действия
    */
   private async getValidToken(): Promise<string | null> {
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const token = getToken() || null;
     const tokenExpiry = localStorage.getItem('auth_token_expiry') || sessionStorage.getItem('auth_token_expiry');
     
     if (!token) {
@@ -147,9 +148,7 @@ class HttpApiClient {
   }
 
   private async doRefresh(): Promise<string | null> {
-    const currentToken = localStorage.getItem('auth_token')
-      || localStorage.getItem('tradeframe_token_v2')
-      || sessionStorage.getItem('auth_token');
+    const currentToken = getToken();
 
     if (!currentToken) {
       this.clearAuth();
@@ -176,18 +175,13 @@ class HttpApiClient {
       const newToken = data.token;
       const expiresAt = data.expires_at;
 
-      // Обновляем все хранилища
-      localStorage.setItem('auth_token', newToken);
-      localStorage.setItem('tradeframe_token_v2', newToken);
-      sessionStorage.setItem('auth_token', newToken);
-      if (expiresAt) {
-        localStorage.setItem('auth_token_expiry', expiresAt);
-        sessionStorage.setItem('auth_token_expiry', expiresAt);
-      }
+      // Обновляем через единый authStorage
+      const { setToken } = await import('@/utils/authStorage');
+      setToken(newToken, expiresAt);
 
-      // Диспатчим storage event для синхронизации между вкладками
+      // Диспатчим storage event для cross-tab sync
       window.dispatchEvent(new StorageEvent('storage', {
-        key: 'tradeframe_token_v2',
+        key: 'auth_token',
         newValue: newToken,
       }));
 
@@ -203,10 +197,7 @@ class HttpApiClient {
    * Очистка данных аутентификации
    */
   private clearAuth(): void {
-    ['auth_token', 'auth_token_expiry', 'auth_user', 'auth_login'].forEach(key => {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
-    });
+    import('@/utils/authStorage').then(({ clearAll }) => clearAll());
   }
 
   private generateTraceId(): string {

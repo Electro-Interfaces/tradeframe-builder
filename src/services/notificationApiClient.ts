@@ -1,8 +1,4 @@
-function getAuthToken(): string {
-  return localStorage.getItem('auth_token')
-    || sessionStorage.getItem('auth_token')
-    || '';
-}
+import { getToken } from '@/utils/authStorage';
 
 async function parseResponse(response: Response) {
   const contentType = response.headers.get('content-type') || '';
@@ -14,7 +10,7 @@ async function parseResponse(response: Response) {
 }
 
 export async function notificationApiRequest<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getAuthToken();
+  const token = getToken();
 
   const response = await fetch(path, {
     ...options,

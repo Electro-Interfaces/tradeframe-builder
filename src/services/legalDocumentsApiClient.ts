@@ -1,4 +1,5 @@
 import { getBackendOrigin } from '@/utils/backendUrl';
+import { getToken } from '@/utils/authStorage';
 import type {
   AcceptanceJournalFilters,
   AcceptanceSource,
@@ -15,12 +16,7 @@ import type {
 const API_BASE_URL = `${getBackendOrigin()}/api/legal`;
 
 function getOptionalAuthToken(): string {
-  const token = localStorage.getItem('auth_token')
-    || sessionStorage.getItem('auth_token')
-    || localStorage.getItem('tradeframe_token_v2')
-    || localStorage.getItem('authToken')
-    || '';
-
+  const token = getToken();
   return token.split('.').length === 3 ? token : '';
 }
 

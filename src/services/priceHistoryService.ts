@@ -4,6 +4,7 @@
  */
 
 import { apiConfigService } from './apiConfigService';
+import { getToken } from '@/utils/authStorage';
 
 // Типы для API
 export interface PriceHistoryRecord {
@@ -256,7 +257,7 @@ class PriceHistoryServiceClass {
   }
 
   private getAuthHeaders(): Record<string, string> {
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const token = getToken();
     
     if (token) {
       return {

@@ -17,13 +17,8 @@ import type {
 } from './types';
 import { httpClient } from '@/services/httpClients';
 import { getApiBaseUrl } from '@/services/apiConfigService';
+import { getToken } from '@/utils/authStorage';
 import type { ComponentHealthStatus } from './types';
-
-function getAuthToken(): string {
-  return localStorage.getItem('auth_token')
-    || sessionStorage.getItem('auth_token')
-    || '';
-}
 import { currentComponentsAPI } from '../components';
 
 // Equipment API сервис (httpClient-based)
@@ -157,7 +152,7 @@ class RealEquipmentAPI {
 
     const response = await fetch(`${this.apiUrl}?${searchParams}`, {
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -173,7 +168,7 @@ class RealEquipmentAPI {
     const response = await fetch(this.apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
@@ -189,7 +184,7 @@ class RealEquipmentAPI {
   async get(id: string): Promise<Equipment> {
     const response = await fetch(`${this.apiUrl}/${id}`, {
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -205,7 +200,7 @@ class RealEquipmentAPI {
     const response = await fetch(`${this.apiUrl}/${id}`, {
       method: 'PATCH',
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
@@ -222,7 +217,7 @@ class RealEquipmentAPI {
     const response = await fetch(`${this.apiUrl}/${id}/${action}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -236,7 +231,7 @@ class RealEquipmentAPI {
     const response = await fetch(`${this.apiUrl}/${id}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -249,7 +244,7 @@ class RealEquipmentAPI {
   async getEvents(id: string): Promise<EquipmentEvent[]> {
     const response = await fetch(`${this.apiUrl}/${id}/events`, {
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -272,7 +267,7 @@ class RealEquipmentTemplatesAPI {
   async list(): Promise<EquipmentTemplate[]> {
     const response = await fetch(this.apiUrl, {
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -287,7 +282,7 @@ class RealEquipmentTemplatesAPI {
   async get(id: string): Promise<EquipmentTemplate> {
     const response = await fetch(`${this.apiUrl}/${id}`, {
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
+        'Authorization': `Bearer ${getToken()}`,
         'Content-Type': 'application/json'
       }
     });

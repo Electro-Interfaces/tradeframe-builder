@@ -18,6 +18,7 @@ import type {
  * Базовый URL бэкенда (по аналогии с mstoProxyClient.ts)
  */
 import { getBackendOrigin } from '@/utils/backendUrl';
+import { getToken } from '@/utils/authStorage';
 
 function getBaseUrl(): string {
   return getBackendOrigin();
@@ -31,7 +32,7 @@ function getUserHeaders(): Record<string, string> {
 
   try {
     // Authorization token
-    const token = localStorage.getItem('tradeframe_token_v2') || localStorage.getItem('auth_token');
+    const token = getToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

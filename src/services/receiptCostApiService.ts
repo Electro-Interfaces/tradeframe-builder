@@ -4,17 +4,12 @@
  */
 
 import { getBackendOrigin } from '@/utils/backendUrl';
+import { getToken } from '@/utils/authStorage';
 
 const API_BASE_URL = `${getBackendOrigin()}/api`;
 
-function getAuthToken(): string {
-  return localStorage.getItem('auth_token')
-    || sessionStorage.getItem('auth_token')
-    || '';
-}
-
 async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  const token = getAuthToken();
+  const token = getToken();
   return fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {

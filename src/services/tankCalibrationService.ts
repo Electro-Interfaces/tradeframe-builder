@@ -3,17 +3,12 @@
  */
 
 import type { TankCalibrationSettings } from '@/types/tanks';
+import { getToken } from '@/utils/authStorage';
 
 const API_BASE_URL = '/api/tank-calibration';
 
-function getAuthToken(): string {
-  return localStorage.getItem('auth_token')
-    || sessionStorage.getItem('auth_token')
-    || '';
-}
-
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
-  const token = getAuthToken();
+  const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

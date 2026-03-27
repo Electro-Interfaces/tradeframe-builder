@@ -6,6 +6,7 @@
 import { PersistentStorage } from '@/utils/persistentStorage';
 import { tanksService, Tank } from './tanksService';
 import { apiConfigService } from './apiConfigService';
+import { getToken } from '@/utils/authStorage';
 
 export interface FuelStockSnapshot {
   id: string;
@@ -373,7 +374,7 @@ const httpApiMethods = {
    * Получить заголовки авторизации
    */
   getAuthHeaders(): Record<string, string> {
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const token = getToken();
     
     if (token) {
       return {

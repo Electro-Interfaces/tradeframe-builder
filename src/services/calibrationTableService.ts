@@ -12,6 +12,7 @@ import type {
   CalculateCalibrationTableResult,
   TankCalibrationSettings
 } from '@/types/tanks';
+import { getToken } from '@/utils/authStorage';
 
 const API_BASE_URL = '/api/tank-calibration';
 
@@ -30,14 +31,8 @@ export interface CreateCalibrationTableParams {
 const STUB_ERROR = (endpoint: string) =>
   new Error(`Backend endpoint not implemented: ${endpoint}. Используйте клиентский расчёт в AnalysisDialog.`);
 
-function getAuthToken(): string {
-  return localStorage.getItem('auth_token')
-    || sessionStorage.getItem('auth_token')
-    || '';
-}
-
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
-  const token = getAuthToken();
+  const token = getToken();
   return {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
