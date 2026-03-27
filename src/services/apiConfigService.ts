@@ -160,10 +160,7 @@ export const apiConfigService = {
    * Проверить используется ли mock режим
    */
   isMockMode(): boolean {
-    const connection = this.getCurrentConnection();
-    const result = connection?.type === 'mock' || !connection;
-
-    return result;
+    return false; // Mock режим удалён — всегда backend API
   },
 
   /**

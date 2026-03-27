@@ -6,7 +6,7 @@
 import { stsProxyClient } from './stsProxyClient';
 
 // Импорт для получения данных о резервуарах
-import { mockEquipmentAPI } from './equipment';
+import { realEquipmentAPI } from './equipment';
 
 // Стандартные цены по типам топлива (базовые значения)
 const DEFAULT_FUEL_PRICES: Record<string, number> = {
@@ -48,7 +48,7 @@ async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
     const tradingPointId = stationMapping[stationNumber] || `point${stationNumber}`;
 
     // Получаем оборудование для торговой точки
-    const equipmentResponse = await mockEquipmentAPI.list({
+    const equipmentResponse = await realEquipmentAPI.list({
       trading_point_id: tradingPointId,
       limit: 100
     });
