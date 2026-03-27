@@ -966,8 +966,8 @@ class STSApiService {
         return mappedTransactions;
       }
 
-      // STS API падает на периодах > 5 дней — разбиваем на чанки
-      const MAX_CHUNK_DAYS = 5;
+      // STS API падает на больших периодах — разбиваем на чанки по 2 дня
+      const MAX_CHUNK_DAYS = 2;
 
       const parseRawTransactions = (data: any): any[] => {
         if (Array.isArray(data) && data.length > 0 && data[0].items) {
@@ -988,11 +988,16 @@ class STSApiService {
       };
 
       const fetchChunk = async (chunkBeg: string, chunkEnd: string): Promise<any[]> => {
-        const p = new URLSearchParams();
-        p.set('dt_beg', chunkBeg);
-        p.set('dt_end', chunkEnd);
-        const data = await this.apiRequest<any>(`/v2/transactions?${p.toString()}`, {}, contextParams, 60000);
-        return parseRawTransactions(data);
+        try {
+          const p = new URLSearchParams();
+          p.set('dt_beg', chunkBeg);
+          p.set('dt_end', chunkEnd);
+          const data = await this.apiRequest<any>(`/v2/transactions?${p.toString()}`, {}, contextParams, 60000);
+          return parseRawTransactions(data);
+        } catch {
+          // Чанк не загрузился — возвращаем пустой массив, остальные чанки продолжат работать
+          return [];
+        }
       };
 
       let allRaw: any[] = [];
