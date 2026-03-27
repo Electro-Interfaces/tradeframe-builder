@@ -34,7 +34,7 @@ npm run sync-version
 
 **Автоматический запуск**: Перед каждой сборкой
 ```bash
-npm run build      # GitHub Pages
+npm run build      # TEST
 npm run build:prod # Production
 npm run build:dev  # Development
 ```

@@ -94,9 +94,9 @@ pm2 startup
 Добавить в конфигурацию nginx для prod.dataworker.ru:
 
 ```nginx
-# Backend Proxy для STS API
-location /api/sts/ {
-    proxy_pass http://localhost:3001/api/sts/;
+# Backend API
+location /api/ {
+    proxy_pass http://localhost:3001/api/;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
@@ -128,9 +128,14 @@ curl http://localhost:3001/health
 ```json
 {
   "status": "ok",
-  "timestamp": "2025-10-12T19:51:32.012Z",
+  "timestamp": "2026-03-28T12:00:00.000Z",
   "environment": "production",
-  "version": "1.0.0"
+  "version": "2.1.0",
+  "dataSource": "pg",
+  "postgres": {
+    "configured": true,
+    "connected": true
+  }
 }
 ```
 
@@ -143,6 +148,17 @@ curl http://localhost:3001/api/sts/v1/info
 ```bash
 curl https://prod.dataworker.ru/api/healthz
 ```
+
+### Smoke-проверка после деплоя
+
+После `deploy-test.yml`, `deploy-prod.yml` и standalone workflow `smoke-check.yml`
+выполняется авторизованный smoke:
+
+- `GET /api/auth/me`
+- `GET /api/support/unread`
+- `GET /api/legal/document-types`
+- `GET /api/messages?limit=1`
+- `GET /api/sts/v2/info`
 
 ## Управление PM2
 

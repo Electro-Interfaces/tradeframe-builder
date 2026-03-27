@@ -16,6 +16,7 @@ npm run dev
 ```bash
 # Backend health check
 curl http://localhost:3001/health
+curl http://localhost:3001/api/healthz
 
 # Frontend
 http://127.0.0.1:3000/
@@ -67,7 +68,7 @@ kill -9 <PID>
 ### Нет данных от STS API
 1. Проверить `server/.env` файл
 2. Проверить логи backend: см. вывод в терминале
-3. Проверить health check: `curl http://localhost:3001/health`
+3. Проверить health check: `curl http://localhost:3001/health` или `curl http://localhost:3001/api/healthz`
 
 ## Подробная документация
 

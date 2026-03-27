@@ -2,8 +2,8 @@
 
 ## 📋 Система двойного развертывания
 
-### Demo Environment (GitHub Pages)
-Автоматический деплой при push в main ветку репозитория `electro-interfaces/tradeframe-builder`:
+### Test Environment
+Автоматический деплой при push в `main` репозитория `Electro-Interfaces/tradeframe-builder`:
 
 1. **Делаем изменения и коммитим:**
 ```bash
@@ -17,7 +17,7 @@ git push origin main
 ```
 
 3. **GitHub Actions автоматически деплоит на:**
-- https://electro-interfaces.github.io/tradeframe-builder/
+- https://testtf.dataworker.ru/
 
 ### Production Environment
 Репозиторий `electro-interfaces/TradeControl` с собственной схемой деплоя:

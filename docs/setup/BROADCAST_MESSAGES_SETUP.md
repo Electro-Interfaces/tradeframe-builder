@@ -2,7 +2,7 @@
 
 ## ✅ Что уже сделано
 
-### 1. База данных (Supabase)
+### 1. База данных (PostgreSQL)
 ✅ Таблицы созданы успешно:
 - `broadcast_messages` - сообщения для рассылки (0 записей)
 - `message_recipients` - получатели сообщений (0 записей)
@@ -10,7 +10,7 @@
 - `message_attachments` - вложения (0 записей)
 
 ### 2. Backend API
-✅ Создан полный набор endpoints в `server/routes/messages.js`:
+✅ Создан полный набор endpoints в `server/routes/messagesRuntime.js`:
 - `GET /api/messages` - список сообщений
 - `GET /api/messages/:id` - конкретное сообщение
 - `POST /api/messages` - создать сообщение
@@ -20,7 +20,7 @@
 - `GET /api/messages/:id/stats` - статистика сообщения
 
 ✅ Интеграция с существующими сервисами:
-- `server/telegram-bot.js` - отправка через Telegram
+- `server/telegram-bot-runtime.js` - отправка через Telegram
 - `server/services/emailService.js` - отправка через Email
 
 ### 3. Frontend
@@ -33,14 +33,15 @@
 
 ## 📋 Что нужно доделать
 
-### 1. Применить индексы и RLS политики в Supabase
+### 1. Применить backend миграции PostgreSQL
 
-Откройте **Supabase Dashboard → SQL Editor** и выполните файл:
-```
-apply-messages-migration.sql
+```bash
+cd server
+node db/migrate.js
 ```
 
-Или скопируйте SQL из этого файла в редактор.
+Ключевая миграция для broadcast сообщений:
+`server/db/migrations/070_messaging.sql`
 
 ### 2. Проверить настройки Telegram Bot
 
@@ -130,7 +131,7 @@ curl -X POST http://localhost:3001/api/messages \
 
 ## 📊 Мониторинг
 
-### Проверка таблиц в Supabase
+### Проверка таблиц в PostgreSQL
 
 ```sql
 -- Количество сообщений
@@ -270,7 +271,7 @@ const messageData = {
 ## 🔗 Полезные ссылки
 
 - **Frontend страница**: `/network/broadcast-messages`
-- **API Documentation**: `server/routes/messages.js`
+- **API Documentation**: `server/routes/messagesRuntime.js`
 - **Database Migration**: `server/db/migrations/070_messaging.sql`
-- **Telegram Bot**: `server/telegram-bot.js`
+- **Telegram Bot**: `server/telegram-bot-runtime.js`
 - **Email Service**: `server/services/emailService.js`

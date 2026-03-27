@@ -23,14 +23,14 @@ Access to fetch at 'http://localhost:3001/api/telegram/...' from origin 'https:/
 
 ### 2. **Testing (testtf.dataworker.ru)**
 - 🔶 Frontend: Nginx → `/var/www/testtf/dist/`
-- 🔶 Backend: PM2 → `cd server && node index.js` (порт 3002 или 3007)
-- ⚠️ Nginx proxy: **ТРЕБУЕТСЯ НАСТРОЙКА** (см. ниже)
+- 🔶 Backend: PM2 → `tradeframe-test-backend` (порт 3002)
+- ⚠️ Nginx proxy: должен проксировать `/api/*` на backend (см. ниже)
 - ⚠️ CORS: `ALLOWED_ORIGINS=https://testtf.dataworker.ru`
 
 ### 3. **Production (prod.dataworker.ru)**
 - 🔶 Frontend: Nginx → `/var/www/prod/dist/`
-- 🔶 Backend: PM2 → `cd server && node index.js` (порт 3001)
-- ⚠️ Nginx proxy: **ТРЕБУЕТСЯ НАСТРОЙКА** (см. ниже)
+- 🔶 Backend: PM2 → `tradeframe-prod-backend` (порт 3001)
+- ⚠️ Nginx proxy: должен проксировать `/api/*` на backend (см. ниже)
 - ⚠️ CORS: `ALLOWED_ORIGINS=https://prod.dataworker.ru`
 
 ---
@@ -77,7 +77,7 @@ sudo systemctl reload nginx      # Применить без перезапус�
 **Для Testing** (`.env.test` или `.env` на сервере):
 ```bash
 ALLOWED_ORIGINS=https://testtf.dataworker.ru,http://localhost:3000
-PORT=3002  # Или 3007, как указано в .env.test
+PORT=3002
 ```
 
 **Для Production** (`.env.production` или `.env` на сервере):
@@ -88,7 +88,8 @@ PORT=3001
 
 **ВАЖНО:** После изменения `.env` необходимо перезапустить backend:
 ```bash
-pm2 restart tradeframe-backend  # Или другое имя процесса
+pm2 restart tradeframe-test-backend  # Для testing
+pm2 restart tradeframe-prod-backend  # Для production
 ```
 
 ---
@@ -98,22 +99,27 @@ pm2 restart tradeframe-backend  # Или другое имя процесса
 **1. Проверить, что backend запущен:**
 ```bash
 pm2 list
-# Должен показать процесс с именем tradeframe-backend или похожим
+# Должен показать `tradeframe-test-backend` или `tradeframe-prod-backend`
 ```
 
 **2. Проверить health check:**
 ```bash
 curl http://localhost:3001/health  # Для production
-curl http://localhost:3002/health  # Для testing (если PORT=3002)
+curl http://localhost:3002/health  # Для testing
 ```
 
 **Ожидаемый ответ:**
 ```json
 {
   "status": "ok",
-  "timestamp": "2025-10-19T...",
+  "timestamp": "2026-03-28T...",
   "environment": "development",
-  "version": "1.0.0"
+  "version": "2.1.0",
+  "dataSource": "pg",
+  "postgres": {
+    "configured": true,
+    "connected": true
+  }
 }
 ```
 
@@ -135,6 +141,23 @@ curl https://prod.dataworker.ru/api/healthz    # Для production
 
 ---
 
+### Шаг 5: Проверка post-deploy smoke
+
+После деплоя GitHub Actions должен пройти:
+
+- `Verify deployment`
+- `Authenticated smoke test`
+
+Smoke-проверка бьёт по:
+
+- `GET /api/auth/me`
+- `GET /api/support/unread`
+- `GET /api/legal/document-types`
+- `GET /api/messages?limit=1`
+- `GET /api/sts/v2/info`
+
+---
+
 ## 🐛 Troubleshooting
 
 ### Проблема: "502 Bad Gateway" при обращении к /api/
@@ -145,14 +168,14 @@ curl https://prod.dataworker.ru/api/healthz    # Для production
 ```bash
 # 1. Проверить backend
 pm2 list
-pm2 logs tradeframe-backend  # Посмотреть логи
+pm2 logs tradeframe-test-backend  # или tradeframe-prod-backend
 
 # 2. Проверить порт
 netstat -tlnp | grep 3001  # Или 3002/3007
 
 # 3. Если не запущен - запустить
 cd /var/www/testtf/server  # Или /var/www/prod/server
-pm2 start index.js --name tradeframe-backend
+pm2 start index.js --name tradeframe-test-backend
 ```
 
 ---
@@ -173,7 +196,7 @@ nano /var/www/testtf/.env  # Или /var/www/prod/.env
 ALLOWED_ORIGINS=https://testtf.dataworker.ru
 
 # 3. Перезапустить backend
-pm2 restart tradeframe-backend
+pm2 restart tradeframe-test-backend  # или tradeframe-prod-backend
 ```
 
 ---
@@ -197,6 +220,7 @@ pm2 restart tradeframe-backend
 - [ ] Nginx конфигурация содержит `location /api/` блок
 - [ ] `.env` содержит правильный `ALLOWED_ORIGINS`
 - [ ] Health check доступен: `curl https://[domain]/api/healthz`
+- [ ] GitHub Actions шаги `Verify deployment` и `Authenticated smoke test` завершились зелёным
 - [ ] В браузере нет CORS ошибок
 - [ ] API запросы идут на `https://[domain]/api/...`, а не `localhost:3001`
 

@@ -4,14 +4,14 @@
 
 ## 🚀 Локальная разработка
 
-### Шаг 1: Запуск Backend Proxy (обязательно!)
+### Шаг 1: Запуск Backend API (обязательно!)
 
 ```bash
 cd server
 node index.js
 ```
 
-✅ **Проверка:** `http://localhost:3001/health` должен вернуть `OK`
+✅ **Проверка:** `http://localhost:3001/health` или `http://localhost:3001/api/healthz` должны вернуть JSON со статусом `ok`
 
 ### Шаг 2: Запуск Frontend
 
@@ -42,9 +42,10 @@ git push test main
 
 **Результат:**
 - ✅ GitHub Actions соберет проект
-- ✅ Деплой на https://electro-interfaces.github.io/tradeframe-builder/
+- ✅ Деплой на https://testtf.dataworker.ru/
 - ✅ Service Worker активируется
 - ✅ PWA работает полностью
+- ✅ Workflow проверит `site`, `/api/healthz` и авторизованный smoke
 
 **Для тестировщиков:**
 - Тестируйте на реальном URL
@@ -73,7 +74,7 @@ git push prod main
 git remote -v
 
 # Должно быть:
-# test → tradeframe-builder (GitHub Pages)
+# test → Electro-Interfaces/tradeframe-builder
 # prod → TradeControl (Production)
 ```
 
@@ -81,7 +82,7 @@ git remote -v
 
 | Параметр | Development | Test | Production |
 |----------|-------------|------|------------|
-| URL | localhost:3000 | electro-interfaces.github.io | prod.dataworker.ru |
+| URL | localhost:3000 | testtf.dataworker.ru | prod.dataworker.ru |
 | Service Worker | ❌ | ✅ | ✅ |
 | PWA | ❌ | ✅ | ✅ |
 | HMR | ✅ | ❌ | ❌ |
@@ -98,8 +99,8 @@ npm run build:prod          # Сборка для PRODUCTION
 npm run preview             # Предпросмотр сборки
 
 # Backend
-cd server && node index.js  # Запуск backend proxy
-curl http://localhost:3001/health  # Проверка backend
+cd server && node index.js  # Запуск backend API
+curl http://localhost:3001/api/healthz  # Проверка backend
 
 # Git
 git push test main          # Деплой на TEST
@@ -122,7 +123,7 @@ git push prod main          # Деплой на PRODUCTION
 **Решение:**
 ```bash
 # Проверьте что backend запущен
-curl http://localhost:3001/health
+curl http://localhost:3001/api/healthz
 
 # Если не работает:
 cd server

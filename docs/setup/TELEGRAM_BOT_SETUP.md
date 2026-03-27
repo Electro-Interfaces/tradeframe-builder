@@ -317,8 +317,8 @@ WHERE telegram_verified = true;
 
 ## 📚 Связанные файлы
 
-- `server/routes/telegram.js` - Основная логика бота
-- `server/routes/notifications.js` - Интеграция отправки
+- `server/routes/telegramRuntime.js` - API и runtime-логика Telegram
+- `server/telegram-bot-runtime.js` - polling-бот и отправка уведомлений
 - `server/db/migrations/060_notifications.sql` - Миграция БД для уведомлений и Telegram link codes
 - `src/services/notificationService.ts` - Frontend API
 - `src/pages/UserNotificationSettings.tsx` - UI настроек

@@ -84,10 +84,10 @@ INSERT INTO tank_calibration_settings (
 
 ```
 D:\Users\magsp\ELSYPLUS\TradeControl\
-├── database/migrations/
-│   ├── create_tank_calibration_settings_full.sql    ← Применить это!
-│   ├── alter_tank_calibration_settings_add_missing_fields.sql
-│   └── README.md
+├── server/db/migrations/
+│   ├── 030_equipment.sql
+│   ├── 100_tank_calibration_tables.sql
+│   └── ...
 ├── docs/
 │   └── TANK_CALIBRATION_MIGRATION.md                ← Полная документация
 ├── src/
@@ -165,7 +165,7 @@ const updated = await saveCalibrationSettings({
 
 ## ✅ Проверка работы
 
-### 1. Проверка таблицы в Supabase
+### 1. Проверка таблицы в PostgreSQL
 ```sql
 SELECT * FROM tank_calibration_settings LIMIT 1;
 ```
@@ -186,13 +186,13 @@ curl http://localhost:3001/api/tank-calibration/tank_1
 
 - **Полная документация миграции:** `docs/TANK_CALIBRATION_MIGRATION.md`
 - **TypeScript типы:** `src/types/tanks.ts` (строки 376-537)
-- **SQL миграции:** `database/migrations/README.md`
+- **SQL миграции:** `server/db/migrations/`
 - **Backend API:** `server/routes/tankCalibration.js`
 
 ## ❓ Частые вопросы
 
 **Q: Таблица уже существует, но не хватает полей?**
-A: Используйте `alter_tank_calibration_settings_add_missing_fields.sql`
+A: Проверьте, что применены актуальные backend миграции из `server/db/migrations/`
 
 **Q: Нужно ли останавливать backend при применении миграции?**
 A: Рекомендуется, но не обязательно (миграция использует IF NOT EXISTS)

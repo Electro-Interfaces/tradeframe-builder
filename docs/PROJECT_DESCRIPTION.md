@@ -56,8 +56,8 @@
 │  server/routes/sts.js         — STS API прокси (JWT)         │
 │  server/routes/msto.js        — MSTO API прокси              │
 │  server/routes/tradecorp.js   — TradeCorp API прокси         │
-│  server/routes/telegram.js    — Telegram уведомления API     │
-│  server/routes/messages.js    — Broadcast сообщения API      │
+│  server/routes/telegramRuntime.js — Telegram уведомления API │
+│  server/routes/messagesRuntime.js — Broadcast сообщения API  │
 │  server/routes/tankCalibration.js — Калибровка резервуаров   │
 │  server/telegram-bot-runtime.js  — Telegram Bot (polling)   │
 │  server/services/             — Движок уведомлений, cron     │
@@ -210,8 +210,8 @@ TradeControl/
 │   │   ├── sts.js                    # STS API прокси (JWT)
 │   │   ├── msto.js                   # MSTO API прокси
 │   │   ├── tradecorp.js              # TradeCorp API прокси
-│   │   ├── telegram.js               # Telegram уведомления
-│   │   ├── messages.js               # Broadcast сообщения
+│   │   ├── telegramRuntime.js        # Telegram уведомления
+│   │   ├── messagesRuntime.js        # Broadcast сообщения
 │   │   ├── stsProxyService.js        # STS API прокси (кэш, токены)
 │   │   └── tankCalibration.js        # Калибровка резервуаров
 │   ├── services/
@@ -229,7 +229,7 @@ TradeControl/
 │   ├── favicon.ico                   # Favicon
 │   └── manifest.json                 # PWA манифест
 │
-├── database/migrations/              # SQL миграции (6 файлов)
+├── server/db/migrations/             # SQL миграции PostgreSQL (15 файлов)
 ├── scripts/                          # Скрипты разработки (40+)
 ├── tools/                            # Утилиты БД и отладки (35+)
 ├── docs/                             # Документация (14 файлов)
@@ -257,7 +257,7 @@ TradeControl/
 | TypeScript типов | 25 файлов |
 | Backend маршрутов | 7 файлов |
 | SQL миграций | 6 файлов |
-| GitHub Actions workflows | 2 |
+| GitHub Actions workflows | 3 |
 
 ---
 
@@ -466,7 +466,7 @@ TradeControl/
 - Настройки сетей/станций — JSONB в `tenants.settings`
 - Внешние коды станций — `settings.stations[].external_codes[]`
 - Backend работает напрямую с PostgreSQL через `pg`
-- Frontend использует ANON_KEY с JWT токенами пользователей
+- Frontend не имеет прямого доступа к БД и работает только через backend API
 
 ---
 
@@ -513,9 +513,9 @@ TradeControl/
 
 ### 8.6. PostgreSQL
 
-- **Назначение:** PostgreSQL БД + аутентификация + RLS
+- **Назначение:** основная БД приложения, аутентификация и доменные данные
 - **Клиент:** `pg` (node-postgres)
-- **Доступ:** REST API + Realtime подписки
+- **Доступ:** только через backend API и внутренние сервисы Express
 
 ---
 
@@ -706,13 +706,14 @@ error        — Красный (hsl 0 84% 60%)
 - **Триггер:** push на `main`
 - **Сервер:** prod.dataworker.ru
 - **Процесс:**
-  1. `npm ci` + `npm run build:prod`
-  2. Создание `.env` из GitHub Secrets
-  3. Архивирование (dist/, server/, package.json)
-  4. SCP на сервер
-  5. `npm install` зависимостей на сервере
-  6. PM2 restart (`tradeframe-prod-frontend:8080`, `tradeframe-prod-backend:3001`)
-  7. Бэкап предыдущей версии
+  1. `npm ci` + `npm run check:repo-guards`
+  2. `npm run sync-version` + `npm run build:prod`
+  3. Создание `server/.env` из GitHub Secrets на сервере
+  4. Архивирование и SCP на сервер
+  5. `npm install --production` в `server/`
+  6. PM2 restart (`tradeframe-prod-frontend`, `tradeframe-prod-backend`)
+  7. Проверка `site` + `/api/healthz`
+  8. Авторизованный smoke: `auth/me`, `support/unread`, `legal/document-types`, `messages`, `sts/v2/info`
 
 ### 13.2. Deploy to TEST
 
@@ -722,7 +723,14 @@ error        — Красный (hsl 0 84% 60%)
 - **Процесс:** аналогичен PRODUCTION
 - **Отличия:** порт backend 3002, TEST Telegram бот
 
-### 13.3. Переменные окружения (GitHub Secrets)
+### 13.3. Smoke Check
+
+- **Workflow:** `.github/workflows/smoke-check.yml`
+- **TEST:** запускается по расписанию каждые 4 часа и вручную
+- **PRODUCTION:** запускается вручную
+- **Проверяет:** сайт, `/api/healthz`, `auth/me`, `support/unread`, `legal/document-types`, `messages`, `sts/v2/info`
+
+### 13.4. Переменные окружения (GitHub Secrets)
 
 | Категория | Переменные |
 |-----------|-----------|
@@ -904,7 +912,7 @@ cd server && node index.js
 npm run dev
 
 # 5. Проверка
-# Backend:  http://localhost:3001/health
+# Backend:  http://localhost:3001/health или http://localhost:3001/api/healthz
 # Frontend: http://127.0.0.1:3000/
 ```
 

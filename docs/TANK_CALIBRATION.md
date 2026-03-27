@@ -45,7 +45,7 @@
 
 **Таблица:** `tank_calibration_settings`
 
-**Миграция:** `database/migrations/create_tank_calibration_settings.sql`
+**Миграции:** `server/db/migrations/030_equipment.sql`, `server/db/migrations/100_tank_calibration_tables.sql`
 
 **Структура:**
 - Погрешности оборудования (dispensers_error_*, level_sensor_error_*)
@@ -204,9 +204,19 @@ POST /api/tank-calibration/:tankId/run
 }
 ```
 
-## Установка таблицы в Supabase
+## Установка таблиц в PostgreSQL
 
-Выполните SQL скрипт из файла `database/migrations/create_tank_calibration_settings.sql` в Supabase SQL Editor:
+Примените backend миграции:
+
+```bash
+cd server
+node db/migrate.js
+```
+
+Ключевые миграции для калибровки:
+
+- `server/db/migrations/030_equipment.sql`
+- `server/db/migrations/100_tank_calibration_tables.sql`
 
 ```sql
 -- Создание таблицы

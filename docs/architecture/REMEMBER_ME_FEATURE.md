@@ -205,7 +205,7 @@ git commit -m "feat: добавлена функция 'Запомнить ме�
 git push test main
 
 # 3. Открыть на мобильном:
-https://electro-interfaces.github.io/tradeframe-builder/
+https://testtf.dataworker.ru/
 
 # 4. Установить PWA
 # 5. Войти с "Запомнить меня"

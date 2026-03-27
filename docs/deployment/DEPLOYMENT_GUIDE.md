@@ -43,11 +43,7 @@
 
 ### Для репозитория `TradeControl` (PRODUCTION)
 
-Добавьте те же секреты + дополнительно:
-
-| Secret Name | Описание |
-|------------|----------|
-| `SSH_PRIVATE_KEY_PROD` | Отдельный SSH ключ для production (для безопасности) |
+Добавьте тот же набор секретов. В текущих workflow используется тот же `SSH_PRIVATE_KEY`, отдельный `SSH_PRIVATE_KEY_PROD` не требуется.
 
 ---
 
@@ -97,67 +93,29 @@ cat ~/.ssh/github_deploy_key
 
 ## 📝 Процесс разработки и деплоя
 
-### Вариант 1: Разработка в TEST репозитории
+### Рекомендуемый рабочий поток
 
 ```bash
-# 1. Клонируем TEST репозиторий
-git clone https://github.com/Electro-Interfaces/tradeframe-builder.git
-cd tradeframe-builder
-
-# 2. Создаем feature ветку
-git checkout -b feature/new-functionality
-
-# 3. Разработка
-# ... делаем изменения ...
-
-# 4. Коммитим и пушим
+# 1. Работаем в локальном checkout
 git add .
-git commit -m "feat: добавлена новая функциональность"
-git push origin feature/new-functionality
+git commit -m "feat: описание изменений"
 
-# 5. Создаем Pull Request на GitHub
-# Review → Approve → Merge to main
+# 2. Сначала выкатываем в TEST
+git push test main
 
-# 6. После merge в main - автоматический деплой на TEST
-# Проверяем: https://testtf.dataworker.ru
-
-# 7. Если все протестировано - синхронизируем с PROD
-./sync-repos.sh test-to-prod
-
-# 8. В PROD репозитории делаем merge → автоматический деплой на PROD
+# 3. После зелёного test-деплоя и smoke выкатываем в PROD
+git push prod main
 ```
 
-### Вариант 2: Ручной деплой (если нужно)
+### Вспомогательные shell-скрипты
+
+Если нужен запуск через shell-скрипты, используйте актуальные пути:
 
 ```bash
-# TEST
-./deploy-to-test.sh
-
-# PRODUCTION (с подтверждением)
-./deploy-to-prod.sh
-```
-
----
-
-## 🔄 Синхронизация между TEST и PROD
-
-### Синхронизация TEST → PROD (после тестирования):
-
-```bash
-./sync-repos.sh test-to-prod
-```
-
-Это создаст sync ветку в PROD репозитории. Затем:
-
-1. Перейдите в GitHub репозиторий `TradeControl`
-2. Создайте Pull Request из sync ветки в main
-3. Review изменений
-4. Merge → автоматический деплой на PROD
-
-### Синхронизация PROD → TEST (hotfix в продакшене):
-
-```bash
-./sync-repos.sh prod-to-test
+scripts/deploy/deploy-to-test.sh
+scripts/deploy/deploy-to-prod.sh
+scripts/deploy/sync-repos.sh test-to-prod
+scripts/deploy/sync-repos.sh prod-to-test
 ```
 
 ---
@@ -172,22 +130,21 @@ git push origin feature/new-functionality
 
 **Процесс:**
 1. ✅ Checkout кода
-2. ✅ Setup Node.js 20
+2. ✅ Setup Node.js 22
 3. ✅ Установка зависимостей (`npm ci`)
-4. ✅ Синхронизация версии (`npm run sync-version`)
-5. ✅ Сборка для TEST (`npm run build:prod`)
-6. ✅ Создание архива dist.tar.gz
-7. ✅ Загрузка архива на сервер (`appleboy/scp-action`)
-8. ✅ Создание бэкапа на сервере
-9. ✅ Распаковка новой версии
-10. ✅ git pull на сервере
-11. ✅ Установка backend зависимостей
-12. ✅ Перезапуск PM2 процессов
-13. ✅ Проверка доступности сайта (HTTP 200)
+4. ✅ Repository guards (`npm run check:repo-guards`)
+5. ✅ Синхронизация версии (`npm run sync-version`)
+6. ✅ Сборка для TEST (`npm run build:prod`)
+7. ✅ Создание архива `deployment.tar.gz`
+8. ✅ Генерация `server/.env` из GitHub Secrets на сервере
+9. ✅ Установка backend зависимостей (`npm install --production`)
+10. ✅ Перезапуск PM2 процессов
+11. ✅ Проверка `site` + `/api/healthz`
+12. ✅ Авторизованный smoke: `auth/me`, `support/unread`, `legal/document-types`, `messages`, `sts/v2/info`
 
 **GitHub Actions используются:**
-- `actions/checkout@v4` - клонирование репозитория
-- `actions/setup-node@v4` - установка Node.js
+- `actions/checkout@v6` - клонирование репозитория
+- `actions/setup-node@v6` - установка Node.js
 - `appleboy/scp-action@v0.1.7` - копирование файлов по SCP
 - `appleboy/ssh-action@v1.0.3` - выполнение команд по SSH
 
@@ -199,11 +156,21 @@ git push origin feature/new-functionality
 
 **Процесс:**
 - Аналогично TEST, но с:
-  - Отдельным SSH ключом (`SSH_PRIVATE_KEY_PROD`)
-  - Environment protection (можно настроить manual approval)
-  - Автоматическое создание git tag с версией после успешного деплоя
+  - Production URL `https://prod.dataworker.ru`
   - Увеличенный timeout для проверки (10 сек вместо 5)
-  - Бэкап включает также server/ и .env файлы
+  - Тем же авторизованным smoke после деплоя
+
+### `.github/workflows/smoke-check.yml`
+
+**Назначение:**
+- отдельная smoke-проверка без деплоя
+- TEST: по расписанию каждые 4 часа и вручную
+- PRODUCTION: вручную
+
+**Что проверяет:**
+- публичный сайт
+- `/api/healthz`
+- авторизованный smoke: `auth/me`, `support/unread`, `legal/document-types`, `messages`, `sts/v2/info`
 
 ---
 
@@ -256,7 +223,7 @@ tail -f /var/log/nginx/error.log
 
 ### Автоматический rollback через бэкап:
 
-Каждый деплой создает бэкап в `/tmp/backups/`. Для отката:
+Каждый деплой создает бэкап в `/var/backups/tradeframe/`. Для отката:
 
 ```bash
 # Подключаемся к серверу
@@ -266,10 +233,10 @@ ssh root@194.135.36.195
 cd /var/www/www-root/data/www/prod.dataworker.ru  # или testTF.dataworker.ru
 
 # Смотрим доступные бэкапы
-ls -lh /tmp/backups/
+ls -lh /var/backups/tradeframe/
 
 # Восстанавливаем бэкап (пример)
-tar -xzf /tmp/backups/prod-backup-20251017_235900.tar.gz
+tar -xzf /var/backups/tradeframe/prod-backup-20251017_235900.tar.gz
 
 # Перезапускаем PM2
 pm2 restart tradeframe-prod-frontend tradeframe-prod-backend
@@ -277,13 +244,13 @@ pm2 restart tradeframe-prod-frontend tradeframe-prod-backend
 
 ### Rollback через Git:
 
+Безопаснее откатывать не `git reset --hard` на сервере, а повторным деплоем известного хорошего коммита:
+
 ```bash
-# На сервере
-cd /var/www/www-root/data/www/prod.dataworker.ru
-git log --oneline  # Смотрим историю коммитов
-git reset --hard <commit-hash>  # Откатываемся на нужный коммит
-npm run build:prod
-pm2 restart tradeframe-prod-frontend tradeframe-prod-backend
+# Локально
+git log --oneline
+git revert <bad-commit>
+git push prod main
 ```
 
 ---
@@ -308,7 +275,7 @@ ssh -i ~/.ssh/github_deploy_key root@194.135.36.195 "ls -la /var/www/www-root/da
 
 ```bash
 # Сначала запустите существующие скрипты
-./deploy-to-test.sh
+scripts/deploy/deploy-to-test.sh
 
 # Убедитесь что все работает
 curl -I https://testtf.dataworker.ru
@@ -325,7 +292,7 @@ ssh root@194.135.36.195 "cat /var/www/www-root/data/www/testTF.dataworker.ru/ser
 
 ## ⚠️ Важные замечания
 
-1. **Бэкапы**: Автоматически создаются в `/tmp/backups/`, но `/tmp` может очищаться при перезагрузке. Для долгосрочного хранения настройте копирование в другую директорию.
+1. **Бэкапы**: Автоматически создаются в `/var/backups/tradeframe/`. Следите за местом на диске и политикой хранения.
 
 2. **SSL сертификаты**: Certbot автоматически обновляет сертификаты Let's Encrypt. Проверьте настройку:
    ```bash
@@ -339,7 +306,7 @@ ssh root@194.135.36.195 "cat /var/www/www-root/data/www/testTF.dataworker.ru/ser
    pm2 save
    ```
 
-4. **Node версия**: На сервере должна быть установлена Node.js >= 20:
+4. **Node версия**: GitHub Actions используют Node.js 22. На сервере желательно держать актуальный LTS:
    ```bash
    node --version  # должен быть >= v20.0.0
    ```
@@ -347,7 +314,7 @@ ssh root@194.135.36.195 "cat /var/www/www-root/data/www/testTF.dataworker.ru/ser
 5. **Disk space**: Регулярно проверяйте место на диске:
    ```bash
    df -h
-   du -sh /tmp/backups/*
+   du -sh /var/backups/tradeframe/*
    ```
 
 ---
