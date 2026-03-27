@@ -1,0 +1,310 @@
+/**
+ * STS Proxy Service — управление соединением, кэшем и токенами для STS API (poscontrol).
+ * Извлечён из routes/sts.js для разделения бизнес-логики и роутинга.
+ */
+
+const axios = require('axios');
+const NodeCache = require('node-cache');
+
+// ─── Кэш ───────────────────────────────────────────────
+
+const cache = new NodeCache({
+  stdTTL: 120,
+  checkperiod: 60,
+  useClones: false,
+});
+
+const CACHE_TTL = {
+  '/v1/tanks': 120,
+  '/v2/info': 60,
+  '/v1/pos/prices': 300,
+  '/v1/schedule/prices': 300,
+  '/v1/transactions': 180,
+  '/v2/transactions': 300,
+  '/v1/coupons': 0,
+  '/v1/coupons_manual': 0,
+  '/v1/shifts': 300,
+  '/v1/report/shift_report': 7200,
+  '/v1/report/receipts': 300,
+  '/v1/tank_history': 300,
+  'default': 60,
+};
+
+let cacheStats = { hits: 0, misses: 0, lastReset: Date.now() };
+
+const CACHE_INVALIDATION_MAP = {
+  '/v1/prices': ['/v1/pos/prices', '/v1/schedule/prices', '/v1/prices'],
+  '/v1/control/restart': ['/v2/info', '/v1/info'],
+  '/v1/control/shift_open': ['/v2/info', '/v1/info', '/v1/shifts'],
+  '/v1/control/shift_close': ['/v2/info', '/v1/info', '/v1/shifts'],
+  '/v1/control/coupon': ['/v1/coupons', '/v1/coupons_manual'],
+};
+
+function generateCacheKey(urlPath, queryParams) {
+  const sortedParams = Object.keys(queryParams || {})
+    .sort()
+    .map((key) => `${key}=${queryParams[key]}`)
+    .join('&');
+  return `${urlPath}?${sortedParams}`;
+}
+
+function getTTL(urlPath) {
+  if (CACHE_TTL[urlPath]) return CACHE_TTL[urlPath];
+  for (const [pattern, ttl] of Object.entries(CACHE_TTL)) {
+    if (urlPath.startsWith(pattern)) return ttl;
+  }
+  return CACHE_TTL.default;
+}
+
+function invalidateCache(urlPath) {
+  const prefixes = CACHE_INVALIDATION_MAP[urlPath];
+  if (!prefixes) return 0;
+
+  let deleted = 0;
+  for (const key of cache.keys()) {
+    if (prefixes.some((prefix) => key.startsWith(prefix))) {
+      cache.del(key);
+      deleted++;
+    }
+  }
+  if (deleted > 0) {
+    console.log(`[STS Cache] Invalidated ${deleted} keys after POST ${urlPath}`);
+  }
+  return deleted;
+}
+
+function getCacheStats() {
+  const stats = cache.getStats();
+  const uptime = Date.now() - cacheStats.lastReset;
+  const total = cacheStats.hits + cacheStats.misses;
+  const hitRate = total > 0 ? ((cacheStats.hits / total) * 100).toFixed(2) : 0;
+  return {
+    cache: { keys: stats.keys, hits: cacheStats.hits, misses: cacheStats.misses, hitRate: `${hitRate}%`, uptime: `${Math.round(uptime / 1000)}s` },
+    ttl: CACHE_TTL,
+  };
+}
+
+function clearCache() {
+  const old = { ...cacheStats };
+  cache.flushAll();
+  cacheStats = { hits: 0, misses: 0, lastReset: Date.now() };
+  return old;
+}
+
+// ─── STS Client & Token ────────────────────────────────
+
+let stsClient = null;
+let jwtToken = null;
+let tokenExpiry = null;
+let tokenRefreshPromise = null;
+let currentUser = null;
+let tokenUserId = null;
+
+const inflightRequests = new Map();
+
+function updateCurrentUser(req) {
+  const userId = req?.headers?.['x-user-id'];
+  const userName = req?.headers?.['x-user-name'];
+  if (userId || userName) {
+    currentUser = {
+      id: userId || process.env.STS_USER_ID || '00000000-0000-0000-0000-000000000000',
+      name: userName ? decodeURIComponent(userName) : (process.env.STS_USER_NAME || 'System'),
+    };
+  } else if (!currentUser) {
+    currentUser = {
+      id: process.env.STS_USER_ID || '00000000-0000-0000-0000-000000000000',
+      name: process.env.STS_USER_NAME || 'System',
+    };
+  }
+}
+
+function isUserChanged(req) {
+  const userId = req?.headers?.['x-user-id'];
+  if (!userId) return false;
+  return userId !== tokenUserId;
+}
+
+async function refreshJwtToken(req) {
+  const STS_API_USERNAME = process.env.STS_API_USERNAME;
+  const STS_API_PASSWORD = process.env.STS_API_PASSWORD;
+
+  updateCurrentUser(req);
+
+  try {
+    const loginClient = axios.create({
+      baseURL: process.env.STS_API_URL,
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000,
+    });
+
+    const defaultUser = { id: '00000000-0000-0000-0000-000000000000', name: 'System' };
+    const loginBody = {
+      login: STS_API_USERNAME,
+      password: STS_API_PASSWORD,
+      user: (currentUser && currentUser.id !== '0') ? currentUser : defaultUser,
+    };
+    const response = await loginClient.post('/v2/login', loginBody);
+    const rawToken = response.data;
+    jwtToken = typeof rawToken === 'string' ? rawToken.replace(/"/g, '') : rawToken;
+    tokenExpiry = Date.now() + (18 * 60 * 1000);
+    tokenUserId = currentUser?.id || null;
+    stsClient.defaults.headers['Authorization'] = `Bearer ${jwtToken}`;
+  } catch (error) {
+    console.error('[STS Proxy] Failed to refresh JWT token:', error.message);
+    throw new Error('Failed to authenticate with STS API');
+  }
+}
+
+async function getStsClient(req) {
+  if (!stsClient) {
+    const { STS_API_URL, STS_API_USERNAME, STS_API_PASSWORD } = process.env;
+    if (!STS_API_URL || !STS_API_USERNAME || !STS_API_PASSWORD) {
+      throw new Error('Missing required STS API environment variables: STS_API_URL, STS_API_USERNAME, STS_API_PASSWORD');
+    }
+    stsClient = axios.create({
+      baseURL: STS_API_URL,
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 95000,
+    });
+  }
+
+  const needsRefresh = !jwtToken || (tokenExpiry && Date.now() >= tokenExpiry) || isUserChanged(req);
+  if (needsRefresh) {
+    if (tokenRefreshPromise) {
+      await tokenRefreshPromise;
+    } else {
+      tokenRefreshPromise = refreshJwtToken(req).finally(() => { tokenRefreshPromise = null; });
+      await tokenRefreshPromise;
+    }
+  }
+
+  return stsClient;
+}
+
+// ─── Proxy Request ─────────────────────────────────────
+
+async function proxyRequest(req, res) {
+  try {
+    const { method, query, body } = req;
+    const urlPath = req.path;
+    const cacheKey = generateCacheKey(urlPath, query);
+
+    // Cache check (GET only)
+    if (method === 'GET') {
+      const cachedData = cache.get(cacheKey);
+      if (cachedData !== undefined) {
+        cacheStats.hits++;
+        return res.status(200).json(cachedData);
+      }
+      cacheStats.misses++;
+    }
+
+    // Request dedup (GET only)
+    if (method === 'GET' && inflightRequests.has(cacheKey)) {
+      try {
+        const result = await inflightRequests.get(cacheKey);
+        return res.status(200).json(result);
+      } catch { /* in-flight failed, try own */ }
+    }
+
+    // Normalize dates
+    const normalizedQuery = { ...query };
+    if (normalizedQuery.dt_beg && /^\d{4}-\d{2}-\d{2}$/.test(normalizedQuery.dt_beg)) {
+      normalizedQuery.dt_beg += ' 00:00:00';
+    }
+    if (normalizedQuery.dt_end && /^\d{4}-\d{2}-\d{2}$/.test(normalizedQuery.dt_end)) {
+      normalizedQuery.dt_end += ' 23:59:59';
+    }
+
+    const requestConfig = {
+      method,
+      url: urlPath,
+      params: normalizedQuery,
+      ...(method !== 'GET' && method !== 'HEAD' && { data: body }),
+    };
+
+    updateCurrentUser(req);
+
+    const fetchPromise = (async () => {
+      const client = await getStsClient(req);
+      const response = await client.request(requestConfig);
+      return { data: response.data, status: response.status };
+    })();
+
+    if (method === 'GET') {
+      const dedupePromise = fetchPromise.then((r) => r.data).catch(() => {});
+      inflightRequests.set(cacheKey, dedupePromise);
+    }
+
+    try {
+      const response = await fetchPromise;
+
+      if (method === 'GET' && response.status === 200) {
+        cache.set(cacheKey, response.data, getTTL(urlPath));
+      }
+
+      if (method === 'POST' && response.status >= 200 && response.status < 300) {
+        invalidateCache(urlPath);
+      }
+
+      if (method !== 'GET') {
+        const elapsed = Date.now() - (req.startTime || Date.now());
+        console.log(`[STS Proxy] ${method} ${urlPath} → ${response.status} (${elapsed}ms)`);
+      }
+
+      res.status(response.status).json(response.data);
+    } finally {
+      inflightRequests.delete(cacheKey);
+    }
+  } catch (error) {
+    const elapsed = Date.now() - (req.startTime || Date.now());
+    console.error(`[STS Proxy Error] ${req.method} ${req.path} (${elapsed}ms): ${error.message}`);
+    if (error.response) {
+      console.error('[STS Proxy Error] Response data:', error.response.data);
+      console.error('[STS Proxy Error] Request params:', req.query);
+    }
+
+    if (error.response) {
+      res.status(error.response.status).json({
+        error: 'STS API Error',
+        message: error.response.data?.message || error.message,
+        details: error.response.data,
+      });
+    } else if (error.request) {
+      res.status(503).json({ error: 'Service Unavailable', message: 'STS API did not respond' });
+    } else {
+      res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
+}
+
+// ─── Internal request (for server-side aggregation) ────
+
+async function stsInternalRequest(urlPath, params, userHeaders) {
+  const cacheKey = generateCacheKey(urlPath, params);
+  const cached = cache.get(cacheKey);
+  if (cached !== undefined) {
+    cacheStats.hits++;
+    return cached;
+  }
+  cacheStats.misses++;
+
+  const fakeReq = { headers: userHeaders || {} };
+  const client = await getStsClient(fakeReq);
+  const response = await client.request({ method: 'GET', url: urlPath, params });
+  cache.set(cacheKey, response.data, getTTL(urlPath));
+  return response.data;
+}
+
+// ─── Exports ───────────────────────────────────────────
+
+module.exports = {
+  getStsClient,
+  proxyRequest,
+  stsInternalRequest,
+  updateCurrentUser,
+  getCacheStats,
+  clearCache,
+  invalidateCache,
+  get jwtToken() { return jwtToken; },
+};
