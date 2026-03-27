@@ -4,7 +4,7 @@
 **TradeControl Builder** — платформа управления торговыми сетями АЗС.
 - **Frontend:** Vite + React 18 + TypeScript
 - **Backend:** Express.js (server/)
-- **Database:** Supabase (PostgreSQL)
+- **Database:** PostgreSQL (pg)
 - **UI:** Tailwind CSS + shadcn/ui (Radix)
 
 ## Project Structure

@@ -131,7 +131,7 @@ Frontend (React)
 | Axios | 1.6.2 | HTTP-клиент (STS API) |
 | CORS | 2.8.5 | CORS middleware |
 | dotenv | 16.3.1 | Переменные окружения |
-| @supabase/supabase-js | 2.39.0 | Supabase клиент |
+| pg | 8.x | PostgreSQL клиент |
 | node-telegram-bot-api | 0.66.0 | Telegram Bot |
 | node-cron | 3.0.3 | Планировщик задач |
 | nodemailer | 6.9.7 | Отправка email |
@@ -141,7 +141,7 @@ Frontend (React)
 
 | Технология | Назначение |
 |------------|-----------|
-| Supabase (PostgreSQL) | База данных + аутентификация |
+| PostgreSQL (pg) | База данных + аутентификация (JWT) |
 | GitHub Actions | CI/CD (автодеплой) |
 | PM2 | Менеджер процессов (prod/test) |
 | Nginx | Обратный прокси (prod/test) |
@@ -181,7 +181,7 @@ TradeControl/
 │   │   ├── stsProxyClient.ts         #   STS API клиент
 │   │   ├── mstoProxyClient.ts        #   MSTO API клиент
 │   │   ├── tradecorpProxyClient.ts   #   TradeCorp API клиент
-│   │   ├── supabaseClient.ts         #   Supabase клиент
+│   │   ├── apiClient.ts              #   Единый HTTP-клиент для backend API
 │   │   ├── operationsService.ts      #   Операции/транзакции
 │   │   ├── pricesService.ts          #   Цены
 │   │   ├── tanksService.ts           #   Резервуары
@@ -201,7 +201,7 @@ TradeControl/
 │   ├── types/                        # 25 файлов TypeScript типов
 │   ├── contexts/                     # 3 React контекста
 │   ├── config/                       # Конфигурация (version.ts)
-│   └── lib/                          # Утилиты (cn, Supabase factory)
+│   └── lib/                          # Утилиты (cn, React Query)
 │
 ├── server/                           # Backend Proxy (Express.js)
 │   ├── index.js                      # Главный сервер (запуск Bot + Cron)
@@ -212,7 +212,7 @@ TradeControl/
 │   │   ├── tradecorp.js              # TradeCorp API прокси
 │   │   ├── telegram.js               # Telegram уведомления
 │   │   ├── messages.js               # Broadcast сообщения
-│   │   ├── supabase.js               # Supabase прокси
+│   │   ├── stsProxyService.js        # STS API прокси (кэш, токены)
 │   │   └── tankCalibration.js        # Калибровка резервуаров
 │   ├── services/
 │   │   ├── notificationEngine.js     # Ядро проверок и отправки
@@ -407,12 +407,12 @@ TradeControl/
 | Метод | Endpoint | Описание |
 |-------|----------|----------|
 | GET | `/health` | Health check сервера |
-| ALL | `/api/supabase/*` | Прокси к Supabase |
+| GET | `/api/equipment-templates` | Шаблоны оборудования |
 | GET/POST/DELETE | `/api/tank-calibration/*` | Калибровка резервуаров |
 
 ---
 
-## 7. База данных (Supabase / PostgreSQL)
+## 7. База данных (PostgreSQL)
 
 ### 7.1. Основные таблицы
 
@@ -511,10 +511,10 @@ TradeControl/
 - **Назначение:** Уведомления и broadcast сообщения
 - **Конфигурация:** SMTP_HOST, SMTP_PORT, SMTP_USER в `server/.env`
 
-### 8.6. Supabase
+### 8.6. PostgreSQL
 
 - **Назначение:** PostgreSQL БД + аутентификация + RLS
-- **Клиент:** `@supabase/supabase-js`
+- **Клиент:** `pg` (node-postgres)
 - **Доступ:** REST API + Realtime подписки
 
 ---
@@ -726,7 +726,7 @@ error        — Красный (hsl 0 84% 60%)
 
 | Категория | Переменные |
 |-----------|-----------|
-| Supabase | VITE_SUPABASE_URL, VITE_SUPABASE_SERVICE_ROLE_KEY |
+| PostgreSQL | DATABASE_URL, JWT_SECRET |
 | STS API | VITE_STS_API_URL, VITE_STS_API_USERNAME, VITE_STS_API_PASSWORD |
 | MSTO | MSTO_API_URL, MSTO_USERNAME, MSTO_PASSWORD |
 | TradeCorp | TRADECORP_API_URL, TRADECORP_LOGIN, TRADECORP_PASSWORD, TRADECORP_EMITENT_ID |
@@ -770,8 +770,8 @@ error        — Красный (hsl 0 84% 60%)
 
 ### Аутентификация
 
-- **Провайдер:** Supabase Auth
-- **Хранение:** localStorage (auth_user, Supabase token)
+- **Провайдер:** Backend JWT (server/services/auth/)
+- **Хранение:** localStorage (auth_token)
 - **Сессия:** JWT с автоматическим обновлением
 - **Хэширование паролей:** SHA-256 (salt + password)
 

@@ -5,7 +5,7 @@
 ### 🔐 Аутентификация
 
 #### Система пользователей
-- **База данных**: Supabase PostgreSQL
+- **База данных**: PostgreSQL (pg)
 - **Таблицы**: `users`, `roles`, `user_roles` (**РЕАЛЬНЫЕ данные**, не демо)
 - **Схема ролей**: Иерархическая система доступа с реальными правами
 - **Важно**: Торговые сети, торговые точки, пользователи и роли НИКОГДА не используют mock данные
@@ -46,10 +46,10 @@ const token = `token_${btoa(JSON.stringify(payload))}_${timestamp}`
 
 ### 🌐 API Безопасность
 
-#### Внутренний API (Supabase)
+#### Внутренний API (PostgreSQL)
 - **Аутентификация**: Service Role Key
 - **HTTPS**: Обязательно
-- **Row Level Security**: Настроен в Supabase
+- **Row Level Security**: Реализован через middleware (auth, scopeFilter)
 - **Ограничения**: По ролям пользователей
 
 #### Внешний API (STS)
@@ -62,8 +62,8 @@ const token = `token_${btoa(JSON.stringify(payload))}_${timestamp}`
 
 #### Переменные окружения
 ```bash
-# Supabase (настраивается в коде)
-SUPABASE_URL=https://your-project.supabase.co
+# PostgreSQL
+DATABASE_URL=postgresql://user:password@host:5432/tradeframe
 SUPABASE_SERVICE_KEY=your-service-key
 
 # Внешний API STS
@@ -126,7 +126,7 @@ Frontend (React) → httpClients.ts → API Services
                 ↓
             localStorage/sessionStorage (токены)
                 ↓
-            Supabase (аутентификация)
+            PostgreSQL (аутентификация)
                 ↓
             External APIs (данные)
 ```
@@ -141,7 +141,7 @@ Frontend (React) → httpClients.ts → API Services
 
 #### При компрометации API ключей
 1. Обновить переменные окружения
-2. Пересоздать ключи в Supabase
+2. Пересоздать JWT_SECRET и DATABASE_URL credentials
 3. Уведомить администраторов
 4. Проверить активные сессии
 
