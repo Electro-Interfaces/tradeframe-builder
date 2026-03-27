@@ -1,38 +1,10 @@
 const express = require('express');
 
 const { requireAuth } = require('../middleware/auth');
+const { requireAdminAccess } = require('../middleware/requireAdmin');
 const adminDataSource = require('../services/admin/adminDataSource');
 
 const router = express.Router();
-
-function hasAdminAccess(user) {
-  const roleCodes = new Set([
-    user?.role,
-    ...(Array.isArray(user?.roles) ? user.roles.map((role) => role.roleCode) : []),
-  ].filter(Boolean));
-
-  if (['super_admin', 'system_admin', 'network_admin'].some((code) => roleCodes.has(code))) {
-    return true;
-  }
-
-  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
-  return permissions.some((permission) => {
-    const actions = Array.isArray(permission?.actions) ? permission.actions : [];
-    const canManage = actions.includes('manage') || actions.includes('write');
-
-    return canManage && (
-      (permission.section === 'admin' && ['users', 'roles'].includes(permission.resource))
-      || (permission.section === 'networks' && permission.resource === 'users')
-    );
-  });
-}
-
-function requireAdminAccess(req, res, next) {
-  if (!hasAdminAccess(req.user)) {
-    return res.status(403).json({ error: 'Недостаточно прав для управления пользователями' });
-  }
-
-  return next();
 }
 
 router.use(requireAuth, requireAdminAccess);

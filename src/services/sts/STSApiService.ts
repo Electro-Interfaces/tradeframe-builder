@@ -44,7 +44,15 @@ class STSApiService {
   private tokenRefreshPromise: Promise<boolean> | null = null; // Кэш промиса обновления токена
 
   constructor() {
-    this.loadConfig();
+    // Config не нужен на frontend — все запросы идут через backend proxy /api/sts/*
+    // Backend сам авторизуется в STS API
+    this.cleanupLegacyStorage();
+  }
+
+  private cleanupLegacyStorage(): void {
+    try {
+      localStorage.removeItem('sts-api-config');
+    } catch { /* ignore */ }
   }
 
   /**
@@ -104,35 +112,9 @@ class STSApiService {
     return servicesLoadPromise;
   }
 
+  /** @deprecated Legacy — конфигурация больше не нужна, всё через backend proxy */
   private loadConfig(): void {
-    try {
-      const savedConfig = localStorage.getItem('sts-api-config');
-      if (savedConfig) {
-        const parsedConfig = JSON.parse(savedConfig);
-        // Всегда обновляем конфигурацию из localStorage
-        this.config = parsedConfig;
-      } else {
-        // Если нет конфигурации в localStorage, пробуем загрузить из переменных окружения
-        const envUrl = import.meta.env.VITE_STS_API_URL;
-        const envUsername = import.meta.env.VITE_STS_API_USERNAME;
-        const envPassword = import.meta.env.VITE_STS_API_PASSWORD;
-
-        if (envUrl && envUsername && envPassword) {
-          this.config = {
-            url: envUrl,
-            username: envUsername,
-            password: envPassword,
-            enabled: true,
-            timeout: 30000,
-            retryAttempts: 3
-          };
-          // Сохраняем конфигурацию из env в localStorage для будущего использования
-          localStorage.setItem('sts-api-config', JSON.stringify(this.config));
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка загрузки конфигурации СТС API:', error);
-    }
+    // noop — backend proxy авторизуется сам
   }
 
   private async refreshTokenIfNeeded(forceRefresh = false): Promise<boolean> {
@@ -151,56 +133,9 @@ class STSApiService {
     return true;
   }
 
-  /**
-   * Выполняет фактическое обновление токена через /v1/login
-   */
+  /** @deprecated Legacy — токены обновляет backend proxy */
   private async performTokenRefresh(): Promise<boolean> {
-    if (!this.config) {
-      return false;
-    }
-
-    // Проверяем обязательные параметры
-    if (!this.config.username || !this.config.password) {
-      return false;
-    }
-
-    const now = Date.now();
-
-    try {
-      const response = await fetch(`${this.config.url}/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: this.config.username,
-          password: this.config.password
-        }),
-        signal: AbortSignal.timeout(this.config.timeout || 30000),
-      });
-
-      if (response.ok) {
-        const tokenResponse = await response.text();
-        const cleanToken = tokenResponse.replace(/"/g, '');
-        // Уменьшаем время жизни токена до 20 минут для более частого обновления
-        const newExpiry = Date.now() + (20 * 60 * 1000); // 20 минут вместо 24 часов
-
-        this.config.token = cleanToken;
-        this.config.tokenExpiry = newExpiry;
-
-        // Сохраняем обновленную конфигурацию
-        localStorage.setItem('sts-api-config', JSON.stringify(this.config));
-
-        return true;
-      } else {
-        const errorText = await response.text();
-        console.error(`🔍 STS API: Ошибка авторизации HTTP ${response.status}:`, errorText);
-        return false;
-      }
-    } catch (error) {
-      console.error('🔍 STS API: Исключение при обновлении токена:', error);
-      return false;
-    }
+    return true;
   }
 
   private async apiRequest<T>(endpoint: string, options: RequestInit = {}, contextParams?: {networkId?: string; tradingPointId?: string}, customTimeout?: number): Promise<T> {
@@ -608,20 +543,9 @@ class STSApiService {
     return this.config;
   }
 
-  /**
-   * Принудительно обновить токен
-   */
+  /** @deprecated Legacy — токены обновляет backend proxy */
   async forceRefreshToken(): Promise<boolean> {
-    this.loadConfig(); // Перезагружаем конфигурацию
-
-    if (this.config) {
-      // Очищаем старый токен
-      this.config.token = undefined;
-      this.config.tokenExpiry = undefined;
-      localStorage.setItem('sts-api-config', JSON.stringify(this.config));
-    }
-
-    return this.refreshTokenIfNeeded(true);
+    return true;
   }
 
   // ===========================================
