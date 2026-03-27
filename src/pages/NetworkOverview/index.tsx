@@ -21,7 +21,7 @@ import { AverageCheckTrend } from "@/components/charts/AverageCheckTrend";
 import { WeekdayPattern } from "@/components/charts/WeekdayPattern";
 import { CashlessShareTrend } from "@/components/charts/CashlessShareTrend";
 import { stsApiService } from "@/services/stsApi";
-import { todayString, daysAgoString } from "@/utils/dateUtils";
+import { todayString, monthsAgoString } from "@/utils/dateUtils";
 
 import { useNetworkOverviewData } from "./hooks/useNetworkOverviewData";
 import { useNetworkOverviewStats } from "./hooks/useNetworkOverviewStats";
@@ -344,7 +344,7 @@ export function NetworkOverview() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDateFrom(daysAgoString(14));
+                        setDateFrom(monthsAgoString(1));
                         setDateTo(todayString());
                       }}
                     >

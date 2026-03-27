@@ -4,7 +4,7 @@ import { useNewAuth } from "@/contexts/NewAuthContext";
 import { stsApiService } from "@/services/stsApi";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
-import { todayString, daysAgoString } from "@/utils/dateUtils";
+import { todayString, monthsAgoString } from "@/utils/dateUtils";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 
 export function useNetworkOverviewData() {
@@ -14,7 +14,7 @@ export function useNetworkOverviewData() {
   const { toast } = useToast();
 
   // Состояния фильтров (локальный часовой пояс)
-  const [dateFrom, setDateFrom] = useState(() => daysAgoString(14));
+  const [dateFrom, setDateFrom] = useState(() => monthsAgoString(1));
   const [dateTo, setDateTo] = useState(() => todayString());
   const [filtersOpen, setFiltersOpen] = useState(true);
 
