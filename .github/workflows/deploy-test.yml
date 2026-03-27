@@ -164,6 +164,17 @@ jobs:
             exit 1
           fi
 
+      - name: Authenticated smoke test
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /var/www/www-root/data/www/testTF.dataworker.ru
+            node server/scripts/postDeploySmoke.js --base-url=https://testtf.dataworker.ru
+
       - name: Notification
         if: always()
         run: |
