@@ -14,7 +14,7 @@ export function useNetworkOverviewData() {
   const { toast } = useToast();
 
   // Состояния фильтров (локальный часовой пояс)
-  const [dateFrom, setDateFrom] = useState(() => daysAgoString(3));
+  const [dateFrom, setDateFrom] = useState(() => daysAgoString(14));
   const [dateTo, setDateTo] = useState(() => todayString());
   const [filtersOpen, setFiltersOpen] = useState(true);
 

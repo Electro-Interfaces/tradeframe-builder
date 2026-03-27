@@ -344,7 +344,7 @@ export function NetworkOverview() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDateFrom(daysAgoString(3));
+                        setDateFrom(daysAgoString(14));
                         setDateTo(todayString());
                       }}
                     >

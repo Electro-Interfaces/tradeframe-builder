@@ -966,34 +966,74 @@ class STSApiService {
         return mappedTransactions;
       }
 
-      if (params.toString()) {
-        endpoint += `?${params.toString()}`;
+      // STS API падает на периодах > 5 дней — разбиваем на чанки
+      const MAX_CHUNK_DAYS = 5;
+
+      const parseRawTransactions = (data: any): any[] => {
+        if (Array.isArray(data) && data.length > 0 && data[0].items) {
+          return data.flatMap(station =>
+            (station.items || []).map((tx: any) => ({
+              ...tx,
+              stationNumber: station.number
+            }))
+          );
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+        if (data && typeof data === 'object' && data.transactions) {
+          return data.transactions;
+        }
+        return [];
+      };
+
+      const fetchChunk = async (chunkBeg: string, chunkEnd: string): Promise<any[]> => {
+        const p = new URLSearchParams();
+        p.set('dt_beg', chunkBeg);
+        p.set('dt_end', chunkEnd);
+        const data = await this.apiRequest<any>(`/v2/transactions?${p.toString()}`, {}, contextParams, 60000);
+        return parseRawTransactions(data);
+      };
+
+      let allRaw: any[] = [];
+
+      if (dtBeg && dtEnd) {
+        const start = new Date(`${dtBeg.split(' ')[0]}T00:00:00`);
+        const end = new Date(`${dtEnd.split(' ')[0]}T23:59:59`);
+        const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays > MAX_CHUNK_DAYS) {
+          // Разбиваем на чанки по MAX_CHUNK_DAYS дней
+          const chunks: Array<{ beg: string; end: string }> = [];
+          const cur = new Date(start);
+          while (cur < end) {
+            const chunkEnd = new Date(cur);
+            chunkEnd.setDate(chunkEnd.getDate() + MAX_CHUNK_DAYS - 1);
+            if (chunkEnd > end) chunkEnd.setTime(end.getTime());
+            const begStr = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')} 00:00:00`;
+            const endStr = `${chunkEnd.getFullYear()}-${String(chunkEnd.getMonth() + 1).padStart(2, '0')}-${String(chunkEnd.getDate()).padStart(2, '0')} 23:59:59`;
+            chunks.push({ beg: begStr, end: endStr });
+            cur.setDate(cur.getDate() + MAX_CHUNK_DAYS);
+          }
+
+          const results = await Promise.all(chunks.map(c => fetchChunk(c.beg, c.end)));
+          allRaw = results.flat();
+        } else {
+          if (params.toString()) {
+            endpoint += `?${params.toString()}`;
+          }
+          const data = await this.apiRequest<any>(endpoint, {}, contextParams, 60000);
+          allRaw = parseRawTransactions(data);
+        }
+      } else {
+        if (params.toString()) {
+          endpoint += `?${params.toString()}`;
+        }
+        const data = await this.apiRequest<any>(endpoint, {}, contextParams, 60000);
+        allRaw = parseRawTransactions(data);
       }
 
-      // Увеличенный timeout для транзакций: бэкенд может отвечать медленнее при холодном кэше
-      const data = await this.apiRequest<any>(endpoint, {}, contextParams, 60000);
-
-      // Обработка формата v2 API: массив объектов с полем items
-      if (Array.isArray(data) && data.length > 0 && data[0].items) {
-        // v2/transactions возвращает: [{system, number, total, items: [...]}]
-        const allTransactions = data.flatMap(station =>
-          (station.items || []).map((tx: any) => ({
-            ...tx,
-            stationNumber: station.number // Добавляем номер станции к каждой транзакции
-          }))
-        );
-        return normalizeTransactions(allTransactions);
-      }
-      // Обработка формата v1 API: массив транзакций напрямую
-      else if (Array.isArray(data)) {
-        return normalizeTransactions(data);
-      }
-      // Обработка формата с полем transactions
-      else if (data && typeof data === 'object' && data.transactions) {
-        return normalizeTransactions(data.transactions);
-      }
-
-      return [];
+      return normalizeTransactions(allRaw);
     } catch (error) {
       console.error('🔍 STS API: Ошибка получения транзакций:', error);
       throw error;
