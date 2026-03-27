@@ -5,7 +5,6 @@ const { requireAdminAccess } = require('../middleware/requireAdmin');
 const adminDataSource = require('../services/admin/adminDataSource');
 
 const router = express.Router();
-}
 
 router.use(requireAuth, requireAdminAccess);
 
