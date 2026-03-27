@@ -9,7 +9,6 @@ import {
   TradingNetworkService
 } from "@/services/tradingNetworkAPI";
 import { CachedFuelPrice, pricesCacheService } from "@/services/pricesCache";
-import { externalPricesService } from "@/services/externalPricesService";
 import { stsApiService, Price as STSPrice, PriceScheduleEntry } from "@/services/stsApi";
 import { auditLogService } from "@/services/auditLogService";
 
@@ -174,7 +173,7 @@ export function usePricesData() {
 
   // States for external API
   const [dataSourceType, setDataSourceType] = useState<'external-api' | 'cache' | 'sts-api'>('cache');
-  const [externalPricesConfigured, setExternalPricesConfigured] = useState(false);
+  const [externalPricesConfigured] = useState(false);
   const [loadingFromExternalAPI, setLoadingFromExternalAPI] = useState(false);
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [loadingFromSTSAPI, setLoadingFromSTSAPI] = useState(false);
@@ -621,10 +620,6 @@ export function usePricesData() {
     setPageReady(true);
   }, [selectedTradingPoint]);
 
-  // Check external API configuration on init
-  useEffect(() => {
-    setExternalPricesConfigured(externalPricesService.isConfigured());
-  }, [hasExternalDatabase]);
 
   // Filtered prices (currently all prices)
   const filteredPrices = currentPrices;

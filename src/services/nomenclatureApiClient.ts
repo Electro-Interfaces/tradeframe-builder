@@ -1,8 +1,5 @@
 import { getBackendOrigin } from '@/utils/backendUrl';
 
-const NOMENCLATURE_API_MODE = import.meta.env.VITE_NOMENCLATURE_API_MODE === 'backend'
-  ? 'backend'
-  : 'legacy';
 const API_BASE_URL = `${getBackendOrigin()}/api/nomenclature`;
 
 function getAuthToken(): string {
@@ -23,10 +20,6 @@ async function parseResponse(response: Response): Promise<any> {
   } catch {
     return responseText;
   }
-}
-
-export function isNomenclatureBackendMode(): boolean {
-  return NOMENCLATURE_API_MODE === 'backend';
 }
 
 export async function nomenclatureApiRequest(endpoint = '', options: RequestInit = {}): Promise<any> {

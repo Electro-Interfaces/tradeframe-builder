@@ -1,6 +1,5 @@
 import { getBackendOrigin } from '@/utils/backendUrl';
 
-const ADMIN_API_MODE = import.meta.env.VITE_ADMIN_API_MODE === 'legacy' ? 'legacy' : 'backend';
 const API_BASE_URL = `${getBackendOrigin()}/api`;
 
 function getAuthToken(): string {
@@ -21,10 +20,6 @@ async function parseResponse(response: Response): Promise<any> {
   } catch {
     return responseText;
   }
-}
-
-export function isAdminBackendMode(): boolean {
-  return ADMIN_API_MODE === 'backend';
 }
 
 export async function adminApiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {

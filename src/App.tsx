@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import SafeRender from "@/components/common/SafeRender";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./lib/supabase/queryClient";
+import { queryClient } from "./lib/query/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SelectionProvider } from "./contexts/SelectionContext";
 import { NewAuthProvider } from "./contexts/NewAuthContext";

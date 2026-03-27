@@ -6,7 +6,7 @@ import React, { createContext, useCallback, useContext, useState, useEffect, use
 import { authService, type AppUser, type UserRole } from '../services/auth/authService';
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
 import { auditLogService } from '../services/auditLogService';
-import { queryClient } from '../lib/supabase/queryClient';
+import { queryClient } from '../lib/query/queryClient';
 import {
   saveRememberedCredentials,
   getRememberedCredentials,
@@ -214,69 +214,9 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   /**
    * Загружает актуальные данные пользователя из базы данных
    */
-  const loadFreshUserData = async (email: string): Promise<AppUser | null> => {
+  const loadFreshUserData = async (_email: string): Promise<AppUser | null> => {
     try {
-      if (authService.isBackendMode()) {
-        return await authService.getCurrentUser();
-      }
-
-      const dbUser = await authService.getUserByEmail(email);
-      if (!dbUser) {
-        return null;
-      }
-
-      const userRoles = dbUser.user_roles || [];
-      const primaryRole = userRoles[0]?.role;
-      const roleNameToCode: Record<string, string> = {
-        'Суперадминистратор': 'super_admin',
-        'Администратор сети': 'network_admin',
-        'Менеджер': 'manager',
-        'Оператор': 'operator',
-        'Менеджер БТО': 'bto_manager',
-        'Менеджер Энтиком': 'enticom_manager',
-        'Менеджер двух станций': 'bto_station_manager',
-        'Менеджер станций БТО': 'bto_station_manager',
-      };
-
-      const roles: UserRole[] = userRoles
-        .filter(ur => ur.role)
-        .map(ur => {
-          const role = ur.role;
-          let userScopeValues: string[] = [];
-          if (ur.scope_value) {
-            try {
-              userScopeValues = typeof ur.scope_value === 'string'
-                ? JSON.parse(ur.scope_value)
-                : ur.scope_value;
-            } catch {
-              userScopeValues = [];
-            }
-          }
-          if (userScopeValues.length === 0 && role.scope_values) {
-            userScopeValues = role.scope_values;
-          }
-
-          return {
-            roleId: String(role.id),
-            roleName: role.name,
-            roleCode: role.code || roleNameToCode[role.name] || role.name,
-            scope: role.scope,
-            scopeValues: userScopeValues,
-            permissions: role.permissions || []
-          };
-        });
-
-      return {
-        id: dbUser.id,
-        email: dbUser.email,
-        name: dbUser.name,
-        phone: dbUser.phone,
-        status: dbUser.status,
-        role: primaryRole?.code || roleNameToCode[primaryRole?.name || ''] || dbUser.role || 'user',
-        roleId: primaryRole?.id || 0,
-        permissions: primaryRole?.permissions || [],
-        roles,
-      };
+      return await authService.getCurrentUser();
     } catch (err: any) {
       // 401/403 — реальная невалидность, null → logout
       if (err.status === 401 || err.status === 403) {
@@ -299,30 +239,26 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
           sessionStorage.setItem('current_user_email', initialUser.email);
           sessionStorage.setItem('auth_timestamp', Date.now().toString());
 
-          if (authService.isBackendMode()) {
-            try {
-              const freshUser = await authService.getCurrentUser();
-              if (freshUser) {
-                setUser(freshUser);
-                const currentToken =
-                  localStorage.getItem('auth_token')
-                  || localStorage.getItem(STORAGE_KEYS.TOKEN)
-                  || '';
-                const currentExpiry =
-                  localStorage.getItem('auth_token_expiry')
-                  || undefined;
-                if (currentToken) {
-                  saveAuthSession(freshUser, currentToken, currentExpiry);
-                }
-              } else {
-                // getCurrentUser вернул null → 401/403 или нет токена — реальный logout
-                setUser(null);
-                await clearAuthData();
+          try {
+            const freshUser = await authService.getCurrentUser();
+            if (freshUser) {
+              setUser(freshUser);
+              const currentToken =
+                localStorage.getItem('auth_token')
+                || localStorage.getItem(STORAGE_KEYS.TOKEN)
+                || '';
+              const currentExpiry =
+                localStorage.getItem('auth_token_expiry')
+                || undefined;
+              if (currentToken) {
+                saveAuthSession(freshUser, currentToken, currentExpiry);
               }
-            } catch {
-              // Транзитная ошибка (429, 500, сеть) — оставляем пользователя из localStorage
-              // Не разлогиниваем, данные обновятся при следующем успешном запросе
+            } else {
+              setUser(null);
+              await clearAuthData();
             }
+          } catch {
+            // Транзитная ошибка (429, 500, сеть) — оставляем пользователя из localStorage
           }
           setLoading(false);
           return;

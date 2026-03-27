@@ -1,6 +1,5 @@
 import { getBackendOrigin } from '@/utils/backendUrl';
 
-const ORG_API_MODE = import.meta.env.VITE_ORG_API_MODE === 'legacy' ? 'legacy' : 'backend';
 const API_BASE_URL = `${getBackendOrigin()}/api`;
 
 function getAuthToken(): string {
@@ -21,10 +20,6 @@ async function parseResponse(response: Response): Promise<any> {
   } catch {
     return responseText;
   }
-}
-
-export function isOrgBackendMode(): boolean {
-  return ORG_API_MODE === 'backend';
 }
 
 export async function orgApiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {

@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { auditLogService } from "@/services/auditLogService";
-import { isAuditBackendMode } from "@/services/auditApiClient";
 import type { AuditLogEntry } from "@/types/audit";
 
 // Типы действий для фильтра
@@ -65,7 +64,6 @@ export default function AuditLog() {
   const [error, setError] = useState<string | null>(null);
   const [tableExists, setTableExists] = useState<boolean | null>(null);
   const isMobile = useIsMobile();
-  const auditBackendMode = isAuditBackendMode();
 
   // Загрузка данных при монтировании
   useEffect(() => {

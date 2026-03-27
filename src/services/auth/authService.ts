@@ -1,10 +1,7 @@
 /**
- * Сервис авторизации с безопасным переходным режимом.
- * `legacy` — устаревшая схема прямой работы с БД.
- * `backend` — работа только через backend `/api/auth`.
+ * Сервис авторизации — все запросы через backend `/api/auth`.
  */
 
-import { auditLogService } from '../auditLogService';
 import { getBackendOrigin } from '@/utils/backendUrl';
 
 export interface DatabaseUser {
@@ -64,19 +61,8 @@ interface AuthSessionResult {
   expiresAt?: string;
 }
 
-type AuthMode = 'legacy' | 'backend';
-
 class AuthService {
-  private readonly authMode: AuthMode =
-    import.meta.env.VITE_AUTH_API_MODE === 'legacy' ? 'legacy' : 'backend';
-
   private readonly BACKEND_AUTH_URL = `${getBackendOrigin()}/api/auth`;
-  private readonly SUPABASE_URL = this.getSupabaseUrl();
-  private readonly SUPABASE_KEY = this.getSupabaseKey();
-
-  isBackendMode(): boolean {
-    return this.authMode === 'backend';
-  }
 
   private getStoredAuthToken(): string {
     return localStorage.getItem('auth_token')
@@ -84,16 +70,6 @@ class AuthService {
       || localStorage.getItem('tradeframe_token_v2')
       || localStorage.getItem('authToken')
       || '';
-  }
-
-  /** @deprecated Legacy режим отключён. Все запросы через backend API. */
-  private getSupabaseKey(): string {
-    return '';
-  }
-
-  /** @deprecated Legacy режим отключён. Все запросы через backend API. */
-  private getSupabaseUrl(): string {
-    return '';
   }
 
   private async parseResponse(response: Response): Promise<any> {
@@ -148,37 +124,7 @@ class AuthService {
     return body;
   }
 
-  private async makeLegacyRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const isProxy = this.SUPABASE_URL.includes('/api/supabase');
-    const url = isProxy
-      ? `${this.SUPABASE_URL}/${endpoint}`
-      : `${this.SUPABASE_URL}/rest/v1/${endpoint}`;
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        apikey: this.SUPABASE_KEY,
-        Authorization: `Bearer ${this.SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-        ...options.headers,
-      },
-    });
-
-    const body = await this.parseResponse(response);
-
-    if (!response.ok) {
-      throw new Error(`Ошибка запроса к базе данных: ${response.status} ${JSON.stringify(body)}`);
-    }
-
-    return body;
-  }
-
   async getCurrentUser(): Promise<AppUser | null> {
-    if (!this.isBackendMode()) {
-      return null;
-    }
-
     const token = this.getStoredAuthToken();
     if (!token || token.split('.').length !== 3) {
       return null;
@@ -187,41 +133,23 @@ class AuthService {
     try {
       return await this.makeBackendRequest('/me', { method: 'GET' }, true);
     } catch (err: any) {
-      // 401/403 — токен невалиден, реальный logout
       if (err.status === 401 || err.status === 403) {
         return null;
       }
-      // Транзитные ошибки (429, 500, сеть) — не разлогинивать
       throw err;
     }
   }
 
-  private async getLegacyUserByEmail(email: string): Promise<DatabaseUser | null> {
-    const users = await this.makeLegacyRequest(
-      `users?select=*,user_roles(scope_value,role:roles(*))&email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
-    );
-
-    if (!Array.isArray(users) || users.length === 0) {
+  async getUserByEmail(email: string): Promise<DatabaseUser | null> {
+    try {
+      return await this.makeBackendRequest(
+        `/users/by-email?email=${encodeURIComponent(email)}`,
+        { method: 'GET' },
+        true
+      );
+    } catch {
       return null;
     }
-
-    return users[0];
-  }
-
-  async getUserByEmail(email: string): Promise<DatabaseUser | null> {
-    if (this.isBackendMode()) {
-      try {
-        return await this.makeBackendRequest(
-          `/users/by-email?email=${encodeURIComponent(email)}`,
-          { method: 'GET' },
-          true
-        );
-      } catch {
-        return null;
-      }
-    }
-
-    return this.getLegacyUserByEmail(email);
   }
 
   async verifyPassword(user: DatabaseUser, password: string): Promise<boolean> {
@@ -250,141 +178,15 @@ class AuthService {
   }
 
   async authenticate(email: string, password: string): Promise<AuthSessionResult | null> {
-    if (this.isBackendMode()) {
-      const result = await this.makeBackendRequest('/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-
-      return {
-        user: result.user,
-        token: result.token,
-        expiresAt: result.expires_at,
-      };
-    }
-
-    const dbUser = await this.getLegacyUserByEmail(email);
-    if (!dbUser) {
-      return null;
-    }
-
-    const isValidPassword = await this.verifyPassword(dbUser, password);
-    if (!isValidPassword) {
-      await auditLogService.logAuthentication('failed_login', email, {
-        reason: 'Неверный пароль',
-        success: false,
-      });
-      return null;
-    }
-
-    const appUser = this.transformUser(dbUser);
-
-    try {
-      await this.makeLegacyRequest(`users?id=eq.${appUser.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          last_login: new Date().toISOString(),
-        }),
-      });
-    } catch {
-      // last_login не должен ломать вход
-    }
-
-    await auditLogService.logAuthentication('login', email, {
-      user_id: appUser.id,
-      user_name: appUser.name,
-      role: appUser.role,
-      success: true,
+    const result = await this.makeBackendRequest('/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
     });
-
-    return { user: appUser };
-  }
-
-  private transformUser(dbUser: DatabaseUser): AppUser {
-    const userRoles = dbUser.user_roles || [];
-    const primaryRole = userRoles[0]?.role;
-    const roleNameToCode: Record<string, string> = {
-      'Суперадминистратор': 'super_admin',
-      'Администратор сети': 'network_admin',
-      'Менеджер': 'manager',
-      'Оператор': 'operator',
-      'Менеджер БТО': 'bto_manager',
-    };
-
-    let userRole = 'user';
-    let roleId = 0;
-
-    if (primaryRole) {
-      userRole = primaryRole.code || roleNameToCode[primaryRole.name] || primaryRole.name;
-      roleId = primaryRole.id;
-    }
-
-    const allPermissions: (Permission | string)[] = [];
-    const permissionSet = new Set<string>();
-
-    userRoles.forEach((userRoleItem: any) => {
-      const role = userRoleItem.role;
-      if (!role || !role.permissions) {
-        return;
-      }
-
-      role.permissions.forEach((permission: any) => {
-        const key = typeof permission === 'object'
-          ? `${permission.section}.${permission.resource}`
-          : String(permission);
-
-        if (!permissionSet.has(key)) {
-          permissionSet.add(key);
-          allPermissions.push(permission);
-        }
-      });
-    });
-
-    const roles: UserRole[] = userRoles
-      .filter((userRoleItem: any) => userRoleItem.role)
-      .map((userRoleItem: any) => {
-        const role = userRoleItem.role;
-        let userScopeValues: string[] = [];
-
-        if (userRoleItem.scope_value) {
-          try {
-            const parsed = typeof userRoleItem.scope_value === 'string'
-              ? JSON.parse(userRoleItem.scope_value)
-              : userRoleItem.scope_value;
-            if (Array.isArray(parsed)) {
-              userScopeValues = parsed;
-            } else if (parsed) {
-              userScopeValues = [String(parsed)];
-            }
-          } catch {
-            userScopeValues = [String(userRoleItem.scope_value)];
-          }
-        }
-
-        const effectiveScopeValues = userScopeValues.length > 0
-          ? userScopeValues
-          : (role.scope_values || []);
-
-        return {
-          roleId: String(role.id),
-          roleName: role.name,
-          roleCode: role.code || roleNameToCode[role.name] || role.name,
-          scope: role.scope,
-          scopeValues: effectiveScopeValues,
-          permissions: role.permissions || [],
-        };
-      });
 
     return {
-      id: dbUser.id,
-      email: dbUser.email,
-      name: dbUser.name,
-      phone: dbUser.phone,
-      status: dbUser.status,
-      role: userRole,
-      roleId,
-      permissions: allPermissions,
-      roles,
+      user: result.user,
+      token: result.token,
+      expiresAt: result.expires_at,
     };
   }
 
@@ -409,21 +211,10 @@ class AuthService {
   }
 
   async updateUserName(userId: string, newName: string): Promise<void> {
-    if (this.isBackendMode()) {
-      await this.makeBackendRequest('/me', {
-        method: 'PATCH',
-        body: JSON.stringify({ name: newName.trim() }),
-      }, true);
-      return;
-    }
-
-    await this.makeLegacyRequest(`users?id=eq.${userId}`, {
+    await this.makeBackendRequest('/me', {
       method: 'PATCH',
-      body: JSON.stringify({
-        name: newName.trim(),
-        updated_at: new Date().toISOString(),
-      }),
-    });
+      body: JSON.stringify({ name: newName.trim() }),
+    }, true);
   }
 
   async changePassword(
@@ -432,42 +223,13 @@ class AuthService {
     currentPassword: string,
     newPassword: string
   ): Promise<void> {
-    if (this.isBackendMode()) {
-      await this.makeBackendRequest('/change-password', {
-        method: 'POST',
-        body: JSON.stringify({ currentPassword, newPassword }),
-      }, true);
-      return;
-    }
-
-    const dbUser = await this.getLegacyUserByEmail(email);
-    if (!dbUser) {
-      throw new Error('Пользователь не найден');
-    }
-
-    const isValidPassword = await this.verifyPassword(dbUser, currentPassword);
-    if (!isValidPassword) {
-      throw new Error('Неверный текущий пароль');
-    }
-
-    const newSalt = this.generateSalt();
-    const newHash = await this.createPasswordHash(newPassword, newSalt);
-
-    await this.makeLegacyRequest(`users?id=eq.${userId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        pwd_salt: newSalt,
-        pwd_hash: newHash,
-        updated_at: new Date().toISOString(),
-      }),
-    });
+    await this.makeBackendRequest('/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }, true);
   }
 
   async logout(): Promise<void> {
-    if (!this.isBackendMode()) {
-      return;
-    }
-
     const token = this.getStoredAuthToken();
     if (!token || token.split('.').length !== 3) {
       return;

@@ -23,6 +23,7 @@ const mstoRoutes = require('./routes/msto');
 const supportRoutes = require('./routes/support');
 const receiptCostsRoutes = require('./routes/receiptCosts');
 const receiptConfirmationsRoutes = require('./routes/receiptConfirmations');
+const equipmentTemplatesRoutes = require('./routes/equipmentTemplates');
 const { initTelegramBot } = require('./telegram-bot-runtime');
 const postgres = require('./db/pool');
 
@@ -164,6 +165,7 @@ app.use('/api/support', supportRoutes);
 // Себестоимость поступлений
 app.use('/api/receipt-costs', receiptCostsRoutes);
 app.use('/api/receipt-confirmations', receiptConfirmationsRoutes);
+app.use('/api/equipment-templates', equipmentTemplatesRoutes);
 
 // Smoke-test — полная проверка модулей (только для авторизованных)
 const { requireAuth: smokeAuth } = require('./middleware/auth');

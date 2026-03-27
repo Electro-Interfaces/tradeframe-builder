@@ -8,7 +8,7 @@
 
 - **Frontend:** React 18 + Vite + Tailwind + shadcn/ui + TypeScript
 - **Backend:** Node.js (Express) — прокси для STS/TradeCorp/MSTO/TSupport API
-- **БД:** Supabase (PostgreSQL)
+- **БД:** PostgreSQL (подключение через pg напрямую)
 - **Тесты:** Vitest (unit, jsdom) + Playwright (E2E, chromium)
 
 ## Dev-окружение — порты
