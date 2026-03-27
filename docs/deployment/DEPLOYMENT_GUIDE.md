@@ -39,7 +39,7 @@
 | `STS_API_USERNAME` | STS API Username | `UserApi` |
 | `STS_API_PASSWORD` | STS API Password | `your_sts_api_password` |
 
-`deploy-test.yml` и `deploy-prod.yml` уже читают новые `STS_API_*`. Старые `VITE_STS_*` поддерживаются только как временный fallback на период миграции и после переноса должны быть удалены.
+`deploy-test.yml` и `deploy-prod.yml` используют только `STS_API_*`. Legacy secrets `VITE_STS_*` после миграции должны быть удалены из GitHub.
 
 ### Для репозитория `TradeControl` (PRODUCTION)
 

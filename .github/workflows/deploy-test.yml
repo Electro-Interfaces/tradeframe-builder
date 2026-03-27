@@ -87,9 +87,9 @@ jobs:
             # server/.env — секреты + PG конфигурация
             cat > server/.env << 'ENV_EOF'
             # STS API Configuration
-            STS_API_URL=${{ secrets.STS_API_URL || secrets.VITE_STS_API_URL }}
-            STS_API_USERNAME=${{ secrets.STS_API_USERNAME || secrets.VITE_STS_API_USERNAME }}
-            STS_API_PASSWORD=${{ secrets.STS_API_PASSWORD || secrets.VITE_STS_API_PASSWORD }}
+            STS_API_URL=${{ secrets.STS_API_URL }}
+            STS_API_USERNAME=${{ secrets.STS_API_USERNAME }}
+            STS_API_PASSWORD=${{ secrets.STS_API_PASSWORD }}
 
             # MSTO API Configuration
             MSTO_API_URL=${{ secrets.MSTO_API_URL }}
