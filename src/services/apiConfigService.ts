@@ -36,27 +36,12 @@ export interface ApiConfig {
   lastUpdated: Date;
 }
 
-// Начальная конфигурация с mock и demo подключениями
+// Начальная конфигурация
 const initialConfig: ApiConfig = {
   currentConnectionId: 'local-db',
   debugMode: import.meta.env.DEV || false,
   lastUpdated: new Date(),
   availableConnections: [
-    {
-      id: 'mock',
-      name: 'Mock Data (Демо)',
-      url: 'localStorage',
-      type: 'mock',
-      description: 'Локальные демо-данные в localStorage',
-      isActive: false,
-      isDefault: false,
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date(),
-      settings: {
-        timeout: 1000,
-        retryAttempts: 3
-      }
-    },
     {
       id: 'local-db',
       name: 'Локальная БД',
@@ -150,8 +135,7 @@ export const apiConfigService = {
   getCurrentApiUrl(): string {
     const connection = this.getCurrentConnection();
     if (!connection) {
-      // Active connection not found, using mock
-      return 'mock';
+      return '/api'; // Fallback на backend proxy
     }
     return connection.url;
   },
@@ -167,19 +151,11 @@ export const apiConfigService = {
    * Получить текущий режим API
    */
   getApiMode(): 'mock' | 'http' {
-    const connection = this.getCurrentConnection();
-    if (!connection || connection.type === 'mock') {
-      return 'mock';
-    }
-    return 'http';
+    return 'http'; // Mock режим удалён
   },
 
-  /**
-   * Получить тип текущего подключения
-   */
   getCurrentConnectionType(): string {
-    const connection = this.getCurrentConnection();
-    return connection?.type || 'mock';
+    return 'http'; // Mock режим удалён
   },
 
   /**
