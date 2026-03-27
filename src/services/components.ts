@@ -892,5 +892,5 @@ export const mockComponentsAPI = {
   }
 };
 
-// Экспорт API для компонентов
+// TODO: перевести на backend API (/api/components) — пока localStorage-based
 export const currentComponentsAPI = mockComponentsAPI;

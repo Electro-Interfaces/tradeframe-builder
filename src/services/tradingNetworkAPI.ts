@@ -30,7 +30,7 @@ const FUEL_SERVICE_CODES: Record<string, number> = {
 const STORED_PRICES: Record<string, Record<string, number>> = {};
 
 // Проверка на демо режим (если нет реального токена или API недоступен)
-const USE_MOCK_MODE = true; // Для демо всегда используем mock данные
+const USE_MOCK_MODE = false; // Mock режим удалён — всегда real API
 
 // Функция для получения видов топлива из резервуаров торговой точки
 async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
