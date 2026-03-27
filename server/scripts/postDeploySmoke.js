@@ -85,6 +85,9 @@ async function main() {
   const user = await getSmokeUser();
   const token = tokenService.createAccessToken(user).token;
   const headers = createHeaders(user, token);
+  const authHeaders = {
+    Authorization: headers.Authorization,
+  };
 
   const me = await requestJson('auth/me', `${baseUrl}/api/auth/me`, {
     Authorization: headers.Authorization,
@@ -96,6 +99,24 @@ async function main() {
   const unread = await requestJson('support/unread', `${baseUrl}/api/support/unread`, headers);
   if (!unread || typeof unread.total !== 'number') {
     throw new Error('support/unread вернул неожиданный ответ');
+  }
+
+  const legalDocumentTypes = await requestJson(
+    'legal/document-types',
+    `${baseUrl}/api/legal/document-types`,
+    authHeaders
+  );
+  if (!Array.isArray(legalDocumentTypes)) {
+    throw new Error('legal/document-types вернул неожиданный ответ');
+  }
+
+  const messages = await requestJson(
+    'messages',
+    `${baseUrl}/api/messages?limit=1`,
+    authHeaders
+  );
+  if (!messages || messages.success !== true || !Array.isArray(messages.data) || typeof messages.total !== 'number') {
+    throw new Error('messages вернул неожиданный ответ');
   }
 
   await requestJson(
