@@ -3,7 +3,7 @@
 ## Проблема
 Скрипт `deploy-manual.sh` требует ручного ввода пароля SSH при каждом вызове команд `scp` и `ssh`.
 
-**Пароль SSH**: `n3cBMDPU2@N*C`
+**Пароль SSH**: `<ssh_password_removed>`
 
 ## Решения
 
@@ -51,7 +51,7 @@ PasswordAuthentication yes
    ```bash
    ssh-copy-id root@194.135.36.195
    ```
-   (При этом нужно один раз ввести пароль `n3cBMDPU2@N*C`)
+   (При этом нужно один раз ввести пароль `<ssh_password_removed>`)
 
 3. После этого `deploy-manual.sh` будет работать БЕЗ запроса пароля!
 
@@ -67,7 +67,7 @@ sudo apt-get install sshpass
 
 **Использование:**
 ```bash
-export SSHPASS='n3cBMDPU2@N*C'
+export SSHPASS='<ssh_password_removed>'
 sshpass -e scp dist.tar.gz root@194.135.36.195:/tmp/
 sshpass -e ssh root@194.135.36.195 "команда"
 ```
@@ -104,7 +104,7 @@ ssh root@194.135.36.195 "pm2 restart tradeframe-prod tradeframe-backend-proxy"
 ssh root@194.135.36.195 "pm2 list"
 ```
 
-Пароль для всех команд: `n3cBMDPU2@N*C`
+Пароль для всех команд: `<ssh_password_removed>`
 
 ---
 

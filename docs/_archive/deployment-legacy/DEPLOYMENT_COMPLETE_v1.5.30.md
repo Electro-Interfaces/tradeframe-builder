@@ -33,7 +33,7 @@
 ```bash
 STS_API_URL=https://pos.autooplata.ru/tms
 STS_API_USERNAME=UserApi
-STS_API_PASSWORD=lHQfLZHzB3tn
+STS_API_PASSWORD=your_sts_api_password
 PORT=3002
 NODE_ENV=production
 ALLOWED_ORIGINS=https://testtf.dataworker.ru

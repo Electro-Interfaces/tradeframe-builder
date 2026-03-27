@@ -130,7 +130,7 @@ ssh -i ~/.ssh/github_deploy_key root@194.135.36.195 "echo 'SSH works!'"
 
 #### Секрет 8: VITE_STS_API_PASSWORD
 - **Name:** `VITE_STS_API_PASSWORD`
-- **Value:** `lHQfLZHzB3tn`
+- **Value:** `your_sts_api_password`
 
 ---
 

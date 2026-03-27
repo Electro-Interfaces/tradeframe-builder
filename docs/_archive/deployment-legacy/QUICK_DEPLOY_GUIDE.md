@@ -67,7 +67,7 @@ node deploy-auto.cjs
 **SSH доступ:**
 - Host: `194.135.36.195`
 - Username: `root`
-- Password: `n3cBMDPU2@N*C`
+- Password: `<ssh_password_removed>`
 - Port: `22`
 
 **⚠️ ВАЖНО:** Пароль хранится в скриптах для автоматизации. В production окружении рекомендуется использовать SSH ключи.
@@ -96,14 +96,14 @@ cd ..
 
 ```bash
 scp dist.tar.gz root@194.135.36.195:/tmp/
-# Пароль: n3cBMDPU2@N*C
+# Пароль: <ssh_password_removed>
 ```
 
 ### Шаг 4: Остановка PM2
 
 ```bash
 ssh root@194.135.36.195 "pm2 stop tradeframe-prod"
-# Пароль: n3cBMDPU2@N*C
+# Пароль: <ssh_password_removed>
 ```
 
 ### Шаг 5: Развертывание

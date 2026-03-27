@@ -63,7 +63,7 @@ VITE_STS_API_USERNAME
 UserApi
 
 VITE_STS_API_PASSWORD
-lHQfLZHzB3tn
+your_sts_api_password
 ```
 
 ### Для `TradeControl` (PROD):

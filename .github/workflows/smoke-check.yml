@@ -1,0 +1,63 @@
+name: Smoke Check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */4 * * *'
+
+jobs:
+  smoke-check:
+    name: Smoke Check
+    runs-on: ubuntu-latest
+    if: github.repository == 'Electro-Interfaces/tradeframe-builder' || (github.repository == 'Electro-Interfaces/TradeControl' && github.event_name != 'schedule')
+
+    steps:
+      - name: Resolve target
+        run: |
+          if [ "${{ github.repository }}" = "Electro-Interfaces/tradeframe-builder" ]; then
+            echo "BASE_URL=https://testtf.dataworker.ru" >> "$GITHUB_ENV"
+            echo "APP_DIR=/var/www/www-root/data/www/testTF.dataworker.ru" >> "$GITHUB_ENV"
+            echo "TARGET_NAME=TEST" >> "$GITHUB_ENV"
+          else
+            echo "BASE_URL=https://prod.dataworker.ru" >> "$GITHUB_ENV"
+            echo "APP_DIR=/var/www/www-root/data/www/prod.dataworker.ru" >> "$GITHUB_ENV"
+            echo "TARGET_NAME=PRODUCTION" >> "$GITHUB_ENV"
+          fi
+
+      - name: Verify public endpoints
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL")
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "$TARGET_NAME site responding HTTP 200"
+          else
+            echo "$TARGET_NAME site returned HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+          API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/healthz")
+          if [ "$API_STATUS" -eq 200 ]; then
+            echo "$TARGET_NAME backend responding HTTP 200"
+          else
+            echo "$TARGET_NAME backend returned HTTP $API_STATUS"
+            exit 1
+          fi
+
+      - name: Authenticated smoke test
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd "${{ env.APP_DIR }}"
+            node server/scripts/postDeploySmoke.js --base-url=${{ env.BASE_URL }}
+
+      - name: Notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "$TARGET_NAME smoke check SUCCESSFUL — $BASE_URL"
+          else
+            echo "$TARGET_NAME smoke check FAILED"
+          fi
