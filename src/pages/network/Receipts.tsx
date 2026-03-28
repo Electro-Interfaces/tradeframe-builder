@@ -1084,12 +1084,18 @@ export default function Receipts() {
                 const amountDiff = factAmount - docAmount;
 
                 const rKey = getReceiptKey(receipt);
-                const isConfirmed = confirmations.has(rKey);
+                const conf = confirmations.get(rKey);
+                const isConfirmed = !!conf;
 
                 return (
                   <TableRow
                     key={receiptId}
-                    className={`cursor-pointer hover:bg-secondary/50 transition-colors border-border ${isConfirmed ? 'bg-muted/60' : ''}`}
+                    className={cn(
+                      'cursor-pointer hover:bg-secondary/50 transition-colors border-border',
+                      isConfirmed && 'bg-muted/60',
+                      conf?.status === 'corrected' && 'border-l-2 border-l-amber-400',
+                      conf?.status === 'rejected' && 'border-l-2 border-l-red-400',
+                    )}
                     onClick={() => handleSelectReceipt(receipt)}
                   >
                     <TableCell className="px-2" onClick={e => e.stopPropagation()}>
@@ -1112,12 +1118,26 @@ export default function Receipts() {
                       </Badge>
                     </TableCell>
 
-                    {/* Документальные данные */}
+                    {/* Документальные данные — с корректировкой если есть */}
                     <TableCell className="text-right font-mono text-foreground/80">
-                      {docVolume.toFixed(2)}
+                      {conf?.status === 'corrected' && conf.correctedVolume ? (
+                        <div className="flex flex-col items-end leading-tight">
+                          <span className="text-[10px] text-muted-foreground line-through">{docVolume.toFixed(2)}</span>
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold">{parseFloat(conf.correctedVolume).toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        docVolume.toFixed(2)
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-mono text-foreground/80">
-                      {docAmount.toFixed(2)}
+                      {conf?.status === 'corrected' && conf.correctedAmount ? (
+                        <div className="flex flex-col items-end leading-tight">
+                          <span className="text-[10px] text-muted-foreground line-through">{docAmount.toFixed(2)}</span>
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold">{parseFloat(conf.correctedAmount).toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        docAmount.toFixed(2)
+                      )}
                     </TableCell>
 
                     {/* Отклонение по массе */}
@@ -1129,30 +1149,62 @@ export default function Receipts() {
 
                     {/* Статус подтверждения */}
                     <TableCell className="text-center px-1">
-                      {(() => {
-                        const confKey = systemId
-                          ? makeConfirmationKey(systemId, receipt.stationNumber, receipt.tank, receipt.ttn, receipt.dt)
-                          : '';
-                        const conf = confirmations.get(confKey);
-                        if (!conf) return null;
-                        return (
-                          <TooltipProvider delayDuration={200}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="inline-flex">
-                                  {conf.status === 'confirmed' && <Check className="h-4 w-4 text-green-500" />}
-                                  {conf.status === 'corrected' && <Pencil className="h-4 w-4 text-amber-500" />}
-                                  {conf.status === 'rejected' && <XCircle className="h-4 w-4 text-red-500" />}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                <div>{conf.status === 'confirmed' ? 'Подтверждено' : conf.status === 'corrected' ? 'Скорректировано' : 'Отклонено'}</div>
-                                <div className="text-muted-foreground">{conf.confirmedByName}</div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })()}
+                      {conf && (
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                {conf.status === 'confirmed' && <Check className="h-4 w-4 text-green-500" />}
+                                {conf.status === 'corrected' && <Pencil className="h-4 w-4 text-amber-500" />}
+                                {conf.status === 'rejected' && <XCircle className="h-4 w-4 text-red-500" />}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs max-w-xs p-0">
+                              <div className="p-2 space-y-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  {conf.status === 'confirmed' && <Check className="h-3 w-3 text-green-500 shrink-0" />}
+                                  {conf.status === 'corrected' && <Pencil className="h-3 w-3 text-amber-500 shrink-0" />}
+                                  {conf.status === 'rejected' && <XCircle className="h-3 w-3 text-red-500 shrink-0" />}
+                                  <span className="font-medium">
+                                    {conf.status === 'confirmed' ? 'Подтверждено' : conf.status === 'corrected' ? 'Скорректировано' : 'Отклонено'}
+                                  </span>
+                                </div>
+                                <div className="text-muted-foreground">
+                                  {conf.confirmedByName && <span>{conf.confirmedByName} · </span>}
+                                  {format(new Date(conf.updatedAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                                </div>
+                                {conf.status === 'corrected' && (
+                                  <div className="border-t border-border pt-1.5 mt-1.5 space-y-0.5 font-mono">
+                                    {conf.correctedVolume && (
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-muted-foreground">Объём:</span>
+                                        <span><span className="text-muted-foreground line-through mr-1">{docVolume.toFixed(2)}</span>→ <span className="text-amber-600 dark:text-amber-400 font-semibold">{parseFloat(conf.correctedVolume).toFixed(2)}</span></span>
+                                      </div>
+                                    )}
+                                    {conf.correctedAmount && (
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-muted-foreground">Масса:</span>
+                                        <span><span className="text-muted-foreground line-through mr-1">{docAmount.toFixed(2)}</span>→ <span className="text-amber-600 dark:text-amber-400 font-semibold">{parseFloat(conf.correctedAmount).toFixed(2)}</span></span>
+                                      </div>
+                                    )}
+                                    {conf.correctedDensity != null && (
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-muted-foreground">Плотн.:</span>
+                                        <span><span className="text-muted-foreground line-through mr-1">{receipt.doc.density.toFixed(3)}</span>→ <span className="text-amber-600 dark:text-amber-400 font-semibold">{conf.correctedDensity.toFixed(3)}</span></span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {conf.comment && (
+                                  <div className="border-t border-border pt-1.5 mt-1.5 text-foreground/80 italic">
+                                    {conf.comment}
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </TableCell>
 
                     {showMargin && (() => {

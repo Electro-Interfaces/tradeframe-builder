@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { FlatReceipt } from '@/types/receipts';
 import type { ReceiptConfirmation } from '@/services/receiptConfirmationApiService';
+import { cn } from '@/lib/utils';
 import { Fuel, MapPin, Hash, FileText, Calendar, Gauge, Check, Pencil, XCircle } from 'lucide-react';
 
 interface MobileReceiptsTableProps {
@@ -77,7 +78,11 @@ export function MobileReceiptsTable({ receipts, onReceiptClick, confirmations, g
         return (
           <Card
             key={`${receipt.ttn}-${receipt.tank}-${index}`}
-            className="bg-card border-border p-4 cursor-pointer hover:bg-secondary/50 transition-colors active:scale-[0.98]"
+            className={cn(
+              'bg-card border-border p-4 cursor-pointer hover:bg-secondary/50 transition-colors active:scale-[0.98]',
+              conf?.status === 'corrected' && 'border-l-2 border-l-amber-400',
+              conf?.status === 'rejected' && 'border-l-2 border-l-red-400',
+            )}
             onClick={() => onReceiptClick(receipt)}
           >
             {/* Заголовок карточки */}
@@ -96,12 +101,29 @@ export function MobileReceiptsTable({ receipts, onReceiptClick, confirmations, g
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold text-foreground">
-                  {receipt.doc?.volume ? parseFloat(receipt.doc.volume).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : '0'} л
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {receipt.doc?.amount ? parseFloat(receipt.doc.amount).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : '0'} кг
-                </div>
+                {conf?.status === 'corrected' && conf.correctedVolume ? (
+                  <>
+                    <div className="text-[11px] text-muted-foreground line-through">
+                      {parseFloat(receipt.doc.volume).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} л
+                    </div>
+                    <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                      {parseFloat(conf.correctedVolume).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} л
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-lg font-bold text-foreground">
+                    {receipt.doc?.volume ? parseFloat(receipt.doc.volume).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : '0'} л
+                  </div>
+                )}
+                {conf?.status === 'corrected' && conf.correctedAmount ? (
+                  <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                    {parseFloat(conf.correctedAmount).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} кг
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    {receipt.doc?.amount ? parseFloat(receipt.doc.amount).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : '0'} кг
+                  </div>
+                )}
               </div>
             </div>
 
@@ -127,16 +149,27 @@ export function MobileReceiptsTable({ receipts, onReceiptClick, confirmations, g
               </div>
             </div>
 
-            {/* Резервуар + статус */}
-            <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className="text-xs border-border text-foreground/80"
-              >
-                Резервуар №{receipt.tank}
-              </Badge>
-              {Status && (
-                <span className={`text-xs ${Status.color}`}>{Status.label}</span>
+            {/* Резервуар + статус + детали подтверждения */}
+            <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className="text-xs border-border text-foreground/80"
+                >
+                  Резервуар №{receipt.tank}
+                </Badge>
+                {Status && (
+                  <span className={`text-xs ${Status.color}`}>{Status.label}</span>
+                )}
+              </div>
+              {conf && (
+                <div className="text-[11px] text-muted-foreground">
+                  {conf.confirmedByName && <span>{conf.confirmedByName} · </span>}
+                  {format(new Date(conf.updatedAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                  {conf.comment && (
+                    <div className="mt-0.5 text-foreground/70 italic truncate">{conf.comment}</div>
+                  )}
+                </div>
               )}
             </div>
           </Card>
