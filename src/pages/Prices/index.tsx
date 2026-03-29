@@ -255,7 +255,7 @@ export function Prices() {
         {isMobile && <PullToRefreshIndicator pullState={pullState} pullDistance={pullDistance} />}
 
         {/* Page header */}
-        <div className="mb-6 pt-4">
+        <div className="mb-6 pt-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Цены</h1>
