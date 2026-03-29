@@ -24,7 +24,7 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
         className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
           isSelected
             ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-            : 'bg-card border-border hover:bg-secondary'
+            : 'bg-di-surface-mid border-di-outline-variant/20 hover:bg-di-surface-high'
         }`}
         onClick={handleClick}
       >
@@ -56,7 +56,7 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
       className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
         isSelected
           ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-          : 'bg-card border-border hover:bg-secondary'
+          : 'bg-di-surface-mid border-di-outline-variant/20 hover:bg-di-surface-high'
       }`}
       onClick={handleClick}
     >

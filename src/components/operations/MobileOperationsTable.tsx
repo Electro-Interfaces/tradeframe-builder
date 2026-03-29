@@ -16,9 +16,9 @@ const MobileOperationsTable = React.memo(({ operations, onOperationClick, isDeta
 
   return (
     <div>
-      <div className="bg-card overflow-hidden">
+      <div className="overflow-hidden">
         {operations.map(op => (
-          <Card key={op.id} className="mb-3 bg-secondary border-border cursor-pointer hover:bg-secondary transition-colors"
+          <Card key={op.id} className="mb-3 bg-di-surface-mid border border-di-outline-variant/20 rounded-xl cursor-pointer hover:bg-di-surface-high transition-colors duration-200"
                 onClick={() => onOperationClick(op)}>
             <CardContent className="p-3">
               <div className="flex justify-between items-start mb-2">

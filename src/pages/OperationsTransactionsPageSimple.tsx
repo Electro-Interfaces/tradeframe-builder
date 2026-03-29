@@ -562,6 +562,13 @@ export default function OperationsTransactionsPageSimple() {
     indicatorAppearThreshold: INDICATOR_APPEAR_THRESHOLD
   });
 
+  // Слушаем кнопку обновления из BottomNav
+  useEffect(() => {
+    const handler = () => loadFromStsApi(true);
+    window.addEventListener('bottomnav-refresh', handler);
+    return () => window.removeEventListener('bottomnav-refresh', handler);
+  }, []);
+
   // Сброс всех фильтров (включая KPI)
   const handleKpiResetAll = () => {
     clearFilters();
@@ -648,7 +655,7 @@ export default function OperationsTransactionsPageSimple() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${isMobile ? 'pt-4' : 'pt-6'} min-h-screen bg-gradient-to-br from-background via-background to-background`}
+        className={`w-full space-y-6 relative overflow-x-hidden ${isMobile ? 'px-2 pt-2' : 'px-4 md:px-6 lg:px-8 pt-6'}`}
         style={{
           transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
           transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
@@ -690,18 +697,18 @@ export default function OperationsTransactionsPageSimple() {
         )}
 
 
-        {/* Заголовок страницы */}
+        {/* Заголовок страницы — Deep Intel */}
         <div className="mb-6 pt-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-foreground">Операции</h1>
-            <div className="flex items-center gap-2">
+          <div className="flex items-end justify-between gap-4">
+            <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Операции</h1>
+            <div className="flex items-center gap-2 shrink-0">
               {filteredOperations.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
+                    className="border-green-600 dark:border-green-500/50 text-green-600 dark:text-green-400 hover:bg-emerald-600 hover:text-white"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Экспорт
@@ -724,10 +731,10 @@ export default function OperationsTransactionsPageSimple() {
         </div>
 
         {/* Компактные фильтры */}
-        <Card className="bg-card border-border mb-4">
+        <Card className="bg-di-surface-mid rounded-xl border border-di-outline-variant/20 mb-4">
           <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
             <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
+              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-di-surface-high transition-colors duration-200">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium text-foreground">Фильтры</span>
@@ -755,7 +762,7 @@ export default function OperationsTransactionsPageSimple() {
                       loadFromStsApi(true);
                     }}
                     disabled={loading || loadingFromSTS}
-                    className="border-border text-foreground hover:bg-secondary"
+                    className="border-di-outline-variant/20 text-muted-foreground hover:bg-di-surface-high"
                   >
                     <RefreshCw className={`w-4 h-4 ${(loading || loadingFromSTS) ? 'animate-spin' : ''}`} />
                   </Button>
@@ -1230,7 +1237,7 @@ export default function OperationsTransactionsPageSimple() {
 
         {/* Таблица № */}
         {!loading && !loadingFromSTS && (
-          <Card className={`bg-card border border-border rounded-lg shadow-lg ${isMobile ? 'mx-0 mt-1' : ''}`}>
+          <Card className={`bg-di-surface-mid rounded-xl border border-di-outline-variant/20 ${isMobile ? 'mx-0 mt-1' : ''}`}>
             <CardHeader className={`${isMobile ? 'px-3 py-1.5' : 'pb-4'}`}>
               <div className="flex items-center justify-between">
                 <div>

@@ -72,7 +72,7 @@ export function PriceHistoryTable({
   }, [priceSchedule]);
 
   return (
-    <Card className="bg-di-surface-high border border-di-outline-variant/20 rounded-xl mt-6">
+    <Card className="bg-di-surface-mid rounded-xl border border-di-outline-variant/20 mt-6 overflow-hidden">
       <CardHeader className="pb-4">
         <CardTitle className="text-foreground flex items-center gap-2">
           <History className="w-5 h-5" />
@@ -197,25 +197,25 @@ export function PriceHistoryTable({
         ) : (
           // Десктопная версия - таблица
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-di-outline-variant/15">
-                  <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
+                <tr>
+                  <th className="text-left py-2 px-4 text-[10px] font-bold text-di-on-surface-variant tracking-widest uppercase">
                     Дата создания
                   </th>
-                  <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
+                  <th className="text-left py-2 px-4 text-[10px] font-bold text-di-on-surface-variant tracking-widest uppercase">
                     Дата применения
                   </th>
-                  <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
+                  <th className="text-left py-2 px-4 text-[10px] font-bold text-di-on-surface-variant tracking-widest uppercase">
                     Топливо
                   </th>
-                  <th className="text-right py-3 px-4 text-foreground/80 font-medium text-sm">
+                  <th className="text-right py-2 px-4 text-[10px] font-bold text-di-on-surface-variant tracking-widest uppercase">
                     Цена (руб/л)
                   </th>
-                  <th className="text-right py-3 px-4 text-foreground/80 font-medium text-sm">
+                  <th className="text-right py-2 px-4 text-[10px] font-bold text-di-on-surface-variant tracking-widest uppercase">
                     Изменение
                   </th>
-                  <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
+                  <th className="text-left py-2 px-4 text-[10px] font-bold text-di-on-surface-variant tracking-widest uppercase">
                     Статус
                   </th>
                 </tr>
@@ -228,7 +228,7 @@ export function PriceHistoryTable({
                   return (
                     <tr
                       key={`${entry.service_code}-${entry.effective_date}-${index}`}
-                      className="border-b border-di-outline-variant/15 hover:bg-card/50 transition-colors"
+                      className="border-b border-di-outline-variant/10 hover:bg-di-surface-high transition-colors duration-200"
                     >
                       <td className="py-3 px-4 text-foreground/80 text-sm">
                         {entry.created_at ? new Date(entry.created_at).toLocaleString('ru-RU', {
