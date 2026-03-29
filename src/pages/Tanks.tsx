@@ -110,7 +110,7 @@ export default function Tanks() {
               size="sm"
               onClick={refreshTanks}
               disabled={loading}
-              className="border-border/30 dark:border-di-outline-variant/15 text-muted-foreground hover:bg-secondary dark:hover:bg-di-surface-high"
+              className="border-di-outline-variant/15 text-muted-foreground hover:bg-di-surface-high"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -121,7 +121,7 @@ export default function Tanks() {
         {loading && tanks.length === 0 ? (
           <div className="flex justify-center items-center h-64">
             <div className="text-center">
-              <RefreshCw className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-3" />
+              <RefreshCw className="w-5 h-5 text-blue-500 animate-spin mx-auto mb-3" />
               <p className="text-muted-foreground text-sm">Загрузка резервуаров...</p>
             </div>
           </div>

@@ -1,8 +1,11 @@
+/**
+ * Мобильная таблица операций — Deep Intel стиль
+ * Карточки с border-l-4, крупная сумма, статус-badge, иконки топлива/оплаты
+ */
+
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Fuel, CreditCard, Calendar } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Fuel, CreditCard, Banknote, Globe, Clock } from "lucide-react";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
 
 interface MobileOperationsTableProps {
@@ -12,116 +15,136 @@ interface MobileOperationsTableProps {
   selectedOperation: any;
 }
 
+function getStatusConfig(status: string) {
+  switch (status) {
+    case 'completed':
+      return { label: 'ВЫПОЛНЕНО', color: 'text-[#4ade80]', bg: 'bg-[#4ade80]/10', border: 'border-l-[#4ade80]' };
+    case 'in_progress':
+    case 'processing':
+      return { label: 'В ОБРАБОТКЕ', color: 'text-[#fbbf24]', bg: 'bg-[#fbbf24]/10', border: 'border-l-[#fbbf24]' };
+    case 'failed':
+    case 'error':
+      return { label: 'ОТКАЗ', color: 'text-[#f87171]', bg: 'bg-[#f87171]/10', border: 'border-l-[#f87171]' };
+    default:
+      return { label: status || '—', color: 'text-di-on-surface-variant', bg: 'bg-di-surface-high', border: 'border-l-di-primary-light' };
+  }
+}
+
+function getPaymentIcon(method: string) {
+  const normalized = normalizePaymentMethod(method);
+  if (normalized.includes('Наличн')) return <Banknote className="w-4 h-4 text-di-on-surface-variant" />;
+  if (normalized.includes('Онлайн') || normalized.includes('online')) return <Globe className="w-4 h-4 text-di-on-surface-variant" />;
+  return <CreditCard className="w-4 h-4 text-di-on-surface-variant" />;
+}
+
 const MobileOperationsTable = React.memo(({ operations, onOperationClick, isDetailsOpen, selectedOperation }: MobileOperationsTableProps) => {
-
   return (
-    <div>
-      <div className="overflow-hidden">
-        {operations.map(op => (
-          <Card key={op.id} className="mb-3 bg-di-surface-mid border border-di-outline-variant/20 rounded-xl cursor-pointer hover:bg-di-surface-high transition-colors duration-200"
-                onClick={() => onOperationClick(op)}>
-            <CardContent className="p-3">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-2">
-                  <Fuel className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                  <span className="font-semibold text-foreground text-sm truncate">
-                    {op.fuelType || '-'}
+    <div className="space-y-3">
+      {operations.map(op => {
+        const status = getStatusConfig(op.status);
+        const isFailed = op.status === 'failed' || op.status === 'error';
+        const time = op.startTime ? new Date(op.startTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '—';
+
+        return (
+          <div
+            key={op.id}
+            onClick={() => onOperationClick(op)}
+            className={`bg-card rounded-xl p-4 border-l-4 ${status.border} relative overflow-hidden cursor-pointer transition-all duration-200 active:scale-[0.98] ${isFailed ? 'opacity-70' : ''}`}
+          >
+            {/* Header: ID + Status + Time */}
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter mb-1">
+                  {op.transactionId ? `#${op.transactionId}` : `ID: ${String(op.id).slice(0, 8)}`}
+                </p>
+                <h4 className={`font-headline text-2xl font-extrabold tracking-tight ${isFailed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                  {(op.totalCost || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                </h4>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className={`text-[10px] font-bold ${status.color} ${status.bg} px-2 py-0.5 rounded uppercase`}>
+                  {status.label}
+                </span>
+                <span className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {time}
+                </span>
+              </div>
+            </div>
+
+            {/* Footer: Fuel + Payment */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <Fuel className="w-4 h-4 text-blue-500 dark:text-di-primary-light" />
+                <span className="text-sm font-medium text-foreground">
+                  {op.fuelType || '—'} ({(op.quantity || 0).toFixed(1)} л)
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {getPaymentIcon(op.paymentMethod)}
+                <span className="text-sm font-medium text-foreground">
+                  {normalizePaymentMethod(op.paymentMethod)}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={() => {}}>
+        <DialogContent className="bg-card border border-di-outline-variant/20 text-foreground max-w-sm rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline font-bold text-foreground">Детали операции</DialogTitle>
+          </DialogHeader>
+          {selectedOperation && (() => {
+            const st = getStatusConfig(selectedOperation.status);
+            return (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="flex items-center justify-between">
+                  <span className="font-headline text-2xl font-extrabold text-foreground">
+                    {(selectedOperation.totalCost || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                  </span>
+                  <span className={`text-xs font-bold ${st.color} ${st.bg} px-2 py-1 rounded uppercase`}>
+                    {st.label}
                   </span>
                 </div>
-                <Badge variant={op.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
-                  {op.status === 'completed' ? 'Завершено' : 'В процессе'}
-                </Badge>
-              </div>
 
-              <div className="grid grid-cols-3 gap-2 text-xs mb-2">
-                <div>
-                  <span className="text-muted-foreground">Объем:</span>
-                  <div className="font-semibold text-foreground">{(op.quantity || 0).toFixed(1)} л</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Сумма:</span>
-                  <div className="font-semibold text-green-600 dark:text-green-400">
-                    {(op.totalCost || 0).toFixed(0)} ₽
-                  </div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Цена:</span>
-                  <div className="font-semibold text-blue-600 dark:text-blue-400">
-                    {(op.price || 0).toFixed(1)} ₽/л
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-1 text-xs text-foreground/80">
-                  <CreditCard className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{normalizePaymentMethod(op.paymentMethod)}</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar className="w-3 h-3 flex-shrink-0" />
-                  <span>
-                    {op.startTime ? new Date(op.startTime).toLocaleDateString('ru-RU', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) : '-'}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {/* Modal for operation details */}
-        <Dialog open={isDetailsOpen} onOpenChange={() => {}}>
-          <DialogContent className="bg-card border-border text-foreground max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">Детали операции</DialogTitle>
-            </DialogHeader>
-            {selectedOperation && (
-              <div className="space-y-3">
+                {/* Details grid */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-muted-foreground">ID:</span>
-                    <div className="font-mono text-foreground break-all">{selectedOperation.id}</div>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">ID</span>
+                    <div className="font-mono text-foreground text-xs break-all mt-0.5">{selectedOperation.transactionId || selectedOperation.id}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Статус:</span>
-                    <div className="text-foreground">{selectedOperation.status === 'completed' ? 'Завершено' : 'В процессе'}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Топливо:</span>
-                    <div className="text-foreground">{selectedOperation.fuelType || '-'}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Объем:</span>
-                    <div className="text-foreground">{(selectedOperation.quantity || 0).toFixed(2)} л</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Цена:</span>
-                    <div className="text-foreground">{(selectedOperation.price || 0).toFixed(2)} ₽/л</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Сумма:</span>
-                    <div className="text-foreground">{(selectedOperation.totalCost || 0).toFixed(2)} ₽</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Способ оплаты:</span>
-                    <div className="text-foreground">{normalizePaymentMethod(selectedOperation.paymentMethod)}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Время:</span>
-                    <div className="text-foreground">
-                      {selectedOperation.startTime ? new Date(selectedOperation.startTime).toLocaleString('ru-RU') : '-'}
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Время</span>
+                    <div className="text-foreground text-xs mt-0.5">
+                      {selectedOperation.startTime ? new Date(selectedOperation.startTime).toLocaleString('ru-RU') : '—'}
                     </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Топливо</span>
+                    <div className="text-foreground text-xs mt-0.5">{selectedOperation.fuelType || '—'}</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Объём</span>
+                    <div className="text-foreground text-xs mt-0.5">{(selectedOperation.quantity || 0).toFixed(2)} л</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Цена</span>
+                    <div className="text-foreground text-xs mt-0.5">{(selectedOperation.price || 0).toFixed(2)} ₽/л</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Оплата</span>
+                    <div className="text-foreground text-xs mt-0.5">{normalizePaymentMethod(selectedOperation.paymentMethod)}</div>
                   </div>
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });

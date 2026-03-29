@@ -150,9 +150,14 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    // This is the internal state of the sidebar.
-    // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    // Read persisted state from cookie, fallback to defaultOpen
+    const [_open, _setOpen] = React.useState(() => {
+      try {
+        const match = document.cookie.match(new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`))
+        if (match) return match[1] === "true"
+      } catch {}
+      return defaultOpen
+    })
     const open = openProp ?? _open
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -323,7 +328,7 @@ const Sidebar = React.forwardRef<
             // Adjust the padding for floating and inset variants.
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
             className
           )}
           {...props}
@@ -334,12 +339,69 @@ const Sidebar = React.forwardRef<
           >
             {children}
           </div>
+          {/* Drag edge to collapse/expand */}
+          <SidebarDragEdge />
         </div>
       </div>
     )
   }
 )
 Sidebar.displayName = "Sidebar"
+
+/** Невидимая полоска на правом краю sidebar — drag для сворачивания/разворачивания */
+function SidebarDragEdge() {
+  const { toggleSidebar, state } = useSidebar()
+  const dragStartX = React.useRef<number | null>(null)
+  const dragging = React.useRef(false)
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    dragStartX.current = e.clientX
+    dragging.current = false
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (dragStartX.current === null) return
+      const delta = ev.clientX - dragStartX.current
+      // Порог 40px чтобы отличить drag от click
+      if (Math.abs(delta) > 40 && !dragging.current) {
+        dragging.current = true
+        const shouldCollapse = delta < 0
+        if ((shouldCollapse && state === "expanded") || (!shouldCollapse && state === "collapsed")) {
+          toggleSidebar()
+        }
+        cleanup()
+      }
+    }
+
+    const handleMouseUp = () => {
+      // Если не было drag — обычный клик → toggle
+      if (!dragging.current) {
+        toggleSidebar()
+      }
+      cleanup()
+    }
+
+    const cleanup = () => {
+      dragStartX.current = null
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+      document.body.style.cursor = ""
+      document.body.style.userSelect = ""
+    }
+
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp)
+    document.body.style.cursor = "col-resize"
+    document.body.style.userSelect = "none"
+  }
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500/30 active:bg-blue-500/50 transition-colors z-20"
+      title="Потяните для сворачивания меню"
+    />
+  )
+}
 
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,

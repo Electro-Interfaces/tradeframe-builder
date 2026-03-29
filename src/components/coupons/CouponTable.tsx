@@ -26,20 +26,20 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-border hover:bg-card">
-            <TableHead className="text-foreground/80 min-w-[120px]">ТТ</TableHead>
-            <TableHead className="text-foreground/80 min-w-[120px]">Номер купона</TableHead>
-            <TableHead className="text-foreground/80 min-w-[140px]">Дата создания</TableHead>
-            <TableHead className="text-foreground/80 min-w-[100px]">Тип топлива</TableHead>
-            <TableHead className="text-foreground/80 min-w-[100px]">Цена за литр</TableHead>
-            <TableHead className="text-foreground/80 min-w-[120px]">Остаток (л)</TableHead>
-            <TableHead className="text-foreground/80 min-w-[100px]">Остаток (₽)</TableHead>
-            <TableHead className="text-foreground/80 min-w-[100px]">Статус</TableHead>
-            <TableHead className="text-foreground/80 min-w-[80px]">Тип</TableHead>
-            <TableHead className="text-foreground/80 min-w-[100px]">Автор</TableHead>
-            <TableHead className="text-foreground/80 min-w-[140px]">Комментарий</TableHead>
-            <TableHead className="text-foreground/80 min-w-[120px]">Смена</TableHead>
-            <TableHead className="text-foreground/80 min-w-[100px]">Действия</TableHead>
+          <TableRow className="bg-secondary dark:bg-di-surface-highest border-b-2 border-di-outline-variant/20 hover:bg-secondary dark:hover:bg-di-surface-highest">
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">ТТ</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Номер купона</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Дата создания</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Тип топлива</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Цена за литр</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Остаток (л)</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Остаток (₽)</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Статус</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Тип</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Автор</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Комментарий</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Смена</TableHead>
+            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

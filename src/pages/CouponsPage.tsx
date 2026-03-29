@@ -1,11 +1,9 @@
 /**
- * CouponsPage - Страница управления купонами
- * Рефакторинг: разделение на компоненты и хуки
+ * CouponsPage — Страница управления купонами
  */
 
 import { useState, useEffect, useMemo } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -13,14 +11,14 @@ import { useSelection } from '@/contexts/SelectionContext';
 import { useStationNetworkId } from '@/hooks/useStationNetworkId';
 import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { Download, Plus, RefreshCw } from 'lucide-react';
+import { PullToRefreshIndicator } from '@/components/common/PullToRefreshIndicator';
+import { LastDataTransfer } from '@/components/common/LastDataTransfer';
 
-// Хуки
 import { useCouponsData } from '@/hooks/useCouponsData';
 import { useCouponFilters } from '@/hooks/useCouponFilters';
 import { useCouponStats } from '@/hooks/useCouponStats';
 import { useCouponPagination } from '@/hooks/useCouponPagination';
 
-// Компоненты
 import { CouponStatsCards } from '@/components/coupons/CouponStatsCards';
 import { CouponFilters } from '@/components/coupons/CouponFilters';
 import { CouponKpiCards } from '@/components/coupons/CouponKpiCards';
@@ -29,9 +27,7 @@ import { CouponTableMobile } from '@/components/coupons/CouponTableMobile';
 import { CouponDetailsModal } from '@/components/coupons/CouponDetailsModal';
 import { CreateCouponModal } from '@/components/coupons/CreateCouponModal';
 
-// Сервисы
 import { couponsExportService } from '@/services/couponsExportService';
-
 import type { Coupon } from '@/types/coupons';
 
 export default function CouponsPage() {
@@ -40,22 +36,13 @@ export default function CouponsPage() {
   const stationNetworkId = useStationNetworkId();
   const { selectedExternalIds } = useSelectedNetworks();
 
-  // Хуки для управления данными и фильтрами
   const { searchResult, loading, error, loadCouponsData, addOptimisticCoupon } = useCouponsData();
   const {
-    filters,
-    setFilters,
-    filtersOpen,
-    setFiltersOpen,
-    selectedKpiStates,
-    selectedFuelType,
-    handleKpiStateClick,
-    handleFuelTypeKpiClick,
-    handleKpiResetAll,
-    clearAllFilters
+    filters, setFilters, filtersOpen, setFiltersOpen,
+    selectedKpiStates, selectedFuelType,
+    handleKpiStateClick, handleFuelTypeKpiClick, handleKpiResetAll, clearAllFilters
   } = useCouponFilters();
 
-  // Pull-to-refresh для мобильных
   const handleRefreshData = async () => {
     const systemIds = selectedExternalIds.map(Number).filter(n => !isNaN(n));
     if (systemIds.length > 0) {
@@ -71,26 +58,19 @@ export default function CouponsPage() {
     indicatorAppearThreshold: 30
   });
 
-  // Статистика и фильтрация
   const { allCoupons, filteredCoupons, uniqueStates, uniqueFuelTypes, fuelStats, computedStats } =
     useCouponStats(searchResult, filters, selectedKpiStates, selectedFuelType);
 
-  // Пагинация
   const { currentPage, totalPages, paginatedItems, setCurrentPage } =
     useCouponPagination(filteredCoupons);
 
-  // Модальное окно деталей
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-
-  // Модальное окно создания купона
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Виды топлива на данной АЗС (из загруженных купонов)
   const stationFuelOptions = useMemo(() => {
     const fuelMap = new Map<number, string>();
     allCoupons.forEach(c => {
-      // Пропускаем рублёвые позиции — они не являются видами топлива
       if (c.service.service_name.toLowerCase().includes('руб')) return;
       if (!fuelMap.has(c.service.service_code)) {
         fuelMap.set(c.service.service_code, c.service.service_name);
@@ -99,10 +79,6 @@ export default function CouponsPage() {
     return Array.from(fuelMap.entries()).map(([code, label]) => ({ code, label }));
   }, [allCoupons]);
 
-  
-  // Загрузка данных при изменении сети или точки
-  // ВАЖНО: передаём system напрямую из selectedExternalIds, т.к. filters.system
-  // обновляется асинхронно через отдельный useEffect и может быть устаревшим
   useEffect(() => {
     if (selectedExternalIds.length > 0) {
       const systemIds = selectedExternalIds.map(Number).filter(n => !isNaN(n));
@@ -112,7 +88,13 @@ export default function CouponsPage() {
     }
   }, [selectedTradingPoint, selectedExternalIds]);
 
-  // Экспорт в Excel
+  // Слушаем BottomNav refresh
+  useEffect(() => {
+    const handler = () => handleRefreshData();
+    window.addEventListener('bottomnav-refresh', handler);
+    return () => window.removeEventListener('bottomnav-refresh', handler);
+  }, [handleRefreshData]);
+
   const handleExport = async () => {
     try {
       await couponsExportService.exportToExcel(searchResult, {
@@ -124,7 +106,6 @@ export default function CouponsPage() {
     }
   };
 
-  // Обработка клика по купону в мобильной версии
   const handleCouponClick = (coupon: Coupon) => {
     setSelectedCoupon(coupon);
     setIsDetailsOpen(true);
@@ -135,63 +116,62 @@ export default function CouponsPage() {
       <div
         ref={scrollContainerRef}
         data-pull-to-refresh="true"
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${
-          isMobile ? 'pt-4' : 'pt-6'
-        } min-h-screen bg-gradient-to-br from-background via-background to-background`}
+        className={`w-full relative overflow-x-hidden ${isMobile ? 'px-2 py-2' : 'px-4 md:px-6 lg:px-8 py-6'}`}
+        style={{
+          transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
+          transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
+        }}
       >
-        {/* Pull-to-refresh индикатор */}
-        {isMobile && pullState !== 'idle' && pullDistance >= 30 && (
-          <div className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
-            style={{ transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`, opacity: Math.min(1, (pullDistance - 30) / 40) }}>
-            <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
-              {pullState === 'refreshing' ? (
-                <><RefreshCw className="w-4 h-4 animate-spin text-blue-500" /><span className="text-sm font-medium">Обновление...</span></>
-              ) : pullState === 'canRefresh' ? (
-                <><div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm font-medium text-green-600">Отпустите для обновления</span></>
-              ) : (
-                <><div className="w-4 h-4 border-2 border-border border-t-blue-500 rounded-full" style={{ transform: `rotate(${pullDistance * 3}deg)` }} /><span className="text-sm font-medium">Потяните для обновления</span></>
-              )}
-            </div>
-          </div>
-        )}
+        {isMobile && <PullToRefreshIndicator pullState={pullState} pullDistance={pullDistance} />}
 
-        {/* Заголовок */}
-        <div className="mb-6 pt-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-foreground">Купоны</h1>
-            <div className="flex items-center gap-2">
-              {stationNetworkId && selectedStation?.external_id && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCreateOpen(true)}
-                  className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Создать купон
-                </Button>
-              )}
-              {filteredCoupons.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExport}
-                  className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Экспорт
-                </Button>
-              )}
-            </div>
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex-1 min-w-0">
+            <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Купоны</h1>
+            <LastDataTransfer />
+          </div>
+          <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-center shrink-0`}>
+            {!isMobile && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleRefreshData()}
+                disabled={loading}
+                className="border-di-outline-variant/15 text-muted-foreground hover:bg-di-surface-high"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+            {filteredCoupons.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                className="border-di-outline-variant/15 text-muted-foreground hover:bg-di-surface-high"
+              >
+                <Download className={`h-4 w-4 ${isMobile ? '' : 'mr-2'}`} />
+                {!isMobile && 'Экспорт'}
+              </Button>
+            )}
+            {stationNetworkId && selectedStation?.external_id && (
+              <Button
+                size="sm"
+                onClick={() => setIsCreateOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className={`h-4 w-4 ${isMobile ? '' : 'mr-2'}`} />
+                {!isMobile && 'Создать купон'}
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Карточки статистики */}
+        {/* Stats */}
         {searchResult && searchResult.stats && (
           <CouponStatsCards stats={searchResult.stats} {...computedStats} />
         )}
 
-        {/* Фильтры */}
+        {/* Filters */}
         <CouponFilters
           filters={filters}
           setFilters={setFilters}
@@ -202,7 +182,7 @@ export default function CouponsPage() {
           onClearFilters={clearAllFilters}
         />
 
-        {/* KPI карточки */}
+        {/* KPI */}
         <CouponKpiCards
           uniqueStates={uniqueStates}
           uniqueFuelTypes={uniqueFuelTypes}
@@ -216,48 +196,40 @@ export default function CouponsPage() {
           onResetAll={handleKpiResetAll}
         />
 
-        {/* Таблица купонов */}
-        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              Журнал купонов
-              <span className="text-muted-foreground ml-2 font-normal text-sm">
-                ({filteredCoupons.length})
-              </span>
-            </h2>
-          </div>
+        {/* Table */}
+        <div className="bg-di-surface-mid rounded-xl border border-transparent p-4">
+          <h2 className={`font-headline font-bold text-foreground mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>
+            Журнал купонов
+            <span className="text-muted-foreground ml-2 font-normal text-sm">({filteredCoupons.length})</span>
+          </h2>
 
-          <Card className="bg-background border-border">
-            {isMobile ? (
-              <CouponTableMobile
-                coupons={paginatedItems}
-                onCouponClick={handleCouponClick}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                loading={loading}
-              />
-            ) : (
-              <CouponTable
-                coupons={paginatedItems}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                loading={loading}
-              />
-            )}
-          </Card>
+          {isMobile ? (
+            <CouponTableMobile
+              coupons={paginatedItems}
+              onCouponClick={handleCouponClick}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              loading={loading}
+            />
+          ) : (
+            <CouponTable
+              coupons={paginatedItems}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              loading={loading}
+            />
+          )}
         </div>
       </div>
 
-      {/* Модальное окно деталей */}
       <CouponDetailsModal
         isOpen={isDetailsOpen}
         onOpenChange={setIsDetailsOpen}
         coupon={selectedCoupon}
       />
 
-      {/* Модальное окно создания купона */}
       {stationNetworkId && selectedStation?.external_id && (
         <CreateCouponModal
           isOpen={isCreateOpen}

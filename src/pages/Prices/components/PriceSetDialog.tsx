@@ -52,43 +52,56 @@ export function PriceSetDialog({
 }: PriceSetDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-4xl max-h-[90vh]'} bg-background border-border overflow-y-auto`}>
+      <AlertDialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-4xl max-h-[90vh]'} bg-card border border-di-outline-variant/20 rounded-xl overflow-y-auto`}>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <Edit className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+          <AlertDialogTitle className="font-headline font-bold text-foreground flex items-center gap-2.5 text-lg">
+            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-di-primary/10 flex items-center justify-center">
+              <Edit className="w-4 h-4 text-blue-600 dark:text-di-primary-light" />
+            </div>
             Установка цен
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-foreground/80 text-base">
-            <div className="space-y-3">
+          <AlertDialogDescription asChild>
+            <div className="text-di-on-surface-variant text-sm space-y-3">
               <p>
-                <strong>Внимание!</strong> Будут установлены новые цены для всех видов топлива на выбранной торговой точке.
+                Будут установлены новые цены для всех видов топлива на выбранной торговой точке.
               </p>
-              <div className="bg-card p-3 rounded-lg border border-border">
-                <p className="text-sm"><strong>Сеть:</strong> {selectedNetwork?.name} (ID: {selectedNetwork?.external_id})</p>
-                <p className="text-sm"><strong>Торговая точка:</strong> {
-                  typeof selectedTradingPoint === 'string' ? selectedTradingPoint : selectedTradingPoint?.name
-                }</p>
-                <p className="text-sm"><strong>Количество цен:</strong> {pricesForUpdate.length}</p>
+              <div className="bg-di-surface-high p-3 rounded-xl border border-di-outline-variant/10">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <span className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest block mb-0.5">Сеть</span>
+                    <span className="text-foreground text-sm font-medium">{selectedNetwork?.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest block mb-0.5">Торговая точка</span>
+                    <span className="text-foreground text-sm font-medium">{
+                      typeof selectedTradingPoint === 'string' ? selectedTradingPoint : selectedTradingPoint?.name
+                    }</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest block mb-0.5">Позиций</span>
+                    <span className="text-foreground text-sm font-medium">{pricesForUpdate.length}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="my-6 space-y-4">
+        <div className="my-5 space-y-4">
           {/* Date and time picker */}
           <div>
-            <Label className="text-foreground font-medium">Дата и время вступления в силу</Label>
+            <Label className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest">Дата и время вступления в силу</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-start text-left font-normal mt-2 bg-card border-border text-foreground hover:bg-secondary"
+                  className="w-full justify-start text-left font-normal mt-2 bg-di-surface-lowest border-di-outline-variant/20 text-foreground hover:bg-di-surface-high"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <CalendarIcon className="mr-2 h-4 w-4 text-di-on-surface-variant" />
                   {effectiveDateTime ? format(effectiveDateTime, "dd.MM.yyyy HH:mm", { locale: ru }) : "Выберите дату и время"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+              <PopoverContent className="w-auto p-0 bg-card border-di-outline-variant/20 rounded-xl" align="start">
                 <Calendar
                   mode="single"
                   selected={effectiveDateTime}
@@ -102,22 +115,19 @@ export function PriceSetDialog({
                   }}
                   disabled={(date) => date < new Date("1900-01-01")}
                   initialFocus
-                  className="bg-card"
                 />
-                <div className="p-3 border-t border-border">
-                  <div className="flex gap-2">
-                    <Input
-                      type="time"
-                      value={format(effectiveDateTime, "HH:mm")}
-                      onChange={(e) => {
-                        const [hours, minutes] = e.target.value.split(':');
-                        const newDateTime = new Date(effectiveDateTime);
-                        newDateTime.setHours(parseInt(hours), parseInt(minutes));
-                        setEffectiveDateTime(newDateTime);
-                      }}
-                      className="bg-secondary border-border text-foreground"
-                    />
-                  </div>
+                <div className="p-3 border-t border-di-outline-variant/10">
+                  <Input
+                    type="time"
+                    value={format(effectiveDateTime, "HH:mm")}
+                    onChange={(e) => {
+                      const [hours, minutes] = e.target.value.split(':');
+                      const newDateTime = new Date(effectiveDateTime);
+                      newDateTime.setHours(parseInt(hours), parseInt(minutes));
+                      setEffectiveDateTime(newDateTime);
+                    }}
+                    className="bg-di-surface-lowest border-di-outline-variant/20 text-foreground"
+                  />
                 </div>
               </PopoverContent>
             </Popover>
@@ -125,17 +135,17 @@ export function PriceSetDialog({
 
           {/* Prices list for update */}
           <div>
-            <Label className="text-foreground font-medium">Цены для установки</Label>
+            <Label className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest">Цены для установки</Label>
             <div className="mt-2 space-y-2">
               {pricesForUpdate.map((priceItem, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border">
-                  <div className="flex-1">
-                    <div className="text-foreground font-medium">{priceItem.fuel_type}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Текущая: {priceItem.currentPrice?.toFixed(2) || '\u2014'} \u20BD
+                <div key={index} className="flex items-center gap-3 p-3.5 bg-di-surface-high rounded-xl border border-di-outline-variant/10">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-foreground font-headline font-bold text-sm">{priceItem.fuel_type}</div>
+                    <div className="text-xs text-di-on-surface-variant">
+                      Текущая: {priceItem.currentPrice?.toFixed(2) || '—'} ₽
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Input
                       type="number"
                       step="0.01"
@@ -146,9 +156,9 @@ export function PriceSetDialog({
                         newPrices[index].price = parseFloat(e.target.value) || 0;
                         setPricesForUpdate(newPrices);
                       }}
-                      className="w-40 bg-secondary border-border text-foreground text-right pr-6"
+                      className="w-32 bg-di-surface-lowest border-di-outline-variant/20 text-foreground text-right font-headline font-bold"
                     />
-                    <span className="text-muted-foreground text-sm">\u20BD</span>
+                    <span className="text-di-on-surface-variant text-sm">₽</span>
                   </div>
                 </div>
               ))}
@@ -157,13 +167,13 @@ export function PriceSetDialog({
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel className="bg-secondary border-border text-foreground hover:bg-secondary">
+          <AlertDialogCancel className="border-di-outline-variant/20 text-di-on-surface-variant hover:bg-di-surface-high">
             Отмена
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirmSetPrices}
             disabled={isSettingPrices}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            className="bg-di-primary hover:opacity-90 text-white"
           >
             {isSettingPrices ? (
               <>

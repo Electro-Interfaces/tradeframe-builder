@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Menu, Bell, Wifi, LifeBuoy, Sun, Moon, RefreshCw } from "lucide-react";
+import { LogOut, User, Menu, Bell, Wifi, LifeBuoy, Sun, Moon, RefreshCw, ChevronsLeft, ChevronsRight } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
@@ -19,6 +19,7 @@ import { PointSelect } from "@/components/selects/PointSelect";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useMobile, mobileUtils } from "@/hooks/useMobile";
 import StationsConnectionDialog from "@/components/operations/StationsConnectionDialog";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useSupportContext } from "@/contexts/SupportContext";
 
 interface HeaderProps {
@@ -49,6 +50,13 @@ export function Header({
   const { openCreateDialog } = useSupportContext();
   const mobileInfo = useMobile();
   const { theme, toggleTheme } = useTheme();
+  let sidebarState: 'expanded' | 'collapsed' = 'expanded';
+  let toggleSidebar: (() => void) | null = null;
+  try {
+    const sidebar = useSidebar();
+    sidebarState = sidebar.state;
+    toggleSidebar = sidebar.toggleSidebar;
+  } catch {}
 
   // Состояние для диалога информации об обновлениях
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
@@ -112,7 +120,7 @@ export function Header({
   };
 
   return (
-    <header className={`${isMobile ? 'relative' : 'fixed top-0'} left-0 right-0 z-50 min-h-header bg-background border-b border-transparent shadow-sm mobile-safe-top`}>
+    <header className={`${isMobile ? 'relative' : 'fixed top-0'} left-0 right-0 z-50 min-h-header bg-background border-b-0 mobile-safe-top`}>
       <div className="flex items-center justify-between min-h-header px-4 md:px-6">
         {/* Mobile Header: Station selector + Bell + Sync + Avatar */}
         <div className="flex items-center gap-1.5 md:hidden flex-1 min-w-0">
@@ -148,7 +156,7 @@ export function Header({
           </Button>
         </div>
 
-        {/* Desktop Left Section: Logo + Brand */}
+        {/* Desktop Left Section: Logo + Brand + Sidebar toggle */}
         <div className="hidden md:flex items-center gap-4">
           <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-base">TP</span>
@@ -157,6 +165,15 @@ export function Header({
             <h1 className="font-semibold text-foreground text-lg tracking-tight">TradePoint</h1>
             <p className="text-xs text-muted-foreground">v{APP_VERSION}</p>
           </div>
+          {toggleSidebar && (
+            <button
+              onClick={toggleSidebar}
+              className="ml-2 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-secondary dark:hover:bg-di-surface-high active:scale-90 transition-all"
+              title={sidebarState === 'collapsed' ? 'Развернуть меню (Ctrl+B)' : 'Свернуть меню (Ctrl+B)'}
+            >
+              {sidebarState === 'collapsed' ? <ChevronsRight className="w-5 h-5" /> : <ChevronsLeft className="w-5 h-5" />}
+            </button>
+          )}
         </div>
 
         {/* Desktop Center: Context Selectors + Connection Button */}
@@ -186,7 +203,7 @@ export function Header({
             variant="outline"
             size="sm"
             onClick={openCreateDialog}
-            className="h-9 px-3 bg-green-100 dark:bg-green-600/20 hover:bg-green-600 text-green-600 dark:text-green-400 hover:text-white border border-green-300 dark:border-green-500/50 hover:border-green-500 rounded-lg transition-all duration-200 font-medium"
+            className="h-9 px-3 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-500 text-blue-600 dark:text-blue-400 hover:text-white border border-blue-200 dark:border-blue-500/30 hover:border-blue-500 rounded-lg transition-all duration-200 font-medium"
             title="Создать заявку в поддержку"
           >
             <LifeBuoy className="h-4 w-4 mr-1.5" />

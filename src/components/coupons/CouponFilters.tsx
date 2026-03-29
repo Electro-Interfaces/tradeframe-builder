@@ -1,13 +1,10 @@
 /**
- * Компонент фильтров купонов
+ * Фильтры купонов — плоская панель Command Center
  */
 
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Filter, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { RefreshCw, Search, X } from 'lucide-react';
 import type { CouponsFilter } from '@/types/coupons';
 
 interface CouponFiltersProps {
@@ -21,109 +18,73 @@ interface CouponFiltersProps {
 }
 
 export function CouponFilters({
-  filters,
-  setFilters,
-  filtersOpen,
-  setFiltersOpen,
-  loading,
-  onRefresh,
-  onClearFilters
+  filters, setFilters, loading, onRefresh, onClearFilters
 }: CouponFiltersProps) {
+  const hasFilters = !!(filters.search || filters.dateFrom || filters.dateTo);
+
   return (
-    <Card className="bg-card border-border mb-6">
-      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-foreground">Фильтры</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClearFilters();
-                }}
-              >
-                Очистить фильтры
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRefresh();
-                }}
-                disabled={loading}
-                className="border-border text-foreground hover:bg-secondary"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-              {filtersOpen ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
+    <div className="bg-di-surface-mid rounded-xl border border-transparent p-3 md:p-5 mb-4">
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-4">
+        {/* Поиск */}
+        <div>
+          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Номер купона</label>
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Поиск..."
+              value={filters.search || ''}
+              onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+              className="border-di-outline-variant/20 bg-di-surface-lowest pr-8"
+            />
+            <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
           </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="p-4 border-t border-border">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {/* Поиск */}
-              <div>
-                <Label htmlFor="search" className="text-xs text-muted-foreground">
-                  Поиск по номеру
-                </Label>
-                <Input
-                  id="search"
-                  type="text"
-                  placeholder="Номер купона..."
-                  value={filters.search || ''}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, search: e.target.value }))
-                  }
-                  className="mt-1"
-                />
-              </div>
+        </div>
 
-              {/* Дата начала */}
-              <div>
-                <Label htmlFor="dateFrom" className="text-xs text-muted-foreground">
-                  Дата от
-                </Label>
-                <Input
-                  id="dateFrom"
-                  type="date"
-                  value={filters.dateFrom || ''}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))
-                  }
-                  className="mt-1"
-                />
-              </div>
+        {/* Дата от */}
+        <div>
+          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Дата от</label>
+          <Input
+            type="date"
+            value={filters.dateFrom || ''}
+            onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+            className="border-di-outline-variant/20 bg-di-surface-lowest"
+          />
+        </div>
 
-              {/* Дата окончания */}
-              <div>
-                <Label htmlFor="dateTo" className="text-xs text-muted-foreground">
-                  Дата до
-                </Label>
-                <Input
-                  id="dateTo"
-                  type="date"
-                  value={filters.dateTo || ''}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, dateTo: e.target.value }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-            </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+        {/* Дата до */}
+        <div>
+          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Дата до</label>
+          <Input
+            type="date"
+            value={filters.dateTo || ''}
+            onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+            className="border-di-outline-variant/20 bg-di-surface-lowest"
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-end gap-2">
+          {hasFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearFilters}
+              className="border-di-outline-variant/15 text-muted-foreground hover:bg-di-surface-high"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={loading}
+            className="border-di-outline-variant/15 text-muted-foreground hover:bg-di-surface-high"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

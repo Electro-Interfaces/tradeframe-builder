@@ -26,6 +26,7 @@ import {
   XCircle,
   AlertCircle,
   Edit,
+  Fuel,
   Plus,
   RefreshCw,
 } from "lucide-react";
@@ -253,9 +254,9 @@ export function Prices() {
       >
         {isMobile && <PullToRefreshIndicator pullState={pullState} pullDistance={pullDistance} />}
 
-        {/* Page header — Deep Intel style */}
+        {/* Page header */}
         <div className="mb-6 pt-4">
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Цены</h1>
               <LastDataTransfer />
@@ -267,7 +268,7 @@ export function Prices() {
                   variant="outline"
                   size="sm"
                   disabled={loadingFromSTSAPI}
-                  className="border-border/30 dark:border-di-outline-variant/15 text-muted-foreground hover:bg-secondary dark:hover:bg-di-surface-high"
+                  className="border-di-outline-variant/15 text-di-on-surface-variant hover:bg-di-surface-high"
                 >
                   <RefreshCw className={`w-4 h-4 ${loadingFromSTSAPI ? 'animate-spin' : ''}`} />
                 </Button>
@@ -275,10 +276,9 @@ export function Prices() {
               {stsApiConfigured && currentPrices.length > 0 && (
                 <Button
                   onClick={() => handleSetPrices(isMobile)}
-                  variant="outline"
                   size="sm"
                   disabled={isSettingPrices || !selectedTradingPoint || selectedTradingPoint === 'all'}
-                  className="border-green-600 dark:border-green-500/50 text-green-600 dark:text-green-400 hover:bg-emerald-600 hover:text-white"
+                  className="bg-di-primary hover:opacity-90 text-white font-semibold"
                 >
                   <Edit className={`h-4 w-4 ${isMobile ? '' : 'mr-2'}`} />
                   {!isMobile && "Изменить цены"}
@@ -292,62 +292,41 @@ export function Prices() {
         {/* Price tiles */}
         {isInitialLoading ? (
           <div className="pb-6">
-            <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'}`}>
-              {[1, 2, 3, 4].map((n) => (
-                isMobile ? (
-                  <div key={n} className="bg-card border border-border rounded-lg p-2.5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="h-3.5 w-14 bg-secondary rounded animate-pulse mb-1.5"></div>
-                        <div className="h-2.5 w-10 bg-secondary rounded animate-pulse"></div>
-                      </div>
-                      <div>
-                        <div className="h-5 w-16 bg-secondary rounded animate-pulse mb-1"></div>
-                        <div className="h-2 w-8 bg-secondary rounded animate-pulse ml-auto"></div>
-                      </div>
-                    </div>
+            <div className={`grid ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'}`}>
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="bg-di-surface-mid rounded-xl border border-di-outline-variant/10 p-6 space-y-4">
+                  <div className="h-3 w-24 bg-di-surface-high rounded-lg animate-pulse" />
+                  <div className="h-12 w-36 bg-di-surface-high rounded-lg animate-pulse" />
+                  <div className="h-[2px] w-full bg-di-surface-high rounded-full">
+                    <div className="h-full bg-di-surface-highest rounded-full w-1/2 animate-pulse" />
                   </div>
-                ) : (
-                  <div key={n} className="bg-card border border-border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-4 h-4 bg-secondary rounded animate-pulse"></div>
-                      <div className="h-4 w-20 bg-secondary rounded animate-pulse"></div>
-                    </div>
-                    <div className="h-5 w-16 bg-secondary rounded animate-pulse mb-3"></div>
-                    <div className="border-t border-border pt-3 text-right">
-                      <div className="h-7 w-24 bg-secondary rounded animate-pulse ml-auto mb-1"></div>
-                      <div className="h-3 w-10 bg-secondary rounded animate-pulse ml-auto"></div>
-                    </div>
-                  </div>
-                )
+                </div>
               ))}
             </div>
           </div>
         ) : filteredPrices.length === 0 ? (
-          <div>
-            <div className={`text-center ${isMobile ? 'py-8' : 'py-16'}`}>
-              <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} bg-secondary rounded-full flex items-center justify-center mx-auto mb-4`}>
-                <span className={`text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>{"\uD83D\uDCB0"}</span>
-              </div>
-              <h3 className={`font-semibold text-foreground mb-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
-                Нет цен
-              </h3>
-              <p className={`text-muted-foreground mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
-                Создайте первую цену на топливо
-              </p>
-              <Button
-                onClick={handleCreatePrice}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                size={isMobile ? "default" : "sm"}
-              >
-                <Plus className="w-4 h-4" />
-                <span className={isMobile ? "ml-2" : "ml-1"}>Создать цену</span>
-              </Button>
+          <div className={`text-center ${isMobile ? 'py-10' : 'py-16'}`}>
+            <div className={`${isMobile ? 'w-14 h-14' : 'w-16 h-16'} rounded-xl bg-di-surface-high flex items-center justify-center mx-auto mb-4`}>
+              <Fuel className={`${isMobile ? 'w-6 h-6' : 'w-7 h-7'} text-di-on-surface-variant`} />
             </div>
+            <h3 className="font-headline font-bold text-foreground mb-1 text-base">
+              Нет данных о ценах
+            </h3>
+            <p className="text-di-on-surface-variant text-sm mb-5">
+              Создайте первую цену на топливо
+            </p>
+            <Button
+              onClick={handleCreatePrice}
+              size="sm"
+              className="bg-di-primary-light hover:bg-blue-600 text-white"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Создать цену
+            </Button>
           </div>
         ) : (
           <div className="mb-6">
-            <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'}`}>
+            <div className={`grid ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'}`}>
               {filteredPrices.map((price) => (
                 <PriceCard
                   key={price.id}
@@ -382,12 +361,12 @@ export function Prices() {
 
         {/* Create/edit price dialog */}
         <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
-          <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh] overflow-y-auto' : 'max-w-2xl'}`}>
+          <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh] overflow-y-auto' : 'max-w-2xl'} bg-card border border-di-outline-variant/20 rounded-xl`}>
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="font-headline font-bold text-foreground">
                 {selectedPrice ? 'Редактировать цену' : 'Новая цена на топливо'}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-di-on-surface-variant">
                 {selectedPrice
                   ? 'Измените параметры цены на выбранный вид топлива'
                   : 'Создайте новую цену для конкретного вида топлива'
@@ -395,16 +374,16 @@ export function Prices() {
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {/* Fuel type */}
-                <div className="space-y-2">
-                  <Label>Вид топлива *</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest">Вид топлива *</Label>
                   <Select
                     value={form.watch("fuelId")}
                     onValueChange={(value) => form.setValue("fuelId", value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-di-outline-variant/20 bg-di-surface-lowest">
                       <SelectValue placeholder="Выберите вид топлива" />
                     </SelectTrigger>
                     <SelectContent>
@@ -416,18 +395,18 @@ export function Prices() {
                     </SelectContent>
                   </Select>
                   {form.formState.errors.fuelId && (
-                    <p className="text-red-500 text-sm">{form.formState.errors.fuelId.message}</p>
+                    <p className="text-[#f87171] text-xs">{form.formState.errors.fuelId.message}</p>
                   )}
                 </div>
 
                 {/* Unit */}
-                <div className="space-y-2">
-                  <Label>Единица измерения *</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest">Единица измерения *</Label>
                   <Select
                     value={form.watch("unit")}
                     onValueChange={(value) => form.setValue("unit", value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-di-outline-variant/20 bg-di-surface-lowest">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -440,33 +419,34 @@ export function Prices() {
 
               <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {/* Price */}
-                <div className="space-y-2">
-                  <Label>Цена (\u20BD) *</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest">Цена (₽) *</Label>
                   <Input
                     type="number"
                     step="0.01"
                     min="0"
+                    className="border-di-outline-variant/20 bg-di-surface-lowest font-headline font-bold text-lg"
                     {...form.register("priceNet", { valueAsNumber: true })}
                   />
                   {form.formState.errors.priceNet && (
-                    <p className="text-red-500 text-sm">{form.formState.errors.priceNet.message}</p>
+                    <p className="text-[#f87171] text-xs">{form.formState.errors.priceNet.message}</p>
                   )}
                 </div>
               </div>
 
               {/* Apply date */}
-              <div className="space-y-2">
-                <Label>Применить с *</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest">Применить с *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal border-di-outline-variant/20 bg-di-surface-lowest",
                         !form.watch("applyAt") && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="mr-2 h-4 w-4 text-di-on-surface-variant" />
                       {form.watch("applyAt") ? (
                         format(form.watch("applyAt"), "dd.MM.yyyy HH:mm", { locale: ru })
                       ) : (
@@ -474,7 +454,7 @@ export function Prices() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0 border-di-outline-variant/20">
                     <Calendar
                       mode="single"
                       selected={form.watch("applyAt")}
@@ -486,24 +466,27 @@ export function Prices() {
               </div>
 
               {/* Comment */}
-              <div className="space-y-2">
-                <Label>Комментарий</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-di-on-surface-variant uppercase tracking-widest">Комментарий</Label>
                 <Textarea
                   placeholder="Причина изменения цены..."
+                  className="border-di-outline-variant/20 bg-di-surface-lowest"
                   {...form.register("comment")}
                 />
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={() => setIsFormDialogOpen(false)}
+                  className="border-di-outline-variant/20 text-di-on-surface-variant hover:bg-di-surface-high"
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                <Button type="submit" size="sm" className="bg-di-primary-light hover:bg-blue-600 text-white">
                   {selectedPrice ? 'Обновить' : 'Создать'}
                 </Button>
               </div>

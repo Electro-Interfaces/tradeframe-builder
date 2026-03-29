@@ -34,38 +34,36 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
 
   // Status
   const statusText = isBlocked ? 'БЛОК' : tank.noSensorData ? 'КНИЖ.' : tankStatus === 'critical' ? 'КРИТ.' : tankStatus === 'warning' ? 'НИЗКИЙ' : 'OK';
-  const statusColor = isBlocked || tankStatus === 'critical' ? 'text-red-600 dark:text-[#f87171]' : tankStatus === 'warning' ? 'text-amber-600 dark:text-[#fbbf24]' : 'text-green-600 dark:text-[#4ade80]';
-  const dotColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500' : tankStatus === 'warning' ? 'bg-amber-500' : 'bg-green-500 dark:bg-[#4ade80]';
-  const barColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500 dark:bg-[#f87171]' : tankStatus === 'warning' ? 'bg-amber-500 dark:bg-[#fbbf24]' : 'bg-blue-600 dark:bg-di-primary-light';
-  const borderClass = isBlocked ? 'border-red-500/30 dark:border-red-500/30' : 'border-border/30 dark:border-di-outline-variant/15';
+  const statusColor = isBlocked || tankStatus === 'critical' ? 'text-red-600' : tankStatus === 'warning' ? 'text-amber-600' : 'text-green-600';
+  const dotColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500' : tankStatus === 'warning' ? 'bg-amber-500' : 'bg-green-500';
+  const barColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500' : tankStatus === 'warning' ? 'bg-amber-500' : 'bg-blue-500';
+  const borderClass = isBlocked ? 'border-red-500/30' : 'border-transparent hover:border-di-primary/20';
 
   return (
-    <div className={`bg-card dark:bg-di-surface-mid rounded-xl border ${borderClass} transition-all hover:shadow-md dark:hover:shadow-none ${isMobile ? 'p-4' : 'p-5'}`}>
+    <div className={`bg-di-surface-mid rounded-xl border ${borderClass} transition-all ${isMobile ? 'p-4' : 'p-4'}`}>
       {/* Blocked banner */}
       {isBlocked && (
         <div className={`flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg mb-3 ${isMobile ? 'p-2' : 'p-2.5'}`}>
-          <Lock className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
-          <span className="text-xs font-bold text-red-600 dark:text-red-400">ОТПУСК ЗАБЛОКИРОВАН ({currentLevel.toLocaleString()} л)</span>
+          <Lock className="w-4 h-4 text-red-600 shrink-0" />
+          <span className="text-xs font-bold text-red-600">ОТПУСК ЗАБЛОКИРОВАН ({currentLevel.toLocaleString()} л)</span>
         </div>
       )}
 
       {/* No sensor banner */}
       {tank.noSensorData && (
         <div className={`flex items-center gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 rounded-lg mb-3 ${isMobile ? 'p-2' : 'p-2.5'}`}>
-          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-          <span className="text-xs font-bold text-amber-600 dark:text-amber-400">Книжный остаток</span>
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span className="text-xs font-bold text-amber-600">Книжный остаток</span>
         </div>
       )}
 
       {/* Header: Name + Fuel type + Status */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-di-primary/10 flex items-center justify-center shrink-0">
-            <Fuel className="w-4 h-4 text-blue-600 dark:text-di-primary-light" />
-          </div>
+          <Fuel className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500 shrink-0`} />
           <div className="min-w-0">
             <h3 className={`font-headline font-bold text-foreground truncate ${isMobile ? 'text-sm' : 'text-base'}`}>{tank.name}</h3>
-            <p className="text-[10px] text-muted-foreground dark:text-di-on-surface-variant uppercase tracking-wider">{tank.fuelType}</p>
+            <p className="text-[10px] text-muted-foreground uppercase">{tank.fuelType}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -85,7 +83,7 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
           )}
         </div>
         {!tank.noSensorData && (
-          <div className="w-full h-1.5 bg-secondary dark:bg-di-surface-highest rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
             <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(percentage, 2)}%` }} />
           </div>
         )}
@@ -98,21 +96,21 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
       {/* Telemetry grid */}
       <div className={`grid grid-cols-4 gap-2 mb-4 ${isMobile ? '' : ''}`}>
         <div>
-          <p className="text-[8px] font-bold text-muted-foreground dark:text-di-on-surface-variant/50 uppercase mb-0.5">Темп</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Темп</p>
           <p className="font-headline font-bold text-foreground text-xs">{temp ? `${temp.toFixed(1)}°C` : '—'}</p>
         </div>
         <div>
-          <p className="text-[8px] font-bold text-muted-foreground dark:text-di-on-surface-variant/50 uppercase mb-0.5">Плотн.</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Плотн.</p>
           <p className="font-headline font-bold text-foreground text-xs">{density ? density.toFixed(1) : '—'}</p>
         </div>
         <div>
-          <p className="text-[8px] font-bold text-muted-foreground dark:text-di-on-surface-variant/50 uppercase mb-0.5">Вода</p>
-          <p className={`font-headline font-bold text-xs ${waterMm > 0 ? 'text-amber-600 dark:text-[#fbbf24]' : 'text-green-600 dark:text-[#4ade80]'}`}>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Вода</p>
+          <p className={`font-headline font-bold text-xs ${waterMm > 0 ? 'text-amber-600' : 'text-green-600'}`}>
             {waterMm > 0 ? `${waterMm.toFixed(1)}мм` : 'нет'}
           </p>
         </div>
         <div>
-          <p className="text-[8px] font-bold text-muted-foreground dark:text-di-on-surface-variant/50 uppercase mb-0.5">Масса</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Масса</p>
           <p className="font-headline font-bold text-foreground text-xs">
             {(tank.apiData?.amount_begin || tank.mass || 0).toLocaleString('ru-RU')}
           </p>
@@ -120,7 +118,7 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
       </div>
 
       {/* Additional data — compact */}
-      <div className="border-t border-border/20 dark:border-di-outline-variant/10 pt-3 mb-3">
+      <div className="border-t border-di-outline-variant/10 pt-3 mb-3">
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Уровень:</span>
@@ -128,7 +126,7 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Состояние:</span>
-            <span className={`font-medium ${tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            <span className={`font-medium ${tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'text-green-600' : 'text-red-600'}`}>
               {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'Норма' : 'Проверка'}
             </span>
           </div>
@@ -174,7 +172,7 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
         <Button
           variant="outline"
           size="sm"
-          className="flex-1 text-xs border-border/30 dark:border-di-outline-variant/20 text-muted-foreground hover:bg-secondary dark:hover:bg-di-surface-high transition-colors duration-200"
+          className="flex-1 text-xs border-di-outline-variant/20 text-muted-foreground hover:bg-di-surface-high transition-colors"
           onClick={() => setShowAnalysis(true)}
         >
           <LineChart className="w-3.5 h-3.5 mr-1.5" />
@@ -183,7 +181,7 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
         <Button
           variant="outline"
           size="sm"
-          className="flex-1 text-xs border-border/30 dark:border-di-outline-variant/20 text-muted-foreground hover:bg-secondary dark:hover:bg-di-surface-high transition-colors duration-200"
+          className="flex-1 text-xs border-di-outline-variant/20 text-muted-foreground hover:bg-di-surface-high transition-colors"
           onClick={() => setShowCalibration(true)}
         >
           <Settings className="w-3.5 h-3.5 mr-1.5" />

@@ -12,6 +12,8 @@ import { TradingPoint } from "@/types/tradingpoint";
 interface StationConnectionInfo {
   id: string;
   name: string;
+  description?: string;
+  address?: string;
   externalId: string | null;
   lastConnection: Date | null;
   status: 'online' | 'offline' | 'unknown';
@@ -68,6 +70,8 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
         setStations(allActive.map((tp: TradingPoint) => ({
           id: tp.id,
           name: tp.name,
+          description: tp.description,
+          address: tp.geolocation?.address,
           externalId: tp.external_id || null,
           lastConnection: null,
           status: 'unknown' as const
@@ -99,6 +103,8 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
           return {
             id: tp.id,
             name: tp.name,
+            description: tp.description,
+            address: tp.geolocation?.address,
             externalId: tp.external_id,
             lastConnection,
             status,
@@ -109,6 +115,8 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
           return {
             id: tp.id,
             name: tp.name,
+            description: tp.description,
+            address: tp.geolocation?.address,
             externalId: tp.external_id,
             lastConnection: null,
             status: 'unknown' as const
@@ -294,6 +302,9 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
                     {getStatusIcon(station.status)}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-foreground truncate">{station.name}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        ID: {station.externalId}{(station.description || station.address) && ` · ${station.description || station.address}`}
+                      </div>
                       <div className={`flex items-center gap-1 text-[11px] ${getTimeAgoColor(station.lastConnection)}`}>
                         <Clock className="w-2.5 h-2.5" />
                         <span>{formatLastConnection(station.lastConnection, true)}</span>
@@ -334,7 +345,9 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
                       <td className="px-3 py-3">
                         <div className="flex flex-col">
                           <span className="text-foreground font-medium">{station.name}</span>
-                          <span className="text-muted-foreground text-xs">ID: {station.externalId}</span>
+                          <span className="text-muted-foreground text-xs">
+                            ID: {station.externalId}{(station.description || station.address) && ` · ${station.description || station.address}`}
+                          </span>
                         </div>
                       </td>
                       <td className="px-3 py-3 text-center">

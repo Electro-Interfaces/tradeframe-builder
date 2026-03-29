@@ -1,8 +1,7 @@
 /**
- * Компонент аналитических карточек купонов
+ * Аналитические карточки купонов — минималистичный стиль
  */
 
-import { Card, CardContent } from '@/components/ui/card';
 import type { CouponsStats } from '@/types/coupons';
 
 interface CouponStatsCardsProps {
@@ -15,110 +14,36 @@ interface CouponStatsCardsProps {
 }
 
 export function CouponStatsCards({
-  stats,
-  totalIssuedLiters,
-  usedCouponsCount,
-  activeCouponsCount,
-  activeCouponsLiters,
-  activeCouponsAmount
+  stats, totalIssuedLiters, usedCouponsCount,
+  activeCouponsCount, activeCouponsLiters, activeCouponsAmount
 }: CouponStatsCardsProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
-      {/* Выдано купонов */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground font-semibold text-base truncate pr-2 mb-1">
-                Выдано купонов
-              </p>
-              <div className="text-foreground/80 text-sm">
-                {stats.totalCoupons || 0}
-              </div>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <div className="text-foreground text-sm font-semibold">
-                {totalIssuedLiters.toFixed(1)} л
-              </div>
-              <div className="text-foreground text-sm font-semibold">
-                {stats.totalAmount?.toFixed(0) || '0'} ₽
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div className="bg-di-surface-mid rounded-xl border border-transparent p-3 md:p-5 flex items-center justify-between md:flex-col md:items-start md:justify-between md:h-28">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase">Выдано</span>
+        <span className="font-headline text-2xl md:text-4xl font-extrabold text-foreground tracking-tight">{stats.totalCoupons || 0}</span>
+      </div>
 
-      {/* Объем выданного топлива */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground font-semibold text-base truncate pr-2 mb-1">
-                Выдано топлива
-              </p>
-              <div className="text-foreground/80 text-sm">
-                {usedCouponsCount}
-              </div>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <div className="text-foreground text-sm font-semibold">
-                {stats.totalFuelDelivered?.toFixed(1) || '0.0'} л
-              </div>
-              <div className="text-foreground text-sm font-semibold">
-                {stats.usedAmount?.toFixed(0) || '0'} ₽
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-di-surface-mid rounded-xl border border-transparent p-3 md:p-5 flex items-center justify-between md:flex-col md:items-start md:justify-between md:h-28">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase">Топливо</span>
+        <div className="flex items-baseline gap-1">
+          <span className="font-headline text-2xl md:text-4xl font-extrabold text-foreground tracking-tight">{usedCouponsCount}</span>
+          <span className="text-xs text-muted-foreground">{(stats.totalFuelDelivered || 0).toFixed(0)} л</span>
+        </div>
+      </div>
 
-      {/* Остаток (активные купоны) */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground font-semibold text-base truncate pr-2 mb-1">
-                Остаток
-              </p>
-              <div className="text-foreground/80 text-sm">
-                {activeCouponsCount}
-              </div>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <div className="text-foreground text-sm font-semibold">
-                {activeCouponsLiters.toFixed(1)} л
-              </div>
-              <div className="text-foreground text-sm font-semibold">
-                {activeCouponsAmount.toFixed(0)} ₽
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-di-surface-mid rounded-xl border border-transparent p-3 md:p-5 flex items-center justify-between md:flex-col md:items-start md:justify-between md:h-28">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase">Остаток</span>
+        <div className="flex items-baseline gap-1">
+          <span className="font-headline text-2xl md:text-4xl font-extrabold text-foreground tracking-tight">{activeCouponsCount}</span>
+          <span className="text-xs text-muted-foreground">{activeCouponsLiters.toFixed(0)} л</span>
+        </div>
+      </div>
 
-      {/* Просроченные купоны */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground font-semibold text-base truncate pr-2 mb-1">
-                Просрочено
-              </p>
-              <div className="text-foreground/80 text-sm">
-                {stats.expiredCoupons || 0}
-              </div>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <div className="text-foreground text-sm font-semibold">
-                {stats.expiredFuelLoss?.toFixed(1) || '0.0'} л
-              </div>
-              <div className="text-foreground text-sm font-semibold">
-                {stats.expiredAmount?.toFixed(0) || '0'} ₽
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-di-surface-mid rounded-xl border border-transparent p-3 md:p-5 flex items-center justify-between md:flex-col md:items-start md:justify-between md:h-28">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase">Просрочено</span>
+        <span className="font-headline text-2xl md:text-4xl font-extrabold text-foreground tracking-tight">{stats.expiredCoupons || 0}</span>
+      </div>
     </div>
   );
 }

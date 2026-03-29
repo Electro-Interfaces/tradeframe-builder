@@ -1,8 +1,7 @@
 /**
- * Компонент KPI карточек купонов с фильтрацией
+ * KPI фильтры купонов — горизонтальные pills
  */
 
-import { Card, CardContent } from '@/components/ui/card';
 import type { CouponWithAge } from '@/types/coupons';
 import type { FuelStat } from '@/hooks/useCouponStats';
 
@@ -19,147 +18,80 @@ interface CouponKpiCardsProps {
   onResetAll: () => void;
 }
 
+const stateColors: Record<string, string> = {
+  'Активный': 'bg-green-500',
+  'Active': 'bg-green-500',
+  'Погашен': 'bg-blue-500',
+  'Redeemed': 'bg-blue-500',
+  'Просрочен': 'bg-red-500',
+  'Expired': 'bg-red-500',
+};
+
 export function CouponKpiCards({
-  uniqueStates,
-  uniqueFuelTypes,
-  fuelStats,
-  allCoupons,
-  filteredCoupons,
-  selectedKpiStates,
-  selectedFuelType,
-  onStateClick,
-  onFuelTypeClick,
-  onResetAll
+  uniqueStates, fuelStats, allCoupons, filteredCoupons,
+  selectedKpiStates, selectedFuelType,
+  onStateClick, onFuelTypeClick, onResetAll
 }: CouponKpiCardsProps) {
   if (allCoupons.length === 0) return null;
 
   return (
-    <div className="mb-6">
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {/* Карточки по статусам */}
-        {uniqueStates.map((state) => {
-          const allStateCoupons = allCoupons.filter((c) => c.state.name === state);
-          const filteredStateCoupons = filteredCoupons.filter((c) => c.state.name === state);
+    <div className="flex flex-wrap gap-2 mb-4">
+      {/* Status pills */}
+      {uniqueStates.map((state) => {
+        const count = filteredCoupons.filter((c) => c.state.name === state).length;
+        const isSelected = selectedKpiStates.has(state);
+        const dotColor = stateColors[state] || 'bg-muted-foreground';
 
-          const allAmount = allStateCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
-          const filteredAmount = filteredStateCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
+        return (
+          <button
+            key={state}
+            onClick={() => onStateClick(state)}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-[11px] font-bold transition-all ${
+              isSelected
+                ? 'bg-blue-500/10 border-blue-500/30 text-foreground'
+                : 'bg-di-surface-mid border-transparent text-foreground hover:border-di-outline-variant/20'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-xl ${dotColor}`} />
+            <span>{state}:</span>
+            <span className="text-blue-500">{count}</span>
+          </button>
+        );
+      })}
 
-          const isSelected = selectedKpiStates.has(state);
+      {/* Divider */}
+      {fuelStats.length > 0 && uniqueStates.length > 0 && (
+        <div className="h-6 w-px bg-di-outline-variant/20 mx-1 self-center" />
+      )}
 
-          return (
-            <Card
-              key={state}
-              className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                isSelected
-                  ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-                  : 'bg-card border-border hover:bg-secondary'
-              }`}
-              onClick={() => onStateClick(state)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-foreground font-semibold text-base truncate pr-2">
-                      {state}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <span className="text-foreground/80 text-sm">
-                        {filteredStateCoupons.length}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-foreground text-sm font-semibold">
-                      {filteredAmount.toFixed(0)} ₽
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      {/* Fuel type pills */}
+      {fuelStats.map((stat) => {
+        const isSelected = selectedFuelType === stat.fuelType;
+        return (
+          <button
+            key={stat.fuelType}
+            onClick={() => onFuelTypeClick(stat.fuelType)}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-[11px] font-bold transition-all ${
+              isSelected
+                ? 'bg-blue-500/10 border-blue-500/30 text-foreground'
+                : 'bg-di-surface-mid border-transparent text-foreground hover:border-di-outline-variant/20'
+            }`}
+          >
+            <span className="text-[10px] text-muted-foreground">{stat.fuelType}</span>
+            <span className="text-foreground">{stat.filteredLiters.toFixed(0)} л</span>
+          </button>
+        );
+      })}
 
-        {/* Карточки по видам топлива */}
-        {uniqueFuelTypes.length > 0 && (
-          <>
-            {fuelStats.map((stat) => {
-              const isSelected = selectedFuelType === stat.fuelType;
-
-              return (
-                <Card
-                  key={stat.fuelType}
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                    isSelected
-                      ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-                      : 'bg-card border-border hover:bg-secondary'
-                  }`}
-                  onClick={() => onFuelTypeClick(stat.fuelType)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-foreground font-semibold text-base truncate pr-2">
-                          {stat.fuelType}
-                        </p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-foreground/80 text-sm">
-                            {stat.filteredCoupons}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-foreground text-sm font-semibold">
-                          {stat.filteredLiters.toFixed(1)} л
-                        </div>
-                        <div className="text-foreground text-sm font-semibold">
-                          {stat.filteredAmount.toFixed(0)} ₽
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </>
-        )}
-
-        {/* Итоговая карточка */}
-        {(() => {
-          const totalAmount = filteredCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
-          const hasActiveFilters = selectedKpiStates.size > 0 || selectedFuelType !== 'all';
-
-          return (
-            <Card
-              className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                hasActiveFilters
-                  ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-                  : 'bg-card border-border hover:bg-secondary'
-              }`}
-              onClick={onResetAll}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-foreground font-semibold text-base truncate pr-2">
-                      Итого
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <span className="text-foreground/80 text-sm">
-                        {filteredCoupons.length}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-foreground text-sm font-semibold">
-                      {totalAmount.toFixed(0)} ₽
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
-      </div>
+      {/* Reset */}
+      {(selectedKpiStates.size > 0 || selectedFuelType !== 'all') && (
+        <button
+          onClick={onResetAll}
+          className="flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Сбросить
+        </button>
+      )}
     </div>
   );
 }

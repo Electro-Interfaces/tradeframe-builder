@@ -7,6 +7,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Network,
   Bell,
   DollarSign,
@@ -16,6 +21,7 @@ import {
   Users,
   FileText,
   ChevronRight,
+  ChevronLeft,
   MapPin,
   Shield,
   Cog,
@@ -30,9 +36,9 @@ import {
   Ticket,
   MessageCircleMore,
   TrendingUp,
-  BarChart3
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useSupportContext } from "@/contexts/SupportContext";
 
 interface AppSidebarProps {
@@ -41,69 +47,37 @@ interface AppSidebarProps {
   setMobileMenuOpen?: (open: boolean) => void;
 }
 
-const TradingPointMenuItem = ({ item, selectedTradingPoint, isMobile, setMobileMenuOpen, getNavCls, isActive }) => {
-  const handleNavigate = (e) => {
-    // Разрешаем навигацию всегда, страницы сами покажут сообщение если нужна конкретная АЗС
-    if (isMobile && setMobileMenuOpen) {
-      setMobileMenuOpen(false);
-    }
-  };
-
-  const isLinkActive = isActive(item.url);
-
-  return (
-    <div key={item.title}>
-      <NavLink
-        to={item.url}
-        onClick={handleNavigate}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(isLinkActive)}`}
-      >
-        <item.icon className="w-4 h-4 flex-shrink-0" />
-        <span className="truncate">{item.title}</span>
-      </NavLink>
-    </div>
-  );
-};
-
 const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobileMenuOpen }: AppSidebarProps) => {
-  const { state } = useSidebar();
-  
-  // Загружаем состояние открытых групп из localStorage
+  const { state, toggleSidebar } = useSidebar();
+
   const getInitialOpenGroups = (): string[] => {
     try {
       const saved = localStorage.getItem('appSidebar_openGroups');
-      return saved ? JSON.parse(saved) : ["main", "networks", "trading-point", "admin", "settings", "service", "database"];
+      return saved ? JSON.parse(saved) : ["main", "networks", "trading-point", "admin", "settings"];
     } catch {
-      return ["main", "networks", "trading-point", "admin", "settings", "service", "database"];
+      return ["main", "networks", "trading-point", "admin", "settings"];
     }
   };
-  
+
   const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
   const menuVisibility = useMenuVisibility();
 
-  // Support context (safe — если провайдер отсутствует, не ломаем)
   let unreadCounts = { tickets: 0, chat: 0, total: 0 };
   try {
     const supportCtx = useSupportContext();
     unreadCounts = supportCtx.unreadCounts;
-  } catch {
-    // SupportProvider может быть не обёрнут (e.g. login page)
-  }
-  
-  // Сохраняем состояние в localStorage при изменении
+  } catch {}
+
   useEffect(() => {
     localStorage.setItem('appSidebar_openGroups', JSON.stringify(openGroups));
   }, [openGroups]);
-  
-  // Простое сохранение позиции скролла
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Оптимизированное инициальное восстановление позиции скролла через requestAnimationFrame
+
   useEffect(() => {
     const savedScrollPos = localStorage.getItem('appSidebar_scrollPosition');
     if (savedScrollPos && scrollContainerRef.current) {
-      // Используем requestAnimationFrame для избежания forced reflow
       const rafId = requestAnimationFrame(() => {
         if (scrollContainerRef.current) {
           scrollContainerRef.current.scrollTop = parseFloat(savedScrollPos);
@@ -112,46 +86,34 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
       return () => cancelAnimationFrame(rafId);
     }
   }, []);
-  
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
-    
-    // Дебаунсинг для сохранения в localStorage
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-    
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => {
       localStorage.setItem('appSidebar_scrollPosition', scrollTop.toString());
     }, 150);
   };
-  
-  // Очищаем таймеры при размонтировании компонента
+
   useEffect(() => {
     return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, []);
-  
-  // В мобильном режиме никогда не сворачиваем меню
+
   const collapsed = isMobile ? false : state === "collapsed";
-  
 
   const toggleGroup = (groupId: string) => {
-    setOpenGroups(prev => {
-      const newGroups = prev.includes(groupId)
-        ? prev.filter(id => id !== groupId)
-        : [...prev, groupId];
-      return newGroups;
-    });
+    setOpenGroups(prev =>
+      prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
+    );
   };
 
   const isActive = (path: string) => window.location.pathname === path;
-  const getNavCls = (active: boolean) => 
-    active ? "bg-blue-600 text-white font-medium transition-colors duration-200" : "transition-colors duration-200 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground";
-
+  const getNavCls = (active: boolean) =>
+    active
+      ? "bg-blue-600 text-white font-medium transition-colors duration-200"
+      : "transition-colors duration-200 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground";
 
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
@@ -187,168 +149,134 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "API CTC настройки", url: "/settings/api-cts", icon: Cog },
   ];
 
-  const databaseMenuItems = [
-  ];
+  /** Ссылка меню — в collapsed показывает tooltip */
+  const MenuLink = ({ item, badge, onClick }: { item: { title: string; url: string; icon: any }; badge?: number; onClick?: () => void }) => {
+    const active = isActive(item.url);
+    const link = (
+      <NavLink
+        to={item.url}
+        onClick={onClick}
+        className={`flex items-center gap-3 ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5'} rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(active)}`}
+      >
+        <item.icon className="w-4 h-4 flex-shrink-0" />
+        {!collapsed && <span className="truncate flex-1">{item.title}</span>}
+        {!collapsed && badge !== undefined && badge > 0 && (
+          <span className="bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
+            {badge}
+          </span>
+        )}
+        {collapsed && badge !== undefined && badge > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+            {badge}
+          </span>
+        )}
+      </NavLink>
+    );
+
+    if (collapsed) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="relative">{link}</div>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="font-medium">
+            {item.title}
+            {badge !== undefined && badge > 0 && <span className="ml-1.5 text-red-400">({badge})</span>}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return link;
+  };
+
+  /** Заголовок секции с toggle */
+  const SectionHeader = ({ groupId, icon: Icon, label }: { groupId: string; icon: any; label: string }) => {
+    const isOpen = openGroups.includes(groupId);
+
+    if (collapsed) return null;
+
+    return (
+      <button
+        className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider hover:text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent transition-all duration-200 flex items-center gap-2 mb-2 uppercase px-2 py-2 rounded-md"
+        onClick={() => toggleGroup(groupId)}
+        type="button"
+      >
+        <Icon className="w-4 h-4 flex-shrink-0" />
+        <span className="flex-1 text-left">{label}</span>
+        <ChevronRight
+          className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
+        />
+      </button>
+    );
+  };
+
+  const handleMobileClose = () => {
+    if (isMobile && setMobileMenuOpen) setMobileMenuOpen(false);
+  };
 
   function renderMenuContent() {
     return (
       <>
-        {/* ТОРГОВЫЕ СЕТИ */}
+        {/* ТОРГОВЫЕ СЕТИ — теперь сворачиваемые */}
         {menuVisibility.networks && (
-        <div className="px-4 py-3">
-          <div className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider flex items-center gap-2 mb-3 uppercase px-2 py-2">
-            <Network className="w-4 h-4 flex-shrink-0" />
-            <span className="flex-1 text-left">ТОРГОВЫЕ СЕТИ</span>
+          <div className={collapsed ? 'px-2 py-3' : 'px-4 py-3'}>
+            <SectionHeader groupId="networks" icon={Network} label="ТОРГОВЫЕ СЕТИ" />
+            {(collapsed || openGroups.includes("networks")) && (
+              <div className={collapsed ? 'space-y-0.5' : 'space-y-1'}>
+                {networkMenuItems.map((item) => (
+                  <MenuLink key={item.title} item={item} onClick={handleMobileClose} />
+                ))}
+              </div>
+            )}
           </div>
-          {(
-            <div className="space-y-1">
-              {networkMenuItems.map((item) => (
-                <div key={item.title}>
-                  <NavLink 
-                    to={item.url} 
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(isActive(item.url))}`}
-                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                  >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{item.title}</span>
-                  </NavLink>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
         )}
 
         {/* ТОРГОВАЯ ТОЧКА */}
         {menuVisibility.tradingPoint && (
-        <div className="border-t border-sidebar-border px-4 py-3">
-          <button
-            className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider hover:text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleGroup("trading-point");
-            }}
-            type="button"
-          >
-            <MapPin className="w-4 h-4 flex-shrink-0" />
-            <span className="flex-1 text-left">ТОРГОВАЯ ТОЧКА</span>
-            <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
-                openGroups.includes("trading-point") ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-          {openGroups.includes("trading-point") && (
-            <div className="space-y-1">
-              {tradingPointMenuItems.map((item) => (
-                <TradingPointMenuItem
-                  key={item.title}
-                  item={item}
-                  selectedTradingPoint={selectedTradingPoint}
-                  isMobile={isMobile}
-                  setMobileMenuOpen={setMobileMenuOpen}
-                  getNavCls={getNavCls}
-                  isActive={isActive}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+          <div className={`border-t border-sidebar-border ${collapsed ? 'px-2 py-3' : 'px-4 py-3'}`}>
+            <SectionHeader groupId="trading-point" icon={MapPin} label="ТОРГОВАЯ ТОЧКА" />
+            {(collapsed || openGroups.includes("trading-point")) && (
+              <div className={collapsed ? 'space-y-0.5' : 'space-y-1'}>
+                {tradingPointMenuItems.map((item) => (
+                  <MenuLink key={item.title} item={item} onClick={handleMobileClose} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* АДМИНИСТРИРОВАНИЕ */}
         {menuVisibility.admin && (
-        <div className="border-t border-sidebar-border px-4 py-3">
-          <button
-            className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider hover:text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleGroup("admin");
-            }}
-            type="button"
-          >
-            <Shield className="w-4 h-4 flex-shrink-0" />
-            <span className="flex-1 text-left">АДМИНИСТРИРОВАНИЕ</span>
-            <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
-                openGroups.includes("admin") ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-          {openGroups.includes("admin") && (
-            <div className="space-y-1">
-              {adminMenuItems.map((item) => {
-                const badge = item.url === '/support/tickets' ? unreadCounts.tickets
-                  : item.url === '/support/chat' ? unreadCounts.chat : 0;
-                return (
-                  <div key={item.title}>
-                    <NavLink
-                      to={item.url}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(isActive(item.url))}`}
-                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                    >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate flex-1">{item.title}</span>
-                      {badge > 0 && (
-                        <span className="bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
-                          {badge}
-                        </span>
-                      )}
-                    </NavLink>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          <div className={`border-t border-sidebar-border ${collapsed ? 'px-2 py-3' : 'px-4 py-3'}`}>
+            <SectionHeader groupId="admin" icon={Shield} label="АДМИНИСТРИРОВАНИЕ" />
+            {(collapsed || openGroups.includes("admin")) && (
+              <div className={collapsed ? 'space-y-0.5' : 'space-y-1'}>
+                {adminMenuItems.map((item) => {
+                  const badge = item.url === '/support/tickets' ? unreadCounts.tickets
+                    : item.url === '/support/chat' ? unreadCounts.chat : 0;
+                  return <MenuLink key={item.title} item={item} badge={badge} onClick={handleMobileClose} />;
+                })}
+              </div>
+            )}
+          </div>
         )}
 
         {/* НАСТРОЙКИ */}
         {menuVisibility.settings && (
-        <div className="border-t border-sidebar-border px-4 py-3">
-          <button
-            className="w-full text-sidebar-foreground text-xs font-semibold tracking-wider hover:text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleGroup("settings");
-            }}
-            type="button"
-          >
-            <Cog className="w-4 h-4 flex-shrink-0" />
-            <span className="flex-1 text-left">НАСТРОЙКИ</span>
-            <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
-                openGroups.includes("settings") ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-          {openGroups.includes("settings") && (
-            <div className="space-y-3">
-              {/* Основные настройки */}
-              <div className="space-y-1">
+          <div className={`border-t border-sidebar-border ${collapsed ? 'px-2 py-3' : 'px-4 py-3'}`}>
+            <SectionHeader groupId="settings" icon={Cog} label="НАСТРОЙКИ" />
+            {(collapsed || openGroups.includes("settings")) && (
+              <div className={collapsed ? 'space-y-0.5' : 'space-y-1'}>
                 {settingsMenuItems.map((item) => (
-                  <div key={item.title}>
-                    <NavLink
-                      to={item.url}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(isActive(item.url))}`}
-                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                    >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{item.title}</span>
-                    </NavLink>
-                  </div>
+                  <MenuLink key={item.title} item={item} onClick={handleMobileClose} />
                 ))}
               </div>
-
-
-            </div>
-          )}
-        </div>
+            )}
+          </div>
         )}
 
+        {/* Toggle button removed from bottom — moved to top */}
       </>
     );
   }
@@ -356,7 +284,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   return (
     <div className={`${isMobile ? 'h-full bg-sidebar' : ''}`}>
       {isMobile ? (
-        // Mobile version without Sidebar wrapper
         <div
           className="scrollbar-hide h-full overflow-y-auto bg-sidebar text-sidebar-foreground overscroll-contain touch-auto pt-14 pb-6 mobile-safe-top mobile-safe-bottom"
           onScroll={handleScroll}
@@ -365,8 +292,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
           {renderMenuContent()}
         </div>
       ) : (
-        // Desktop version with Sidebar wrapper
-        <Sidebar className="border-r border-sidebar-border shadow-md bg-sidebar">
+        <Sidebar collapsible="icon" className="border-r-0 bg-sidebar">
           <SidebarContent
             className="pt-header scrollbar-hide bg-sidebar"
             onScroll={handleScroll}
