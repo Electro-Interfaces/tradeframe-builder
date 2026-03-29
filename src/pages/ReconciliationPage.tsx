@@ -119,7 +119,7 @@ export default function ReconciliationPage() {
               <h1 className="text-2xl font-semibold text-foreground">Сверка корп. процессинга</h1>
             </div>
             <p className="text-muted-foreground">
-              Трёхсторонняя сверка транзакций: Corp, TradeControl, Сменные отчёты
+              Трёхсторонняя сверка транзакций: Corp, TradePoint, Сменные отчёты
             </p>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function ReconciliationPage() {
                     <h4 className="font-medium text-foreground text-xs">TF</h4>
                   </div>
                   <ul className="text-xs text-muted-foreground space-y-0.5">
-                    <li>TradeControl</li>
+                    <li>TradePoint</li>
                     <li>/v2/transactions</li>
                   </ul>
                 </div>

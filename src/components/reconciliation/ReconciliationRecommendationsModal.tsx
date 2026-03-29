@@ -175,7 +175,7 @@ export function ReconciliationRecommendationsModal({
                     <strong>Вероятные причины:</strong>
                     <ul className="mt-1 list-disc list-inside space-y-0.5">
                       <li>Операция на другой АЗС (не в вашей сети)</li>
-                      <li>Задержка синхронизации станции с TradeControl</li>
+                      <li>Задержка синхронизации станции с TradePoint</li>
                       <li>Карта другой сети/компании</li>
                     </ul>
                   </div>

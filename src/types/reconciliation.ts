@@ -1,5 +1,5 @@
 // Типы для трёхсторонней сверки корпоративного процессинга
-// Corp (TradeCorp) ↔ TF (TradeControl /v2/transactions) ↔ Смена (shift_report)
+// Corp (TradeCorp) ↔ TF (TradePoint /v2/transactions) ↔ Смена (shift_report)
 
 /**
  * Параметры запуска сверки
@@ -18,7 +18,7 @@ export interface ReconciliationParams {
 export type ReconciliationTransactionStatus =
   | 'matched'      // Corp и TF совпали по всем критериям
   | 'only_corp'    // Есть в Corp, нет в TF ("лишняя" в процессинге)
-  | 'only_tf'      // Есть в TF, нет в Corp ("лишняя" в TradeControl)
+  | 'only_tf'      // Есть в TF, нет в Corp ("лишняя" в TradePoint)
   | 'mismatch';    // Найдено по времени/станции/топливу, но литры разные
 
 /**
@@ -177,7 +177,7 @@ export interface CorpTransaction {
 }
 
 /**
- * Транзакция TF (TradeControl /v2/transactions)
+ * Транзакция TF (TradePoint /v2/transactions)
  */
 export interface TfTransaction {
   id: number;

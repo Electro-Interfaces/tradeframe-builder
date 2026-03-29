@@ -32,14 +32,14 @@ const getDefaultLegalDocuments = (): LegalDocument[] => [
     version: '1.0.0',
     content: `
       <div class="legal-document">
-        <h2>Пользовательское соглашение TradeControl</h2>
+        <h2>Пользовательское соглашение TradePoint</h2>
         <p><strong>Дата вступления в силу:</strong> ${new Date().toLocaleDateString('ru-RU')}</p>
 
         <h3>1. Общие положения</h3>
-        <p>Настоящее Пользовательское соглашение регулирует отношения между администрацией системы TradeControl и пользователями системы.</p>
+        <p>Настоящее Пользовательское соглашение регулирует отношения между администрацией системы TradePoint и пользователями системы.</p>
 
         <h3>2. Предмет соглашения</h3>
-        <p>TradeControl предоставляет пользователям доступ к системе управления торговыми сетями и АЗС, включая:</p>
+        <p>TradePoint предоставляет пользователям доступ к системе управления торговыми сетями и АЗС, включая:</p>
         <ul>
           <li>Управление операциями и транзакциями</li>
           <li>Контроль цен на топливо</li>
@@ -56,7 +56,7 @@ const getDefaultLegalDocuments = (): LegalDocument[] => [
         </ul>
 
         <h3>4. Ответственность</h3>
-        <p>Администрация TradeControl не несет ответственности за убытки, возникшие вследствие неправильного использования системы.</p>
+        <p>Администрация TradePoint не несет ответственности за убытки, возникшие вследствие неправильного использования системы.</p>
 
         <h3>5. Изменения соглашения</h3>
         <p>Администрация оставляет за собой право изменять настоящее соглашение с уведомлением пользователей.</p>
@@ -69,7 +69,7 @@ const getDefaultLegalDocuments = (): LegalDocument[] => [
     version: '1.0.0',
     content: `
       <div class="legal-document">
-        <h2>Политика конфиденциальности TradeControl</h2>
+        <h2>Политика конфиденциальности TradePoint</h2>
         <p><strong>Дата вступления в силу:</strong> ${new Date().toLocaleDateString('ru-RU')}</p>
 
         <h3>1. Общие положения</h3>
@@ -136,7 +136,7 @@ const getDefaultLegalDocuments = (): LegalDocument[] => [
         <h3>Цели обработки</h3>
         <p>Персональные данные обрабатываются в следующих целях:</p>
         <ul>
-          <li>Предоставление доступа к системе TradeControl</li>
+          <li>Предоставление доступа к системе TradePoint</li>
           <li>Ведение учета пользователей</li>
           <li>Обеспечение обратной связи</li>
           <li>Выполнение договорных обязательств</li>
@@ -165,7 +165,7 @@ const getMobileLegalDocuments = (): LegalDocument[] => [
     type: 'tos',
     title: 'Пользовательское соглашение',
     version: '1.0.0-mobile',
-    content: '<p>Краткая версия пользовательского соглашения для мобильных устройств. Используя TradeControl, вы соглашаетесь с условиями использования системы управления торговыми сетями.</p>'
+    content: '<p>Краткая версия пользовательского соглашения для мобильных устройств. Используя TradePoint, вы соглашаетесь с условиями использования системы управления торговыми сетями.</p>'
   },
   {
     type: 'privacy',
@@ -177,7 +177,7 @@ const getMobileLegalDocuments = (): LegalDocument[] => [
     type: 'pdn',
     title: 'Согласие на обработку ПДн',
     version: '1.0.0-mobile',
-    content: '<p>Даю согласие на обработку персональных данных в соответствии с ФЗ-152 для использования системы TradeControl.</p>'
+    content: '<p>Даю согласие на обработку персональных данных в соответствии с ФЗ-152 для использования системы TradePoint.</p>'
   }
 ];
 
@@ -415,7 +415,7 @@ const LoginPageWithLegal = () => {
           <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-600 rounded-full mb-1">
             <Shield className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-foreground mb-0.5">TradeControl</h1>
+          <h1 className="text-xl font-bold text-foreground mb-0.5">TradePoint</h1>
           <p className="text-xs text-muted-foreground">Система управления АЗС</p>
         </div>
 

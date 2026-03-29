@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import ReactDOM from "react-dom";
 import { Network as NetworkIcon, ChevronDown, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -99,6 +100,11 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
   };
 
   return (
+    <>
+    {isMobile && open && ReactDOM.createPortal(
+      <div className="fixed inset-0 z-40 bg-black/40 dark:bg-[#070e1b]/70 backdrop-blur-sm" onClick={() => setOpen(false)} />,
+      document.body
+    )}
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button className={cn(
@@ -113,20 +119,34 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn("p-0", isMobile ? "w-[calc(100vw-2rem)] min-w-0" : "w-auto min-w-56 max-w-md")}
-        align={isMobile ? "center" : "start"}
+        className={cn("p-0", isMobile ? "w-[calc(100vw-2rem)] rounded-t-[1.5rem] bg-card dark:bg-[#1c2533] shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-border/30 dark:border-[#434655]/40" : "w-[360px] min-w-[360px] rounded-xl bg-card dark:bg-di-surface-low border border-border/30 dark:border-di-outline-variant/15")}
+        align="center"
+        side={isMobile ? "top" : "bottom"}
+        collisionPadding={16}
         sideOffset={isMobile ? 8 : 4}
       >
-        <div className={cn("overflow-y-auto", isMobile ? "max-h-[50vh] p-1.5" : "max-h-[360px] p-2")}>
+        {/* Drag handle (mobile) */}
+        {isMobile && (
+          <div className="w-full flex justify-center py-3">
+            <div className="w-12 h-1 bg-di-outline-variant/30 rounded-full" />
+          </div>
+        )}
+
+        {/* Header */}
+        <div className={cn("px-4 pb-2", isMobile ? "pt-0" : "pt-3")}>
+          <h2 className="font-headline font-bold text-foreground text-base">Выбор сети</h2>
+        </div>
+
+        <div className={cn("overflow-y-auto", isMobile ? "max-h-[45vh] px-4 py-1" : "max-h-[320px] px-3 py-1")}>
           <ul className="space-y-0.5">
-            {/* «Выбрать все» — только в мультирежиме при >1 сети */}
+            {/* «Выбрать все» */}
             {isMultiMode && networks.length > 1 && (
               <li
                 key="all"
                 className={cn(
-                  "flex items-center gap-2 px-2 rounded-md cursor-pointer border-b border-border mb-1 transition-colors",
-                  isMobile ? "py-2.5 gap-3" : "py-1.5",
-                  selectedIds.length === networks.length ? "bg-blue-600/10" : "hover:bg-card"
+                  "flex items-center gap-3 rounded-xl cursor-pointer transition-all",
+                  isMobile ? "px-3 py-2.5" : "px-3 py-1.5",
+                  selectedIds.length === networks.length ? "bg-blue-50 dark:bg-[#2563eb]/10 border border-blue-200 dark:border-[#2563eb]/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
                 )}
                 onClick={() => {
                   if (selectedIds.length === networks.length) {
@@ -138,13 +158,10 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
               >
                 <Checkbox
                   checked={selectedIds.length === networks.length}
-                  className={cn(
-                    "data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600",
-                    isMobile && "h-5 w-5"
-                  )}
+                  className={cn("data-[state=checked]:bg-[#2563eb] data-[state=checked]:border-[#2563eb] border-di-outline-variant", isMobile && "h-5 w-5")}
                 />
                 <span className={cn("rounded-full bg-blue-400", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
-                <span className={cn("truncate font-medium", selectedIds.length === networks.length && "text-blue-700 dark:text-blue-200")}>
+                <span className={cn("truncate font-medium text-foreground", selectedIds.length === networks.length && "text-blue-700 dark:text-blue-200")}>
                   Все сети ({networks.length})
                 </span>
               </li>
@@ -156,83 +173,60 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                 <li
                   key={network.id}
                   className={cn(
-                    "flex items-center gap-2 px-2 rounded-md transition-colors",
-                    isMobile ? "py-2.5 gap-3" : "py-1.5",
-                    isSelected ? "bg-blue-600/10" : "hover:bg-card"
+                    "flex items-center gap-3 rounded-xl transition-all",
+                    isMobile ? "px-3 py-2.5" : "px-3 py-1.5",
+                    isSelected ? "bg-blue-50 dark:bg-[#2563eb]/10 border border-blue-200 dark:border-[#2563eb]/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
                   )}
                 >
                   {isMultiMode && (
                     <Checkbox
                       checked={isSelected}
-                      className={cn(
-                        "data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 cursor-pointer shrink-0",
-                        isMobile && "h-5 w-5"
-                      )}
+                      className={cn("data-[state=checked]:bg-[#2563eb] data-[state=checked]:border-[#2563eb] border-di-outline-variant cursor-pointer shrink-0", isMobile && "h-5 w-5")}
                       onCheckedChange={() => handleToggle(network.id)}
                       onClick={(e) => e.stopPropagation()}
                     />
                   )}
-                  <div
-                    className="min-w-0 flex-1 flex items-center gap-2 cursor-pointer"
-                    onClick={() => handleRowClick(network.id)}
-                  >
-                    <span
-                      className={cn(
-                        "rounded-full shrink-0",
-                        isMobile ? "h-2.5 w-2.5" : "h-2 w-2",
-                        isPrimary ? "bg-blue-500" : "bg-emerald-400"
-                      )}
-                      aria-hidden
-                    />
-                    <span className={cn(
-                      "truncate",
-                      isSelected && "text-blue-700 dark:text-blue-200 font-medium"
-                    )}>
-                      {network.name}
-                    </span>
-                    {network.code && (
-                      <span className="text-xs text-muted-foreground font-mono shrink-0">({network.code})</span>
-                    )}
+                  <div className="min-w-0 flex-1 flex items-center gap-2 cursor-pointer transition-colors duration-200" onClick={() => handleRowClick(network.id)}>
+                    <span className={cn("rounded-full shrink-0", isMobile ? "h-2.5 w-2.5" : "h-2 w-2", isPrimary ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]")} aria-hidden />
+                    <span className={cn("truncate text-muted-foreground", isSelected && "font-bold !text-foreground")}>{network.name}</span>
+                    {network.code && <span className="text-xs text-blue-400 font-mono shrink-0">({network.code})</span>}
                   </div>
                   {!isMultiMode && isSelected && (
-                    <Check className={cn("text-blue-600 dark:text-blue-400 shrink-0", isMobile ? "h-5 w-5" : "h-4 w-4")} />
+                    <Check className={cn("text-blue-400 shrink-0", isMobile ? "h-5 w-5" : "h-4 w-4")} />
                   )}
                 </li>
               );
             })}
           </ul>
         </div>
-        {/* Кнопки «Сбросить» + «Применить» */}
+        {/* Footer */}
         {isMultiMode && selectedIds.length > 0 && (
-          <div className={cn("border-t border-border px-2 flex gap-2", isMobile ? "py-2.5 px-3" : "py-2")}>
-            {selectedIds.length > 1 && (
-              <button
-                className={cn(
-                  "font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 rounded-md transition-colors",
-                  isMobile ? "px-3 py-2.5 text-sm" : "px-3 py-1.5 text-sm"
-                )}
-                onClick={() => {
-                  // Сбросить → оставить только primary сеть
-                  const primary = value || selectedIds[0];
-                  onValuesChange!([primary]);
-                  onValueChange?.(primary);
-                }}
-              >
-                Сбросить
-              </button>
-            )}
-            <button
-              className={cn(
-                "flex-1 font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
-                isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm"
+          <div className={cn("border-t border-border/20 dark:border-di-outline-variant/15", isMobile ? "px-4 py-3" : "px-3 py-2")}>
+            <div className="flex gap-2">
+              {selectedIds.length > 1 && (
+                <button
+                  className={cn("font-medium text-muted-foreground bg-secondary dark:bg-di-surface-high hover:bg-accent dark:hover:bg-di-surface-highest rounded-xl transition-colors", isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm")}
+                  onClick={() => {
+                    const primary = value || selectedIds[0];
+                    onValuesChange!([primary]);
+                    onValueChange?.(primary);
+                  }}
+                >
+                  Сбросить
+                </button>
               )}
-              onClick={() => setOpen(false)}
-            >
-              Применить ({selectedIds.length})
-            </button>
+              <button
+                className={cn("flex-1 font-bold text-white bg-[#2563eb] hover:bg-blue-600 active:scale-[0.98] rounded-xl transition-all shadow-[0_8px_20px_rgba(37,99,235,0.3)] flex items-center justify-center gap-1", isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm")}
+                onClick={() => setOpen(false)}
+              >
+                Применить ({selectedIds.length})
+                <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
+              </button>
+            </div>
           </div>
         )}
       </PopoverContent>
     </Popover>
+    </>
   );
 }

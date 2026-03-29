@@ -48,7 +48,7 @@ export function PriceCard({
   if (isMobile) {
     // Компактная мобильная карточка
     return (
-      <div className="bg-card border border-border rounded-lg hover:bg-secondary/50 transition-colors p-2.5">
+      <div className="bg-di-surface-high border border-di-outline-variant/20 rounded-xl hover:shadow-sm transition-all duration-200 p-3">
         <div className="flex items-center justify-between gap-1.5">
           {/* Левая часть: название + статус */}
           <div className="min-w-0 flex-1">
@@ -118,7 +118,7 @@ export function PriceCard({
 
   // Десктопная карточка
   return (
-    <div className="bg-card border border-border rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-secondary p-4">
+    <div className="bg-di-surface-high border border-di-outline-variant/20 rounded-xl hover:shadow-md dark:hover:shadow-none transition-all duration-200 p-4">
       <div className="space-y-3">
         {/* Название топлива и статус */}
         <div className="flex items-start justify-between">
@@ -139,7 +139,7 @@ export function PriceCard({
         </div>
 
         {/* Цена */}
-        <div className="border-t border-border pt-3">
+        <div className="border-t border-di-outline-variant/15 pt-3">
           {isEditing ? (
             <div className="flex items-center gap-2 justify-between">
               <span className="text-muted-foreground text-sm">Цена:</span>

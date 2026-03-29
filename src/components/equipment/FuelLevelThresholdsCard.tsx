@@ -59,8 +59,8 @@ function getBorderColor(currentPercent: number, warning: number = 20, critical: 
  */
 function getBgColor(currentPercent: number, warning: number = 20, critical: number = 10) {
   if (currentPercent <= critical) return 'bg-red-50/50 dark:bg-red-900/10';
-  if (currentPercent <= warning) return 'bg-card/80';
-  return 'bg-card/50';
+  if (currentPercent <= warning) return 'bg-di-surface';
+  return 'bg-di-surface';
 }
 
 /**
@@ -275,24 +275,32 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
   }
 
   return (
-    <div className={`rounded-lg ${isMobile ? 'p-4' : 'p-6'} border-2 bg-card/50 ${
-      criticalTanks.length > 0 ? 'border-red-500 dark:border-red-500/60' :
-      warningTanks.length > 0 ? 'border-amber-400 dark:border-amber-400/60' :
-      'border-border'
-    } hover:border-border transition-colors`}>
-      {/* Заголовок */}
-      <div className={`${isMobile ? 'space-y-3 mb-3' : 'flex items-center justify-between mb-4'}`}>
-        {/* Заголовок */}
+    <div className={`${isMobile ? '' : 'bg-di-surface-mid rounded-xl'} overflow-hidden`}>
+      {/* Header bar */}
+      <div className={`px-6 py-4 ${isMobile ? 'space-y-3' : 'flex items-center justify-between'}`}>
         <div className="flex items-center gap-3">
-          <Fuel className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-blue-600 dark:text-blue-400`} />
-          <div className="flex-1 min-w-0">
-            <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-foreground`}>
-              Резервуары
-            </h3>
-            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
-              {tanks.length} {tanks.length === 1 ? 'резервуар' : 'резервуаров'}
-            </p>
-          </div>
+          <Fuel className="w-5 h-5 text-di-primary-light" />
+          <h2 className={`font-headline font-bold text-di-on-surface ${isMobile ? 'text-base' : 'text-lg'}`}>
+            Резервуары
+          </h2>
+          {!isMobile && (
+            <div className="flex items-center gap-4 ml-4">
+              {criticalTanks.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-[10px] font-bold text-di-on-surface-variant uppercase">Критично: {criticalTanks.length}</span>
+                </div>
+              )}
+              {warningTanks.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-di-tertiary-container" />
+                  <span className="text-[10px] font-bold text-di-on-surface-variant uppercase">Внимание: {warningTanks.length}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
           {/* Статистика на мобильных рядом с заголовком */}
           {isMobile && (
             <div className="flex flex-col gap-1">
@@ -428,168 +436,114 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
       {/* Данные резервуаров */}
       {isMobile ? (
-        // Мобильный вид - карточки резервуаров
-        <div className="space-y-4">
-          {/* Кнопка расчета времени */}
-          {!calculating && Object.keys(fuelRemaining).length === 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={calculateRemainingTime}
-              className="w-full border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"
-            >
-              <Calculator className="w-4 h-4 mr-2" />
-              Рассчитать остаток времени
-            </Button>
-          )}
-
+        // Мобильный вид — Deep Intel reservoir cards
+        <div className="space-y-3 px-4 pb-4">
           {tanks.map((tank, index) => {
               const currentPercent = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
               const threshold = thresholds?.thresholds?.find(t => t.fuelType === tank.fuelType);
               const warning = threshold?.levelWarning || 20;
               const critical = threshold?.levelCritical || 10;
               const isBlocked = !tank.noSensorData && tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
+              const temp = tank.temperature || tank.apiData?.temperature || 0;
+              const waterMm = tank.waterLevelMm || tank.apiData?.water?.level || 0;
+              const remaining = fuelRemaining[tank.fuelType];
+
+              // Border color by level
+              const borderColor = isBlocked ? 'border-l-[#f87171]'
+                : currentPercent <= critical ? 'border-l-[#f87171]'
+                : currentPercent <= warning ? 'border-l-[#fbbf24]'
+                : 'border-l-di-primary-light/40';
+
+              // Status badge
+              const statusText = isBlocked ? 'БЛОК' : tank.noSensorData ? 'КНИЖ.' : currentPercent <= critical ? 'КРИТ.' : currentPercent <= warning ? 'НИЗКИЙ' : 'OK';
+              const statusBg = isBlocked || currentPercent <= critical ? 'bg-[#f87171]/10 text-[#f87171] border-[#f87171]/20'
+                : currentPercent <= warning ? 'bg-[#fbbf24]/10 text-[#fbbf24] border-[#fbbf24]/20'
+                : 'bg-di-primary/10 text-di-primary-light border-di-primary/20';
+
+              // Remaining color
+              const remainColor = remaining
+                ? remaining.daysRemaining > 10 ? 'text-[#4ade80]'
+                  : remaining.daysRemaining > 3 ? 'text-[#fbbf24]'
+                  : 'text-[#f87171]'
+                : 'text-di-on-surface-variant';
 
               return (
-                <div
-                  key={index}
-                  className={`rounded-lg p-4 border-2 bg-card/80 ${isBlocked ? 'border-red-600' : tank.noSensorData ? 'border-amber-400' : getBorderColor(currentPercent, warning, critical)}`}
-                >
-                  {/* Баннер блокировки для мобильного вида */}
-                  {isBlocked && (
-                    <div className="mb-3 p-2 rounded bg-red-600/30 border border-red-500 flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      <span className="text-xs font-semibold text-red-700 dark:text-red-200">ОТПУСК ЗАБЛОКИРОВАН</span>
+                <div key={index} className={`bg-di-surface-mid p-4 rounded-xl border border-di-outline-variant/30 space-y-3`}>
+                  {/* Header: name + status */}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-headline font-bold text-sm uppercase tracking-tight text-di-on-surface">
+                        {tank.name} {tank.fuelType}
+                      </h4>
+                      <p className="text-[10px] text-di-on-surface-variant/50">
+                        {tank.noSensorData ? 'Книжный остаток' : `Ёмкость: ${tank.capacityLiters.toLocaleString('ru-RU')} л`}
+                      </p>
                     </div>
-                  )}
-
-                  {/* Баннер: нет данных уровнемера */}
-                  {tank.noSensorData && (
-                    <div className="mb-3 p-2 rounded bg-secondary/50 border border-amber-400 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span className="text-xs font-semibold text-foreground/80 dark:text-amber-200">Книжный остаток (нет данных уровнемера)</span>
-                    </div>
-                  )}
-
-                  {/* Заголовок резервуара */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Fuel className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">{tank.name}</div>
-                        <div className="text-xs text-muted-foreground">{tank.fuelType}</div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      {tank.noSensorData ? (
-                        <div className="text-xl font-bold text-amber-600 dark:text-amber-400">—</div>
-                      ) : (
-                        <div className={`text-xl font-bold ${getFuelLevelColor(currentPercent, warning, critical)}`}>
-                          {Math.round(currentPercent)}%
-                        </div>
-                      )}
-                      {isBlocked ? (
-                        <Badge className="bg-red-600 text-white text-[10px] px-1.5 py-0">
-                          <Lock className="w-2.5 h-2.5 mr-0.5" />
-                          Блок
-                        </Badge>
-                      ) : tank.noSensorData ? (
-                        <Badge className="bg-amber-600 text-white text-[10px] px-1.5 py-0">
-                          книжный
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0">
-                          <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
-                          Активен
-                        </Badge>
-                      )}
-                    </div>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase ${statusBg}`}>
+                      {statusText}
+                    </span>
                   </div>
 
-                  {/* Прогресс-бар (скрываем при отсутствии данных уровнемера) */}
+                  {/* Progress bar */}
                   {!tank.noSensorData && (
-                    <div className="mb-3">
-                      <div className="flex-1 bg-secondary rounded-full h-3">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-di-on-surface-variant/60 mb-1">
+                        <span>Заполнение</span>
+                        <span>{Math.round(currentPercent)}%</span>
+                      </div>
+                      <div className="w-full h-1 bg-di-surface-highest rounded-full overflow-hidden">
                         <div
-                          className={`h-3 rounded-full transition-all ${getFillLevelColor(currentPercent, warning, critical)}`}
+                          className={`h-full rounded-full ${currentPercent <= critical ? 'bg-[#f87171]' : currentPercent <= warning ? 'bg-[#fbbf24]' : 'bg-di-primary-light'}`}
                           style={{ width: `${Math.max(currentPercent, 2)}%` }}
                         />
                       </div>
                     </div>
                   )}
 
-                  {/* Объемы */}
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="bg-secondary/50 p-2 rounded">
-                      <div className="text-xs text-muted-foreground">{tank.noSensorData ? 'Расчётный остаток' : 'Факт'}</div>
-                      <div className="text-sm font-bold text-blue-600 dark:text-blue-400">{tank.currentLevelLiters.toLocaleString()} л</div>
+                  {/* 4-column metrics */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="space-y-0.5">
+                      <p className="text-[8px] text-di-on-surface-variant/50 font-bold uppercase">Объём</p>
+                      <p className="font-headline font-bold text-xs text-di-on-surface">
+                        {(tank.currentLevelLiters / 1000).toFixed(1)}к л
+                      </p>
                     </div>
-                    <div className="bg-secondary/50 p-2 rounded">
-                      <div className="text-xs text-muted-foreground">{tank.noSensorData ? 'Книжный нач.' : 'Емкость'}</div>
-                      <div className="text-sm font-bold text-foreground/80">
-                        {tank.noSensorData
-                          ? `${(tank.apiData?.volume_begin || 0).toLocaleString()} л`
-                          : `${tank.capacityLiters.toLocaleString()} л`
-                        }
-                      </div>
+                    <div className="space-y-0.5">
+                      <p className="text-[8px] text-di-on-surface-variant/50 font-bold uppercase">Темп</p>
+                      <p className="font-headline font-bold text-xs text-di-on-surface">
+                        {temp ? `${temp.toFixed(1)}°C` : '—'}
+                      </p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-[8px] text-di-on-surface-variant/50 font-bold uppercase">Вода</p>
+                      <p className={`font-headline font-bold text-xs ${waterMm > 0 ? 'text-[#fbbf24]' : 'text-[#4ade80]'}`}>
+                        {waterMm > 0 ? `${waterMm}мм` : 'нет'}
+                      </p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-[8px] text-di-on-surface-variant/50 font-bold uppercase">Осталось</p>
+                      <p className={`font-headline font-bold text-xs ${remainColor}`}>
+                        {remaining ? `${remaining.daysRemaining.toFixed(1)}д` : '—'}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Остаток времени */}
-                  {fuelRemaining[tank.fuelType] && (
-                    <div className="bg-secondary/30 p-2 rounded mb-3">
-                      <div className="text-xs text-muted-foreground mb-1">Остаток времени</div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-semibold text-foreground">
-                          {fuelRemaining[tank.fuelType].daysRemaining.toFixed(1)} дн
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          ({fuelRemaining[tank.fuelType].avgDailySales.toFixed(0)} л/день)
-                        </span>
+                  {/* Settings (expanded) */}
+                  {isSettingsExpanded && (
+                    <div className="border-t border-di-outline-variant/15 pt-2 grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[9px] text-di-outline uppercase">⚠ Порог</Label>
+                        <Input type="number" min="0" max="100"
+                          value={thresholdForm[tank.fuelType]?.warning || ''}
+                          onChange={(e) => updateThreshold(tank.fuelType, 'warning', e.target.value)}
+                          className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-0.5" />
                       </div>
-                    </div>
-                  )}
-
-                  {/* Пороговые значения */}
-                  {isSettingsExpanded ? (
-                    <div className="border-t border-border pt-3 space-y-2">
-                      <div className="text-xs font-medium text-foreground/80 mb-2">Пороговые значения (%)</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs text-muted-foreground">⚠️ Предупреждение</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={thresholdForm[tank.fuelType]?.warning || ''}
-                            onChange={(e) => updateThreshold(tank.fuelType, 'warning', e.target.value)}
-                            className="bg-card border-border text-foreground h-10 text-sm mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">🔴 Критично</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={thresholdForm[tank.fuelType]?.critical || ''}
-                            onChange={(e) => updateThreshold(tank.fuelType, 'critical', e.target.value)}
-                            className="bg-card border-border text-foreground h-10 text-sm mt-1"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="border-t border-border pt-2 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="text-amber-500">⚠️</span>
-                        {!isMobile && <span className="text-muted-foreground">Предупреждение:</span>}
-                        <span className="text-foreground font-medium">{warning}%</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-500">🔴</span>
-                        {!isMobile && <span className="text-muted-foreground">Критично:</span>}
-                        <span className="text-foreground font-medium">{critical}%</span>
+                      <div>
+                        <Label className="text-[9px] text-di-outline uppercase">🔴 Крит.</Label>
+                        <Input type="number" min="0" max="100"
+                          value={thresholdForm[tank.fuelType]?.critical || ''}
+                          onChange={(e) => updateThreshold(tank.fuelType, 'critical', e.target.value)}
+                          className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-0.5" />
                       </div>
                     </div>
                   )}
@@ -598,34 +552,31 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
             })}
         </div>
       ) : (
-        // Desktop вид - таблица
+        // Desktop вид — Deep Intel Fuel Reservoirs table
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full border-separate border-spacing-y-0.5">
             <thead>
-              <tr className="border-b border-border">
-                <th className="text-left pb-2 px-2 text-foreground/80 font-medium">Резервуар</th>
-                <th className="text-left pb-2 px-2 text-foreground/80 font-medium">Топливо</th>
-                <th className="text-left pb-2 px-2 text-foreground/80 font-medium">Объем емкости</th>
-                <th className="text-left pb-2 px-2 text-foreground/80 font-medium">Факт</th>
-                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Статус</th>
-                <th className="text-left pb-2 px-2 text-foreground/80 font-medium">Заполнение</th>
-                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Порог ⚠️ (%)</th>
-                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">Порог 🔴 (%)</th>
-                <th className="text-center pb-2 px-2 text-foreground/80 font-medium">
-                  <div className="flex items-center justify-center gap-2">
-                    <span>Осталось времени</span>
+              <tr className="text-[10px] font-bold text-di-on-surface-variant tracking-widest uppercase text-left">
+                <th className="px-5 py-2">Резервуар</th>
+                <th className="px-3 py-2">Статус</th>
+                <th className="px-3 py-2">Заполнение</th>
+                <th className="px-3 py-2">Объём</th>
+                <th className="px-3 py-2 text-center">t°C</th>
+                <th className="px-3 py-2 text-center">Плотн.</th>
+                <th className="px-3 py-2 text-center">Вода</th>
+                <th className="px-3 py-2 text-center">⚠ %</th>
+                <th className="px-3 py-2 text-center">🔴 %</th>
+                <th className="px-3 py-2 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <span>Осталось</span>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={calculateRemainingTime}
                       disabled={calculating}
-                      className="h-6 px-2 py-0 text-xs border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white"
+                      className="h-5 px-1.5 py-0 text-[9px] border-di-outline-variant/30 text-di-on-surface-variant hover:bg-di-surface-high"
                     >
-                      {calculating ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Calculator className="w-3 h-3" />
-                      )}
+                      {calculating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calculator className="w-3 h-3" />}
                     </Button>
                   </div>
                 </th>
@@ -638,101 +589,117 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                 const warning = threshold?.levelWarning || 20;
                 const critical = threshold?.levelCritical || 10;
                 const isBlocked = !tank.noSensorData && tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
+                const temp = tank.temperature || tank.apiData?.temperature || 0;
+                const dens = tank.density || tank.apiData?.density || 0;
+                const waterMm = tank.waterLevelMm || tank.apiData?.water?.level || 0;
+                const remaining = fuelRemaining[tank.fuelType];
+                const daysColor = remaining
+                  ? remaining.daysRemaining > 10 ? 'text-[#4ade80]'
+                    : remaining.daysRemaining > 3 ? 'text-[#fbbf24]'
+                    : 'text-[#f87171]'
+                  : '';
 
                 return (
-                  <tr key={index} className={`border-b border-border hover:bg-secondary/30 ${isBlocked ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
-                    <td className="py-2 px-2">
-                      <div className="flex items-center gap-2">
-                        <Fuel className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <span className="text-foreground font-medium">{tank.name}</span>
+                  <tr key={index} className={`bg-di-surface-high hover:bg-di-surface-highest transition-colors group ${isBlocked ? 'ring-1 ring-red-500/30' : ''}`}>
+                    {/* Резервуар */}
+                    <td className="px-5 py-2 rounded-l-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded bg-di-primary/10 flex items-center justify-center text-di-primary-light">
+                          <Fuel className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-di-on-surface">{tank.name}</p>
+                          <p className="text-[10px] text-di-on-surface-variant">{tank.fuelType}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="py-2 px-2 text-foreground/80">{tank.fuelType}</td>
-                    <td className="py-2 px-2 text-foreground/80">
-                      {tank.noSensorData ? '—' : `${tank.capacityLiters.toLocaleString()} л`}
-                    </td>
-                    <td className="py-2 px-2 text-blue-600 dark:text-blue-400 font-bold">
-                      {tank.currentLevelLiters.toLocaleString()} л
-                      {tank.noSensorData && <span className="text-amber-600 dark:text-amber-400 text-xs ml-1">(книж.)</span>}
-                    </td>
-                    {/* Колонка статуса */}
-                    <td className="py-2 px-2 text-center">
+                    {/* Статус */}
+                    <td className="px-3 py-2">
                       {isBlocked ? (
-                        <Badge className="bg-red-600 text-white hover:bg-red-700 text-xs">
-                          <Lock className="w-3 h-3 mr-1" />
-                          Блокировка
-                        </Badge>
+                        <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f87171]" /><span className="text-[10px] font-bold text-[#f87171]">БЛОК</span></span>
                       ) : tank.noSensorData ? (
-                        <Badge className="bg-amber-600 text-white hover:bg-amber-700 text-xs">
-                          <AlertTriangle className="w-3 h-3 mr-1" />
-                          Книжный
-                        </Badge>
+                        <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#fbbf24]" /><span className="text-[10px] font-bold text-[#fbbf24]">КНИЖ.</span></span>
                       ) : (
-                        <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Активен
-                        </Badge>
+                        <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#4ade80]" /><span className="text-[10px] font-bold text-[#4ade80]">OK</span></span>
                       )}
                     </td>
-                    <td className="py-2 px-2">
+                    {/* Level bar */}
+                    <td className="px-3 py-2 w-40">
                       {tank.noSensorData ? (
-                        <span className="text-sm text-amber-600 dark:text-amber-400">—</span>
+                        <span className="text-[11px] text-di-on-surface-variant">—</span>
                       ) : (
                         <div className="flex items-center gap-3">
-                          <div className="flex-1 bg-secondary rounded-full h-2 min-w-[60px]">
+                          <div className="flex-1 h-1.5 bg-di-surface-lowest rounded-full overflow-hidden">
                             <div
-                              className={`h-2 rounded-full ${getFillLevelColor(currentPercent, warning, critical)}`}
+                              className={`h-full rounded-full ${currentPercent <= critical ? 'bg-[#f87171]' : currentPercent <= warning ? 'bg-[#fbbf24]' : 'bg-di-primary-light'}`}
                               style={{ width: `${Math.max(currentPercent, 2)}%` }}
                             />
                           </div>
-                          <span className="text-sm text-foreground/80 min-w-[35px]">{Math.round(currentPercent)}%</span>
+                          <span className="text-[11px] font-mono font-bold text-di-on-surface min-w-[28px]">{Math.round(currentPercent)}%</span>
                         </div>
                       )}
                     </td>
-                    <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                    {/* Объём */}
+                    <td className="px-3 py-2">
+                      <p className="text-[12px] font-mono font-bold tracking-tight text-di-on-surface">
+                        {tank.currentLevelLiters.toLocaleString('ru-RU')} л
+                      </p>
+                    </td>
+                    {/* Температура */}
+                    <td className="px-3 py-2 text-center">
+                      <span className="text-[12px] font-mono font-bold tracking-tight text-di-on-surface">
+                        {temp ? `${temp.toFixed(1)}°` : '—'}
+                      </span>
+                    </td>
+                    {/* Плотность */}
+                    <td className="px-3 py-2 text-center">
+                      <span className="text-[12px] font-mono font-bold tracking-tight text-di-on-surface">
+                        {dens ? dens.toFixed(1) : '—'}
+                      </span>
+                    </td>
+                    {/* Вода */}
+                    <td className="px-3 py-2 text-center">
+                      <span className={`text-[12px] font-mono font-bold tracking-tight ${waterMm > 0 ? 'text-[#fbbf24]' : 'text-[#4ade80]'}`}>
+                        {waterMm > 0 ? `${waterMm} мм` : 'нет'}
+                      </span>
+                    </td>
+                    {/* Порог warning */}
+                    <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                       {isSettingsExpanded ? (
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
+                        <Input type="number" min="0" max="100"
                           value={thresholdForm[tank.fuelType]?.warning || ''}
                           onChange={(e) => updateThreshold(tank.fuelType, 'warning', e.target.value)}
-                          onFocus={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-card border-border text-foreground h-7 text-sm w-16 text-center"
-                        />
+                          onFocus={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
+                          className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-6 text-[11px] w-14 text-center" />
                       ) : (
-                        <span className="text-foreground font-medium">{warning}</span>
+                        <span className="text-[12px] font-bold text-di-on-surface">{warning}</span>
                       )}
                     </td>
-                    <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                    {/* Порог critical */}
+                    <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                       {isSettingsExpanded ? (
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
+                        <Input type="number" min="0" max="100"
                           value={thresholdForm[tank.fuelType]?.critical || ''}
                           onChange={(e) => updateThreshold(tank.fuelType, 'critical', e.target.value)}
-                          onFocus={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-card border-border text-foreground h-7 text-sm w-16 text-center"
-                        />
+                          onFocus={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
+                          className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-6 text-[11px] w-14 text-center" />
                       ) : (
-                        <span className="text-foreground font-medium">{critical}</span>
+                        <span className="text-[12px] font-bold text-di-on-surface">{critical}</span>
                       )}
                     </td>
-                    <td className="py-2 px-2 text-center">
-                      {fuelRemaining[tank.fuelType] ? (
-                        <div className="flex flex-col items-center">
-                          <span className="text-foreground font-semibold">
-                            {fuelRemaining[tank.fuelType].daysRemaining.toFixed(1)} дн
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            ({fuelRemaining[tank.fuelType].avgDailySales.toFixed(0)} л/день)
-                          </span>
+                    {/* Осталось времени — цветовая индикация */}
+                    <td className="px-3 py-2 rounded-r-xl text-right">
+                      {remaining ? (
+                        <div>
+                          <p className={`text-sm font-bold font-headline tracking-tight ${daysColor}`}>
+                            {remaining.daysRemaining.toFixed(1)} дн
+                          </p>
+                          <p className="text-[10px] text-di-on-surface-variant">
+                            ({remaining.avgDailySales.toFixed(0)} л/д)
+                          </p>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-di-on-surface-variant">—</span>
                       )}
                     </td>
                   </tr>
@@ -745,7 +712,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
       {/* Кнопка сохранения */}
       {isSettingsExpanded && (
-        <div className="mt-4 flex justify-end border-t border-border pt-3">
+        <div className="mt-4 flex justify-end border-t border-di-outline-variant/15 pt-3">
           <Button
             size="sm"
             onClick={handleSave}

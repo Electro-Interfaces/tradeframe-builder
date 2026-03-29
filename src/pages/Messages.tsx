@@ -124,7 +124,7 @@ const mockTickets: TicketWithId[] = [
 const mockTelegramBots: TelegramBotWithId[] = [
   {
     id: "1",
-    name: "TradeControl Network Bot",
+    name: "TradePoint Network Bot",
     token: "telegram_bot_token_network_demo",
     isActive: true,
     channels: ["@tradeframe_network", "@tradeframe_managers"],
@@ -134,7 +134,7 @@ const mockTelegramBots: TelegramBotWithId[] = [
   },
   {
     id: "2",
-    name: "TradeControl Support Bot", 
+    name: "TradePoint Support Bot", 
     token: "telegram_bot_token_support_demo",
     isActive: true,
     channels: ["@tradeframe_support"],

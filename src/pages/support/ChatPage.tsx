@@ -912,7 +912,7 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Load TSupport user ID (maps TradeControl ID → TSupport internal ID)
+  // Load TSupport user ID (maps TradePoint ID → TSupport internal ID)
   useEffect(() => {
     getTSupportMe()
       .then(data => setTsupportUserId(data.tsupportUserId))

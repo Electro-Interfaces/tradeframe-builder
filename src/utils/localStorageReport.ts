@@ -12,7 +12,7 @@ export class LocalStorageReport {
     // 1. Общая статистика
     const stats = this.getStorageStatistics();
     console.log(`- Всего ключей: ${stats.totalKeys}`);
-    console.log(`- TradeControl ключей: ${stats.tradeframeKeys}`);
+    console.log(`- TradePoint ключей: ${stats.tradeframeKeys}`);
     console.log(`- Размер данных: ${(stats.totalSize / 1024).toFixed(2)} KB`);
     console.log(`- Использование: ${stats.usagePercent.toFixed(1)}%`);
 

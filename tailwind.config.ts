@@ -73,7 +73,30 @@ export default {
 				// Status colors
 				success: 'hsl(var(--success))',
 				warning: 'hsl(var(--warning))',
-				error: 'hsl(var(--error))'
+				error: 'hsl(var(--error))',
+				// Deep Intel design tokens — adaptive light/dark
+				di: {
+					bg: 'var(--di-bg)',
+					surface: 'var(--di-surface)',
+					'surface-low': 'var(--di-surface-low)',
+					'surface-lowest': 'var(--di-surface-lowest)',
+					'surface-mid': 'var(--di-surface-mid)',
+					'surface-high': 'var(--di-surface-high)',
+					'surface-highest': 'var(--di-surface-highest)',
+					'surface-bright': 'var(--di-surface-bright)',
+					'on-surface': 'var(--di-on-surface)',
+					'on-surface-variant': 'var(--di-on-surface-variant)',
+					primary: 'var(--di-primary)',
+					'primary-light': 'var(--di-primary-light)',
+					tertiary: 'var(--di-tertiary)',
+					'tertiary-container': 'var(--di-tertiary-container)',
+					outline: 'var(--di-outline)',
+					'outline-variant': 'var(--di-outline-variant)',
+					'error-container': 'var(--di-error-container)',
+				}
+			},
+			fontFamily: {
+				headline: ['Manrope', 'sans-serif'],
 			},
 			spacing: {
 				'header': 'var(--header-height)'

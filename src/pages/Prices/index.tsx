@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { SelectTradingPointMessage } from "@/components/common/SelectTradingPointMessage";
 import { LastDataTransfer } from "@/components/common/LastDataTransfer";
+import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
 
 import { PriceSetDialog } from "./components/PriceSetDialog";
 import { PriceScheduleDialog } from "./components/PriceScheduleDialog";
@@ -109,6 +110,13 @@ export function Prices() {
     handleCancelInlineEdit,
     handleSaveInlinePrice,
   } = usePricesData();
+
+  // Слушаем кнопку обновления из BottomNav
+  useEffect(() => {
+    const handler = () => handleRefreshData();
+    window.addEventListener('bottomnav-refresh', handler);
+    return () => window.removeEventListener('bottomnav-refresh', handler);
+  }, [handleRefreshData]);
 
   const form = useForm<PriceFormData>({
     resolver: zodResolver(priceFormSchema),
@@ -237,62 +245,29 @@ export function Prices() {
       <div
         ref={scrollContainerRef}
         data-pull-to-refresh="true"
-        className="w-full h-full px-4 md:px-6 lg:px-8 relative"
+        className={`w-full h-full relative ${isMobile ? 'px-2' : 'px-4 md:px-6 lg:px-8'}`}
         style={{
           transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
           transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
         }}
       >
-        {/* Mobile pull-to-refresh indicator */}
-        {isMobile && pullState !== 'idle' && pullDistance >= 30 && (
-          <div
-            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
-            style={{
-              transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`,
-              opacity: Math.min(1, (pullDistance - 30) / 40)
-            }}
-          >
-            <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
-              {pullState === 'refreshing' ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
-                  <span className="text-sm font-medium">Обновление...</span>
-                </>
-              ) : pullState === 'canRefresh' ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm font-medium text-green-600">Отпустите для обновления</span>
-                </>
-              ) : (
-                <>
-                  <div
-                    className="w-4 h-4 border-2 border-border border-t-blue-500 rounded-full"
-                    style={{
-                      transform: `rotate(${pullDistance * 3}deg)`
-                    }}
-                  />
-                  <span className="text-sm font-medium">Потяните для обновления</span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        {isMobile && <PullToRefreshIndicator pullState={pullState} pullDistance={pullDistance} />}
 
-        {/* Page header */}
+        {/* Page header — Deep Intel style */}
         <div className="mb-6 pt-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-end justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-foreground`}>Цены</h1>
+              <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Цены</h1>
               <LastDataTransfer />
             </div>
-            <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-center`}>
+            <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-center shrink-0`}>
               {!isMobile && (
                 <Button
                   onClick={loadPricesFromSTSAPI}
                   variant="outline"
                   size="sm"
                   disabled={loadingFromSTSAPI}
-                  className="border-border text-foreground hover:bg-secondary"
+                  className="border-border/30 dark:border-di-outline-variant/15 text-muted-foreground hover:bg-secondary dark:hover:bg-di-surface-high"
                 >
                   <RefreshCw className={`w-4 h-4 ${loadingFromSTSAPI ? 'animate-spin' : ''}`} />
                 </Button>
@@ -303,7 +278,7 @@ export function Prices() {
                   variant="outline"
                   size="sm"
                   disabled={isSettingPrices || !selectedTradingPoint || selectedTradingPoint === 'all'}
-                  className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
+                  className="border-green-600 dark:border-green-500/50 text-green-600 dark:text-green-400 hover:bg-emerald-600 hover:text-white"
                 >
                   <Edit className={`h-4 w-4 ${isMobile ? '' : 'mr-2'}`} />
                   {!isMobile && "Изменить цены"}

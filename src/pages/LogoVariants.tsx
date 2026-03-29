@@ -9,7 +9,7 @@ export default function LogoVariants() {
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <h1 style={{ textAlign: 'center', marginBottom: '40px', fontSize: '32px' }}>
-          🎨 TradeControl - Варианты логотипов
+          🎨 TradePoint - Варианты логотипов
         </h1>
 
         <div style={{

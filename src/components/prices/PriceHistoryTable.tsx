@@ -72,11 +72,11 @@ export function PriceHistoryTable({
   }, [priceSchedule]);
 
   return (
-    <Card className="bg-card border-border mt-6">
+    <Card className="bg-di-surface-high border border-di-outline-variant/20 rounded-xl mt-6">
       <CardHeader className="pb-4">
         <CardTitle className="text-foreground flex items-center gap-2">
           <History className="w-5 h-5" />
-          <span className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>
+          <span className={`${isMobile ? 'text-base' : 'text-lg'} font-headline font-bold`}>
             История изменения цен
           </span>
         </CardTitle>
@@ -108,7 +108,7 @@ export function PriceHistoryTable({
                   className="bg-secondary/50 border border-border rounded-lg p-3"
                 >
                   {/* Заголовок карточки - топливо и цена */}
-                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
+                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-di-outline-variant/15">
                     <div className="flex items-center gap-2">
                       <Fuel className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       <span className="text-foreground font-semibold text-sm">
@@ -122,7 +122,7 @@ export function PriceHistoryTable({
 
                   {/* Изменение цены - ВАЖНЫЙ БЛОК */}
                   {change && (
-                    <div className="mb-3 pb-3 border-b border-border">
+                    <div className="mb-3 pb-3 border-b border-di-outline-variant/15">
                       <div className="text-xs text-muted-foreground mb-1">Изменение:</div>
                       <div className="flex items-center gap-2">
                         {change.diff > 0 ? (
@@ -182,7 +182,7 @@ export function PriceHistoryTable({
                   </div>
 
                   {/* Статус */}
-                  <div className="mt-3 pt-3 border-t border-border">
+                  <div className="mt-3 pt-3 border-t border-di-outline-variant/15">
                     <Badge
                       variant="outline"
                       className="border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 text-xs"
@@ -199,7 +199,7 @@ export function PriceHistoryTable({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-di-outline-variant/15">
                   <th className="text-left py-3 px-4 text-foreground/80 font-medium text-sm">
                     Дата создания
                   </th>
@@ -228,7 +228,7 @@ export function PriceHistoryTable({
                   return (
                     <tr
                       key={`${entry.service_code}-${entry.effective_date}-${index}`}
-                      className="border-b border-border hover:bg-card/50 transition-colors"
+                      className="border-b border-di-outline-variant/15 hover:bg-card/50 transition-colors"
                     >
                       <td className="py-3 px-4 text-foreground/80 text-sm">
                         {entry.created_at ? new Date(entry.created_at).toLocaleString('ru-RU', {

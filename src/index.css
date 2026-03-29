@@ -6,70 +6,70 @@
 
 @layer base {
   :root {
-    /* Light theme — Linear/Notion inspired, high contrast */
-    --background: 220 14% 94%;
-    --foreground: 224 71% 4%;
+    /* Light theme — Station Alpha precision style */
+    --background: 210 18% 93%;
+    --foreground: 195 14% 19%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 195 14% 19%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 195 14% 19%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 224 10% 40%;
+    --primary-foreground: 240 20% 99%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 40% 20%;
+    --secondary: 210 20% 93%;
+    --secondary-foreground: 215 18% 35%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 43%;
+    --muted: 210 18% 95%;
+    --muted-foreground: 195 10% 40%;
 
-    --accent: 220 14% 96%;
-    --accent-foreground: 220 40% 20%;
+    --accent: 210 18% 93%;
+    --accent-foreground: 215 18% 35%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 43% 44%;
+    --destructive-foreground: 0 60% 98%;
 
-    --border: 220 13% 87%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --border: 200 12% 70%;
+    --input: 210 14% 91%;
+    --ring: 224 10% 40%;
 
     --radius: 0.75rem;
 
-    /* Sidebar — white, distinct from gray page bg */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 14% 25%;
-    --sidebar-primary: 217 91% 60%;
+    /* Sidebar — light gray surface */
+    --sidebar-background: 210 14% 96%;
+    --sidebar-foreground: 195 14% 19%;
+    --sidebar-primary: 224 10% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 95%;
-    --sidebar-accent-foreground: 220 14% 20%;
-    --sidebar-border: 220 13% 90%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 210 14% 93%;
+    --sidebar-accent-foreground: 195 14% 19%;
+    --sidebar-border: 200 12% 87%;
+    --sidebar-ring: 224 10% 40%;
 
     /* Trading platform accent colors */
-    --accent-blue: 217 91% 60%;
-    --accent-purple: 280 80% 60%;
-    --accent-green: 142 76% 36%;
+    --accent-blue: 221 100% 38%;
+    --accent-purple: 261 18% 42%;
+    --accent-green: 152 69% 31%;
     --accent-orange: 25 95% 53%;
 
     /* Status colors */
-    --success: 142 76% 36%;
+    --success: 152 69% 31%;
     --warning: 45 93% 47%;
-    --error: 0 84% 60%;
+    --error: 0 43% 44%;
 
     /* Header height */
     --header-height: 5rem;
 
-    /* Light shadows — elevated cards over gray bg */
-    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-    --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    /* Light shadows — minimal, clinical */
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-medium: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-large: 0 4px 16px rgba(0, 0, 0, 0.08);
   }
 
   .dark {
-    --background: 215 28% 12%;
-    --foreground: 0 0% 95%;
+    --background: 217 32% 12%;
+    --foreground: 224 56% 91%;
 
     --card: 217 32% 17%;
     --card-foreground: 0 0% 95%;
@@ -96,7 +96,7 @@
     --input: 217 32% 17%;
     --ring: 217 91% 60%;
 
-    --sidebar-background: 215 28% 10%;
+    --sidebar-background: 220 50% 7%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -121,6 +121,57 @@
     --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.35);
     --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.45);
   }
+}
+
+/* Deep Intel design tokens — light theme */
+:root {
+  --di-bg: #f7f9fb;
+  --di-surface: #f0f4f7;
+  --di-surface-low: #f7f9fb;
+  --di-surface-lowest: #ffffff;
+  --di-surface-mid: #ffffff;
+  --di-surface-high: #ffffff;
+  --di-surface-highest: #f0f4f7;
+  --di-surface-bright: #ffffff;
+  --di-on-surface: #2a3439;
+  --di-on-surface-variant: #566166;
+  --di-primary: #565e74;
+  --di-primary-light: #3b82f6;
+  --di-tertiary: #605c78;
+  --di-tertiary-container: #9f403d;
+  --di-outline: #717c82;
+  --di-outline-variant: #c5cdd3;
+  --di-error-container: #fe8983;
+}
+
+/* Deep Intel design tokens — dark theme */
+.dark {
+  --di-bg: #0c1320;
+  --di-surface: #19202d;
+  --di-surface-low: #151c29;
+  --di-surface-lowest: #070e1b;
+  --di-surface-mid: #1e2533;
+  --di-surface-high: #232a38;
+  --di-surface-highest: #2e3543;
+  --di-surface-bright: #323948;
+  --di-on-surface: #dce2f5;
+  --di-on-surface-variant: #c3c6d7;
+  --di-primary: #2563eb;
+  --di-primary-light: #b4c5ff;
+  --di-tertiary: #ffb596;
+  --di-tertiary-container: #bc4800;
+  --di-outline: #8d90a0;
+  --di-outline-variant: #434655;
+  --di-error-container: #93000a;
+}
+
+/* Deep Intel design utilities */
+.glass-panel {
+  background: rgba(50, 57, 72, 0.6);
+  backdrop-filter: blur(20px);
+}
+.di-glow-blue {
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
 }
 
 @layer base {

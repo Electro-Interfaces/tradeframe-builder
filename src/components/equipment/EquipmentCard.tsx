@@ -1,10 +1,9 @@
 /**
- * Компонент карточки оборудования
- * Отображает информацию о терминальном устройстве
+ * Карточка оборудования — Deep Intel v3
+ * bg-surface-container-low, dot status, transparent border, hover accent
  */
 
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertCircle, Settings, AlertTriangle } from 'lucide-react';
+import { Cpu, CreditCard, Receipt, Radio, Banknote, Settings, Fuel } from 'lucide-react';
 import type { TerminalEquipmentItem } from '@/types/equipment';
 
 interface EquipmentCardProps {
@@ -12,92 +11,78 @@ interface EquipmentCardProps {
   isMobile: boolean;
 }
 
-/**
- * Получить иконку статуса
- */
-function getStatusIcon(status: string, className: string = 'w-4 h-4') {
-  switch (status) {
-    case 'online':
-      return <CheckCircle2 className={`${className} text-green-500`} />;
-    case 'offline':
-    case 'error':
-      return <AlertCircle className={`${className} text-red-500`} />;
-    default:
-      return <Settings className={`${className} text-muted-foreground`} />;
+function DeviceIcon({ name, className }: { name: string; className?: string }) {
+  const cls = className || 'w-5 h-5';
+  const isStation = name === 'Станция';
+  const color = isStation ? 'text-di-primary-light' : 'text-di-primary-light';
+  switch (name) {
+    case 'POS': return <CreditCard className={`${cls} ${color}`} />;
+    case 'ККТ': return <Receipt className={`${cls} ${color}`} />;
+    case 'Картридер': return <Cpu className={`${cls} ${color}`} />;
+    case 'МПС': return <Radio className={`${cls} ${color}`} />;
+    case 'Купюроприемник': return <Banknote className={`${cls} ${color}`} />;
+    case 'Станция': return <Fuel className={`${cls} ${color}`} />;
+    default: return <Settings className={`${cls} ${color}`} />;
   }
 }
 
 export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
-  const isKKT = equipment.name === 'ККТ';
   const isPOS = equipment.name === 'POS';
-  const hasUnpunchedReceipts = equipment.hasUnpunchedReceipts;
+  const isKKT = equipment.name === 'ККТ';
   const isEmergencyMode = equipment.isEmergencyMode;
+  const hasUnpunchedReceipts = equipment.hasUnpunchedReceipts;
+  const isOnline = equipment.status === 'online';
+  const isError = isKKT && isEmergencyMode;
+  const isWarning = isKKT && hasUnpunchedReceipts && !isEmergencyMode;
 
-  // Определяем стиль карточки
-  const getCardStyle = () => {
-    if (isKKT && isEmergencyMode) {
-      return 'bg-red-100 dark:bg-red-900/40 border-red-600 hover:border-red-500';
-    }
-    if (isKKT && hasUnpunchedReceipts) {
-      return 'bg-secondary border-amber-400 hover:border-amber-500';
-    }
-    return 'bg-secondary border-border hover:border-border';
-  };
+  const borderClass = isError
+    ? 'border-red-500/30'
+    : isWarning
+      ? 'border-di-tertiary-container/30'
+      : 'border-transparent hover:border-di-primary/20';
+
+  const displayName = isPOS && equipment.posType
+    ? (equipment.posType.id === 1 ? 'Автомат' : 'Оператор')
+    : equipment.name;
+
+  // Dot color + label
+  const dotColor = isError ? 'bg-red-500' : isOnline ? 'bg-green-500' : 'bg-red-500';
+  const dotPulse = isError ? 'animate-pulse' : isOnline ? '' : '';
+  const statusLabel = isError ? 'Авария' : isWarning ? 'Внимание' : equipment.statusText;
+  const statusLabelColor = isError
+    ? 'text-red-400'
+    : isWarning
+      ? 'text-di-tertiary-container'
+      : 'text-di-on-surface-variant';
 
   return (
-    <div
-      className={`rounded-lg border transition-colors cursor-pointer ${getCardStyle()} ${
-        isMobile ? 'p-2' : 'p-3'
-      }`}
-    >
-      {/* Заголовок с иконкой */}
-      <div className={`flex items-center justify-between ${isMobile ? 'mb-1 gap-1' : 'mb-1.5 gap-2'}`}>
-        <span className={`font-medium truncate flex-1 min-w-0 ${isMobile ? 'text-[11px] leading-tight' : 'text-xs'} ${
-          isPOS && equipment.posType
-            ? equipment.posType.id === 1 ? 'text-blue-600 dark:text-blue-300' : 'text-amber-600 dark:text-amber-300'
-            : 'text-foreground'
-        }`}>
-          {isPOS && equipment.posType
-            ? (equipment.posType.id === 1 ? 'Автомат' : 'Оператор')
-            : equipment.name}
-        </span>
-        <div className="flex-shrink-0 flex items-center gap-1">
-          {/* Индикатор не пробитых чеков для ККТ */}
-          {isKKT && hasUnpunchedReceipts && (
-            <AlertTriangle className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-amber-600 dark:text-amber-400`} />
-          )}
-          {getStatusIcon(equipment.status, isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5')}
+    <div className={`bg-di-surface-mid rounded-xl border ${borderClass} transition-all ${
+      isMobile ? 'p-4' : 'p-4'
+    }`}>
+      {/* Icon + Status dot */}
+      <div className="flex justify-between items-start mb-3">
+        <DeviceIcon name={equipment.name} className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
+        <div className="flex items-center gap-1.5">
+          <span className={`w-2 h-2 rounded-full ${dotColor} ${dotPulse}`} />
+          <span className={`text-[10px] font-bold uppercase ${statusLabelColor}`}>
+            {statusLabel}
+          </span>
         </div>
       </div>
 
-      {/* Код/версия */}
-      <div className={`text-foreground/80 truncate ${isMobile ? 'text-[9px] leading-tight' : 'text-[10px]'}`}>
-        {equipment.code}
-      </div>
+      {/* Label — uppercase, muted */}
+      <h3 className={`font-bold uppercase mb-1 ${
+        isMobile ? 'text-[9px] tracking-wide' : 'text-[10px] tracking-tighter'
+      } text-di-outline`}>
+        {displayName}
+      </h3>
 
-      {/* Локация (если есть) */}
-      {equipment.location && (
-        <div className={`text-muted-foreground truncate ${isMobile ? 'text-[9px] leading-tight' : 'text-[10px]'}`}>
-          {equipment.location}
-        </div>
-      )}
-
-      {/* Статус */}
-      <div className={isMobile ? 'mt-1' : 'mt-1.5'}>
-        <Badge
-          className={`font-semibold truncate max-w-full inline-block ${
-            isMobile ? 'text-[9px] px-1 py-0 leading-tight' : 'text-[10px] px-1.5 py-0.5'
-          } ${
-            isKKT && isEmergencyMode
-              ? 'bg-red-600 text-white hover:bg-red-700'
-              : equipment.status === 'online'
-              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-              : 'bg-red-600 text-white hover:bg-red-700'
-          }`}
-        >
-          {equipment.statusText}
-        </Badge>
-      </div>
+      {/* Value — Manrope bold */}
+      <p className={`font-headline font-bold text-di-on-surface truncate ${
+        isMobile ? 'text-sm' : 'text-lg'
+      }`}>
+        {equipment.code || '—'}
+      </p>
     </div>
   );
 }

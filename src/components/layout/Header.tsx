@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Menu, Bell, Wifi, LifeBuoy, Sun, Moon } from "lucide-react";
+import { LogOut, User, Menu, Bell, Wifi, LifeBuoy, Sun, Moon, RefreshCw } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
@@ -112,60 +112,49 @@ export function Header({
   };
 
   return (
-    <header className={`${isMobile ? 'relative' : 'fixed top-0'} left-0 right-0 z-50 min-h-header bg-card border-b border-border shadow-sm mobile-safe-top`}>
+    <header className={`${isMobile ? 'relative' : 'fixed top-0'} left-0 right-0 z-50 min-h-header bg-background border-b border-transparent shadow-sm mobile-safe-top`}>
       <div className="flex items-center justify-between min-h-header px-4 md:px-6">
-        {/* Mobile Left Section: Burger + Network Selector + Action Buttons */}
-        <div className="flex items-center gap-1.5 md:hidden flex-1 min-w-0 mr-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleMobileMenuClick}
-            aria-label="Открыть меню"
-            className={`shrink-0 h-11 w-11 bg-secondary hover:bg-accent text-foreground border border-border rounded-lg transition-all duration-200 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
-          >
-            <Menu className="h-4 w-4" />
-          </Button>
-
+        {/* Mobile Header: Station selector + Bell + Sync + Avatar */}
+        <div className="flex items-center gap-1.5 md:hidden flex-1 min-w-0">
           <NetworkSelect
             value={selectedNetwork}
             values={selectedNetworkIds}
             onValueChange={onNetworkChange}
             onValuesChange={onNetworkIdsChange}
-            className="!h-9 !py-0 text-sm min-w-0 flex-1 bg-secondary/50 border-border hover:bg-accent/50 max-w-[140px]"
+            className="!h-9 !py-0 text-sm min-w-0 flex-1 bg-white dark:bg-di-surface-high border border-border/20 dark:border-di-outline-variant/15 text-foreground dark:text-di-on-surface font-headline font-bold rounded-xl"
           />
 
-          {/* Mobile Connection Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsConnectionDialogOpen(true)}
-            aria-label="Проверить связь со станциями"
-            className="shrink-0 h-11 w-11 bg-secondary hover:bg-blue-600 text-blue-500 dark:text-blue-400 hover:text-white border border-border rounded-lg transition-all duration-200"
-            title="Проверить связь со станциями"
-          >
-            <Wifi className="h-4 w-4" />
-          </Button>
-
-          {/* Mobile Support Button */}
+          {/* Bell with badge */}
           <Button
             variant="ghost"
             size="icon"
             onClick={openCreateDialog}
-            aria-label="Создать заявку"
-            className="shrink-0 h-11 w-11 bg-secondary hover:bg-green-600 text-green-500 dark:text-green-400 hover:text-white border border-border rounded-lg transition-all duration-200"
-            title="Создать заявку"
+            aria-label="Уведомления"
+            className="shrink-0 h-9 w-9 text-di-on-surface-variant hover:text-di-on-surface transition-all relative"
           >
-            <LifeBuoy className="h-4 w-4" />
+            <Bell className="h-5 w-5" />
+            <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+          </Button>
+
+          {/* Sync button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsConnectionDialogOpen(true)}
+            className="shrink-0 h-9 px-3 bg-[#2563eb] hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+            Связь
           </Button>
         </div>
 
         {/* Desktop Left Section: Logo + Brand */}
         <div className="hidden md:flex items-center gap-4">
           <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-base">TC</span>
+            <span className="text-white font-bold text-base">TP</span>
           </div>
           <div>
-            <h1 className="font-semibold text-foreground text-lg tracking-tight">TradeControl</h1>
+            <h1 className="font-semibold text-foreground text-lg tracking-tight">TradePoint</h1>
             <p className="text-xs text-muted-foreground">v{APP_VERSION}</p>
           </div>
         </div>
@@ -206,18 +195,22 @@ export function Header({
         </div>
 
         {/* Right Section: Theme Toggle (desktop only) + User Profile */}
-        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 md:gap-2 shrink-0 ml-2 md:ml-0">
           <div className="hidden md:block">
             <ThemeToggle />
           </div>
           {/* User Profile */}
-          <DropdownMenu>
+          <DropdownMenu onOpenChange={(open) => {
+            const el = document.getElementById('user-menu-overlay');
+            if (el) el.style.display = open && isMobile ? 'block' : 'none';
+          }}>
+            {isMobile && <div id="user-menu-overlay" className="fixed inset-0 z-40 bg-black/40 dark:bg-[#070e1b]/70 backdrop-blur-sm" style={{ display: 'none' }} />}
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex items-center gap-3 px-1.5 md:px-3 transition-all duration-200 h-9 md:h-11 hover:bg-accent rounded-lg border border-border/30 hover:border-border"
+                className="flex items-center gap-3 px-0 md:px-3 transition-all duration-200 h-9 md:h-11 hover:bg-transparent md:hover:bg-accent rounded-lg border-none"
               >
-                <div className="w-7 h-7 md:w-9 md:h-9 bg-blue-600 rounded-full flex items-center justify-center shadow-md ring-1 ring-border">
+                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
                   <User className="w-3.5 h-3.5 md:w-5 md:h-5 text-white" />
                 </div>
                 <div className="hidden lg:flex flex-col items-start">
@@ -228,12 +221,12 @@ export function Header({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-72 p-0 bg-popover border-border shadow-xl"
+              className="w-72 p-0 bg-card dark:bg-[#1c2533] border border-border/30 dark:border-[#434655]/40 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-xl"
             >
               {/* Header Section - User Info */}
-              <div className="p-4 border-b border-border bg-muted/50">
+              <div className="p-4 border-b border-border/20 dark:border-di-outline-variant/15">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-md ring-2 ring-blue-500/20">
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
                     <User className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
@@ -254,7 +247,7 @@ export function Header({
               <div className="p-2">
                 <DropdownMenuItem
                   onClick={() => navigate('/profile')}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent cursor-pointer transition-all duration-200 text-foreground focus:bg-accent focus:text-foreground group"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary dark:hover:bg-di-surface-high cursor-pointer transition-all duration-200 text-foreground focus:bg-secondary dark:focus:bg-di-surface-high focus:text-foreground group"
                 >
                   <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
                     <User className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors duration-200" />
@@ -267,7 +260,7 @@ export function Header({
 
                 <DropdownMenuItem
                   onClick={(e) => { e.preventDefault(); toggleTheme(); }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent cursor-pointer transition-all duration-200 text-foreground focus:bg-accent focus:text-foreground group md:hidden"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary dark:hover:bg-di-surface-high cursor-pointer transition-all duration-200 text-foreground focus:bg-secondary dark:focus:bg-di-surface-high focus:text-foreground group md:hidden"
                 >
                   <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
                     {theme === "dark" ? (
@@ -284,7 +277,7 @@ export function Header({
 
                 <DropdownMenuItem
                   onClick={() => navigate('/settings/notifications')}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent cursor-pointer transition-all duration-200 text-foreground focus:bg-accent focus:text-foreground group"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary dark:hover:bg-di-surface-high cursor-pointer transition-all duration-200 text-foreground focus:bg-secondary dark:focus:bg-di-surface-high focus:text-foreground group"
                 >
                   <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
                     <Bell className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors duration-200" />
@@ -301,7 +294,7 @@ export function Header({
               </div>
 
               {/* Footer Section - Logout */}
-              <div className="p-2 border-t border-border bg-popover/50">
+              <div className="p-2 border-t border-border/20 dark:border-di-outline-variant/15">
                 <DropdownMenuItem
                   onClick={handleLogout}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 cursor-pointer transition-all duration-200 text-red-600 dark:text-red-400 hover:text-red-300 focus:bg-red-500/10 focus:text-red-300 group"

@@ -46,7 +46,7 @@ const mockTickets: SupportTicket[] = [
     status: "in_progress",
     createdAt: "2024-08-30T08:00:00Z",
     updatedAt: "2024-08-30T10:30:00Z",
-    assignedTo: "Техподдержка TradeControl",
+    assignedTo: "Техподдержка TradePoint",
     messages: [
       {
         id: "msg-1",
@@ -110,7 +110,7 @@ const mockTickets: SupportTicket[] = [
     status: "resolved",
     createdAt: "2024-08-28T11:10:00Z",
     updatedAt: "2024-08-28T17:20:00Z",
-    assignedTo: "Техподдержка TradeControl",
+    assignedTo: "Техподдержка TradePoint",
     messages: [
       {
         id: "msg-6",

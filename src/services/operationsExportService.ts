@@ -441,7 +441,7 @@ export async function exportToPdf(options: ExportOptions): Promise<void> {
     const docDefinition = {
       info: {
         title: 'Отчёт по операциям',
-        author: 'TradeControl Builder',
+        author: 'TradePoint Builder',
         subject: 'Экспорт операций',
       },
       pageOrientation: 'landscape',

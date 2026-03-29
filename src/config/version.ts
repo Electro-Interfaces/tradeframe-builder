@@ -7,6 +7,6 @@ export const VERSION_INFO = {
   minor: 1,
   patch: 2,
   full: APP_VERSION,
-  displayName: `TradeControl v${APP_VERSION}`,
-  copyright: `© 2025 TradeControl v${APP_VERSION}`
+  displayName: `TradePoint v${APP_VERSION}`,
+  copyright: `© 2025 TradePoint v${APP_VERSION}`
 };

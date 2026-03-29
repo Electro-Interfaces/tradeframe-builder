@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
+import { BottomNav } from "./BottomNav";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
@@ -64,26 +65,24 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
             </Sheet>
 
             <div className="flex flex-col flex-1 min-h-0">
-              <main className="flex-1 min-h-0 min-w-0 w-full max-w-none overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+              <main className="flex-1 min-h-0 min-w-0 w-full max-w-none overflow-y-auto overflow-x-hidden pb-32" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
                 <div className={fullWidth ? "w-full max-w-none min-h-full" : "w-full max-w-none"}>
-                  {/* Mobile Trading Point Selector */}
-                  {selectedNetwork && (
-                    <div className="mx-3 mt-3 mb-0 px-3 py-3 bg-card border border-border rounded-xl shadow-sm">
-                      <PointSelect
-                        values={selectedTradingPoints}
-                        onValuesChange={handleTradingPointsChange}
-                        onPointClick={handlePointClick}
-                        disabled={!selectedNetwork}
-                        networkIds={selectedNetworkIds}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
                   {children}
                 </div>
               </main>
             </div>
 
+            <BottomNav
+              onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+              showPointSelect={!!selectedNetwork}
+              pointSelectProps={{
+                values: selectedTradingPoints,
+                onValuesChange: handleTradingPointsChange,
+                onPointClick: handlePointClick,
+                disabled: !selectedNetwork,
+                networkIds: selectedNetworkIds,
+              }}
+            />
           </>
         ) : (
           // Desktop Layout
@@ -110,7 +109,7 @@ export function SimpleLayout({ children }: { children: React.ReactNode }) {
     <>
       <header className="h-16 bg-background border-b border-border flex items-center px-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-foreground">TradeControl</h1>
+          <h1 className="text-lg font-semibold text-foreground">TradePoint</h1>
         </div>
       </header>
       <main className="w-full px-4 md:px-6 lg:px-8">

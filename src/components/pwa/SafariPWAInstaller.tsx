@@ -90,7 +90,7 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
 
             <div className="flex-1 min-w-0">
               <h3 className="text-sm font-bold text-foreground mb-1">
-                Установить TradeControl на iOS
+                Установить TradePoint на iOS
               </h3>
               <p className="text-xs text-muted-foreground mb-3">
                 Получите лучший опыт использования с установкой на домашний экран
@@ -242,7 +242,7 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
                 <div className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border border-green-500/50 rounded-lg p-4 text-center">
                   <p className="text-green-600 dark:text-green-400 font-semibold mb-2">✨ Готово!</p>
                   <p className="text-foreground/80 text-sm">
-                    TradeControl появится на домашнем экране
+                    TradePoint появится на домашнем экране
                   </p>
                 </div>
               </div>

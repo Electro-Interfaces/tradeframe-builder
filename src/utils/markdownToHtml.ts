@@ -205,7 +205,7 @@ export function createDocumentHtml(
         </div>
         
         <div class="footer">
-          <p><strong>Система управления торговыми сетями TradeControl</strong></p>
+          <p><strong>Система управления торговыми сетями TradePoint</strong></p>
           <p>Документ сгенерирован: ${new Date().toLocaleString('ru-RU')}</p>
         </div>
         

@@ -27,6 +27,7 @@ interface EquipmentHeaderProps {
   restartingTerminal: boolean;
   networkName?: string;
   tradingPointId?: string;
+  stationName?: string;
   onRefresh: () => void;
   onRestartTerminal: () => Promise<boolean>;
 }
@@ -39,6 +40,7 @@ export function EquipmentHeader({
   restartingTerminal,
   networkName,
   tradingPointId,
+  stationName,
   onRefresh,
   onRestartTerminal
 }: EquipmentHeaderProps) {
@@ -68,7 +70,7 @@ export function EquipmentHeader({
         <div className={`flex items-center gap-2 bg-red-100 dark:bg-red-900/50 border border-red-600 rounded-lg mb-3 ${
           isMobile ? 'px-3 py-2' : 'px-4 py-3'
         }`}>
-          <AlertTriangle className={`flex-shrink-0 text-red-600 dark:text-red-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          <AlertTriangle className={`flex-shrink-0 text-red-600 dark:text-red-600 dark:text-red-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
           <span className={`text-red-700 dark:text-red-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             {terminalInfo.terminalState.description}
           </span>
@@ -87,80 +89,69 @@ export function EquipmentHeader({
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className={`font-semibold text-foreground ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-            Оборудование
-          </h1>
-          {latestPosUpdate && (
-            <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
-              {isMobile ? (
-                <>
-                  Передача данных: {new Date(latestPosUpdate).toLocaleString('ru-RU', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  })}
-                  {(() => {
-                    const diffMinutes = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000);
-                    return diffMinutes < 11
+          <div>
+            <h1 className={`font-headline font-bold text-di-on-surface whitespace-nowrap ${isMobile ? 'text-lg' : 'text-xl'}`}>
+              Оборудование{!isMobile && stationName ? ` · ${stationName}` : ''}
+            </h1>
+          {!isMobile && (latestPosUpdate || latestTankDt) && (
+            <div className="flex items-center gap-4 text-[11px] text-di-on-surface-variant">
+              {latestPosUpdate && (() => {
+                const diffMinutes = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000);
+                const isOk = diffMinutes < 11;
+                return (
+                  <span>
+                    Данные: {new Date(latestPosUpdate).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    {isOk
                       ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span>
-                      : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
-                  })()}
-                </>
-              ) : (
-                <>
-                  Последняя передача данных: {new Date(latestPosUpdate).toLocaleString('ru-RU')}
-                  {(() => {
-                    const diffMinutes = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000);
-                    return diffMinutes < 11
-                      ? <span className="text-green-600 dark:text-green-400 ml-2">(✓ актуально)</span>
-                      : <span className="text-red-600 dark:text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
-                  })()}
-                </>
-              )}
-            </p>
-          )}
-          {latestTankDt && (
-            <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-0.5'}`}>
-              {isMobile ? (
-                <>
-                  Резервуары: {new Date(latestTankDt).toLocaleString('ru-RU', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  })}
-                  {(() => {
-                    const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
-                    return diffMinutes < 11
+                      : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {diffMinutes}м)</span>}
+                  </span>
+                );
+              })()}
+              {latestTankDt && (() => {
+                const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
+                const isOk = diffMinutes < 11;
+                return (
+                  <span>
+                    Резервуары: {new Date(latestTankDt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    {isOk
                       ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span>
-                      : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
-                  })()}
-                </>
-              ) : (
-                <>
-                  Факт. данные резервуаров: {new Date(latestTankDt).toLocaleString('ru-RU')}
-                  {(() => {
-                    const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
-                    return diffMinutes < 11
-                      ? <span className="text-green-600 dark:text-green-400 ml-2">(✓ актуально)</span>
-                      : <span className="text-red-600 dark:text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
-                  })()}
-                </>
-              )}
-            </p>
+                      : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {diffMinutes}м)</span>}
+                  </span>
+                );
+              })()}
+            </div>
           )}
+          {isMobile && (latestPosUpdate || latestTankDt) && (
+              <p className="text-[10px] text-di-on-surface-variant mt-0.5">
+                {latestPosUpdate && (<>
+                  Данные: {new Date(latestPosUpdate).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  {(() => { const d = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000); return d < 11 ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span> : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {d}м)</span>; })()}
+                </>)}
+                {latestPosUpdate && latestTankDt && <span className="mx-1.5">·</span>}
+                {latestTankDt && (<>
+                  Рез: {new Date(latestTankDt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  {(() => { const d = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000); return d < 11 ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span> : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {d}м)</span>; })()}
+                </>)}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Кнопки управления */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={loading}
-            className="border-border text-foreground hover:bg-secondary"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+        <div className="flex gap-2 shrink-0">
+          {!isMobile && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRefresh}
+              disabled={loading}
+              className="border-di-outline-variant/15 text-di-on-surface-variant hover:bg-di-surface-high"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -183,7 +174,7 @@ export function EquipmentHeader({
             <AlertDialogContent className={`bg-card border border-border ${isMobile ? 'max-w-[95vw]' : ''}`}>
               <AlertDialogHeader>
                 <AlertDialogTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
-                  <AlertTriangle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 dark:text-red-400`} />
+                  <AlertTriangle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 dark:text-red-600 dark:text-red-400`} />
                   Подтверждение перезагрузки
                 </AlertDialogTitle>
                 <AlertDialogDescription className={`text-foreground/80 ${isMobile ? 'text-sm' : ''}`}>

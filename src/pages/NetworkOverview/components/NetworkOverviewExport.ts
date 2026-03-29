@@ -754,7 +754,7 @@ export async function exportDashboardToPdf({
     const docDefinition = {
       info: {
         title: 'Обзор сети',
-        author: 'TradeControl Builder',
+        author: 'TradePoint Builder',
         subject: 'Экспорт дашборда',
       },
       pageOrientation: 'landscape' as const,

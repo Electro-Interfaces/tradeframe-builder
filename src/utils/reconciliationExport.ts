@@ -45,7 +45,7 @@ export async function exportReconciliationToExcel(result: ReconciliationResult):
     [],
     ['ИТОГИ ПО ИСТОЧНИКАМ', 'Литры'],
     ['Corp (TradeCorp)', Number(totalCorp.toFixed(2))],
-    ['TF (TradeControl)', Number(totalTf.toFixed(2))],
+    ['TF (TradePoint)', Number(totalTf.toFixed(2))],
     ['Смена (Сменный отчёт)', Number(totalShift.toFixed(2))],
     [],
     ['РАСХОЖДЕНИЯ', 'Литры'],

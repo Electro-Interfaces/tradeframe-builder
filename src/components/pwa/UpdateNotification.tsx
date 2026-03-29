@@ -101,7 +101,7 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
               {updateStatus === 'checking' ? 'Поиск новых версий приложения' :
                updateStatus === 'updating' ? 'Применение обновления, пожалуйста подождите' :
                updateStatus === 'no-updates' ? 'У вас установлена последняя версия' :
-               'Новая версия TradeControl готова к установке. Обновите для получения последних улучшений.'}
+               'Новая версия TradePoint готова к установке. Обновите для получения последних улучшений.'}
             </p>
 
             <div className="flex gap-2">
