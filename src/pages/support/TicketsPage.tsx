@@ -57,7 +57,7 @@ const STATUS_ICONS: Record<TicketStatus, typeof Clock> = {
 };
 
 const PRIORITY_DOT: Record<string, string> = {
-  low: 'bg-muted-foreground', medium: 'bg-blue-400', high: 'bg-amber-400', critical: 'bg-red-400',
+  low: 'bg-muted-foreground', medium: 'bg-primary/70', high: 'bg-amber-400', critical: 'bg-red-400',
 };
 
 // ========== SLA Indicator ==========
@@ -126,7 +126,7 @@ function AssigneeSelector({ ticket, onAssign }: { ticket: SupportTicket; onAssig
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="text-left text-foreground font-medium hover:text-blue-400 transition-colors">
+        <button className="text-left text-foreground font-medium hover:text-primary/70 transition-colors">
           {ticket.assignee_name || 'Не назначен'}
         </button>
       </PopoverTrigger>
@@ -413,12 +413,12 @@ export default function TicketsPage() {
               size="sm"
               variant="ghost"
               onClick={() => setShowFilters(!showFilters)}
-              className={`h-9 w-9 p-0 transition-colors relative ${showFilters ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`h-9 w-9 p-0 transition-colors relative ${showFilters ? 'text-primary dark:text-primary/70' : 'text-muted-foreground hover:text-foreground'}`}
               title="Фильтры"
             >
               <SlidersHorizontal className="h-4 w-4" />
               {activeFilterCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {activeFilterCount}
                 </span>
               )}
@@ -434,7 +434,7 @@ export default function TicketsPage() {
             <Button
               size="sm"
               onClick={openCreateDialog}
-              className="h-9 bg-blue-600 hover:bg-blue-700 text-sm px-3"
+              className="h-9 bg-primary hover:bg-primary/80 text-sm px-3"
             >
               <Plus className="h-4 w-4 mr-1" />
               Создать
@@ -536,20 +536,20 @@ export default function TicketsPage() {
                       isSelected
                         ? 'bg-card border-l-blue-500'
                         : hasUnread
-                          ? 'border-l-blue-400 bg-blue-500/5 hover:bg-blue-500/10'
+                          ? 'border-l-blue-400 bg-primary/5 hover:bg-primary/90/10'
                           : 'border-l-transparent hover:bg-card/40'
                     }`}
                   >
                     <div className="flex items-start gap-2.5">
                       {/* Иконка статуса */}
                       <div className={`mt-0.5 w-7 h-7 rounded flex items-center justify-center shrink-0 relative ${
-                        isSelected ? 'bg-blue-100 dark:bg-blue-500/20' : hasUnread ? 'bg-blue-100 dark:bg-blue-500/20' : 'bg-card'
+                        isSelected ? 'bg-primary/10 dark:bg-primary/20' : hasUnread ? 'bg-primary/10 dark:bg-primary/20' : 'bg-card'
                       }`}>
                         <StatusIcon className={`h-3.5 w-3.5 ${
-                          isSelected ? 'text-blue-600 dark:text-blue-400' : hasUnread ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'
+                          isSelected ? 'text-primary dark:text-primary/70' : hasUnread ? 'text-primary dark:text-primary/70' : 'text-muted-foreground'
                         }`} />
                         {hasUnread && (
-                          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-border" />
+                          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-border" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -572,7 +572,7 @@ export default function TicketsPage() {
                         <span className="text-xs text-muted-foreground block">{formatDate(ticket.created_at)}</span>
                         <div className="flex items-center justify-end gap-1 mt-1">
                           {hasUnread ? (
-                            <span className="bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                            <span className="bg-primary text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                               !
                             </span>
                           ) : (
@@ -628,7 +628,7 @@ export default function TicketsPage() {
       {!isMobile && (
         <div
           onMouseDown={handleResizeStart}
-          className="w-1 hover:w-1.5 bg-secondary/50 hover:bg-blue-500/50 cursor-col-resize transition-all shrink-0"
+          className="w-1 hover:w-1.5 bg-secondary/50 hover:bg-primary/90/50 cursor-col-resize transition-all shrink-0"
         />
       )}
 
@@ -777,7 +777,7 @@ export default function TicketsPage() {
                     <div className="mt-1.5 rounded-md bg-card/50 border border-border/50 p-3 space-y-2 text-xs text-muted-foreground">
                       {selectedTicket.app_context.source && (
                         <div className="flex items-center gap-1.5">
-                          <Globe className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <Globe className="h-3.5 w-3.5 text-primary dark:text-primary/70 shrink-0" />
                           <span>Источник: <span className="text-foreground font-medium">{selectedTicket.app_context.source}</span>
                             {selectedTicket.app_context.version && <span className="text-muted-foreground ml-1">v{selectedTicket.app_context.version}</span>}
                           </span>
@@ -785,7 +785,7 @@ export default function TicketsPage() {
                       )}
                       {(selectedTicket.app_context.section || selectedTicket.app_context.routeName) && (
                         <div className="flex items-center gap-1.5">
-                          <Route className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <Route className="h-3.5 w-3.5 text-primary dark:text-primary/70 shrink-0" />
                           <span>
                             {selectedTicket.app_context.section && <span className="text-muted-foreground">{selectedTicket.app_context.section} →</span>}
                             {' '}<span className="text-foreground">{selectedTicket.app_context.routeName || selectedTicket.app_context.route}</span>
@@ -918,7 +918,7 @@ export default function TicketsPage() {
                             </div>
                             <div className={`rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
                               isCustomer
-                                ? 'bg-blue-600/20 text-white rounded-br-sm'
+                                ? 'bg-primary/20 text-white rounded-br-sm'
                                 : isAi
                                   ? 'bg-purple-600/10 text-foreground/80 rounded-bl-sm border border-purple-500/20'
                                   : 'bg-card text-foreground/80 rounded-bl-sm'
@@ -953,7 +953,7 @@ export default function TicketsPage() {
                                         download={att.name}
                                         className="flex items-center gap-2 bg-secondary/40 hover:bg-secondary/60 rounded px-2.5 py-2 text-xs transition-colors"
                                       >
-                                        <File className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                        <File className="h-4 w-4 text-primary dark:text-primary/70 shrink-0" />
                                         <div className="min-w-0">
                                           <span className="text-foreground truncate block max-w-[200px]">{att.name}</span>
                                           {att.size ? (
@@ -1008,7 +1008,7 @@ export default function TicketsPage() {
                       return (
                         <div key={i} className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-foreground/80">
                           {isImage ? (
-                            <ImageIcon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                            <ImageIcon className="h-3.5 w-3.5 text-primary dark:text-primary/70 shrink-0" />
                           ) : (
                             <File className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                           )}
@@ -1051,7 +1051,7 @@ export default function TicketsPage() {
                     onChange={e => setReplyText(e.target.value)}
                     placeholder="Написать сообщение..."
                     rows={1}
-                    className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 min-h-[36px] max-h-[100px]"
+                    className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary min-h-[36px] max-h-[100px]"
                     style={{ height: 'auto', overflow: 'hidden' }}
                     onInput={e => {
                       const el = e.target as HTMLTextAreaElement;
@@ -1067,7 +1067,7 @@ export default function TicketsPage() {
                     size="icon"
                     onClick={handleSendReply}
                     disabled={sending || (!replyText.trim() && attachedFiles.length === 0)}
-                    className="h-9 w-9 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-30 shrink-0"
+                    className="h-9 w-9 rounded-lg bg-primary hover:bg-primary/80 disabled:opacity-30 shrink-0"
                   >
                     {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>

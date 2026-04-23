@@ -132,7 +132,7 @@ export default function CouponsStationGroupComponent({
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <Receipt className="h-4 w-4 text-blue-500" />
+                    <Receipt className="h-4 w-4 text-primary" />
                     <span className="font-medium">
                       {group.activeCouponsCount}/{group.totalCouponsCount}
                     </span>

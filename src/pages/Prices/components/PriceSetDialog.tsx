@@ -55,8 +55,8 @@ export function PriceSetDialog({
       <AlertDialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-4xl max-h-[90vh]'} bg-card border border-di-outline-variant/20 rounded-xl overflow-y-auto`}>
         <AlertDialogHeader>
           <AlertDialogTitle className="font-headline font-bold text-foreground flex items-center gap-2.5 text-lg">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-di-primary/10 flex items-center justify-center">
-              <Edit className="w-4 h-4 text-blue-600 dark:text-di-primary-light" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 dark:bg-di-primary/10 flex items-center justify-center">
+              <Edit className="w-4 h-4 text-primary dark:text-di-primary-light" />
             </div>
             Установка цен
           </AlertDialogTitle>

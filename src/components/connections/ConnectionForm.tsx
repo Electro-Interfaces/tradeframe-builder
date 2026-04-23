@@ -566,10 +566,10 @@ export function ConnectionForm({ connection, onSubmit, onCancel, loading }: Conn
 
           {/* Form Actions */}
           <div className="flex gap-2 pt-6 border-t border-border">
-            <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/80 text-white">
               {loading ? 'Сохранение...' : 'Сохранить'}
             </Button>
-            <Button type="button" variant="outline" onClick={onCancel} className="border-border text-foreground hover:bg-secondary">
+            <Button type="button" variant="outline" onClick={onCancel} >
               Отмена
             </Button>
           </div>

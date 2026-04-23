@@ -71,7 +71,7 @@ export function MultiNetworkSelect({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "flex items-center justify-between w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[42px]",
+            "flex items-center justify-between w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary min-h-[42px]",
             disabled && "opacity-50 cursor-not-allowed hover:bg-card",
             className
           )}

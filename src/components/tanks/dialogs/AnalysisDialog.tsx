@@ -1335,12 +1335,12 @@ export function AnalysisDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <LineChart className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <LineChart className="h-6 w-6 text-primary dark:text-primary/70" />
             Анализ Калибровки
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-base">
             Расчет таблицы на основе реальных отпусков ТРК с последующим сравнением с текущей калибровкой
-            <span className="mt-2 block text-blue-600 dark:text-blue-300 font-semibold">
+            <span className="mt-2 block text-primary dark:text-blue-300 font-semibold">
               {networkName || 'Компания не выбрана'} / {stationName || 'Станция не выбрана'} / {tankName || 'Резервуар'}{fuelType ? ` (${fuelType})` : ''}
             </span>
           </DialogDescription>
@@ -1351,7 +1351,7 @@ export function AnalysisDialog({
           <Card className="bg-card/50 border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <Clock className="h-4 w-4 text-primary dark:text-primary/70" />
                 Период анализа данных
               </CardTitle>
             </CardHeader>
@@ -1381,9 +1381,9 @@ export function AnalysisDialog({
                   />
                 </div>
               </div>
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-2.5">
-                <p className="text-xs text-blue-600 dark:text-blue-300 flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-blue-400">ℹ️</span>
+              <div className="bg-primary/10 border border-primary/20 rounded-md p-2.5">
+                <p className="text-xs text-primary dark:text-blue-300 flex items-center gap-2">
+                  <span className="text-primary dark:text-primary/70">ℹ️</span>
                   Данные из /v1/tank_history (обновление каждые 10 минут)
                 </p>
               </div>
@@ -1694,7 +1694,7 @@ export function AnalysisDialog({
                               analysisResult.geometry_input_diagnosis.avg_signed_difference_liters > 0
                                 ? 'text-red-600 dark:text-red-400'
                                 : analysisResult.geometry_input_diagnosis.avg_signed_difference_liters < 0
-                                  ? 'text-blue-600 dark:text-blue-300'
+                                  ? 'text-primary dark:text-blue-300'
                                   : 'text-foreground'
                             }`}>
                               {analysisResult.geometry_input_diagnosis.avg_signed_difference_liters > 0 ? '+' : ''}{analysisResult.geometry_input_diagnosis.avg_signed_difference_liters.toFixed(1)} л
@@ -1783,7 +1783,7 @@ export function AnalysisDialog({
                         </div>
 
                         {canApplyDeadStockSuggestion && suggestedDeadStockDelta !== null && suggestedDeadStockValue !== null && (
-                          <div className="mt-3 rounded-md border border-blue-500/20 bg-blue-500/10 p-3">
+                          <div className="mt-3 rounded-md border border-primary/20 bg-primary/10 p-3">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div>
                                 <p className="text-sm font-medium text-foreground">
@@ -1846,7 +1846,7 @@ export function AnalysisDialog({
                               Baseline по фактическим парам уровень → объем из истории датчика за выбранный период.
                             </p>
                             {typeof analysisResult.current_table_version === 'number' && (
-                              <p className="text-xs text-blue-600 dark:text-blue-300 mt-2">
+                              <p className="text-xs text-primary dark:text-blue-300 mt-2">
                                 Активная версия в системе: v{analysisResult.current_table_version}
                               </p>
                             )}
@@ -2127,8 +2127,8 @@ export function AnalysisDialog({
                     )}
 
                     {/* Информация о версии текущей таблицы */}
-                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-3">
-                      <p className="text-sm text-blue-600 dark:text-blue-300">
+                    <div className="bg-primary/10 border border-primary/20 rounded-md p-3">
+                      <p className="text-sm text-primary dark:text-blue-300">
                         ℹ️ Сравнение рассчитанной калибровочной таблицы с реальными показаниями датчика уровня за выбранный период
                       </p>
                     </div>
@@ -2522,8 +2522,8 @@ export function AnalysisDialog({
 
                     {/* Нет текущей таблицы для сравнения */}
                     {!analysisResult.comparison && (
-                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-4">
-                        <p className="text-sm text-blue-600 dark:text-blue-300">
+                      <div className="bg-primary/10 border border-primary/20 rounded-md p-4">
+                        <p className="text-sm text-primary dark:text-blue-300">
                           ℹ️ Показаны результаты расчета калибровочной таблицы без сравнения с реальными показаниями датчика.
                         </p>
                       </div>

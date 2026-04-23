@@ -27,7 +27,7 @@ export function NetworksCards({
           key={network.id}
           onClick={() => onSelect(network.id)}
           className={`bg-secondary rounded-lg p-4 cursor-pointer hover:bg-secondary transition-colors border-2 ${
-            selectedNetworkId === network.id ? 'border-blue-500 bg-blue-600/20' : 'border-transparent'
+            selectedNetworkId === network.id ? 'border-primary bg-primary/20' : 'border-transparent'
           }`}
         >
           <div className="flex items-start justify-between gap-3">
@@ -43,7 +43,7 @@ export function NetworksCards({
               </div>
               {network.external_id && (
                 <div className="text-xs text-muted-foreground">
-                  API ID: <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-1 py-0.5 rounded font-mono">{network.external_id}</span>
+                  API ID: <span className="bg-primary/10 dark:bg-blue-900/50 text-primary dark:text-blue-300 px-1 py-0.5 rounded font-mono">{network.external_id}</span>
                 </div>
               )}
             </div>

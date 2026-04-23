@@ -6,46 +6,46 @@
 
 @layer base {
   :root {
-    /* Light theme — Station Alpha precision style */
-    --background: 210 18% 93%;
-    --foreground: 195 14% 19%;
+    /* Light theme — M3 surface hierarchy from PrecisionFleet reference */
+    --background: 224 50% 94%;
+    --foreground: 218 60% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 195 14% 19%;
+    --card-foreground: 218 60% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 195 14% 19%;
+    --popover-foreground: 218 60% 12%;
 
-    --primary: 224 10% 40%;
-    --primary-foreground: 240 20% 99%;
+    --primary: 226 71% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 93%;
-    --secondary-foreground: 215 18% 35%;
+    --secondary: 224 100% 96%;
+    --secondary-foreground: 227 25% 42%;
 
-    --muted: 210 18% 95%;
-    --muted-foreground: 195 10% 40%;
+    --muted: 221 100% 97%;
+    --muted-foreground: 230 10% 46%;
 
-    --accent: 210 18% 93%;
-    --accent-foreground: 215 18% 35%;
+    --accent: 224 100% 96%;
+    --accent-foreground: 227 25% 42%;
 
-    --destructive: 0 43% 44%;
-    --destructive-foreground: 0 60% 98%;
+    --destructive: 0 69% 42%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 200 12% 70%;
-    --input: 210 14% 91%;
-    --ring: 224 10% 40%;
+    --border: 216 20% 88%;
+    --input: 221 100% 97%;
+    --ring: 226 71% 40%;
 
     --radius: 0.75rem;
 
-    /* Sidebar — light gray surface */
-    --sidebar-background: 210 14% 96%;
-    --sidebar-foreground: 195 14% 19%;
-    --sidebar-primary: 224 10% 40%;
+    /* Sidebar — M3 surfaceContainerLow (#eff4ff) */
+    --sidebar-background: 221 100% 97%;
+    --sidebar-foreground: 218 60% 12%;
+    --sidebar-primary: 226 71% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 14% 93%;
-    --sidebar-accent-foreground: 195 14% 19%;
-    --sidebar-border: 200 12% 87%;
-    --sidebar-ring: 224 10% 40%;
+    --sidebar-accent: 224 100% 93%;
+    --sidebar-accent-foreground: 218 60% 12%;
+    --sidebar-border: 220 40% 91%;
+    --sidebar-ring: 226 71% 40%;
 
     /* Trading platform accent colors */
     --accent-blue: 221 100% 38%;
@@ -61,10 +61,10 @@
     /* Header height */
     --header-height: 5rem;
 
-    /* Light shadows — minimal, clinical */
-    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-medium: 0 2px 8px rgba(0, 0, 0, 0.06);
-    --shadow-large: 0 4px 16px rgba(0, 0, 0, 0.08);
+    /* Light shadows — subtle elevation */
+    --shadow-soft: 0 1px 3px rgba(13, 28, 46, 0.06), 0 1px 2px rgba(13, 28, 46, 0.04);
+    --shadow-medium: 0 4px 12px rgba(13, 28, 46, 0.08), 0 1px 3px rgba(13, 28, 46, 0.05);
+    --shadow-large: 0 8px 24px rgba(13, 28, 46, 0.10), 0 2px 6px rgba(13, 28, 46, 0.06);
   }
 
   .dark {
@@ -123,25 +123,25 @@
   }
 }
 
-/* Deep Intel design tokens — light theme */
+/* Deep Intel design tokens — light theme (M3 PrecisionFleet reference) */
 :root {
-  --di-bg: #f7f9fb;
-  --di-surface: #f0f4f7;
-  --di-surface-low: #f7f9fb;
+  --di-bg: #f8f9ff;
+  --di-surface: #f8f9ff;
+  --di-surface-low: #f8f9fc;
   --di-surface-lowest: #ffffff;
   --di-surface-mid: #ffffff;
-  --di-surface-high: #ffffff;
-  --di-surface-highest: #f0f4f7;
+  --di-surface-high: #dce9ff;
+  --di-surface-highest: #d5e3fc;
   --di-surface-bright: #ffffff;
-  --di-on-surface: #2a3439;
-  --di-on-surface-variant: #566166;
-  --di-primary: #565e74;
-  --di-primary-light: #3b82f6;
-  --di-tertiary: #605c78;
-  --di-tertiary-container: #9f403d;
-  --di-outline: #717c82;
-  --di-outline-variant: #c5cdd3;
-  --di-error-container: #fe8983;
+  --di-on-surface: #0d1c2e;
+  --di-on-surface-variant: #444653;
+  --di-primary: #00288e;
+  --di-primary-light: #3755c3;
+  --di-outline: #757684;
+  --di-outline-variant: #c4c5d5;
+  --di-tertiary: #611e00;
+  --di-tertiary-container: #872d00;
+  --di-error-container: #ffdad6;
 }
 
 /* Deep Intel design tokens — dark theme */

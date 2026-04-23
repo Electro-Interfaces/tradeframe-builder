@@ -86,7 +86,7 @@ export function RuleCard({ rule, onToggle, onEdit, onDelete, isMobile = false }:
           <div className="text-xs text-muted-foreground mb-1">Каналы</div>
           <div className="flex gap-2">
             {rule.notification_config?.channels?.map((channel) => (
-              <div key={channel} className="text-blue-600 dark:text-blue-400">
+              <div key={channel} className="text-primary dark:text-primary/70">
                 {getChannelIcon(channel)}
               </div>
             ))}
@@ -118,7 +118,7 @@ function getPriorityColor(priority: NotificationPriority): string {
     case 'critical': return 'bg-red-600';
     case 'high': return 'bg-orange-600';
     case 'medium': return 'bg-yellow-600';
-    case 'low': return 'bg-blue-600';
+    case 'low': return 'bg-primary';
     default: return 'bg-secondary';
   }
 }

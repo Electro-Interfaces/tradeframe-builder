@@ -49,33 +49,24 @@ const ReceiptFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, amount
     );
   }
 
-  // Desktop version
+  // Desktop version — Equipment style
   return (
-    <Card
-      key={fuel}
-      className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+    <div
+      className={`cursor-pointer transition-all duration-200 rounded-xl p-4 ${
         isSelected
-          ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-          : 'bg-card border-border hover:bg-secondary'
+          ? 'bg-primary/10 border border-primary/30'
+          : 'bg-di-surface-low hover:bg-di-surface-high'
       }`}
       onClick={handleClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="text-foreground font-semibold text-base truncate pr-2">{fuel}</p>
-            <div className="flex items-center gap-1">
-              <Fuel className="w-3 h-3 text-muted-foreground" />
-              <span className="text-foreground/80 text-sm">{receiptCount}</span>
-            </div>
-          </div>
-          <div className="text-right flex-shrink-0">
-            <div className="text-foreground text-sm font-semibold">{volume.toFixed(0)} л</div>
-            <div className="text-foreground text-sm font-semibold">{amount.toFixed(0)} кг</div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{fuel}</span>
+      <div className="font-headline text-xl font-extrabold text-foreground tracking-tight leading-tight">
+        {volume.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} <span className="text-xs font-normal text-muted-foreground">л</span>
+      </div>
+      <div className="text-[10px] text-muted-foreground leading-tight">
+        {amount.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} кг · <Fuel className="w-2.5 h-2.5 inline" /> {receiptCount}
+      </div>
+    </div>
   );
 });
 

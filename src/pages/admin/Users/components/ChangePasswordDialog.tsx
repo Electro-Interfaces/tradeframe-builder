@@ -144,8 +144,8 @@ export function ChangePasswordDialog({
             )}
 
             {/* Информация */}
-            <div className="bg-blue-500/10 border border-blue-500/50 rounded-md p-3">
-              <p className="text-xs text-blue-600 dark:text-blue-400">
+            <div className="bg-primary/10 border border-primary/50 rounded-md p-3">
+              <p className="text-xs text-primary dark:text-primary/70">
                 Пароль должен содержать минимум 6 символов. После изменения пароля пользователю необходимо войти с новым паролем.
               </p>
             </div>

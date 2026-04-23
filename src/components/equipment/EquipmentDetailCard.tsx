@@ -104,7 +104,7 @@ const getStatusColor = (status: EquipmentStatus) => {
 
 const getEventIcon = (eventType: string) => {
   switch (eventType) {
-    case 'created': return <Settings className="w-4 h-4 text-blue-600" />;
+    case 'created': return <Settings className="w-4 h-4 text-primary" />;
     case 'updated': return <Settings className="w-4 h-4 text-orange-600" />;
     case 'status_changed': return <Power className="w-4 h-4 text-green-600" />;
     case 'command_executed': return <Settings className="w-4 h-4 text-purple-600" />;
@@ -270,8 +270,8 @@ export function EquipmentDetailCard({
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Settings className="w-5 h-5 text-blue-600" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Settings className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
               <DialogTitle className="text-xl">{equipment.display_name}</DialogTitle>

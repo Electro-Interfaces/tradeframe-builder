@@ -97,7 +97,7 @@ export function ExternalCodesManager({
             size="sm"
             onClick={handleStartAdd}
             disabled={isAdding || !!editingCode}
-            className="border-border text-foreground hover:bg-secondary"
+            
           >
             <Plus className="h-4 w-4 mr-2" />
             Добавить код
@@ -159,7 +159,7 @@ export function ExternalCodesManager({
               variant="outline"
               size="sm"
               onClick={handleCancel}
-              className="border-border text-foreground hover:bg-secondary"
+              
             >
               <X className="h-4 w-4 mr-2" />
               Отмена
@@ -168,7 +168,7 @@ export function ExternalCodesManager({
               size="sm"
               onClick={handleSave}
               disabled={!editingCode?.system?.trim() || !editingCode?.code?.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-primary/80 text-white"
             >
               <Check className="h-4 w-4 mr-2" />
               {editingCode?.id ? "Сохранить" : "Добавить"}

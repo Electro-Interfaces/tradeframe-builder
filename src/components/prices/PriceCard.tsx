@@ -75,7 +75,7 @@ export function PriceCard({
             />
             <div className="flex gap-1.5">
               <Button size="sm" onClick={onSaveInlinePrice} disabled={!hasChanges || isSavingInline}
-                className="flex-1 h-8 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
+                className="flex-1 h-8 bg-primary hover:bg-primary/80 text-white text-xs font-bold">
                 {isSavingInline ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
                 {isSavingInline ? '...' : 'OK'}
               </Button>
@@ -126,7 +126,7 @@ export function PriceCard({
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={onSaveInlinePrice} disabled={!hasChanges || isSavingInline}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
+              className="flex-1 bg-primary hover:bg-primary/80 text-white text-xs font-bold">
               {isSavingInline ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
               {isSavingInline ? 'Сохранение...' : 'Сохранить'}
             </Button>
@@ -138,7 +138,7 @@ export function PriceCard({
         </div>
       ) : (
         <button onClick={() => onInlineEdit(price.id, price.priceGross)} className="block group/price text-left">
-          <span className="text-4xl font-headline font-extrabold text-foreground group-hover/price:text-blue-500 transition-colors tracking-tight">
+          <span className="text-4xl font-headline font-extrabold text-foreground group-hover/price:text-primary transition-colors tracking-tight">
             {displayPrice}
           </span>
           <span className="text-lg text-di-on-surface-variant ml-1.5">₽/{price.unit}</span>

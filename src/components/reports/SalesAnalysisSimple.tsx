@@ -54,13 +54,13 @@ export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint }: S
             <CardTitle className="text-sm font-medium text-foreground">
               Транзакции
             </CardTitle>
-            <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Users className="h-4 w-4 text-primary dark:text-primary/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
               {(selectedTradingPoint ? Math.floor(mockKpiData.totalTransactions / 5) : mockKpiData.totalTransactions).toLocaleString()}
             </div>
-            <p className="text-xs text-blue-600 dark:text-blue-400">
+            <p className="text-xs text-primary dark:text-primary/70">
               +8% к предыдущему периоду
             </p>
           </CardContent>

@@ -105,7 +105,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
       <div className="bg-card border border-border rounded-lg">
         <div className="px-6 py-4">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-foreground text-sm">⚙️</span>
             </div>
             <h2 className="text-lg font-semibold text-foreground">Фильтры анализа</h2>
@@ -160,7 +160,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
               <Label className="text-sm text-muted-foreground mb-2 block">Применить</Label>
               <Button 
                 onClick={handleApplyFilters}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-primary hover:bg-primary/80 text-white"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -193,14 +193,14 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
         {/* Транзакции */}
         <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <Users className="h-8 w-8 text-primary dark:text-primary/70" />
           </div>
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">Транзакции</p>
             <p className="text-3xl font-bold text-foreground">
               {(isTradingPointSelected ? Math.floor(mockKpiData.totalTransactions / 5) : mockKpiData.totalTransactions).toLocaleString()}
             </p>
-            <p className="text-xs text-blue-600 dark:text-blue-400">
+            <p className="text-xs text-primary dark:text-primary/70">
               +8.1% к предыдущему периоду
             </p>
           </div>
@@ -261,7 +261,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
           <TabsList className="grid w-full grid-cols-2 h-auto gap-2 bg-secondary border border-border p-1">
             <TabsTrigger 
               value="structure" 
-              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
+              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
             >
               📊 Структура
             </TabsTrigger>
@@ -292,7 +292,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
           <TabsList className="bg-secondary border border-border h-auto p-1">
             <TabsTrigger 
               value="structure" 
-              className="text-white font-medium px-6 py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
+              className="text-white font-medium px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-secondary"
             >
               📊 Структура продаж
             </TabsTrigger>
@@ -368,7 +368,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
             <Card className="bg-card border border-border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-foreground">
-                  <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <CreditCard className="h-5 w-5 text-primary dark:text-primary/70" />
                   Разрез по способам оплаты
                 </CardTitle>
               </CardHeader>

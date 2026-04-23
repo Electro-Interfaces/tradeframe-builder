@@ -32,7 +32,7 @@ export function NetworksTable({
             onClick={() => onSelect(network.id)}
             className={`rounded-lg border p-3 cursor-pointer transition-colors ${
               selectedNetworkId === network.id
-                ? 'bg-blue-600/20 border-blue-500'
+                ? 'bg-primary/20 border-primary'
                 : 'bg-card border-border hover:bg-secondary'
             }`}
           >
@@ -66,7 +66,7 @@ export function NetworksTable({
             </div>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {network.external_id && (
-                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded font-mono">
+                <span className="text-xs bg-primary/10 dark:bg-blue-900/50 text-primary dark:text-blue-300 px-1.5 py-0.5 rounded font-mono">
                   {network.external_id}
                 </span>
               )}
@@ -100,11 +100,11 @@ export function NetworksTable({
               key={network.id}
               onClick={() => onSelect(network.id)}
               className={`border-b border-border cursor-pointer hover:bg-secondary transition-colors ${
-                selectedNetworkId === network.id ? 'bg-blue-600/20 border-blue-500' : ''
+                selectedNetworkId === network.id ? 'bg-primary/20 border-primary' : ''
               }`}
             >
               <td className="px-4 md:px-6 py-4">
-                <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-1 rounded font-mono">
+                <span className="text-xs bg-primary/10 dark:bg-blue-900/50 text-primary dark:text-blue-300 px-2 py-1 rounded font-mono">
                   {network.external_id || 'не задан'}
                 </span>
               </td>

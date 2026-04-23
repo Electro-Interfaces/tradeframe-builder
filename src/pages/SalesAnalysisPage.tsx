@@ -29,7 +29,7 @@ export default function SalesAnalysisPage() {
         <div className="bg-card border border-border rounded-lg shadow-lg">
           <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-foreground text-sm">📈</span>
               </div>
               <h2 className="text-lg font-semibold text-foreground">Детальный анализ продаж</h2>

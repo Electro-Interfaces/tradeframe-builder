@@ -72,7 +72,7 @@ export default function LegalDocumentHistory() {
 
     switch (status) {
       case 'published':
-        return <Badge className="bg-blue-600 text-white">Опубликована</Badge>;
+        return <Badge className="bg-primary text-white">Опубликована</Badge>;
       case 'draft':
         return <Badge variant="secondary" className="bg-secondary text-foreground">Черновик</Badge>;
       case 'archived':
@@ -89,7 +89,7 @@ export default function LegalDocumentHistory() {
 
     switch (status) {
       case 'published':
-        return <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
+        return <CheckCircle className="w-5 h-5 text-primary dark:text-primary/70" />;
       case 'draft':
         return <Clock className="w-5 h-5 text-muted-foreground" />;
       case 'archived':
@@ -174,7 +174,7 @@ export default function LegalDocumentHistory() {
 
                       {/* Информация о версии */}
                       <div className="flex items-center gap-4 min-w-0 flex-1">
-                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
                           {getStatusIcon(version.status as DocumentStatus, version.is_current)}
                         </div>
 

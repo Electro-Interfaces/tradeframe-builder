@@ -128,7 +128,7 @@ export function TradingPointsTable({
               return (
                 <tr key={point.id} className="border-b border-border hover:bg-secondary transition-colors">
                   <td className="px-4 py-4">
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-1 rounded font-mono">
+                    <span className="text-xs bg-primary/10 dark:bg-blue-900/50 text-primary dark:text-blue-300 px-2 py-1 rounded font-mono">
                       {point.external_id || '—'}
                     </span>
                   </td>

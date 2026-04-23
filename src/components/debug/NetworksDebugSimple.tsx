@@ -91,7 +91,7 @@ export function NetworksDebugSimple() {
       case 'mock':
         return <Badge className="bg-yellow-600">Mock</Badge>;
       case 'http':
-        return <Badge className="bg-blue-600">HTTP</Badge>;
+        return <Badge className="bg-primary">HTTP</Badge>;
       default:
         return <Badge variant="outline">{apiMode}</Badge>;
     }

@@ -650,7 +650,7 @@ export function CommandTemplateForm({ initialData, onSubmit, onCancel, mode }: C
               <Button 
                 type="submit" 
                 disabled={!isFormValid()}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-primary hover:bg-primary/80"
               >
                 {mode === 'edit' ? "Сохранить изменения" : "Создать шаблон"}
               </Button>

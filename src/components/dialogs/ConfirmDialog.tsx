@@ -49,7 +49,7 @@ export function ConfirmDialog({
             variant="outline" 
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="border-border text-foreground hover:bg-secondary"
+            
           >
             {cancelText}
           </Button>
@@ -60,7 +60,7 @@ export function ConfirmDialog({
             className={
               variant === "destructive" 
                 ? "bg-red-600 hover:bg-red-700 text-white" 
-                : "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-primary hover:bg-primary/80 text-white"
             }
           >
             {loading ? "Выполнение..." : confirmText}

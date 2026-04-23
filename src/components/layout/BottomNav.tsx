@@ -85,8 +85,8 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
               to={item.url}
               className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-colors duration-200 touch-manipulation active:translate-y-0.5 outline-none focus:outline-none focus-visible:outline-none ${
                 active
-                  ? "text-blue-600 dark:text-[#2563eb]"
-                  : "text-muted-foreground opacity-60"
+                  ? "text-primary dark:text-[#2563eb]"
+                  : "text-slate-500 dark:text-slate-400"
               }`}
             >
               <item.icon className={`w-5 h-5 ${active ? "stroke-[2.5]" : ""}`} />
@@ -96,7 +96,7 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
         })}
         <button
           onClick={onMenuToggle}
-          className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-muted-foreground opacity-60 transition-colors duration-200 touch-manipulation active:translate-y-0.5"
+          className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-slate-500 dark:text-slate-400 transition-colors duration-200 touch-manipulation active:translate-y-0.5"
           type="button"
         >
           <Menu className="w-5 h-5" />

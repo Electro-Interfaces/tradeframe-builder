@@ -296,7 +296,7 @@ export function TankCalibrationSettingsComponent({
     if (notes.includes('[draft_trk_analysis]')) {
       return {
         label: 'Draft ТРК',
-        className: 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+        className: 'border-primary/30 bg-primary/10 text-primary dark:text-blue-300'
       };
     }
 
@@ -1181,11 +1181,11 @@ export function TankCalibrationSettingsComponent({
                 </div>
 
                 {/* Автоматически рассчитанный объем */}
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
                   <div className="flex items-center gap-3">
-                    <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    <Calculator className="h-6 w-6 text-primary dark:text-primary/70" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-600 dark:text-blue-300">Расчетный объем резервуара</p>
+                      <p className="text-sm font-medium text-primary dark:text-blue-300">Расчетный объем резервуара</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {settings.tank_shape_type === 'horizontal_cylinder' && 'Формула: V = π × (D/2)² × L'}
                         {settings.tank_shape_type === 'vertical_cylinder' && 'Формула: V = π × (D/2)² × H'}

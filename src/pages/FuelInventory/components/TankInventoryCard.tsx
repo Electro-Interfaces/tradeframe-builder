@@ -35,17 +35,21 @@ export const TankInventoryCard = ({ tank }: TankInventoryCardProps) => {
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Заполнение</div>
-            <div className="text-sm font-bold text-foreground">{tank.fillPercent.toFixed(1)}%</div>
+            <div className="text-sm font-bold text-foreground">
+              {tank.capacity > 0 ? `${tank.fillPercent.toFixed(1)}%` : '—'}
+            </div>
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
-          <div
-            className={`h-full ${getProgressColor(tank.fillPercent)}`}
-            style={{ width: `${tank.fillPercent}%` }}
-          ></div>
-        </div>
+        {/* Progress Bar — только если ёмкость известна */}
+        {tank.capacity > 0 && (
+          <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
+            <div
+              className={`h-full ${getProgressColor(tank.fillPercent)}`}
+              style={{ width: `${Math.max(0, Math.min(100, tank.fillPercent))}%` }}
+            ></div>
+          </div>
+        )}
 
         {/* Volumes Grid */}
         <div className="grid grid-cols-2 gap-2">
@@ -75,9 +79,9 @@ export const TankInventoryCard = ({ tank }: TankInventoryCardProps) => {
             </div>
           </div>
 
-          <div className="bg-blue-100 dark:bg-blue-900/20 rounded p-2 border border-blue-300 dark:border-blue-700/30">
-            <div className="text-[10px] text-blue-600 dark:text-blue-400 mb-0.5">Реализация</div>
-            <div className="text-sm font-mono text-blue-600 dark:text-blue-400">
+          <div className="bg-primary/10 dark:bg-blue-900/20 rounded p-2 border border-primary/30 dark:border-blue-700/30">
+            <div className="text-[10px] text-primary dark:text-primary/70 mb-0.5">Реализация</div>
+            <div className="text-sm font-mono text-primary dark:text-primary/70">
               -{formatNumber(tank.volumeSales)} л
             </div>
           </div>

@@ -345,7 +345,7 @@ export function KPIDetailModal({
                           {row.fuelBreakdown.map((fuel, fIdx) => (
                             <div key={`${fuel.fuelCode}-${fIdx}`} className="flex items-center gap-2 text-xs flex-wrap">
                               <span className="text-muted-foreground">{fuel.fuelName}:</span>
-                              <span className="text-blue-600 dark:text-blue-400">{formatNumber(fuel.volume)} л</span>
+                              <span className="text-primary dark:text-primary/70">{formatNumber(fuel.volume)} л</span>
                               {showRevenue && fuel.revenue > 0 && (
                                 <span className="text-foreground/80">({formatNumber(fuel.revenue)} ₽)</span>
                               )}
@@ -361,7 +361,7 @@ export function KPIDetailModal({
                         {formatNumber(row.revenue)}
                       </td>
                     )}
-                    <td className="px-4 py-3 text-right text-blue-600 dark:text-blue-400 font-medium">
+                    <td className="px-4 py-3 text-right text-primary dark:text-primary/70 font-medium">
                       {formatNumber(row.volume)}
                     </td>
                   </tr>
@@ -378,7 +378,7 @@ export function KPIDetailModal({
                       {formatNumber(totals.revenue)}
                     </td>
                   )}
-                  <td className="px-4 py-3 text-right text-sm font-bold text-blue-600 dark:text-blue-400">
+                  <td className="px-4 py-3 text-right text-sm font-bold text-primary dark:text-primary/70">
                     {formatNumber(totals.volume)}
                   </td>
                 </tr>

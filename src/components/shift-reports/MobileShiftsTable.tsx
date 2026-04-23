@@ -53,7 +53,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
         );
       case 'closed':
         return (
-          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500 flex items-center gap-1">
+          <Badge className="bg-primary/10 text-primary dark:text-primary/70 border-primary flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
             Закрыта
           </Badge>
@@ -119,8 +119,8 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
             key={shift.id}
             className={`border transition-all ${
               isSelected
-                ? 'bg-blue-100 dark:bg-blue-900/20 border-blue-500/50'
-                : 'bg-secondary border-border hover:bg-secondary'
+                ? 'bg-primary/10 dark:bg-blue-900/20 border-primary/50'
+                : ''
             }`}
           >
             <CardContent className="p-3">

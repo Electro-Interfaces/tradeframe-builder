@@ -85,45 +85,21 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
   };
 
   return (
-    <Card className="bg-card border-border">
-      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-foreground">Фильтры</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleReset();
-                }}
-              >
-                Очистить фильтры
-              </Button>
-              {onRefresh && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRefresh();
-                  }}
-                  disabled={loading}
-                  className="border-border text-foreground hover:bg-secondary"
-                >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </Button>
-              )}
-              {filtersOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-            </div>
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="p-4 border-t border-border">
+    <Card className="bg-di-surface-mid border-transparent">
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium text-foreground">Фильтры</span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReset}
+        >
+          Очистить фильтры
+        </Button>
+      </div>
+      <div className="px-4 pb-4 border-t border-di-outline-variant/10 pt-4">
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Дата начала */}
               <div>
@@ -184,9 +160,7 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
                 />
               </div>
             </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+      </div>
     </Card>
   );
 };

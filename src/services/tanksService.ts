@@ -126,6 +126,7 @@ class TanksService {
           amount_end: parseFloat(apiTank.amount_end || '0'),
           volume_begin: parseFloat(apiTank.volume_begin || '0'),
           volume_end: parseFloat(apiTank.volume_end || '0'),
+          volume_free: parseFloat(apiTank.volume_free || '0'),
           release: {
             volume: parseFloat(apiTank.release?.volume || '0'),
             amount: parseFloat(apiTank.release?.amount || '0')

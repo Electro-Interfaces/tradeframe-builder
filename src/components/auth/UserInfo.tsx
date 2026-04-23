@@ -16,7 +16,7 @@ export function UserInfo() {
       case 'Global':
         return 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30';
       case 'Network':
-        return 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30';
+        return 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary/70 border-primary/30';
       case 'Trading Point':
         return 'bg-emerald-100 dark:bg-emerald-500/20 text-green-600 dark:text-green-400 border-green-500/30';
       case 'Assigned':
@@ -83,7 +83,7 @@ export function UserInfo() {
         {/* Роли */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Shield className="h-4 w-4 text-primary dark:text-primary/70" />
             <span className="text-sm font-medium text-foreground">Роли</span>
           </div>
           

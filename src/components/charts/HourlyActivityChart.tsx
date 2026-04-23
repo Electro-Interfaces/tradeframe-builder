@@ -20,7 +20,7 @@ export const HourlyActivityChart = memo(function HourlyActivityChart({
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground text-lg flex items-center gap-2">
-            <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Activity className="h-5 w-5 text-primary dark:text-primary/70" />
             Суточная активность по часам
           </CardTitle>
         </CardHeader>
@@ -37,7 +37,7 @@ export const HourlyActivityChart = memo(function HourlyActivityChart({
     <Card className={`bg-card border-border ${isMobile ? '' : 'lg:h-full lg:flex lg:flex-col'}`}>
       <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
         <CardTitle className={`text-foreground ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-          <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <Activity className="h-5 w-5 text-primary dark:text-primary/70" />
           Суточная активность по часам
         </CardTitle>
       </CardHeader>
@@ -81,7 +81,7 @@ export const HourlyActivityChart = memo(function HourlyActivityChart({
                           <span>Операций:</span>
                           <span className="font-medium">{data.operations || data.count}</span>
                         </p>
-                        <p className="text-blue-600 dark:text-blue-400 flex justify-between">
+                        <p className="text-primary dark:text-primary/70 flex justify-between">
                           <span>Выручка:</span>
                           <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
                         </p>

@@ -50,7 +50,7 @@ export function TradingPointsSection({
           {selectedNetwork && (
             <Button
               onClick={onCreateClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+              className="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
             >
               <Plus className="h-4 w-4 mr-2" />
               Добавить ТТ
@@ -95,7 +95,7 @@ export function TradingPointsSection({
             cta={
               <Button
                 onClick={onCreateClick}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary hover:bg-primary/80 text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Добавить ТТ

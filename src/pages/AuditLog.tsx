@@ -195,7 +195,7 @@ export default function AuditLog() {
                 <Button
                   onClick={loadAuditLogs}
                   variant="outline"
-                  className="border-border text-foreground hover:bg-secondary"
+                  
                 >
                   Проверить снова
                 </Button>
@@ -218,7 +218,7 @@ export default function AuditLog() {
           </div>
           <div className="bg-card rounded-lg p-8 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Загружаем журнал аудита...</p>
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function AuditLog() {
               </div>
               <h2 className="text-2xl font-semibold text-foreground mb-3">Ошибка загрузки данных</h2>
               <p className="text-muted-foreground mb-6">{error}</p>
-              <Button onClick={loadAuditLogs} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={loadAuditLogs} className="bg-primary hover:bg-primary/80">
                 Попробовать снова
               </Button>
             </div>
@@ -271,7 +271,7 @@ export default function AuditLog() {
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-foreground text-sm">🔍</span>
                 </div>
                 <h2 className="text-lg font-semibold text-foreground">События аудита</h2>
@@ -283,7 +283,7 @@ export default function AuditLog() {
                 onClick={loadAuditLogs}
                 variant="outline"
                 size="sm"
-                className="border-border text-foreground hover:bg-secondary"
+                
               >
                 Обновить
               </Button>
@@ -362,14 +362,14 @@ export default function AuditLog() {
                 <div className="flex gap-2 md:col-span-2">
                   <Button
                     onClick={applyFilters}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                    className="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
                   >
                     Применить
                   </Button>
                   <Button
                     variant="outline"
                     onClick={resetFilters}
-                    className="border-border text-foreground hover:bg-secondary"
+                    
                   >
                     Сброс
                   </Button>
@@ -435,7 +435,7 @@ export default function AuditLog() {
                           <div className="flex items-center gap-3">
                             {(() => {
                               const IconComponent = getActionTypeIcon(event.action_type);
-                              return <IconComponent className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />;
+                              return <IconComponent className="h-4 w-4 text-primary dark:text-primary/70 flex-shrink-0" />;
                             })()}
                             <div>
                               <div className="font-medium text-foreground text-base">{event.action}</div>
@@ -489,7 +489,7 @@ export default function AuditLog() {
                       <div className="flex items-center gap-2 mb-2">
                         {(() => {
                           const IconComponent = getActionTypeIcon(event.action_type);
-                          return <IconComponent className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />;
+                          return <IconComponent className="h-4 w-4 text-primary dark:text-primary/70 flex-shrink-0" />;
                         })()}
                         <div className="font-medium text-foreground text-base truncate">{event.action}</div>
                       </div>

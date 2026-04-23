@@ -81,7 +81,7 @@ export function RetailPricingDashboard() {
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
             📊 Биржевые цены в литрах
-            <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-400">Пересчёт</Badge>
+            <Badge variant="outline" className="text-xs text-primary dark:text-primary/70 border-primary/40">Пересчёт</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>

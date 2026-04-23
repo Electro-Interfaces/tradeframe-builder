@@ -202,7 +202,7 @@ export function CreateCouponModal({
                 size="sm"
                 onClick={() => handleModeChange('liters')}
                 className={mode === 'liters'
-                  ? 'flex-1 bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'flex-1 bg-primary hover:bg-primary/80 text-white'
                   : 'flex-1 border-border text-foreground/80 hover:bg-secondary'
                 }
               >
@@ -302,7 +302,7 @@ export function CreateCouponModal({
               placeholder="Укажите причину выдачи купона"
               maxLength={200}
               rows={2}
-              className="w-full rounded-md bg-secondary border border-border text-foreground text-sm px-3 py-2 placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md bg-secondary border border-border text-foreground text-sm px-3 py-2 placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <div className="flex justify-between">
               {!isCommentValid && comment.length === 0 && (
@@ -361,14 +361,14 @@ export function CreateCouponModal({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-border text-foreground/80 hover:bg-secondary"
+            
           >
             Отмена
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!isFormValid || loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-primary hover:bg-primary/80 text-white"
           >
             {loading ? (
               <>

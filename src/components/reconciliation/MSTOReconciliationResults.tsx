@@ -115,7 +115,7 @@ function getStatusColorClass(status: MSTOReconciliationTransactionStatus): strin
     case 'only_msto':
       return 'bg-cyan-600';
     case 'only_tf':
-      return 'bg-blue-600';
+      return 'bg-primary';
     case 'only_shift':
       return 'bg-purple-600';
     case 'mismatch':
@@ -336,7 +336,7 @@ export function MSTOReconciliationResults({
         <Button
           variant="outline"
           onClick={onNewReconciliation}
-          className="bg-secondary border-border hover:bg-secondary text-foreground text-sm"
+          className=""
           size="sm"
         >
           <RefreshCw className="h-4 w-4 sm:mr-2" />
@@ -368,7 +368,7 @@ export function MSTOReconciliationResults({
         <Card className="bg-card/50 border-border">
           <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-              <Droplet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+              <Droplet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary dark:text-primary/70" />
               TF
             </CardTitle>
           </CardHeader>
@@ -631,7 +631,7 @@ export function MSTOReconciliationResults({
             </div>
             <div>
               <span className="text-muted-foreground">TF:</span>
-              <span className="text-blue-600 dark:text-blue-400 font-medium ml-1">{formatVolume(filteredTotals.tfVolume)}</span>
+              <span className="text-primary dark:text-primary/70 font-medium ml-1">{formatVolume(filteredTotals.tfVolume)}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Δ:</span>
@@ -645,7 +645,7 @@ export function MSTOReconciliationResults({
             </div>
             <div className="hidden sm:block">
               <span className="text-muted-foreground">TF ₽:</span>
-              <span className="text-blue-600 dark:text-blue-400 font-medium ml-1">{formatMoney(filteredTotals.tfSum)}</span>
+              <span className="text-primary dark:text-primary/70 font-medium ml-1">{formatMoney(filteredTotals.tfSum)}</span>
             </div>
           </div>
         </CardHeader>
@@ -702,14 +702,14 @@ export function MSTOReconciliationResults({
                     </TableCell>
                     <TableCell className="text-right">
                       {tx.tfVolume != null ? (
-                        <span className="text-blue-600 dark:text-blue-400">{tx.tfVolume}</span>
+                        <span className="text-primary dark:text-primary/70">{tx.tfVolume}</span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       {tx.tfSum != null ? (
-                        <span className="text-blue-600 dark:text-blue-400 text-xs">{tx.tfSum.toFixed(0)}</span>
+                        <span className="text-primary dark:text-primary/70 text-xs">{tx.tfSum.toFixed(0)}</span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
@@ -789,8 +789,8 @@ function MobileTransactionCard({ tx }: { tx: MSTOReconciliationTransaction }) {
         </div>
         <div>
           <span className="text-muted-foreground">TF:</span>
-          <span className="text-blue-600 dark:text-blue-400 ml-1">{tx.tfVolume ?? '—'} л</span>
-          {tx.tfSum != null && <span className="text-blue-600 dark:text-blue-400/70 ml-1">({tx.tfSum.toFixed(0)}₽)</span>}
+          <span className="text-primary dark:text-primary/70 ml-1">{tx.tfVolume ?? '—'} л</span>
+          {tx.tfSum != null && <span className="text-primary dark:text-primary/70/70 ml-1">({tx.tfSum.toFixed(0)}₽)</span>}
         </div>
       </div>
       {tx.aggregatorName && (
@@ -857,7 +857,7 @@ function StationRowMobile({
           </div>
           <div>
             <span className="text-muted-foreground">TF:</span>
-            <span className="text-blue-600 dark:text-blue-400 ml-0.5 sm:ml-1">{station.tfVolumeTotal}</span>
+            <span className="text-primary dark:text-primary/70 ml-0.5 sm:ml-1">{station.tfVolumeTotal}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Смена:</span>
@@ -897,7 +897,7 @@ function StationRowMobile({
                 </div>
                 <div className="grid grid-cols-3 gap-1 text-[10px] sm:text-xs">
                   <span className="text-cyan-600 dark:text-cyan-400">{shift.mstoVolume ?? '—'}л</span>
-                  <span className="text-blue-600 dark:text-blue-400">{shift.tfVolume ?? '—'}л</span>
+                  <span className="text-primary dark:text-primary/70">{shift.tfVolume ?? '—'}л</span>
                   <span className="text-green-600 dark:text-green-400">{shift.shiftNonCashVolume ?? '—'}л</span>
                 </div>
               </div>
@@ -950,7 +950,7 @@ function StationRowDesktop({
         </div>
         <div className="text-foreground font-medium text-sm">{station.stationName}</div>
         <div className="text-cyan-600 dark:text-cyan-400 text-sm text-right">{station.mstoVolumeTotal}</div>
-        <div className="text-blue-600 dark:text-blue-400 text-sm text-right">{station.tfVolumeTotal}</div>
+        <div className="text-primary dark:text-primary/70 text-sm text-right">{station.tfVolumeTotal}</div>
         <div className="text-green-600 dark:text-green-400 text-sm text-right">{station.shiftNonCashVolumeTotal}</div>
         <div className={`text-sm text-right ${hasDiff(mstoVsTf) ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
           {formatDiff(mstoVsTf)}
@@ -1022,7 +1022,7 @@ function StationRowDesktop({
                         <TableCell className="text-cyan-600 dark:text-cyan-400 text-xs py-1 text-right">
                           {shift.mstoVolume ?? '—'}
                         </TableCell>
-                        <TableCell className="text-blue-600 dark:text-blue-400 text-xs py-1 text-right">
+                        <TableCell className="text-primary dark:text-primary/70 text-xs py-1 text-right">
                           {shift.tfVolume ?? '—'}
                         </TableCell>
                         <TableCell className="text-green-600 dark:text-green-400 text-xs py-1 text-right">

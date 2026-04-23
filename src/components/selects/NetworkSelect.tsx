@@ -108,7 +108,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button className={cn(
-          "flex items-center justify-between w-full px-3 py-2 text-sm bg-secondary border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]",
+          "flex items-center justify-between w-full px-3 py-2 text-sm bg-secondary border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary min-w-[160px]",
           className
         )}>
           <NetworkIcon className="inline h-4 w-4 mr-2 opacity-70" />
@@ -146,7 +146,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                 className={cn(
                   "flex items-center gap-3 rounded-xl cursor-pointer transition-all",
                   isMobile ? "px-3 py-2.5" : "px-3 py-1.5",
-                  selectedIds.length === networks.length ? "bg-blue-50 dark:bg-[#2563eb]/10 border border-blue-200 dark:border-[#2563eb]/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
+                  selectedIds.length === networks.length ? "bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
                 )}
                 onClick={() => {
                   if (selectedIds.length === networks.length) {
@@ -158,10 +158,10 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
               >
                 <Checkbox
                   checked={selectedIds.length === networks.length}
-                  className={cn("data-[state=checked]:bg-[#2563eb] data-[state=checked]:border-[#2563eb] border-di-outline-variant", isMobile && "h-5 w-5")}
+                  className={cn("data-[state=checked]:bg-primary data-[state=checked]:border-primary border-di-outline-variant", isMobile && "h-5 w-5")}
                 />
-                <span className={cn("rounded-full bg-blue-400", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
-                <span className={cn("truncate font-medium text-foreground", selectedIds.length === networks.length && "text-blue-700 dark:text-blue-200")}>
+                <span className={cn("rounded-full bg-primary/70", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
+                <span className={cn("truncate font-medium text-foreground", selectedIds.length === networks.length && "text-primary dark:text-blue-200")}>
                   Все сети ({networks.length})
                 </span>
               </li>
@@ -175,24 +175,24 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                   className={cn(
                     "flex items-center gap-3 rounded-xl transition-all",
                     isMobile ? "px-3 py-2.5" : "px-3 py-1.5",
-                    isSelected ? "bg-blue-50 dark:bg-[#2563eb]/10 border border-blue-200 dark:border-[#2563eb]/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
+                    isSelected ? "bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
                   )}
                 >
                   {isMultiMode && (
                     <Checkbox
                       checked={isSelected}
-                      className={cn("data-[state=checked]:bg-[#2563eb] data-[state=checked]:border-[#2563eb] border-di-outline-variant cursor-pointer shrink-0", isMobile && "h-5 w-5")}
+                      className={cn("data-[state=checked]:bg-primary data-[state=checked]:border-primary border-di-outline-variant cursor-pointer shrink-0", isMobile && "h-5 w-5")}
                       onCheckedChange={() => handleToggle(network.id)}
                       onClick={(e) => e.stopPropagation()}
                     />
                   )}
                   <div className="min-w-0 flex-1 flex items-center gap-2 cursor-pointer transition-colors duration-200" onClick={() => handleRowClick(network.id)}>
-                    <span className={cn("rounded-full shrink-0", isMobile ? "h-2.5 w-2.5" : "h-2 w-2", isPrimary ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]")} aria-hidden />
+                    <span className={cn("rounded-full shrink-0", isMobile ? "h-2.5 w-2.5" : "h-2 w-2", isPrimary ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]")} aria-hidden />
                     <span className={cn("truncate text-muted-foreground", isSelected && "font-bold !text-foreground")}>{network.name}</span>
-                    {network.code && <span className="text-xs text-blue-400 font-mono shrink-0">({network.code})</span>}
+                    {network.code && <span className="text-xs text-primary/70 font-mono shrink-0">({network.code})</span>}
                   </div>
                   {!isMultiMode && isSelected && (
-                    <Check className={cn("text-blue-400 shrink-0", isMobile ? "h-5 w-5" : "h-4 w-4")} />
+                    <Check className={cn("text-primary/70 shrink-0", isMobile ? "h-5 w-5" : "h-4 w-4")} />
                   )}
                 </li>
               );
@@ -216,7 +216,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                 </button>
               )}
               <button
-                className={cn("flex-1 font-bold text-white bg-[#2563eb] hover:bg-blue-600 active:scale-[0.98] rounded-xl transition-all shadow-[0_8px_20px_rgba(37,99,235,0.3)] flex items-center justify-center gap-1", isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm")}
+                className={cn("flex-1 font-bold text-white bg-primary hover:bg-primary active:scale-[0.98] rounded-xl transition-all shadow-[0_8px_20px_rgba(37,99,235,0.3)] flex items-center justify-center gap-1", isMobile ? "px-4 py-2.5 text-sm" : "px-3 py-1.5 text-sm")}
                 onClick={() => setOpen(false)}
               >
                 Применить ({selectedIds.length})

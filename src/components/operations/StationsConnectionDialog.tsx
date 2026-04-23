@@ -273,7 +273,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
         <div className="flex-1 overflow-y-auto -mx-3 px-3 sm:-mx-6 sm:px-6">
           {loading ? (
             <div className="flex items-center justify-center py-8 sm:py-12">
-              <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-500" />
+              <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-primary" />
               <span className="ml-2 text-muted-foreground text-sm">Загрузка...</span>
             </div>
           ) : error ? (

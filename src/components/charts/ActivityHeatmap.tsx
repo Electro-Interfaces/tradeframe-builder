@@ -211,7 +211,7 @@ export function ActivityHeatmap({ title = "Активность торговых
               <div className="text-xs text-muted-foreground">Общая выручка</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+              <div className="text-lg font-semibold text-primary dark:text-primary/70">
                 {data.filter(hour => hour.transactions > 0).length}
               </div>
               <div className="text-xs text-muted-foreground">Активных часов</div>
@@ -349,7 +349,7 @@ export function ActivityHeatmap({ title = "Активность торговых
             <div className="text-xs text-muted-foreground">Общая выручка</div>
           </div>
           <div className="text-center">
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+            <div className="text-lg font-semibold text-primary dark:text-primary/70">
               {Math.round(heatmapData.reduce((sum, day) => sum + day.transactions, 0) / heatmapData.length)}
             </div>
             <div className="text-xs text-muted-foreground">Среднее в день</div>

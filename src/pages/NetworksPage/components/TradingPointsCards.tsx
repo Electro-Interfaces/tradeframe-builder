@@ -74,7 +74,7 @@ export function TradingPointsCards({
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   {point.external_id && (
-                    <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 px-2 py-0.5 rounded font-mono">
+                    <span className="bg-primary/10 dark:bg-blue-900/50 text-primary dark:text-blue-300 px-2 py-0.5 rounded font-mono">
                       API: {point.external_id}
                     </span>
                   )}

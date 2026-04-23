@@ -89,7 +89,7 @@ export function MobileReceiptsTable({ receipts, onReceiptClick, confirmations, g
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <Fuel className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <Fuel className="h-4 w-4 text-primary dark:text-primary/70" />
                   <span className="font-medium text-foreground">{receipt.service.service_name}</span>
                   {Status && (
                     <Status.icon className={`h-3.5 w-3.5 ${Status.color}`} />

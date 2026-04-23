@@ -289,7 +289,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
                   {Math.round(summary.weeklyRevenue).toLocaleString('ru-RU')} ₽
                 </p>
               </div>
-              <Target className={`text-blue-600 dark:text-blue-400 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
+              <Target className={`text-primary dark:text-primary/70 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
             </div>
           </CardContent>
         </Card>
@@ -418,7 +418,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
           <div className={`space-y-${isMobile ? '2' : '3'}`}>
             {summary.recommendations.map((recommendation, index) => (
               <div key={index} className={`flex items-start space-x-${isMobile ? '2' : '3'} ${isMobile ? 'p-2' : 'p-3'} bg-secondary/50 rounded-lg`}>
-                <div className={`bg-blue-600 rounded-full flex items-center justify-center text-white font-bold ${isMobile ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'} flex-shrink-0`}>
+                <div className={`bg-primary rounded-full flex items-center justify-center text-white font-bold ${isMobile ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'} flex-shrink-0`}>
                   {index + 1}
                 </div>
                 <p className={`text-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>{recommendation}</p>

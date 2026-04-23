@@ -85,7 +85,7 @@ function RoomListPanel({
                 onClick={() => setFilter(tab.key)}
                 className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-colors touch-manipulation ${
                   filter === tab.key
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary text-white'
                     : 'bg-card text-muted-foreground hover:text-foreground hover:bg-secondary'
                 }`}
               >
@@ -133,11 +133,11 @@ function RoomListPanel({
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-blue-100 dark:bg-blue-500/20'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
                       {isCompany ? (
                         <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
-                        <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <User className="h-5 w-5 text-primary dark:text-primary/70" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -147,7 +147,7 @@ function RoomListPanel({
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
                           {room.last_message_at && (
-                            <span className={`text-[11px] ${hasUnread ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}>
+                            <span className={`text-[11px] ${hasUnread ? 'text-primary dark:text-primary/70' : 'text-muted-foreground'}`}>
                               {formatTime(room.last_message_at)}
                             </span>
                           )}
@@ -160,7 +160,7 @@ function RoomListPanel({
                             : 'Нет сообщений'}
                         </p>
                         {hasUnread && (
-                          <span className="inline-flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[20px] h-[20px] px-1.5 shrink-0">
+                          <span className="inline-flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full min-w-[20px] h-[20px] px-1.5 shrink-0">
                             {room.unread_count}
                           </span>
                         )}
@@ -177,7 +177,7 @@ function RoomListPanel({
       {/* FAB — Новый чат */}
       <button
         onClick={onNewChat}
-        className={`${isMobile ? 'fixed' : 'absolute'} bottom-6 right-4 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xl shadow-blue-600/40 flex items-center justify-center touch-manipulation transition-colors`}
+        className={`${isMobile ? 'fixed' : 'absolute'} bottom-6 right-4 h-14 w-14 rounded-full bg-primary hover:bg-primary/80 active:bg-primary/90 text-white shadow-xl shadow-primary/40 flex items-center justify-center touch-manipulation transition-colors`}
         style={{ zIndex: 50 }}
         aria-label="Новый чат"
       >
@@ -227,11 +227,11 @@ function NewChatDialog({
               onClick={() => setType('direct')}
               className={`p-4 rounded-lg border transition-colors text-center ${
                 type === 'direct'
-                  ? 'border-blue-500 bg-blue-500/10'
+                  ? 'border-primary bg-primary/10'
                   : 'border-border hover:border-border'
               }`}
             >
-              <User className={`h-6 w-6 mx-auto mb-2 ${type === 'direct' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
+              <User className={`h-6 w-6 mx-auto mb-2 ${type === 'direct' ? 'text-primary dark:text-primary/70' : 'text-muted-foreground'}`} />
               <p className="text-sm font-medium">Личный</p>
               <p className="text-xs text-muted-foreground mt-0.5">Чат с Elsy</p>
             </button>
@@ -263,7 +263,7 @@ function NewChatDialog({
           <Button
             onClick={handleCreate}
             disabled={creating}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-primary hover:bg-primary/80"
           >
             {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Создать
@@ -389,8 +389,8 @@ function MessageBubble({
 
         {/* Reply-to quote */}
         {message.reply_to && (
-          <div className={`border-l-2 pl-2 mb-1.5 ${isOwn ? 'border-blue-400/50' : 'border-border/50'}`}>
-            <p className="text-[11px] font-medium text-blue-600 dark:text-blue-400/80">{message.reply_to_user_name || ''}</p>
+          <div className={`border-l-2 pl-2 mb-1.5 ${isOwn ? 'border-primary/40/50' : 'border-border/50'}`}>
+            <p className="text-[11px] font-medium text-primary dark:text-primary/70/80">{message.reply_to_user_name || ''}</p>
             <p className="text-xs text-muted-foreground truncate">
               {message.reply_to_deleted ? 'Сообщение удалено' : (message.reply_to_content || '')}
             </p>
@@ -416,7 +416,7 @@ function MessageBubble({
               isOwn ? 'bg-[#1e3f5e] hover:bg-[#244a6e]' : 'bg-secondary/50 hover:bg-secondary'
             }`}
           >
-            <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400 shrink-0" />
+            <FileText className="h-8 w-8 text-primary dark:text-primary/70 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-xs text-foreground truncate">{message.file_name || 'Файл'}</p>
               {message.file_size != null && (
@@ -498,11 +498,11 @@ function ChatInfoPanel({
         <div className="p-4">
           {/* Avatar + Name */}
           <div className="flex flex-col items-center text-center mb-5">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-blue-100 dark:bg-blue-500/20'}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
               {isCompany ? (
                 <Users className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <User className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+                <User className="h-7 w-7 text-primary dark:text-primary/70" />
               )}
             </div>
             <p className="text-sm font-medium text-foreground">
@@ -711,11 +711,11 @@ function MessagePanel({
         onClick={onHeaderClick}
         className="p-3 border-b border-border/50 flex items-center gap-2.5 shrink-0 hover:bg-card/30 transition-colors text-left w-full"
       >
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-blue-100 dark:bg-blue-500/20'}`}>
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
           {isCompany ? (
             <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <User className="h-4 w-4 text-primary dark:text-primary/70" />
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -769,8 +769,8 @@ function MessagePanel({
       {/* Reply bar */}
       {replyingTo && (
         <div className="px-3 pt-2 border-t border-border/50 shrink-0 flex items-center gap-2">
-          <div className="flex-1 border-l-2 border-blue-500 pl-2 min-w-0">
-            <p className="text-xs font-medium text-blue-600 dark:text-blue-400">{replyingTo.user_name}</p>
+          <div className="flex-1 border-l-2 border-primary pl-2 min-w-0">
+            <p className="text-xs font-medium text-primary dark:text-primary/70">{replyingTo.user_name}</p>
             <p className="text-xs text-muted-foreground truncate">{replyingTo.content || 'Файл'}</p>
           </div>
           <button onClick={() => onSetReplyingTo(null)} className="p-1 text-muted-foreground hover:text-foreground">
@@ -807,7 +807,7 @@ function MessagePanel({
                   />
                 ) : (
                   <div className="h-16 w-16 rounded border border-border bg-card flex flex-col items-center justify-center p-1">
-                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 mb-0.5" />
+                    <FileText className="h-5 w-5 text-primary dark:text-primary/70 mb-0.5" />
                     <span className="text-[9px] text-muted-foreground truncate w-full text-center">{f.name.split('.').pop()}</span>
                   </div>
                 )}
@@ -856,7 +856,7 @@ function MessagePanel({
               }
             }}
             disabled={sending || (!messageText.trim() && pendingFiles.length === 0)}
-            className={`h-9 w-9 shrink-0 ${editingMessage ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+            className={`h-9 w-9 shrink-0 ${editingMessage ? 'bg-amber-600 hover:bg-amber-700' : 'bg-primary hover:bg-primary/80'}`}
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingMessage ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
           </Button>

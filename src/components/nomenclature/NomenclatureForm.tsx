@@ -192,8 +192,8 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Показываем информацию о выбранной сети */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                <div className="bg-primary/5 dark:bg-blue-900/20 p-3 rounded-lg border border-primary/20 dark:border-primary">
+                  <p className="text-sm text-primary dark:text-blue-200">
                     <strong>Торговая сеть:</strong> {selectedNetwork?.name}
                   </p>
                 </div>
@@ -317,7 +317,7 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
                             type="checkbox"
                             checked={field.value}
                             onChange={field.onChange}
-                            className="h-4 w-4 rounded border border-border text-blue-600 focus:ring-blue-500"
+                            className="h-4 w-4 rounded border border-border text-primary focus:ring-primary"
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">

@@ -125,7 +125,7 @@ export function MessageForm({
             <select
               value={messageType}
               onChange={(e) => onMessageTypeChange(e.target.value as MessageType)}
-              className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-md text-foreground focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-md text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               {Object.entries(MESSAGE_TYPE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -141,7 +141,7 @@ export function MessageForm({
             <select
               value={priority}
               onChange={(e) => onPriorityChange(e.target.value as MessagePriority)}
-              className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-md text-foreground focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-md text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               {Object.entries(MESSAGE_PRIORITY_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -184,7 +184,7 @@ export function MessageForm({
           <Button
             onClick={onSend}
             disabled={sending || !isFormValid || channels.length === 0}
-            className={`${isMobile ? 'w-full' : 'flex-1'} bg-blue-600 hover:bg-blue-700`}
+            className={`${isMobile ? 'w-full' : 'flex-1'} bg-primary hover:bg-primary/80`}
           >
             {sending ? (
               <>

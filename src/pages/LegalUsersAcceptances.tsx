@@ -336,7 +336,7 @@ export default function LegalUsersAcceptances() {
                       
                       {/* Информация о пользователе */}
                       <div className="flex items-center gap-4 min-w-0 flex-1">
-                        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                           <User className="w-6 h-6 text-foreground" />
                         </div>
                         

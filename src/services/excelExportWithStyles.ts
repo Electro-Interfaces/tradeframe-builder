@@ -1,570 +1,418 @@
 /**
- * Excel экспорт с поддержкой полного форматирования через ExcelJS
+ * Excel-экспорт сменного отчёта.
+ *
+ * Структура Excel точно повторяет бумажную распечатку АЗС:
+ *  - шапка (Дата / Время / Сменный отчёт / АЗС № / Сеть),
+ *  - состав смены + диапазон дат,
+ *  - Таблица ТРК (12 колонок),
+ *  - Состояние резервуаров (19 колонок),
+ *  - Расшифровка поступлений (14 колонок),
+ *  - Расшифровка реализации — безналичная (Наименование, Код, [по каждому типу: л, руб], ИТОГО б/н),
+ *  - Расшифровка реализации — основная (Прокачка, По картам л/руб, Скидка, За наличные л/руб, Безнал, Всего, Разница),
+ *  - Движение наличных денег (4 строки прихода + итог, 4 строки расхода + итог),
+ *  - Подписи (Отчёт составили / Смену приняли / Отчёт проверил).
+ *
+ * НИКАКИХ дополнительных блоков или расчётов сверх бумаги не добавляется.
  */
 
 import type ExcelJS from 'exceljs';
 import { format as formatDate } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import type { ShiftDetails } from '@/types/shift-reports-v2';
-import { isCashOrCard } from '@/utils/paymentUtils';
+import { classifyPayment } from '@/utils/paymentUtils';
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }) + ' ₽';
-}
-
-// Числовые форматы для Excel
 const NUM_FORMATS = {
-  decimal2: '#,##0.00',      // 2 знака после запятой
-  decimal3: '#,##0.000',     // 3 знака после запятой
-  decimal4: '#,##0.0000',    // 4 знака после запятой
-  currency: '#,##0.00" ₽"', // Валюта с символом рубля
-  integer: '#,##0',          // Целое число
-  percent: '0.00%',          // Проценты
+  decimal2: '#,##0.00',
+  decimal3: '#,##0.000',
+  decimal4: '#,##0.0000',
+  integer: '#,##0',
 };
 
-// Вспомогательная функция для записи числового значения в ячейку
-function setNumericCell(
-  cell: ExcelJS.Cell,
-  value: number | string | null | undefined,
-  format: keyof typeof NUM_FORMATS = 'decimal2',
-  style?: Partial<ExcelJS.Style>
-): void {
-  if (value === null || value === undefined || value === '' || value === '—') {
-    cell.value = '—';
-    if (style) cell.style = style;
-    return;
-  }
-
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(numValue)) {
-    cell.value = '—';
-    if (style) cell.style = style;
-    return;
-  }
-
-  cell.value = numValue;
-  cell.numFmt = NUM_FORMATS[format];
-  if (style) {
-    cell.style = { ...style };
-  }
-}
-
-/**
- * Экспорт сменного отчета в Excel с полным форматированием
- */
 export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Blob> {
   const ExcelJSModule = await import('exceljs');
   const ExcelJSLib = ExcelJSModule.default;
   const workbook = new ExcelJSLib.Workbook();
-  const worksheet = workbook.addWorksheet('Сменный отчет');
+  const worksheet = workbook.addWorksheet('Сменный отчёт');
 
-  // Базовые стили
+  // ── стили ──────────────────────────────────────────────────────────────
+  const thinBorder = {
+    top: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    left: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    bottom: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    right: { style: 'thin' as const, color: { argb: 'FF000000' } },
+  };
+
   const headerStyle: Partial<ExcelJS.Style> = {
+    font: { bold: true, size: 10 },
+    alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
     fill: {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF334155' }, // slate-700
+      fgColor: { argb: 'FFE5E7EB' }, // светло-серый (slate-200) — фон шапок таблиц
     },
-    font: {
-      bold: true,
-      color: { argb: 'FFFFFFFF' },
-      size: 11,
-    },
-    alignment: {
-      horizontal: 'center',
-      vertical: 'middle',
-      wrapText: true
-    },
-    border: {
-      top: { style: 'thin', color: { argb: 'FF475569' } },
-      left: { style: 'thin', color: { argb: 'FF475569' } },
-      bottom: { style: 'thin', color: { argb: 'FF475569' } },
-      right: { style: 'thin', color: { argb: 'FF475569' } },
-    },
+    border: thinBorder,
   };
 
   const dataStyle: Partial<ExcelJS.Style> = {
+    font: { size: 10 },
+    alignment: { horizontal: 'right', vertical: 'middle' },
+    border: thinBorder,
+  };
+
+  const dataLeftStyle: Partial<ExcelJS.Style> = {
+    ...dataStyle,
     alignment: { horizontal: 'left', vertical: 'middle' },
-    border: {
-      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    },
   };
 
   const totalsStyle: Partial<ExcelJS.Style> = {
-    fill: {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF475569' }, // slate-600
-    },
-    font: {
-      bold: true,
-      color: { argb: 'FFFFFFFF' },
-      size: 10,
-    },
+    font: { bold: true, size: 10 },
+    alignment: { horizontal: 'right', vertical: 'middle' },
+    border: thinBorder,
+  };
+
+  const totalsLabelStyle: Partial<ExcelJS.Style> = {
+    ...totalsStyle,
     alignment: { horizontal: 'left', vertical: 'middle' },
-    border: {
-      top: { style: 'medium', color: { argb: 'FF334155' } },
-      left: { style: 'thin', color: { argb: 'FF475569' } },
-      bottom: { style: 'medium', color: { argb: 'FF334155' } },
-      right: { style: 'thin', color: { argb: 'FF475569' } },
-    },
   };
 
   const sectionTitleStyle: Partial<ExcelJS.Style> = {
-    font: {
-      bold: true,
-      size: 14,
-      color: { argb: 'FF1E293B' },
-    },
-    alignment: { horizontal: 'left', vertical: 'middle' },
+    font: { bold: true, size: 12 },
+    alignment: { horizontal: 'center', vertical: 'middle' },
   };
 
-  let currentRow = 1;
+  const writeCell = (
+    row: number,
+    col: number,
+    value: string | number | null | undefined,
+    style: Partial<ExcelJS.Style>,
+    format?: keyof typeof NUM_FORMATS,
+  ) => {
+    const cell = worksheet.getCell(row, col);
+    cell.style = { ...style };
+    if (value === null || value === undefined || value === '') {
+      cell.value = null;
+      return cell;
+    }
+    if (typeof value === 'number' && format) {
+      cell.value = value;
+      cell.numFmt = NUM_FORMATS[format];
+    } else {
+      cell.value = value;
+    }
+    return cell;
+  };
 
-  // ========== ЗАГОЛОВОК ==========
-  const titleCell = worksheet.getCell(currentRow, 1);
-  titleCell.value = 'СМЕННЫЙ ОТЧЕТ';
-  titleCell.font = { bold: true, size: 18, color: { argb: 'FF1E293B' } };
-  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  worksheet.mergeCells(currentRow, 1, currentRow, 5);
-  currentRow += 2;
+  let row = 1;
 
-  // Стиль для меток
-  const labelStyle = { bold: true, size: 11, color: { argb: 'FF475569' } };
-  const valueStyle = { size: 11 };
+  // ── 1. ШАПКА ───────────────────────────────────────────────────────────
+  const openedDate = details.openedAt ? new Date(details.openedAt) : null;
+  // На бумаге дата/время шапки — момент печати отчёта ≈ момент закрытия смены.
+  const printedDate = details.closedAt ? new Date(details.closedAt) : openedDate;
+  const dateStr = printedDate ? formatDate(printedDate, 'dd.MM.yyyy') : '';
+  const timeStr = printedDate ? formatDate(printedDate, 'H:mm') : '';
 
-  worksheet.getCell(currentRow, 1).value = 'Номер смены:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = details.shiftNumber;
-  worksheet.getCell(currentRow, 2).font = valueStyle;
-  currentRow++;
+  writeCell(row, 1, 'Дата', { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  writeCell(row, 2, dateStr, { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  writeCell(row, 3, 'Время', { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  writeCell(row, 4, timeStr, { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  writeCell(row, 5, 'Сменный отчёт', { font: { bold: true, size: 10 }, alignment: { horizontal: 'left' } });
+  writeCell(row, 6, 'АЗС №', { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  writeCell(row, 7, details.stationCode ?? '', { font: { bold: true, size: 10 }, alignment: { horizontal: 'left' } });
+  writeCell(row, 8, details.stationName ?? '', { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  row += 2;
 
-  worksheet.getCell(currentRow, 1).value = 'Торговая точка:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = `${details.stationCode} - ${details.stationName || ''}`;
-  worksheet.getCell(currentRow, 2).font = valueStyle;
-  currentRow++;
+  // ── 2. СОСТАВ СМЕНЫ + ДИАПАЗОН ─────────────────────────────────────────
+  const openFmt = openedDate ? formatDate(openedDate, 'HH:mm \'час. \'dd-MM-yyyy') : '';
+  const closeFmt = details.closedAt ? formatDate(new Date(details.closedAt), 'HH:mm \'час. \'dd-MM-yyyy') : '';
+  const range = openFmt && closeFmt ? `смена с ${openFmt} до ${closeFmt}` : '';
 
-  worksheet.getCell(currentRow, 1).value = 'Оператор:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = details.operator;
-  worksheet.getCell(currentRow, 2).font = valueStyle;
-  currentRow++;
+  writeCell(row, 1, 'Состав смены:', { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  // STS API не возвращает оператора — если значение fallback «Не указан», оставляем пусто (как на бумаге без оператора)
+  const operatorName = details.operator && details.operator !== 'Не указан' ? details.operator : '';
+  writeCell(row, 2, operatorName, { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  writeCell(row, 8, range, { font: { size: 10 }, alignment: { horizontal: 'left' } });
+  row += 2;
 
-  worksheet.getCell(currentRow, 1).value = 'Открыта:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = formatDate(new Date(details.openedAt), 'dd.MM.yyyy HH:mm', { locale: ru });
-  worksheet.getCell(currentRow, 2).font = valueStyle;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Закрыта:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = details.closedAt ? formatDate(new Date(details.closedAt), 'dd.MM.yyyy HH:mm', { locale: ru }) : '—';
-  worksheet.getCell(currentRow, 2).font = valueStyle;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Статус:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = details.status === 'closed' ? 'Закрыта' : details.status === 'open' ? 'Открыта' : 'Синхронизирована';
-  worksheet.getCell(currentRow, 2).font = valueStyle;
-  currentRow += 2;
-
-  // ИТОГИ
-  const summaryCell = worksheet.getCell(currentRow, 1);
-  summaryCell.value = 'ИТОГИ';
-  summaryCell.font = { bold: true, size: 14, color: { argb: 'FF1E293B' } };
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Общая выручка:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  const revenueCell = worksheet.getCell(currentRow, 2);
-  revenueCell.value = details.totalRevenue;
-  revenueCell.numFmt = NUM_FORMATS.currency;
-  revenueCell.font = valueStyle;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Общий отпуск топлива (л):';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  const volumeCell = worksheet.getCell(currentRow, 2);
-  volumeCell.value = details.totalVolume;
-  volumeCell.numFmt = NUM_FORMATS.decimal2;
-  volumeCell.font = valueStyle;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Количество транзакций:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  const txCountCell = worksheet.getCell(currentRow, 2);
-  txCountCell.value = details.transactionCount;
-  txCountCell.numFmt = NUM_FORMATS.integer;
-  txCountCell.font = valueStyle;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Средний чек:';
-  worksheet.getCell(currentRow, 1).font = labelStyle;
-  const avgCheckCell = worksheet.getCell(currentRow, 2);
-  avgCheckCell.value = details.averageCheck;
-  avgCheckCell.numFmt = NUM_FORMATS.currency;
-  avgCheckCell.font = valueStyle;
-  currentRow += 3;
-
-  // ========== СОСТАВ СМЕНЫ - ТРК ==========
-  const nozzleStartRow = currentRow;
-  worksheet.getCell(currentRow, 1).value = 'СОСТАВ СМЕНЫ - ПОКАЗАНИЯ СЧЕТНЫХ МЕХАНИЗМОВ ТРК';
-  worksheet.getCell(currentRow, 1).style = sectionTitleStyle;
-  currentRow += 2;
-
-  // Заголовки таблицы
-  const nozzleHeaderRow = currentRow;
-  const nozzleHeaders = [
-    'Наименование нефтепродуктов',
-    'N Резервуара',
-    'Плотность кг/м3',
-    '№ ТРК',
-    'на конец смены (л)',
-    'на начало смены (л)',
-    'Расход (л)',
-    'Расход (кг)',
-    'Цена за литр (руб)',
-    'Сумма (руб)'
+  // ── 3. ТАБЛИЦА ТРК (12 колонок) ────────────────────────────────────────
+  const trkHeaders = [
+    'Наименование\nнефтепродуктов',
+    'N\nРезервуара',
+    'Плотн.\nкг/м3',
+    '№\nТРК',
+    'на конец\nсмены\nл',
+    'на начало\nсмены\nл',
+    'расход\nл',
+    'расход\nкг',
+    'Цена\nза литр\nруб.',
+    'Сумма,\nруб.',
+    'Погрешность\nпроц.',
+    'Погрешность\nлитры',
   ];
+  trkHeaders.forEach((h, i) => writeCell(row, i + 1, h, headerStyle));
+  row++;
 
-  nozzleHeaders.forEach((header, idx) => {
-    const cell = worksheet.getCell(currentRow, idx + 1);
-    cell.value = header;
-    cell.style = headerStyle;
-  });
-  currentRow++;
-
-  // Данные ТРК
   if (details.nozzleReadings && details.nozzleReadings.length > 0) {
-    const groupedByFuel = details.nozzleReadings.reduce((acc, nozzle) => {
-      if (!acc[nozzle.fuelCode]) {
-        acc[nozzle.fuelCode] = [];
-      }
-      acc[nozzle.fuelCode].push(nozzle);
-      return acc;
-    }, {} as Record<number, typeof details.nozzleReadings>);
+    // Группируем по топливу и сортируем по fuelCode (АИ-92=2, АИ-95=3, ДТ=5) — как на бумаге
+    const grouped: Record<number, typeof details.nozzleReadings> = {};
+    details.nozzleReadings.forEach(n => {
+      if (!grouped[n.fuelCode]) grouped[n.fuelCode] = [];
+      grouped[n.fuelCode].push(n);
+    });
+    const groupOrder = Object.keys(grouped).map(Number).sort((a, b) => a - b);
 
-    Object.entries(groupedByFuel).forEach(([fuelCode, nozzles]) => {
-      const tank = details.tanks.find(t => t.fuelCode === parseInt(fuelCode));
+    groupOrder.forEach(fuelCode => {
+      const nozzles = grouped[fuelCode];
+      const tank = details.tanks.find(t => t.fuelCode === fuelCode);
 
-      nozzles.forEach((nozzle, idx) => {
-        // Колонка 1: Наименование нефтепродуктов
-        const cell1 = worksheet.getCell(currentRow, 1);
-        cell1.value = idx === 0 ? nozzle.fuelName : '';
-        cell1.style = dataStyle;
+      let groupVol = 0;
+      let groupMass = 0;
+      let groupCost = 0;
 
-        // Колонка 2: N Резервуара
-        const cell2 = worksheet.getCell(currentRow, 2);
-        cell2.value = idx === 0 ? (tank?.tankNumber || '—') : '';
-        cell2.style = dataStyle;
+      nozzles.forEach((n, idx) => {
+        writeCell(row, 1, idx === 0 ? n.fuelName : '', dataLeftStyle);
+        writeCell(row, 2, idx === 0 ? (tank?.tankNumber ?? '') : '', dataStyle);
+        writeCell(row, 3, idx === 0 ? (tank?.density ?? 0) : '', dataStyle, idx === 0 ? 'decimal2' : undefined);
+        writeCell(row, 4, n.nozzle, dataStyle);
+        writeCell(row, 5, n.endCounter ?? 0, dataStyle, 'decimal2');
+        writeCell(row, 6, n.startCounter ?? 0, dataStyle, 'decimal2');
+        writeCell(row, 7, n.volume ?? 0, dataStyle, 'decimal2');
+        writeCell(row, 8, n.amount ?? 0, dataStyle, 'decimal2');
+        writeCell(row, 9, n.price ?? 0, dataStyle, 'decimal2');
+        writeCell(row, 10, n.cost ?? 0, dataStyle, 'decimal2');
+        writeCell(row, 11, 0, dataStyle, 'decimal2'); // погрешность проц. — нет в API
+        writeCell(row, 12, 0, dataStyle, 'decimal3'); // погрешность литры — нет в API
 
-        // Колонка 3: Плотность
-        const cell3 = worksheet.getCell(currentRow, 3);
-        if (idx === 0 && tank?.density) {
-          cell3.value = tank.density;
-          cell3.numFmt = NUM_FORMATS.decimal3;
-        } else {
-          cell3.value = idx === 0 ? '—' : '';
-        }
-        cell3.style = dataStyle;
-
-        // Колонка 4: № ТРК
-        const cell4 = worksheet.getCell(currentRow, 4);
-        cell4.value = nozzle.nozzle;
-        cell4.style = dataStyle;
-
-        // Колонка 5: на конец смены (л)
-        const cell5 = worksheet.getCell(currentRow, 5);
-        cell5.value = nozzle.endCounter;
-        cell5.numFmt = NUM_FORMATS.decimal2;
-        cell5.style = dataStyle;
-
-        // Колонка 6: на начало смены (л)
-        const cell6 = worksheet.getCell(currentRow, 6);
-        cell6.value = nozzle.startCounter;
-        cell6.numFmt = NUM_FORMATS.decimal2;
-        cell6.style = dataStyle;
-
-        // Колонка 7: Расход (л)
-        const cell7 = worksheet.getCell(currentRow, 7);
-        cell7.value = nozzle.volume;
-        cell7.numFmt = NUM_FORMATS.decimal2;
-        cell7.style = dataStyle;
-
-        // Колонка 8: Расход (кг)
-        const cell8 = worksheet.getCell(currentRow, 8);
-        cell8.value = nozzle.amount;
-        cell8.numFmt = NUM_FORMATS.decimal2;
-        cell8.style = dataStyle;
-
-        // Колонка 9: Цена за литр (руб)
-        const cell9 = worksheet.getCell(currentRow, 9);
-        cell9.value = nozzle.price;
-        cell9.numFmt = NUM_FORMATS.decimal2;
-        cell9.style = dataStyle;
-
-        // Колонка 10: Сумма (руб)
-        const cell10 = worksheet.getCell(currentRow, 10);
-        cell10.value = nozzle.cost;
-        cell10.numFmt = NUM_FORMATS.decimal2;
-        cell10.style = dataStyle;
-
-        currentRow++;
+        groupVol += n.volume ?? 0;
+        groupMass += n.amount ?? 0;
+        groupCost += n.cost ?? 0;
+        row++;
       });
 
-      // Строка "Всего"
-      const totalVolume = nozzles.reduce((sum, n) => sum + n.volume, 0);
-      const totalAmount = nozzles.reduce((sum, n) => sum + n.amount, 0);
-      const totalCost = nozzles.reduce((sum, n) => sum + n.cost, 0);
-
-      // Заполнение итоговой строки
-      for (let col = 1; col <= 10; col++) {
-        const cell = worksheet.getCell(currentRow, col);
-        cell.style = totalsStyle;
-
-        if (col === 1) {
-          cell.value = 'ВСЕГО:';
-        } else if (col === 7) {
-          cell.value = totalVolume;
-          cell.numFmt = NUM_FORMATS.decimal2;
-        } else if (col === 8) {
-          cell.value = totalAmount;
-          cell.numFmt = NUM_FORMATS.decimal2;
-        } else if (col === 10) {
-          cell.value = totalCost;
-          cell.numFmt = NUM_FORMATS.decimal2;
-        } else {
-          cell.value = '';
-        }
-      }
-      currentRow++;
+      // Строка «Всего:» — только расход л, кг и Сумма. Остальное пусто.
+      writeCell(row, 1, 'Всего:', totalsLabelStyle);
+      writeCell(row, 2, '', totalsStyle);
+      writeCell(row, 3, '', totalsStyle);
+      writeCell(row, 4, '', totalsStyle);
+      writeCell(row, 5, '', totalsStyle);
+      writeCell(row, 6, '', totalsStyle);
+      writeCell(row, 7, groupVol, totalsStyle, 'decimal2');
+      writeCell(row, 8, groupMass, totalsStyle, 'decimal2');
+      writeCell(row, 9, '', totalsStyle);
+      writeCell(row, 10, groupCost, totalsStyle, 'decimal2');
+      writeCell(row, 11, '', totalsStyle);
+      writeCell(row, 12, '', totalsStyle);
+      row++;
     });
-
-    // Финальная строка "ИТОГО:" для всей таблицы
-    const grandTotalVolume = details.nozzleReadings.reduce((sum, n) => sum + n.volume, 0);
-    const grandTotalAmount = details.nozzleReadings.reduce((sum, n) => sum + n.amount, 0);
-    const grandTotalCost = details.nozzleReadings.reduce((sum, n) => sum + n.cost, 0);
-
-    for (let col = 1; col <= 10; col++) {
-      const cell = worksheet.getCell(currentRow, col);
-      cell.style = totalsStyle;
-
-      if (col === 1) {
-        cell.value = 'ИТОГО:';
-      } else if (col === 7) {
-        cell.value = grandTotalVolume;
-        cell.numFmt = NUM_FORMATS.decimal2;
-      } else if (col === 8) {
-        cell.value = grandTotalAmount;
-        cell.numFmt = NUM_FORMATS.decimal2;
-      } else if (col === 10) {
-        cell.value = grandTotalCost;
-        cell.numFmt = NUM_FORMATS.decimal2;
-      } else {
-        cell.value = '';
-      }
-    }
-    currentRow++;
   }
-  currentRow += 2;
+  row++;
 
-  // ========== СОСТОЯНИЕ РЕЗЕРВУАРОВ ==========
-  worksheet.getCell(currentRow, 1).value = 'СОСТОЯНИЕ РЕЗЕРВУАРОВ';
-  worksheet.getCell(currentRow, 1).style = sectionTitleStyle;
-  currentRow += 2;
+  // ── 4. СОСТОЯНИЕ РЕЗЕРВУАРОВ ───────────────────────────────────────────
+  worksheet.mergeCells(row, 1, row, 19);
+  writeCell(row, 1, 'С О С Т О Я Н И Е    Р Е З Е Р В У А Р О В', sectionTitleStyle);
+  row += 2;
 
   const tankHeaders = [
-    'Наименование нефтепродуктов',
-    'N Резервуара',
-    'Плотн. на начало смены г/см3',
-    'Книжный остаток на начало смены (литры)',
-    'Книжный остаток на начало смены (кг)',
-    'Поступление в т.ч. прокачка (литры)',
-    'Поступление в т.ч. прокачка (кг)',
-    'Расход (литры)',
-    'Расход (кг)',
-    'Плотн. г/см3',
-    'Темп C',
-    'общий уров. см',
-    'общий объем л',
-    'уров. воды см',
-    'объем воды л',
-    'Факт.остаток н/п. (литры)',
-    'Факт.остаток н/п. (кг)',
-    'расчетн.кн.ост. (литры)',
-    'расчетн.кн.ост. (кг)'
+    'Наименование\nнефтепродуктов',
+    'N\nРезервуара',
+    'Плотн. на\nначало смены\nг/см3',
+    'Книжный остаток\nна начало смены\nлитры',
+    'Книжный остаток\nна начало смены\nкг',
+    'Поступление в т.ч.\nпрокачка\nлитры',
+    'Поступление в т.ч.\nпрокачка\nкг',
+    'Расход\nлитры',
+    'Расход\nкг',
+    'Остаток на конец\nПлотн.\nг/см3',
+    'Остаток на конец\nТемп.\nC',
+    'Остаток на конец\nобщий уров.\nсм',
+    'Остаток на конец\nобщий объём\nл',
+    'Остаток на конец\nуров. воды\nсм',
+    'Остаток на конец\nобъём воды\nл',
+    'Факт.остаток н/п.\nлитры',
+    'Факт.остаток н/п.\nкг',
+    'расчётн.кн.ост.\nлитры',
+    'расчётн.кн.ост.\nкг',
   ];
-
-  tankHeaders.forEach((header, idx) => {
-    const cell = worksheet.getCell(currentRow, idx + 1);
-    cell.value = header;
-    cell.style = headerStyle;
-  });
-  currentRow++;
+  tankHeaders.forEach((h, i) => writeCell(row, i + 1, h, headerStyle));
+  row++;
 
   if (details.tanks && details.tanks.length > 0) {
-    details.tanks.forEach(tank => {
+    // Сортировка: сначала по топливу (АИ-92→АИ-95→ДТ), затем по номеру резервуара
+    const sortedTanks = [...details.tanks].sort((a, b) =>
+      (a.fuelCode - b.fuelCode) || (a.tankNumber - b.tankNumber)
+    );
+    sortedTanks.forEach(tank => {
       const t = tank as any;
-      const density = t.density || 1;
+      const density = t.density ?? 0;
       const volumeBegin = t.volumeBegin ?? t.startVolume ?? 0;
       const volumeEnd = t.volumeEnd ?? t.endVolume ?? 0;
       const volumeReceived = t.volumeReceived ?? 0;
       const volumeDispensed = t.volumeDispensed ?? 0;
       const volumeCalculated = t.volumeCalculated ?? volumeEnd;
 
-      // Определяем значения и форматы для каждой колонки
-      const tankRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
-        { value: tank.fuelName || '—' },                    // 1: Наименование
-        { value: tank.tankNumber || '—' },                  // 2: N Резервуара
-        { value: density, format: 'decimal4' },             // 3: Плотн. на начало
-        { value: volumeBegin, format: 'decimal2' },         // 4: Книжный остаток (л)
-        { value: volumeBegin * density, format: 'decimal2' }, // 5: Книжный остаток (кг)
-        { value: volumeReceived, format: 'decimal2' },      // 6: Поступление (л)
-        { value: volumeReceived * density, format: 'decimal2' }, // 7: Поступление (кг)
-        { value: volumeDispensed, format: 'decimal2' },     // 8: Расход (л)
-        { value: volumeDispensed * density, format: 'decimal2' }, // 9: Расход (кг)
-        { value: density, format: 'decimal4' },             // 10: Плотн. г/см3
-        { value: t.temperature ?? null, format: 'decimal2' }, // 11: Темп C
-        { value: t.level ?? null, format: 'decimal2' },     // 12: общий уров. см
-        { value: volumeEnd, format: 'decimal2' },           // 13: общий объем л
-        { value: t.waterLevel ?? 0, format: 'decimal2' },   // 14: уров. воды см
-        { value: t.waterVolume ?? 0, format: 'decimal2' },  // 15: объем воды л
-        { value: volumeEnd, format: 'decimal2' },           // 16: Факт.остаток (л)
-        { value: volumeEnd * density, format: 'decimal2' }, // 17: Факт.остаток (кг)
-        { value: volumeCalculated, format: 'decimal2' },    // 18: расчетн.кн.ост. (л)
-        { value: volumeCalculated * density, format: 'decimal2' } // 19: расчетн.кн.ост. (кг)
-      ];
-
-      tankRowData.forEach((item, colIdx) => {
-        const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.style = dataStyle;
-
-        if (item.value === null || item.value === undefined) {
-          cell.value = '—';
-        } else if (item.format && typeof item.value === 'number') {
-          cell.value = item.value;
-          cell.numFmt = NUM_FORMATS[item.format];
-        } else {
-          cell.value = item.value;
-        }
-      });
-      currentRow++;
+      writeCell(row, 1, tank.fuelName ?? '', dataLeftStyle);
+      writeCell(row, 2, tank.tankNumber ?? '', dataStyle);
+      writeCell(row, 3, density, dataStyle, 'decimal4');
+      writeCell(row, 4, volumeBegin, dataStyle, 'decimal2');
+      writeCell(row, 5, volumeBegin * density, dataStyle, 'decimal2');
+      writeCell(row, 6, volumeReceived, dataStyle, 'decimal2');
+      writeCell(row, 7, volumeReceived * density, dataStyle, 'decimal2');
+      writeCell(row, 8, volumeDispensed, dataStyle, 'decimal2');
+      writeCell(row, 9, volumeDispensed * density, dataStyle, 'decimal2');
+      writeCell(row, 10, density, dataStyle, 'decimal4');
+      writeCell(row, 11, t.temperature ?? 0, dataStyle, 'decimal2');
+      writeCell(row, 12, t.level ?? 0, dataStyle, 'decimal2');
+      writeCell(row, 13, volumeEnd, dataStyle, 'decimal2');
+      writeCell(row, 14, t.waterLevel ?? 0, dataStyle, 'decimal2');
+      writeCell(row, 15, t.waterVolume ?? 0, dataStyle, 'decimal2');
+      writeCell(row, 16, volumeEnd, dataStyle, 'decimal2');
+      writeCell(row, 17, volumeEnd * density, dataStyle, 'decimal2');
+      writeCell(row, 18, volumeCalculated, dataStyle, 'decimal2');
+      writeCell(row, 19, volumeCalculated * density, dataStyle, 'decimal2');
+      row++;
     });
   }
-  currentRow += 2;
+  row += 2;
 
-  // ========== ПОСТУПЛЕНИЯ ==========
+  // ── 5. РАСШИФРОВКА ПОСТУПЛЕНИЙ ─────────────────────────────────────────
   if (details.receipts && details.receipts.length > 0) {
-    worksheet.getCell(currentRow, 1).value = 'РАСШИФРОВКА ПОСТУПЛЕНИЙ';
-    worksheet.getCell(currentRow, 1).style = sectionTitleStyle;
-    currentRow += 2;
+    worksheet.mergeCells(row, 1, row, 14);
+    writeCell(row, 1, 'Р А С Ш И Ф Р О В К А    П О С Т У П Л Е Н И Й', sectionTitleStyle);
+    row += 2;
 
-    const receiptHeaders = [
-      'Нефтепродукт (Наименование)',
-      'Нефтепродукт (Код)',
-      'Поставщик (Наименование)',
-      'Поставщик (Код)',
+    const recHeaders = [
+      'Нефтепродукты\nНаименование',
+      'Нефтепродукты\nКод',
+      'Поставщик\nНаименование',
+      'Поставщик\nКод',
       '№ Докум.',
       '№ рез',
-      'По документу (Объем л)',
-      'По документу (Плотн г/см3)',
-      'По документу (Масса кг)',
-      'По документу (Темп. °C)',
-      'Фактически (Объем л)',
-      'Фактически (Плотн г/см3)',
-      'Фактически (Масса кг)',
-      'Фактически (Темп. °C)'
+      'По документу\nОбъём\nл',
+      'По документу\nПлотн.\nг/см3',
+      'По документу\nМасса\nкг',
+      'По документу\nТемп.\nC',
+      'Фактически\nОбъём\nл',
+      'Фактически\nПлотн.\nг/см3',
+      'Фактически\nМасса\nкг',
+      'Фактически\nТемп.\nC',
     ];
+    recHeaders.forEach((h, i) => writeCell(row, i + 1, h, headerStyle));
+    row++;
 
-    receiptHeaders.forEach((header, idx) => {
-      const cell = worksheet.getCell(currentRow, idx + 1);
-      cell.value = header;
-      cell.style = headerStyle;
-    });
-    currentRow++;
-
-    details.receipts.forEach(receipt => {
+    // Сортируем поступления по fuelCode (АИ-92→АИ-95→ДТ), как на бумаге
+    const sortedReceipts = [...details.receipts].sort((a, b) =>
+      ((a as any).fuelCode || 0) - ((b as any).fuelCode || 0)
+    );
+    sortedReceipts.forEach(receipt => {
       const r = receipt as any;
-
-      const receiptRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
-        { value: receipt.fuelName || '—' },                         // 1: Наименование
-        { value: r.fuelCode || '—' },                               // 2: Код
-        { value: r.supplier || '—' },                               // 3: Поставщик
-        { value: '1' },                                             // 4: Код поставщика
-        { value: r.documentNumber || receipt.waybillNumber || '—' }, // 5: № Докум.
-        { value: receipt.tankNumber || '—' },                       // 6: № рез
-        { value: receipt.volume ?? 0, format: 'integer' },          // 7: По документу (Объем л)
-        { value: r.density ?? null, format: 'decimal4' },           // 8: По документу (Плотн)
-        { value: r.amount ?? 0, format: 'integer' },                // 9: По документу (Масса кг)
-        { value: r.temperature ?? null, format: 'decimal2' },       // 10: По документу (Темп)
-        { value: r.actualVolume ?? receipt.volume ?? 0, format: 'integer' }, // 11: Фактически (Объем л)
-        { value: r.actualDensity ?? r.density ?? null, format: 'decimal2' }, // 12: Фактически (Плотн)
-        { value: r.actualAmount ?? r.amount ?? 0, format: 'integer' },       // 13: Фактически (Масса кг)
-        { value: r.actualTemperature ?? r.temperature ?? null, format: 'integer' } // 14: Фактически (Темп)
-      ];
-
-      receiptRowData.forEach((item, colIdx) => {
-        const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.style = dataStyle;
-
-        if (item.value === null || item.value === undefined) {
-          cell.value = '—';
-        } else if (item.format && typeof item.value === 'number') {
-          cell.value = item.value;
-          cell.numFmt = NUM_FORMATS[item.format];
-        } else {
-          cell.value = item.value;
-        }
-      });
-      currentRow++;
+      writeCell(row, 1, receipt.fuelName ?? '', dataLeftStyle);
+      writeCell(row, 2, r.fuelCode ?? 0, dataStyle);
+      writeCell(row, 3, r.supplier ?? '', dataLeftStyle);
+      writeCell(row, 4, 1, dataStyle); // код поставщика
+      writeCell(row, 5, r.documentNumber ?? receipt.waybillNumber ?? '', dataStyle);
+      writeCell(row, 6, receipt.tankNumber ?? 0, dataStyle);
+      writeCell(row, 7, receipt.volume ?? 0, dataStyle, 'integer');
+      writeCell(row, 8, r.density ?? 0, dataStyle, 'decimal4');
+      writeCell(row, 9, r.amount ?? 0, dataStyle, 'integer');
+      writeCell(row, 10, r.temperature ?? 0, dataStyle, 'decimal2');
+      writeCell(row, 11, r.actualVolume ?? receipt.volume ?? 0, dataStyle, 'integer');
+      writeCell(row, 12, r.actualDensity ?? r.density ?? 0, dataStyle, 'decimal4');
+      writeCell(row, 13, r.actualAmount ?? r.amount ?? 0, dataStyle, 'integer');
+      writeCell(row, 14, r.actualTemperature ?? r.temperature ?? 0, dataStyle, 'decimal2');
+      row++;
     });
-
-    currentRow += 2;
+    row += 2;
   }
 
-  // ========== РАСШИФРОВКА РЕАЛИЗАЦИИ ==========
-  if (details.salesBreakdown && details.salesBreakdown.length > 0) {
-    worksheet.getCell(currentRow, 1).value = 'РАСШИФРОВКА РЕАЛИЗАЦИИ';
-    worksheet.getCell(currentRow, 1).style = sectionTitleStyle;
-    currentRow += 2;
+  // ── 6. РАСШИФРОВКА РЕАЛИЗАЦИИ (общий заголовок секции) ─────────────────
+  worksheet.mergeCells(row, 1, row, 10);
+  writeCell(row, 1, 'Р А С Ш И Ф Р О В К А    Р Е А Л И З А Ц И И', sectionTitleStyle);
+  row += 2;
 
-    const salesHeaders = [
-      'Нефтепродукты, товары (Наименование)',
-      'Нефтепродукты, товары (Код)',
-      'Прокачка л.',
-      'По картам (л.)',
-      'По картам (руб.)',
-      'Скидка руб.',
-      'За наличные (л.)',
-      'За наличные (руб.)',
-      'Безнал. л.',
-      'Всего л.',
-      'Разница л.'
-    ];
+  // Собираем список безналичных типов оплаты из salesRaw в порядке первого появления.
+  // Это единый список колонок для верхней таблицы.
+  const nonCashTypes: Array<{ key: string; displayName: string }> = [];
+  const nonCashKeys = new Set<string>();
+  (details as any).salesRaw?.forEach((sale: any) => {
+    const payName = sale.pay_type?.name || '';
+    if (!payName) return;
+    const cat = classifyPayment(payName);
+    if (cat === 'cash' || cat === 'card') return;
+    const key = payName.toLowerCase().trim();
+    if (nonCashKeys.has(key)) return;
+    nonCashKeys.add(key);
+    nonCashTypes.push({ key, displayName: payName });
+  });
 
-    salesHeaders.forEach((header, idx) => {
-      const cell = worksheet.getCell(currentRow, idx + 1);
-      cell.value = header;
-      cell.style = headerStyle;
+  // ── 6a. Верхняя таблица — безналичная расшифровка ──────────────────────
+  if (nonCashTypes.length > 0 && details.salesBreakdown && details.salesBreakdown.length > 0) {
+    // Заголовки: Наименование | Код | [Тип1 л. | Тип1 руб.] ... | ИТОГО б/н л.
+    const upperHeaders: string[] = ['Наименование', 'Код'];
+    nonCashTypes.forEach(({ displayName }) => {
+      upperHeaders.push(`${displayName}\nл.`);
+      upperHeaders.push(`${displayName}\nруб.`);
     });
-    currentRow++;
+    upperHeaders.push('ИТОГО б/н\nл.');
+    upperHeaders.forEach((h, i) => writeCell(row, i + 1, h, headerStyle));
+    row++;
 
-    let totalPumpVolume = 0;
-    let totalCardVolume = 0;
-    let totalCardCost = 0;
-    let totalDiscount = 0;
-    let totalCashVolume = 0;
-    let totalCashCost = 0;
-    let totalNonCashVolume = 0;
-    let totalVolume = 0;
-    let totalDifference = 0;
+    const upperTotals: Record<string, { vol: number; cost: number }> = {};
+    nonCashTypes.forEach(({ key }) => { upperTotals[key] = { vol: 0, cost: 0 }; });
+    let upperGrandVol = 0;
+
+    details.salesBreakdown.forEach(sale => {
+      const s = sale as any;
+      const byPay = (s.byPayType || {}) as Record<string, { volume: number; cost: number }>;
+      writeCell(row, 1, sale.fuelName ?? '', dataLeftStyle);
+      writeCell(row, 2, s.fuelCode ?? 0, dataStyle);
+      let rowTotalVol = 0;
+      nonCashTypes.forEach(({ key }, idx) => {
+        const v = byPay[key]?.volume || 0;
+        const c = byPay[key]?.cost || 0;
+        writeCell(row, 3 + idx * 2, v, dataStyle, 'decimal2');
+        writeCell(row, 4 + idx * 2, c, dataStyle, 'decimal2');
+        upperTotals[key].vol += v;
+        upperTotals[key].cost += c;
+        rowTotalVol += v;
+      });
+      writeCell(row, 3 + nonCashTypes.length * 2, rowTotalVol, dataStyle, 'decimal2');
+      upperGrandVol += rowTotalVol;
+      row++;
+    });
+
+    // Строка «Всего:»
+    writeCell(row, 1, 'Всего:', totalsLabelStyle);
+    writeCell(row, 2, '', totalsStyle);
+    nonCashTypes.forEach(({ key }, idx) => {
+      writeCell(row, 3 + idx * 2, upperTotals[key].vol, totalsStyle, 'decimal2');
+      writeCell(row, 4 + idx * 2, upperTotals[key].cost, totalsStyle, 'decimal2');
+    });
+    writeCell(row, 3 + nonCashTypes.length * 2, upperGrandVol, totalsStyle, 'decimal2');
+    row += 2;
+  }
+
+  // ── 6b. Нижняя таблица — основная расшифровка ──────────────────────────
+  if (details.salesBreakdown && details.salesBreakdown.length > 0) {
+    const lowerHeaders = [
+      'Наименование',
+      'Код',
+      'Прокачка\nл.',
+      'По картам\nл.',
+      'По картам\nруб.',
+      'Скидка\nруб.',
+      'За наличные\nл.',
+      'За наличные\nруб.',
+      'Безнал.\nл.',
+      'Всего\nл.',
+      'Разница\nл.',
+    ];
+    lowerHeaders.forEach((h, i) => writeCell(row, i + 1, h, headerStyle));
+    row++;
+
+    const lowerTotals = {
+      cardCost: 0,
+      discount: 0,
+      cashCost: 0,
+      totalVol: 0,
+    };
 
     details.salesBreakdown.forEach(sale => {
       const s = sale as any;
@@ -578,323 +426,128 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       const totalVol = s.totalVolume || 0;
       const difference = s.difference || 0;
 
-      totalPumpVolume += pumpVolume;
-      totalCardVolume += cardVolume;
-      totalCardCost += cardCost;
-      totalDiscount += discount;
-      totalCashVolume += cashVolume;
-      totalCashCost += cashCost;
-      totalNonCashVolume += nonCashVolume;
-      totalVolume += totalVol;
-      totalDifference += difference;
+      writeCell(row, 1, sale.fuelName ?? '', dataLeftStyle);
+      writeCell(row, 2, s.fuelCode ?? 0, dataStyle);
+      writeCell(row, 3, pumpVolume, dataStyle, 'decimal2');
+      writeCell(row, 4, cardVolume, dataStyle, 'decimal2');
+      writeCell(row, 5, cardCost, dataStyle, 'decimal2');
+      writeCell(row, 6, discount, dataStyle, 'decimal2');
+      writeCell(row, 7, cashVolume, dataStyle, 'decimal2');
+      writeCell(row, 8, cashCost, dataStyle, 'decimal2');
+      writeCell(row, 9, nonCashVolume, dataStyle, 'decimal2');
+      writeCell(row, 10, totalVol, dataStyle, 'decimal2');
+      writeCell(row, 11, difference, dataStyle, 'decimal2');
 
-      // Записываем данные строки с числовыми форматами
-      const salesRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
-        { value: sale.fuelName || '—' },
-        { value: s.fuelCode || '—' },
-        { value: pumpVolume, format: 'decimal2' },
-        { value: cardVolume, format: 'decimal2' },
-        { value: cardCost, format: 'currency' },
-        { value: discount, format: 'decimal2' },
-        { value: cashVolume, format: 'decimal2' },
-        { value: cashCost, format: 'currency' },
-        { value: nonCashVolume, format: 'decimal2' },
-        { value: totalVol, format: 'decimal2' },
-        { value: difference, format: 'decimal2' }
-      ];
-
-      salesRowData.forEach((item, colIdx) => {
-        const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.style = dataStyle;
-        if (item.format && typeof item.value === 'number') {
-          cell.value = item.value;
-          cell.numFmt = NUM_FORMATS[item.format];
-        } else {
-          cell.value = item.value;
-        }
-      });
-      currentRow++;
+      lowerTotals.cardCost += cardCost;
+      lowerTotals.discount += discount;
+      lowerTotals.cashCost += cashCost;
+      lowerTotals.totalVol += totalVol;
+      row++;
     });
 
-    // Итоговая строка
-    const salesTotalsData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
-      { value: 'Всего:' },
-      { value: '' },
-      { value: totalPumpVolume, format: 'decimal2' },
-      { value: totalCardVolume, format: 'decimal2' },
-      { value: totalCardCost, format: 'currency' },
-      { value: totalDiscount, format: 'decimal2' },
-      { value: totalCashVolume, format: 'decimal2' },
-      { value: totalCashCost, format: 'currency' },
-      { value: totalNonCashVolume, format: 'decimal2' },
-      { value: totalVolume, format: 'decimal2' },
-      { value: totalDifference, format: 'decimal2' }
-    ];
-
-    salesTotalsData.forEach((item, colIdx) => {
-      const cell = worksheet.getCell(currentRow, colIdx + 1);
-      cell.style = totalsStyle;
-      if (item.format && typeof item.value === 'number') {
-        cell.value = item.value;
-        cell.numFmt = NUM_FORMATS[item.format];
-      } else {
-        cell.value = item.value;
-      }
-    });
-    currentRow++;
-
-    currentRow += 2;
+    // Строка «Всего:» — как на бумаге: заполняются только суммы (руб) и Всего (л). Остальное пусто.
+    writeCell(row, 1, 'Всего:', totalsLabelStyle);
+    writeCell(row, 2, '', totalsStyle);
+    writeCell(row, 3, '', totalsStyle);  // Прокачка — пусто
+    writeCell(row, 4, '', totalsStyle);  // По картам л. — пусто
+    writeCell(row, 5, lowerTotals.cardCost, totalsStyle, 'decimal2');
+    writeCell(row, 6, lowerTotals.discount, totalsStyle, 'decimal2');
+    writeCell(row, 7, '', totalsStyle);  // За наличные л. — пусто
+    writeCell(row, 8, lowerTotals.cashCost, totalsStyle, 'decimal2');
+    writeCell(row, 9, '', totalsStyle);  // Безнал л. — пусто
+    writeCell(row, 10, lowerTotals.totalVol, totalsStyle, 'decimal2');
+    writeCell(row, 11, '', totalsStyle); // Разница — пусто
+    row += 2;
   }
 
-  // ========== РАСШИФРОВКА БЕЗНАЛИЧНОЙ РЕАЛИЗАЦИИ ==========
-  if (details.salesRaw && details.salesRaw.length > 0) {
-    worksheet.getCell(currentRow, 1).value = 'РАСШИФРОВКА БЕЗНАЛИЧНОЙ РЕАЛИЗАЦИИ';
-    worksheet.getCell(currentRow, 1).style = sectionTitleStyle;
-    currentRow += 2;
+  // ── 7. ДВИЖЕНИЕ НАЛИЧНЫХ ДЕНЕГ ─────────────────────────────────────────
+  worksheet.mergeCells(row, 1, row, 4);
+  writeCell(row, 1, 'Движение наличных денег:', sectionTitleStyle);
+  row += 2;
 
-    // isCashOrCard импортирован из paymentUtils
+  // Суммы по cashMovements (operationType). API возвращает:
+  //   opening (id 0/1) → «Принято по смене»
+  //   income  (id 3)   → «Выручка за смену» (наличная)
+  //   closing (id 7)   → «Передано по смене» (остаток на конец по всей АЗС)
+  // Отдельных операций «Внесено за смену», «Сдано в банк», «Выдано наличными» API не возвращает —
+  // считаем их исходя из баланса (приход = расход).
+  const cashMovs = details.cashMovements || [];
+  const sumByType = (t: string) => cashMovs.filter(m => m.operationType === t).reduce((s, m) => s + (m.amount || 0), 0);
 
-    // 1. Собираем уникальные безналичные типы оплаты (в порядке появления)
-    const paymentTypesSet = new Map<string, string>(); // lowercase → original name
-    details.salesRaw.forEach((sale: any) => {
-      const payName = sale.pay_type?.name || '';
-      if (payName && !isCashOrCard(payName)) {
-        const key = payName.toLowerCase().trim();
-        if (!paymentTypesSet.has(key)) {
-          paymentTypesSet.set(key, payName);
-        }
-      }
-    });
-    const paymentTypes = Array.from(paymentTypesSet.entries()); // [[key, displayName], ...]
-
-    if (paymentTypes.length > 0) {
-      // Заголовки: Наименование, Код, [тип1 (л.), тип1 (руб.)], ..., ИТОГО б/н
-      const nonCashHeaders = ['Наименование', 'Код'];
-      paymentTypes.forEach(([, displayName]) => {
-        nonCashHeaders.push(`${displayName} (л.)`);
-        nonCashHeaders.push(`${displayName} (руб.)`);
-      });
-      nonCashHeaders.push('ИТОГО б/н (л.)');
-
-      nonCashHeaders.forEach((header, idx) => {
-        const cell = worksheet.getCell(currentRow, idx + 1);
-        cell.value = header;
-        cell.style = headerStyle;
-      });
-      currentRow++;
-
-      // 2. Группируем по видам топлива с динамическими объёмами/стоимостями по типам оплаты
-      const fuelGroups = new Map<number, {
-        fuelCode: number;
-        fuelName: string;
-        byPayType: Record<string, { volume: number; cost: number }>;
-      }>();
-
-      details.salesRaw.forEach((sale: any) => {
-        const payName = sale.pay_type?.name || '';
-        const payKey = payName.toLowerCase().trim();
-        if (!payName || isCashOrCard(payName)) return;
-
-        sale.fuel?.forEach((fuelItem: any) => {
-          const fuelCode = fuelItem.service?.service_code || 0;
-          const fuelName = fuelItem.service?.service_name || 'Неизвестно';
-          const volume = Math.abs(parseFloat(fuelItem.release?.volume || '0'));
-          const cost = Math.abs(parseFloat(fuelItem.release?.cost || '0'));
-
-          if (!fuelGroups.has(fuelCode)) {
-            fuelGroups.set(fuelCode, { fuelCode, fuelName, byPayType: {} });
-          }
-          const group = fuelGroups.get(fuelCode)!;
-          if (!group.byPayType[payKey]) {
-            group.byPayType[payKey] = { volume: 0, cost: 0 };
-          }
-          group.byPayType[payKey].volume += volume;
-          group.byPayType[payKey].cost += cost;
-        });
-      });
-
-      // 3. Итоги по каждому типу
-      const totals: Record<string, { volume: number; cost: number }> = {};
-      paymentTypes.forEach(([key]) => { totals[key] = { volume: 0, cost: 0 }; });
-
-      Array.from(fuelGroups.values()).forEach(group => {
-        // Строка данных
-        const rowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
-          { value: group.fuelName },
-          { value: group.fuelCode }
-        ];
-
-        let rowTotalVolume = 0;
-        paymentTypes.forEach(([key]) => {
-          const v = group.byPayType[key]?.volume || 0;
-          const c = group.byPayType[key]?.cost || 0;
-          rowData.push({ value: v, format: 'decimal2' });
-          rowData.push({ value: c, format: 'currency' });
-          totals[key].volume += v;
-          totals[key].cost += c;
-          rowTotalVolume += v;
-        });
-        rowData.push({ value: rowTotalVolume, format: 'decimal2' });
-
-        rowData.forEach((item, colIdx) => {
-          const cell = worksheet.getCell(currentRow, colIdx + 1);
-          cell.style = dataStyle;
-          if (item.format && typeof item.value === 'number') {
-            cell.value = item.value;
-            cell.numFmt = NUM_FORMATS[item.format];
-          } else {
-            cell.value = item.value;
-          }
-        });
-        currentRow++;
-      });
-
-      // Итоговая строка
-      const nonCashTotalsData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
-        { value: 'Всего:' },
-        { value: '' }
-      ];
-      let grandTotalVolume = 0;
-      paymentTypes.forEach(([key]) => {
-        nonCashTotalsData.push({ value: totals[key].volume, format: 'decimal2' });
-        nonCashTotalsData.push({ value: totals[key].cost, format: 'currency' });
-        grandTotalVolume += totals[key].volume;
-      });
-      nonCashTotalsData.push({ value: grandTotalVolume, format: 'decimal2' });
-
-      nonCashTotalsData.forEach((item, colIdx) => {
-        const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.style = totalsStyle;
-        if (item.format && typeof item.value === 'number') {
-          cell.value = item.value;
-          cell.numFmt = NUM_FORMATS[item.format];
-        } else {
-          cell.value = item.value;
-        }
-      });
-      currentRow++;
-    }
-
-    currentRow += 2;
-  }
-
-  // ========== ДВИЖЕНИЕ НАЛИЧНЫХ ДЕНЕГ ==========
-  worksheet.getCell(currentRow, 1).value = 'ДВИЖЕНИЕ НАЛИЧНЫХ ДЕНЕГ';
-  worksheet.getCell(currentRow, 1).style = sectionTitleStyle;
-  currentRow += 2;
-
-  // Расчёт сумм как в ShiftDetailsModal
-  const revenue = (details as any).paymentSales
-    ?.find((p: any) => p.paymentTypeName?.toLowerCase().includes('наличн'))
-    ?.cost || 0;
-
-  const openingAmount = details.cashMovements
-    ?.filter((m: any) => m.operationType === 'closing')
-    .reduce((sum: number, m: any) => sum + m.amount, 0) || 0;
-
-  const incomeAmount = 0;
-  const closingAmount = openingAmount + incomeAmount + revenue;
+  const openingAmount = sumByType('opening');
+  const incomeAmount = 0; // «Внесено за смену» — нет в API
+  const revenue = sumByType('income');
   const totalIncome = openingAmount + incomeAmount + revenue;
-  const toBankAmount = 0;
+
+  const closingAmount = sumByType('closing');
+  const toBankAmount = totalIncome - closingAmount; // инкассация = разница между приходом и переданным
   const cashOutAmount = 0;
   const totalExpense = toBankAmount + cashOutAmount + closingAmount;
 
-  // Приход
-  worksheet.getCell(currentRow, 1).value = 'Принято по смене';
-  const openingCell = worksheet.getCell(currentRow, 2);
-  openingCell.value = openingAmount;
-  openingCell.numFmt = NUM_FORMATS.currency;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Внесено за смену';
-  const incomeCell = worksheet.getCell(currentRow, 2);
-  incomeCell.value = incomeAmount;
-  incomeCell.numFmt = NUM_FORMATS.currency;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Выручка за смену';
-  const revenueShiftCell = worksheet.getCell(currentRow, 2);
-  revenueShiftCell.value = revenue;
-  revenueShiftCell.numFmt = NUM_FORMATS.currency;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Итого:';
-  worksheet.getCell(currentRow, 1).font = { bold: true };
-  const totalIncomeCell = worksheet.getCell(currentRow, 2);
-  totalIncomeCell.value = totalIncome;
-  totalIncomeCell.numFmt = NUM_FORMATS.currency;
-  totalIncomeCell.font = { bold: true };
-  currentRow += 2;
-
-  // Расход
-  worksheet.getCell(currentRow, 1).value = 'Сдано в банк';
-  const toBankCell = worksheet.getCell(currentRow, 2);
-  toBankCell.value = toBankAmount;
-  toBankCell.numFmt = NUM_FORMATS.currency;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Выдано наличными';
-  const cashOutCell = worksheet.getCell(currentRow, 2);
-  cashOutCell.value = cashOutAmount;
-  cashOutCell.numFmt = NUM_FORMATS.currency;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Передано по смене';
-  const closingCell = worksheet.getCell(currentRow, 2);
-  closingCell.value = closingAmount;
-  closingCell.numFmt = NUM_FORMATS.currency;
-  currentRow++;
-
-  worksheet.getCell(currentRow, 1).value = 'Итого:';
-  worksheet.getCell(currentRow, 1).font = { bold: true };
-  const totalExpenseCell = worksheet.getCell(currentRow, 2);
-  totalExpenseCell.value = totalExpense;
-  totalExpenseCell.numFmt = NUM_FORMATS.currency;
-  totalExpenseCell.font = { bold: true };
-  worksheet.getCell(currentRow, 2).font = { bold: true };
-  currentRow++;
-
-  // Оптимальные ширины колонок (слова не переносятся)
-  const columnWidths = [
-    20,  // 1: Наименование нефтепродуктов
-    10,  // 2: Код/N Резервуара
-    15,  // 3: Плотность г/см3
-    18,  // 4: Книжный остаток/литры
-    12,  // 5: кг
-    18,  // 6: Поступление/литры
-    12,  // 7: кг
-    12,  // 8: Расход литры
-    12,  // 9: кг
-    15,  // 10: Плотность г/см3
-    10,  // 11: Темп C
-    12,  // 12: общий уров. см
-    15,  // 13: общий объем л
-    12,  // 14: уров. воды см
-    12,  // 15: объем воды л
-    18,  // 16: Факт.остаток н/п. литры
-    12,  // 17: кг
-    18,  // 18: расчетн.кн.ост. литры
-    12   // 19: кг
+  const cashRows: Array<[string, number]> = [
+    ['Принято по смене', openingAmount],
+    ['Внесено за смену', incomeAmount],
+    ['Выручка за смену', revenue],
+    ['Итого:', totalIncome],
   ];
+  cashRows.forEach(([label, amount], idx) => {
+    const isTotal = idx === 3;
+    writeCell(row, 1, label, { font: { size: 10, bold: isTotal }, alignment: { horizontal: 'right' } });
+    writeCell(row, 2, amount, { font: { size: 10, bold: isTotal }, alignment: { horizontal: 'right' } }, 'decimal2');
+    writeCell(row, 3, 'руб.', { font: { size: 10 }, alignment: { horizontal: 'left' } });
+    row++;
+  });
+  row++; // пустая строка между приходом и расходом
 
+  const expenseRows: Array<[string, number]> = [
+    ['Сдано в банк', toBankAmount],
+    ['Выдано наличными', cashOutAmount],
+    ['Передано по смене', closingAmount],
+    ['Итого:', totalExpense],
+  ];
+  expenseRows.forEach(([label, amount], idx) => {
+    const isTotal = idx === 3;
+    writeCell(row, 1, label, { font: { size: 10, bold: isTotal }, alignment: { horizontal: 'right' } });
+    writeCell(row, 2, amount, { font: { size: 10, bold: isTotal }, alignment: { horizontal: 'right' } }, 'decimal2');
+    writeCell(row, 3, 'руб.', { font: { size: 10 }, alignment: { horizontal: 'left' } });
+    row++;
+  });
+  row += 2;
+
+  // ── 8. ПОДПИСИ ─────────────────────────────────────────────────────────
+  const signatureRows = [
+    'Отчёт составили и смену сдали:',
+    'Смену приняли:',
+    'Отчёт проверил:',
+  ];
+  signatureRows.forEach(label => {
+    writeCell(row, 1, label, { font: { size: 10 }, alignment: { horizontal: 'left' } });
+    // пустое поле для подписи
+    row++;
+  });
+
+  // ── Ширины колонок ─────────────────────────────────────────────────────
+  const colWidths = [
+    20, // 1
+    8,  // 2
+    12, // 3
+    8,  // 4
+    14, 14, 12, 12, 10, 14, 12, 12, // 5-12
+    14, 14, 14, 14, 14, 14, 14,      // 13-19
+  ];
   worksheet.columns.forEach((column, idx) => {
-    if (column) {
-      column.width = columnWidths[idx] || 10;
+    if (column) column.width = colWidths[idx] || 12;
+  });
+
+  // Высота строк заголовков
+  worksheet.eachRow(r => {
+    const firstCell = r.getCell(1);
+    const firstValue = firstCell?.value;
+    if (typeof firstValue === 'string' && firstValue.includes('\n')) {
+      r.height = 50;
     }
   });
 
-  // Фиксируем высоту строк заголовков
-  worksheet.eachRow((row, rowNumber) => {
-    const firstCell = row.getCell(1);
-    // Проверяем, является ли строка заголовком по наличию fill
-    const isHeader = firstCell.style?.fill?.fgColor?.argb === 'FF334155';
-
-    if (isHeader) {
-      row.height = 150; // увеличенная высота для заголовков с переносом
-    }
-  });
-
-  // Генерация Blob
   const buffer = await workbook.xlsx.writeBuffer();
   return new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

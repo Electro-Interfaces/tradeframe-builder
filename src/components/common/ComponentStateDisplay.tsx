@@ -30,7 +30,7 @@ const StateIcons = {
 };
 
 const StateColors = {
-  loading: 'text-blue-600 dark:text-blue-400',
+  loading: 'text-primary dark:text-primary/70',
   error: 'text-red-600 dark:text-red-400',
   unauthorized: 'text-orange-600 dark:text-orange-400',
   disabled: 'text-muted-foreground',
@@ -94,7 +94,7 @@ export function ComponentStateDisplay({
               <Button
                 variant="outline"
                 onClick={onRetry}
-                className="border-border text-foreground hover:bg-secondary"
+                
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Повторить
@@ -105,7 +105,7 @@ export function ComponentStateDisplay({
               <Button
                 variant="outline"
                 onClick={() => window.location.href = '/profile'}
-                className="border-border text-foreground hover:bg-secondary"
+                
               >
                 <Lock className="w-4 h-4 mr-2" />
                 Профиль

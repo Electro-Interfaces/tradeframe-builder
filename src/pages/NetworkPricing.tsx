@@ -103,7 +103,7 @@ export default function NetworkPricing() {
             style={{ transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`, opacity: Math.min(1, (pullDistance - 30) / 40) }}>
             <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
               {pullState === 'refreshing' ? (
-                <><RefreshCw className="w-4 h-4 animate-spin text-blue-500" /><span className="text-sm font-medium">Обновление...</span></>
+                <><RefreshCw className="w-4 h-4 animate-spin text-primary" /><span className="text-sm font-medium">Обновление...</span></>
               ) : pullState === 'canRefresh' ? (
                 <><div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm font-medium text-green-600">Отпустите для обновления</span></>
               ) : (

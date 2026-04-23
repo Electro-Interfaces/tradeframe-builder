@@ -59,7 +59,7 @@ const getOperationTypeName = (type: string): string => {
  */
 const getOperationTypeColor = (type: string): string => {
   switch (type) {
-    case 'opening': return 'text-blue-600 dark:text-blue-400';
+    case 'opening': return 'text-primary dark:text-primary/70';
     case 'closing': return 'text-purple-600 dark:text-purple-400';
     case 'income': return 'text-green-600 dark:text-green-400';
     case 'expense': return 'text-red-600 dark:text-red-400';
@@ -170,7 +170,7 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
         {safeCashFlow.details.length > 0 && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
+            className="flex items-center gap-1 text-xs text-primary dark:text-primary/70 hover:text-blue-300"
           >
             <span className="hidden sm:inline">{isExpanded ? 'Скрыть детали' : 'Показать детали'}</span>
             <span className="sm:hidden">{isExpanded ? 'Скрыть' : 'Детали'}</span>
@@ -208,7 +208,7 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
           title="Расчетный остаток"
           value={formatCurrency(safeCashFlow.calculatedBalance)}
           icon={<Calculator className="w-4 h-4 text-foreground" />}
-          iconBg="bg-blue-600"
+          iconBg="bg-primary"
           isLoading={isLoading}
           subtitle="Приход − Расход"
           onClick={() => safeCashFlow.details.length > 0 && setIsExpanded(!isExpanded)}

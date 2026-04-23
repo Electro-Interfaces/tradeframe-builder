@@ -83,7 +83,7 @@ function ReceiptFuelCard({ fuel, isLoading, onClick }: { fuel: ReceiptsByFuel; i
           <div className="flex items-baseline justify-between">
             <span className="text-[10px] sm:text-xs text-muted-foreground">FACT:</span>
             <div className="flex items-baseline gap-0.5 sm:gap-1">
-              <span className="text-sm sm:text-lg text-blue-600 dark:text-blue-400">{formatVolume(fuel.factVolume)}</span>
+              <span className="text-sm sm:text-lg text-primary dark:text-primary/70">{formatVolume(fuel.factVolume)}</span>
               <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
             </div>
           </div>
@@ -276,7 +276,7 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
         {isExpanded && (
           <button
             onClick={handleCloseJournal}
-            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
+            className="flex items-center gap-1 text-xs text-primary dark:text-primary/70 hover:text-blue-300"
           >
             <span className="hidden sm:inline">Скрыть журнал</span>
             <span className="sm:hidden">Скрыть</span>
@@ -386,7 +386,7 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-foreground/80">
                         {formatVolume(item.docVolume)}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-blue-600 dark:text-blue-400">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-primary dark:text-primary/70">
                         {formatVolume(item.factVolume)}
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
@@ -434,7 +434,7 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-foreground">
                         {formatVolume(totalDoc)}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-primary dark:text-primary/70">
                         {formatVolume(totalFact)}
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold">

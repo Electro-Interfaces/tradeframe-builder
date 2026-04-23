@@ -84,7 +84,7 @@ function FuelCard({ fuel, isLoading, onClick }: FuelCardProps) {
             <span className="text-[10px] sm:text-xs text-muted-foreground">₽</span>
           </div>
           <div className="flex items-baseline gap-1 sm:gap-2">
-            <span className="text-sm sm:text-lg text-blue-600 dark:text-blue-400">{formatVolume(fuel.volume)}</span>
+            <span className="text-sm sm:text-lg text-primary dark:text-primary/70">{formatVolume(fuel.volume)}</span>
             <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
           </div>
         </div>
@@ -143,11 +143,11 @@ function PaymentCard({ title, revenue, volume, byFuel, icon, iconBg, isLoading, 
                   </div>
                   {/* Для volumeOnly показываем только литры */}
                   {volumeOnly ? (
-                    <span className="text-blue-600 dark:text-blue-400">{formatVolume(fuel.volume)} л</span>
+                    <span className="text-primary dark:text-primary/70">{formatVolume(fuel.volume)} л</span>
                   ) : (
                     <div className="text-right">
                       <div className="text-foreground/80">{formatCurrency(fuel.revenue)} ₽</div>
-                      <div className="text-blue-600 dark:text-blue-400">{formatVolume(fuel.volume)} л</div>
+                      <div className="text-primary dark:text-primary/70">{formatVolume(fuel.volume)} л</div>
                     </div>
                   )}
                 </div>
@@ -163,7 +163,7 @@ function PaymentCard({ title, revenue, volume, byFuel, icon, iconBg, isLoading, 
             {/* Для volumeOnly показываем только литры крупным шрифтом */}
             {volumeOnly ? (
               <div className="flex items-baseline gap-1">
-                <span className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400">{formatVolume(volume)}</span>
+                <span className="text-base sm:text-lg font-bold text-primary dark:text-primary/70">{formatVolume(volume)}</span>
                 <span className="text-[10px] sm:text-xs text-muted-foreground">л</span>
               </div>
             ) : (
@@ -173,7 +173,7 @@ function PaymentCard({ title, revenue, volume, byFuel, icon, iconBg, isLoading, 
                   <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">₽</span>
                 </div>
                 <div className="flex items-baseline gap-1 min-w-0">
-                  <span className="text-sm sm:text-base text-blue-600 dark:text-blue-400 truncate">{formatVolume(volume)}</span>
+                  <span className="text-sm sm:text-base text-primary dark:text-primary/70 truncate">{formatVolume(volume)}</span>
                   <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">л</span>
                 </div>
               </div>
@@ -200,9 +200,9 @@ function TotalCard({
   isLoading?: boolean;
 }) {
   return (
-    <div className="bg-gradient-to-br from-blue-50 dark:from-blue-900/50 to-card rounded-xl p-3 sm:p-4 border border-blue-300 dark:border-blue-700/50">
+    <div className="bg-gradient-to-br from-blue-50 dark:from-blue-900/50 to-card rounded-xl p-3 sm:p-4 border border-primary/30 dark:border-blue-700/50">
       <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-        <Fuel className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+        <Fuel className="w-4 h-4 sm:w-5 sm:h-5 text-primary dark:text-primary/70" />
         <span className="text-xs sm:text-sm font-bold text-foreground">{title}</span>
       </div>
 
@@ -218,7 +218,7 @@ function TotalCard({
             <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">₽</span>
           </div>
           <div className="flex items-baseline gap-1 sm:gap-2 min-w-0">
-            <span className="text-sm sm:text-xl text-blue-600 dark:text-blue-400 truncate">{formatVolume(volume)}</span>
+            <span className="text-sm sm:text-xl text-primary dark:text-primary/70 truncate">{formatVolume(volume)}</span>
             <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">л</span>
           </div>
         </div>
@@ -288,7 +288,7 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
       volumeOnly?: boolean;
     }> = {
       cash: { title: 'Наличные', icon: <Banknote className="w-4 h-4 text-foreground" />, iconBg: 'bg-emerald-600' },
-      card: { title: 'Банковские карты', icon: <CreditCard className="w-4 h-4 text-foreground" />, iconBg: 'bg-blue-600' },
+      card: { title: 'Банковские карты', icon: <CreditCard className="w-4 h-4 text-foreground" />, iconBg: 'bg-primary' },
       fuel_card: { title: 'Топл. карты', icon: <CreditCard className="w-4 h-4 text-foreground" />, iconBg: 'bg-amber-600', volumeOnly: true },
       online: { title: 'Онлайн заказы', icon: <Smartphone className="w-4 h-4 text-foreground" />, iconBg: 'bg-purple-600', volumeOnly: true },
       corporate: { title: 'Корп. карты', icon: <Building2 className="w-4 h-4 text-foreground" />, iconBg: 'bg-orange-600', volumeOnly: true },
@@ -326,7 +326,7 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
     if (methods.length === 0) {
       const legacyMethods = [
         { title: 'Наличные', paymentType: 'cash', revenue: kpis.financial.cashRevenue, volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <Banknote className="w-4 h-4 text-foreground" />, iconBg: 'bg-emerald-600', volumeOnly: false },
-        { title: 'Банковские карты', paymentType: 'card', revenue: kpis.financial.cardRevenue, volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <CreditCard className="w-4 h-4 text-foreground" />, iconBg: 'bg-blue-600', volumeOnly: false },
+        { title: 'Банковские карты', paymentType: 'card', revenue: kpis.financial.cardRevenue, volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <CreditCard className="w-4 h-4 text-foreground" />, iconBg: 'bg-primary', volumeOnly: false },
         { title: 'Онлайн', paymentType: 'online', revenue: kpis.financial.sbpRevenue, volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <Smartphone className="w-4 h-4 text-foreground" />, iconBg: 'bg-purple-600', volumeOnly: true },
         { title: 'Корп. карты', paymentType: 'corporate', revenue: (kpis.financial.corporateCardRevenue || 0) + (kpis.financial.fuelCardRevenue || 0), volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <Building2 className="w-4 h-4 text-foreground" />, iconBg: 'bg-orange-600', volumeOnly: true },
       ].filter(m => m.revenue > 0);

@@ -182,7 +182,7 @@ export default function SimpleProfile() {
         <div className="bg-card rounded-lg border border-border mb-6">
           <div className="px-6 py-6">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
                 <User className="w-8 h-8 text-foreground" />
               </div>
               <div className="flex-1">
@@ -399,7 +399,7 @@ export default function SimpleProfile() {
                   <Button 
                     type="submit" 
                     disabled={isLoading}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-primary hover:bg-primary/80"
                   >
                     {isLoading ? "Изменение..." : "Изменить пароль"}
                   </Button>

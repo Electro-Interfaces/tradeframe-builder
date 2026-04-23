@@ -340,7 +340,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                 e.stopPropagation();
                 setIsSettingsExpanded(!isSettingsExpanded);
               }}
-              className="border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
+              className="border-primary text-primary dark:text-primary/70 hover:bg-primary hover:text-white transition-colors"
             >
               <Settings className="w-4 h-4 mr-1.5" />
               <span>{isSettingsExpanded ? 'Скрыть настройки' : 'Настроить пороги'}</span>
@@ -362,7 +362,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
               e.stopPropagation();
               setIsSettingsExpanded(!isSettingsExpanded);
             }}
-            className="w-full border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
+            className="w-full border-primary text-primary dark:text-primary/70 hover:bg-primary hover:text-white transition-colors"
           >
             <Settings className="w-4 h-4 mr-2" />
             <span className="text-sm">{isSettingsExpanded ? 'Скрыть настройки' : 'Настроить пороги'}</span>
@@ -600,11 +600,11 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                   : '';
 
                 return (
-                  <tr key={index} className={`bg-di-surface-high hover:bg-di-surface-highest transition-colors group ${isBlocked ? 'ring-1 ring-red-500/30' : ''}`}>
+                  <tr key={index} className={`bg-di-surface-low hover:bg-di-surface-high/40 transition-colors group ${isBlocked ? 'ring-1 ring-red-500/30' : ''}`}>
                     {/* Резервуар */}
                     <td className="px-5 py-4 rounded-l-xl">
                       <div className="flex items-center gap-3">
-                        <Fuel className="w-5 h-5 text-blue-500 shrink-0" />
+                        <Fuel className="w-5 h-5 text-primary shrink-0" />
                         <div>
                           <p className="text-sm font-bold text-foreground">{tank.name}</p>
                           <p className="text-[10px] text-muted-foreground">{tank.fuelType}</p>
@@ -715,7 +715,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
             size="sm"
             onClick={handleSave}
             disabled={saving || !onSaveThresholds}
-            className="bg-blue-600 hover:bg-blue-700 text-white h-8"
+            className="bg-primary hover:bg-primary/80 text-white h-8"
           >
             {saving ? (
               <>

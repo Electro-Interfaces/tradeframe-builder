@@ -107,7 +107,7 @@ function MobileStationCard({
           </div>
           <div>
             <span className="text-muted-foreground">TF:</span>
-            <span className="text-blue-600 dark:text-blue-400 ml-1">{station.tfLitersTotal}</span>
+            <span className="text-primary dark:text-primary/70 ml-1">{station.tfLitersTotal}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Смена:</span>
@@ -169,7 +169,7 @@ function MobileStationCard({
                   </div>
                   <div className="grid grid-cols-3 gap-1 mt-1 text-xs">
                     <span className="text-purple-600 dark:text-purple-400">{fuel.corpLitersTotal ?? '—'}л</span>
-                    <span className="text-blue-600 dark:text-blue-400">{fuel.tfLitersTotal ?? '—'}л</span>
+                    <span className="text-primary dark:text-primary/70">{fuel.tfLitersTotal ?? '—'}л</span>
                     <span className="text-green-600 dark:text-green-400">{fuel.shiftLitersTotal ?? '—'}л</span>
                   </div>
                   {(hasDiff(corpVsTfDiff) || hasDiff(tfVsShiftDiff)) && (
@@ -206,7 +206,7 @@ function MobileStationCard({
                           <div className="flex justify-between mt-0.5">
                             <div className="flex gap-2">
                               <span className="text-purple-600 dark:text-purple-400">{shift.corpLiters ?? '—'}</span>
-                              <span className="text-blue-600 dark:text-blue-400">{shift.tfLiters ?? '—'}</span>
+                              <span className="text-primary dark:text-primary/70">{shift.tfLiters ?? '—'}</span>
                               <span className="text-green-600 dark:text-green-400">{shift.shiftLiters ?? '—'}</span>
                             </div>
                             <div className="flex items-center gap-1">
@@ -306,7 +306,7 @@ export function ReconciliationStationsTable({
                     </div>
                     <div className="text-foreground font-medium text-sm">{station.stationName}</div>
                     <div className="text-purple-600 dark:text-purple-400 text-sm text-right">{station.corpLitersTotal}</div>
-                    <div className="text-blue-600 dark:text-blue-400 text-sm text-right">{station.tfLitersTotal}</div>
+                    <div className="text-primary dark:text-primary/70 text-sm text-right">{station.tfLitersTotal}</div>
                     <div className="text-green-600 dark:text-green-400 text-sm text-right">{station.shiftLitersTotal}</div>
                     <div className={`text-sm text-right ${hasDiff(stationCorpVsTf) ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                       {formatDiff(stationCorpVsTf)}
@@ -371,7 +371,7 @@ export function ReconciliationStationsTable({
                                     </TableCell>
                                     <TableCell className="text-foreground text-xs py-1 font-medium">{fuel.fuelName}</TableCell>
                                     <TableCell className="text-purple-600 dark:text-purple-400 text-xs py-1 text-right">{fuel.corpLitersTotal ?? '—'}</TableCell>
-                                    <TableCell className="text-blue-600 dark:text-blue-400 text-xs py-1 text-right">{fuel.tfLitersTotal ?? '—'}</TableCell>
+                                    <TableCell className="text-primary dark:text-primary/70 text-xs py-1 text-right">{fuel.tfLitersTotal ?? '—'}</TableCell>
                                     <TableCell className="text-green-600 dark:text-green-400 text-xs py-1 text-right">{fuel.shiftLitersTotal ?? '—'}</TableCell>
                                     <TableCell className={`text-xs py-1 text-right ${hasDiff(corpVsTfDiff) ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                                       {formatDiff(corpVsTfDiff)}
@@ -438,7 +438,7 @@ export function ReconciliationStationsTable({
                                                       ) : shift.shiftId === 0 ? '—' : 'открыта'}
                                                     </TableCell>
                                                     <TableCell className="text-purple-600 dark:text-purple-400 text-xs py-1 text-right">{shift.corpLiters ?? '—'}</TableCell>
-                                                    <TableCell className="text-blue-600 dark:text-blue-400 text-xs py-1 text-right">{shift.tfLiters ?? '—'}</TableCell>
+                                                    <TableCell className="text-primary dark:text-primary/70 text-xs py-1 text-right">{shift.tfLiters ?? '—'}</TableCell>
                                                     <TableCell className="text-green-600 dark:text-green-400 text-xs py-1 text-right">{shift.shiftLiters ?? '—'}</TableCell>
                                                     <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftCorpVsTf) ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                                                       {formatDiff(shiftCorpVsTf)}
@@ -475,7 +475,7 @@ export function ReconciliationStationsTable({
                                                     <span className="text-muted-foreground w-24">{formatDateTime(tx.date)}</span>
                                                     <span className="text-muted-foreground font-mono w-32 truncate">{tx.cardNumber || '—'}</span>
                                                     <span className="text-purple-600 dark:text-purple-400 w-16 text-right">{tx.corpLiters ?? '—'}</span>
-                                                    <span className="text-blue-600 dark:text-blue-400 w-16 text-right">{tx.tfLiters ?? '—'}</span>
+                                                    <span className="text-primary dark:text-primary/70 w-16 text-right">{tx.tfLiters ?? '—'}</span>
                                                     <StatusBadge status={tx.status} />
                                                   </div>
                                                 ))}

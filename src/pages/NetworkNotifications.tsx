@@ -64,7 +64,7 @@ export default function NetworkNotifications() {
         <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'}`}>
           <div>
             <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
-              <Bell className={`text-blue-600 dark:text-blue-400 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
+              <Bell className={`text-primary dark:text-primary/70 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
               <h1 className={`font-bold text-foreground ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
                 Оповещения сети
               </h1>
@@ -84,7 +84,7 @@ export default function NetworkNotifications() {
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Button
-              className={`bg-blue-600 hover:bg-blue-700 ${isMobile ? 'flex-1' : ''}`}
+              className={`bg-primary hover:bg-primary/80 ${isMobile ? 'flex-1' : ''}`}
               onClick={handleCreateRule}
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -107,15 +107,15 @@ export default function NetworkNotifications() {
         {/* Табы */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-card">
-            <TabsTrigger value="rules" className="data-[state=active]:bg-blue-600">
+            <TabsTrigger value="rules" className="data-[state=active]:bg-primary">
               <Settings2 className="w-4 h-4 mr-2" />
               Правила ({rules.length})
             </TabsTrigger>
-            <TabsTrigger value="active" className="data-[state=active]:bg-blue-600">
+            <TabsTrigger value="active" className="data-[state=active]:bg-primary">
               <AlertTriangle className="w-4 h-4 mr-2" />
               Активные ({activeNotifications.length})
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-blue-600">
+            <TabsTrigger value="history" className="data-[state=active]:bg-primary">
               <Clock className="w-4 h-4 mr-2" />
               История ({historyNotifications.length})
             </TabsTrigger>
@@ -125,7 +125,7 @@ export default function NetworkNotifications() {
           <TabsContent value="rules" className="space-y-4">
             {loading ? (
               <Card className="p-12 text-center bg-card border-border">
-                <RefreshCw className="w-16 h-16 mx-auto mb-4 text-blue-500 animate-spin" />
+                <RefreshCw className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
                 <h3 className="text-xl font-semibold text-foreground mb-2">
                   Загрузка правил...
                 </h3>
@@ -139,7 +139,7 @@ export default function NetworkNotifications() {
                 <p className="text-muted-foreground mb-6">
                   Создайте первое правило для автоматических оповещений
                 </p>
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleCreateRule}>
+                <Button className="bg-primary hover:bg-primary/80" onClick={handleCreateRule}>
                   <Plus className="w-4 h-4 mr-2" />
                   Создать правило
                 </Button>

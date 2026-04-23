@@ -25,6 +25,7 @@ export function TradingPointCreateDialog({
   const [loading, setLoading] = useState(false);
   const [latitudeInput, setLatitudeInput] = useState<string>('');
   const [longitudeInput, setLongitudeInput] = useState<string>('');
+  const [codeInput, setCodeInput] = useState<string>('');
   const [formData, setFormData] = useState<TradingPointInput>({
     networkId: networkId,
     name: "",
@@ -98,6 +99,7 @@ export function TradingPointCreateDialog({
       await onSubmit(formData);
 
       // Reset form
+      setCodeInput('');
       setLatitudeInput('');
       setLongitudeInput('');
       setFormData({
@@ -149,6 +151,7 @@ export function TradingPointCreateDialog({
   };
 
   const handleCancel = () => {
+    setCodeInput('');
     setLatitudeInput('');
     setLongitudeInput('');
     setFormData({
@@ -208,7 +211,24 @@ export function TradingPointCreateDialog({
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-foreground">Основная информация</h3>
-            
+
+            <div className="space-y-2">
+              <Label htmlFor="code" className="text-foreground block">
+                Код станции
+              </Label>
+              <Input
+                id="code"
+                value={codeInput}
+                onChange={(e) => {
+                  setCodeInput(e.target.value);
+                  setFormData(prev => ({ ...prev, code: e.target.value || undefined, externalId: e.target.value || undefined }));
+                }}
+                placeholder="Автоматически, если не указан"
+                className="bg-secondary border-border text-foreground placeholder-muted-foreground"
+              />
+              <p className="text-muted-foreground text-xs">Номер станции в STS (например, 207). Если не указан — назначается автоматически.</p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name" className="text-foreground block">
                 Название <span className="text-red-600 dark:text-red-400">*</span>
@@ -413,14 +433,14 @@ export function TradingPointCreateDialog({
               variant="outline" 
               onClick={handleCancel}
               disabled={loading}
-              className="border-border text-foreground hover:bg-secondary"
+              
             >
               Отмена
             </Button>
             <Button 
               onClick={handleSubmit}
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-primary/80 text-white"
             >
               {loading ? "Создание..." : "Создать"}
             </Button>

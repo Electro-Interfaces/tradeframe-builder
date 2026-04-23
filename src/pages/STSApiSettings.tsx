@@ -446,7 +446,7 @@ export default function STSApiSettings() {
   const getMethodColor = (method: string) => {
     switch (method) {
       case 'GET': return 'bg-emerald-500/10 text-green-600 border-green-500/20 dark:text-green-400';
-      case 'POST': return 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400';
+      case 'POST': return 'bg-primary/10 text-primary border-primary/20 dark:text-primary/70';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -694,7 +694,7 @@ export default function STSApiSettings() {
                                   <strong className="text-xs">Параметры:</strong>
                                   <div className="text-xs bg-muted/50 p-2 rounded mt-1 font-mono">
                                     {Object.entries(testResults[endpoint.id].params).map(([k, v]) => (
-                                      <div key={k}><span className="text-blue-600">{k}</span>: {v}</div>
+                                      <div key={k}><span className="text-primary">{k}</span>: {v}</div>
                                     ))}
                                   </div>
                                 </div>
@@ -748,7 +748,7 @@ export default function STSApiSettings() {
                   <Label className="text-sm font-semibold">Параметры</Label>
                   {Object.entries(editableParams).map(([key, value]) => (
                     <div key={key} className="space-y-1">
-                      <Label htmlFor={`p-${key}`} className="text-xs font-mono text-blue-600">{key}</Label>
+                      <Label htmlFor={`p-${key}`} className="text-xs font-mono text-primary">{key}</Label>
                       <Input
                         id={`p-${key}`}
                         value={value}

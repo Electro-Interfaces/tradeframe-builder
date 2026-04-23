@@ -107,7 +107,7 @@ export function CashoutKPIGrid({ cashout, isLoading, className }: CashoutKPIGrid
         {safeCashout.count > 0 && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
+            className="flex items-center gap-1 text-xs text-primary dark:text-primary/70 hover:text-blue-300"
           >
             <span className="hidden sm:inline">{isExpanded ? 'Скрыть детали' : 'Показать детали'}</span>
             <span className="sm:hidden">{isExpanded ? 'Скрыть' : 'Детали'}</span>
@@ -130,7 +130,7 @@ export function CashoutKPIGrid({ cashout, isLoading, className }: CashoutKPIGrid
           title="Купюры"
           value={formatCurrency(safeCashout.totalBillAmount)}
           icon={<Banknote className="w-3 h-3 sm:w-4 sm:h-4 text-foreground" />}
-          iconBg="bg-blue-600"
+          iconBg="bg-primary"
           isLoading={isLoading}
           onClick={() => safeCashout.count > 0 && setIsExpanded(!isExpanded)}
         />
@@ -191,7 +191,7 @@ export function CashoutKPIGrid({ cashout, isLoading, className }: CashoutKPIGrid
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-muted-foreground">
                       {item.posNumber}
                     </td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-blue-600 dark:text-blue-400">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-primary dark:text-primary/70">
                       {formatCurrency(item.billAmount)}
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-foreground font-medium">
@@ -207,7 +207,7 @@ export function CashoutKPIGrid({ cashout, isLoading, className }: CashoutKPIGrid
                     <span className="hidden sm:inline">ИТОГО ({safeCashout.count} инкассаций)</span>
                     <span className="sm:hidden">Σ {safeCashout.count}</span>
                   </td>
-                  <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400">
+                  <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-primary dark:text-primary/70">
                     {formatCurrency(safeCashout.totalBillAmount)}
                   </td>
                   <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-foreground">

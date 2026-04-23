@@ -68,7 +68,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
     if (!docType.current_version) {
       return <Badge variant="outline" className="bg-secondary text-foreground/80 border-border">Не опубликован</Badge>;
     }
-    return <Badge className="bg-blue-600 text-white">v{docType.current_version.version}</Badge>;
+    return <Badge className="bg-primary text-white">v{docType.current_version.version}</Badge>;
   };
 
   const getAcceptanceIndicator = () => {
@@ -100,7 +100,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
               <FileText className="w-5 h-5 text-foreground" />
             </div>
             <div className="min-w-0 flex-1">

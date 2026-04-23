@@ -624,7 +624,7 @@ export default function OperationsTransactionsPageSimple() {
       case 'completed':
         return <Badge className="bg-secondary text-foreground text-xs px-1 py-0">ОК</Badge>;
       case 'in_progress':
-        return <Badge className="bg-blue-600 text-white text-xs px-1 py-0">В работе</Badge>;
+        return <Badge className="bg-primary text-white text-xs px-1 py-0">В работе</Badge>;
       case 'failed':
         return <Badge className="bg-red-600 text-white text-xs px-1 py-0">Ошибка</Badge>;
       case 'pending':
@@ -643,7 +643,7 @@ export default function OperationsTransactionsPageSimple() {
       <MainLayout fullWidth={true}>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+            <RefreshCw className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Инициализация данных...</p>
           </div>
         </div>
@@ -673,7 +673,7 @@ export default function OperationsTransactionsPageSimple() {
             <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
               {pullState === 'refreshing' ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
                   <span className="text-sm font-medium">Обновление...</span>
                 </>
               ) : pullState === 'canRefresh' ? (
@@ -708,7 +708,7 @@ export default function OperationsTransactionsPageSimple() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-green-600 dark:border-green-500/50 text-green-600 dark:text-green-400 hover:bg-emerald-600 hover:text-white"
+                    className=""
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Экспорт
@@ -967,7 +967,7 @@ export default function OperationsTransactionsPageSimple() {
                         className="bg-secondary border-border text-foreground h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                       />
                       <Calendar
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-blue-400 transition-colors pointer-events-none"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-primary/70 transition-colors pointer-events-none"
                       />
                     </div>
                   </>
@@ -999,7 +999,7 @@ export default function OperationsTransactionsPageSimple() {
                         className="bg-secondary border-border text-foreground h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                       />
                       <Calendar
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-blue-400 transition-colors pointer-events-none"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-primary/70 transition-colors pointer-events-none"
                       />
                     </div>
                   </>
@@ -1111,7 +1111,7 @@ export default function OperationsTransactionsPageSimple() {
                             onClick={() => handleKpiPaymentClick(key)}
                             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
                               isSelected
-                                ? 'bg-blue-600 text-white shadow-md'
+                                ? 'bg-primary text-white shadow-md'
                                 : 'bg-secondary text-foreground/80 hover:bg-secondary'
                             }`}
                           >
@@ -1149,7 +1149,7 @@ export default function OperationsTransactionsPageSimple() {
                         return (
                           <span>
                             <span className="text-muted-foreground">выбрано: </span>
-                            <span className="text-blue-600 dark:text-blue-400 font-bold">{allSelected.join(', ')}</span>
+                            <span className="text-primary dark:text-primary/70 font-bold">{allSelected.join(', ')}</span>
                           </span>
                         );
                       }
@@ -1349,7 +1349,7 @@ export default function OperationsTransactionsPageSimple() {
                       size="sm"
                       onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="border-border text-foreground/80 hover:bg-secondary"
+                      
                     >
                       ←
                     </Button>
@@ -1361,7 +1361,7 @@ export default function OperationsTransactionsPageSimple() {
                       size="sm"
                       onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage === totalPages}
-                      className="border-border text-foreground/80 hover:bg-secondary"
+                      
                     >
                       →
                     </Button>
@@ -1523,7 +1523,7 @@ export default function OperationsTransactionsPageSimple() {
                 {selectedOperation.isFromStsApi && (
                   <div className="flex justify-between py-2 border-b border-border">
                     <span className="text-muted-foreground">Источник данных:</span>
-                    <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 border-blue-600">
+                    <Badge variant="outline" className="bg-primary/10 dark:bg-blue-900 text-primary dark:text-blue-300 border-primary">
                       STS API
                     </Badge>
                   </div>

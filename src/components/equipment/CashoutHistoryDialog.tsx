@@ -64,7 +64,7 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
           size="sm"
           variant="outline"
           disabled={loading}
-          className={`border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors ${
+          className={`border-primary text-primary dark:text-primary/70 hover:bg-primary hover:text-white transition-colors ${
             isMobile ? 'flex-1' : ''
           }`}
         >
@@ -96,7 +96,7 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
             <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-4 gap-4'}`}>
               <div className="bg-secondary/30 p-3 rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">Всего инкассаций</div>
-                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{sortedRecords.length}</div>
+                <div className="text-lg font-bold text-primary dark:text-primary/70">{sortedRecords.length}</div>
               </div>
               <div className="bg-secondary/30 p-3 rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">Касса</div>

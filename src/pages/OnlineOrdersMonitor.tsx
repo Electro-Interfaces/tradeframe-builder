@@ -113,7 +113,7 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 // Цвета для топлива
 const FUEL_COLORS: Record<string, string> = {
   'АИ-92': 'bg-emerald-500',
-  'АИ-95': 'bg-blue-500',
+  'АИ-95': 'bg-primary',
   'АИ-98': 'bg-purple-500',
   'ДТ': 'bg-amber-500',
   'ДТЗ': 'bg-orange-500',
@@ -443,8 +443,8 @@ export default function OnlineOrdersMonitor() {
         {/* Заголовок */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-              <Smartphone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
+              <Smartphone className="w-6 h-6 text-primary dark:text-primary/70" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">Онлайн заказы</h1>
@@ -473,7 +473,7 @@ export default function OnlineOrdersMonitor() {
               variant="outline"
               size="sm"
               onClick={() => setIsMonitoring(!isMonitoring)}
-              className={`px-2 sm:px-3 ${isMonitoring ? 'border-yellow-500/50' : 'border-green-500/50'}`}
+              className="px-2 sm:px-3"
             >
               {isMonitoring ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </Button>
@@ -495,8 +495,8 @@ export default function OnlineOrdersMonitor() {
           <Card className="bg-card border-border">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-primary dark:text-primary/70" />
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-bold text-foreground">
@@ -511,8 +511,8 @@ export default function OnlineOrdersMonitor() {
           <Card className="bg-card border-border">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-                  <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
+                  <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-primary dark:text-primary/70" />
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
@@ -527,8 +527,8 @@ export default function OnlineOrdersMonitor() {
           <Card className="bg-card border-border">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-primary dark:text-primary/70" />
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
@@ -543,8 +543,8 @@ export default function OnlineOrdersMonitor() {
           <Card className="bg-card border-border">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-primary dark:text-primary/70" />
                 </div>
                 <div>
                   <p className="text-base sm:text-xl font-bold text-foreground">
@@ -563,8 +563,8 @@ export default function OnlineOrdersMonitor() {
           <Card className="bg-card border-border col-span-2 sm:col-span-1">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-                  <Fuel className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-1.5 sm:p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
+                  <Fuel className="w-4 h-4 sm:w-5 sm:h-5 text-primary dark:text-primary/70" />
                 </div>
                 <div>
                   <p className="text-base sm:text-xl font-bold text-foreground">
@@ -645,7 +645,7 @@ export default function OnlineOrdersMonitor() {
               <Clock className="w-4 h-4" />
               Заказы
               {filteredOrders.length > 0 && (
-                <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300">
+                <Badge variant="secondary" className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-300">
                   {filteredOrders.length}
                 </Badge>
               )}
@@ -654,7 +654,7 @@ export default function OnlineOrdersMonitor() {
           <CardContent className="p-0">
             {mstoNotConfigured ? (
               <div className="p-8 text-center">
-                <Info className="w-12 h-12 text-blue-500 mx-auto mb-3" />
+                <Info className="w-12 h-12 text-primary mx-auto mb-3" />
                 <p className="text-base font-medium text-foreground mb-1">Сервис онлайн-заказов не настроен</p>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
                   Для работы с онлайн-заказами необходимо указать коды MSTO
@@ -663,7 +663,7 @@ export default function OnlineOrdersMonitor() {
               </div>
             ) : loading && orders.length === 0 ? (
               <div className="p-8 text-center">
-                <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
+                <RefreshCw className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
                 <p className="text-lg font-medium text-foreground/80 mb-2">Загрузка онлайн-заказов...</p>
                 <p className="text-sm text-muted-foreground">
                   Первая загрузка может занять несколько секунд.<br />
@@ -697,7 +697,7 @@ export default function OnlineOrdersMonitor() {
                     onClick={() => setSelectedOrderId(order.id)}
                     className={`p-4 transition-colors cursor-pointer active:bg-secondary ${
                       newOrderIds.has(order.id)
-                        ? 'bg-blue-500/10 animate-pulse'
+                        ? 'bg-primary/10 animate-pulse'
                         : ''
                     }`}
                   >
@@ -780,7 +780,7 @@ export default function OnlineOrdersMonitor() {
                         onClick={() => setSelectedOrderId(order.id)}
                         className={`border-border transition-colors cursor-pointer ${
                           newOrderIds.has(order.id)
-                            ? 'bg-blue-500/10 animate-pulse'
+                            ? 'bg-primary/10 animate-pulse'
                             : 'hover:bg-secondary'
                         }`}
                       >

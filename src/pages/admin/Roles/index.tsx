@@ -70,7 +70,7 @@ export default function RolesPage() {
       <MainLayout fullWidth={true}>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="mt-4 text-muted-foreground">Загрузка данных...</p>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function RolesPage() {
           <div className="px-4 md:px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <Shield className="w-4 h-4 text-foreground" />
                 </div>
                 <div>
@@ -107,7 +107,7 @@ export default function RolesPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={dialogsState.openCreateDialog}
-                  className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-initial"
+                  className="bg-primary hover:bg-primary/80 text-white flex-1 sm:flex-initial"
                   size="sm"
                   disabled={rolesState.loading}
                 >

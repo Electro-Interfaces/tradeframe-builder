@@ -211,7 +211,7 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stations, stationName
       <DialogContent className="bg-card border-border w-[95vw] max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-foreground flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <Receipt className="w-5 h-5 text-primary dark:text-primary/70" />
             Чеки для пробития
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm">
@@ -222,7 +222,7 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stations, stationName
         <div className="flex-1 overflow-auto -mx-2 px-2">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-primary dark:text-primary/70" />
               <span className="ml-2 text-muted-foreground">Загрузка...</span>
             </div>
           ) : error ? (

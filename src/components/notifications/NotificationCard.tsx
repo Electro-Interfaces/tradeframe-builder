@@ -92,7 +92,7 @@ function getPriorityColor(priority: NotificationPriority): string {
     case 'critical': return 'bg-red-600';
     case 'high': return 'bg-orange-600';
     case 'medium': return 'bg-yellow-600';
-    case 'low': return 'bg-blue-600';
+    case 'low': return 'bg-primary';
     default: return 'bg-secondary';
   }
 }

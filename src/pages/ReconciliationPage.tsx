@@ -113,8 +113,8 @@ export default function ReconciliationPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-blue-600/20">
-                <FileSearch className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-primary/20">
+                <FileSearch className="h-6 w-6 text-primary dark:text-primary/70" />
               </div>
               <h1 className="text-2xl font-semibold text-foreground">Сверка корп. процессинга</h1>
             </div>
@@ -138,7 +138,7 @@ export default function ReconciliationPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
-                <FileSearch className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <FileSearch className="h-5 w-5 text-primary dark:text-primary/70" />
                 Запуск сверки
               </CardTitle>
               <CardDescription className="text-muted-foreground">
@@ -160,7 +160,7 @@ export default function ReconciliationPage() {
                 </div>
                 <div className="bg-background/50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <Building2 className="h-4 w-4 text-primary dark:text-primary/70" />
                     <h4 className="font-medium text-foreground text-xs">TF</h4>
                   </div>
                   <ul className="text-xs text-muted-foreground space-y-0.5">
@@ -186,7 +186,7 @@ export default function ReconciliationPage() {
                   onClick={handleOpenModal}
                   size="lg"
                   disabled={isLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-primary hover:bg-primary/80 text-white"
                 >
                   {isLoading ? (
                     <>
@@ -228,7 +228,7 @@ export default function ReconciliationPage() {
               </div>
               <div className="bg-background/50 rounded-lg p-4 space-y-2 border border-border/50">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold">2</div>
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary dark:text-primary/70 text-xs font-bold">2</div>
                   <h4 className="font-medium text-foreground">Суммы ↔ Смена</h4>
                 </div>
                 <p className="text-sm text-muted-foreground pl-8">

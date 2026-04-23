@@ -89,7 +89,7 @@ export function CouponTableMobile({
                       <CouponStatusBadge stateName={coupon.state.name} variant="compact" />
                       {coupon.type && (
                         <span className={`text-[9px] ${
-                          coupon.type.id === 0 ? 'text-muted-foreground' : 'text-blue-600 dark:text-blue-400'
+                          coupon.type.id === 0 ? 'text-muted-foreground' : 'text-primary dark:text-primary/70'
                         }`}>
                           {coupon.type.name}
                         </span>
@@ -128,7 +128,7 @@ export function CouponTableMobile({
             size="sm"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="border-border text-foreground/80 hover:bg-secondary"
+            
           >
             ←
           </Button>
@@ -140,7 +140,7 @@ export function CouponTableMobile({
             size="sm"
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="border-border text-foreground/80 hover:bg-secondary"
+            
           >
             →
           </Button>

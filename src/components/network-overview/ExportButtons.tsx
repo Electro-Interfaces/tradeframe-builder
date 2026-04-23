@@ -30,7 +30,7 @@ export function ExportButtons({
         <Button
           variant="outline"
           size="sm"
-          className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-foreground"
+          className=""
         >
           <Download className="h-4 w-4 mr-2" />
           Экспорт

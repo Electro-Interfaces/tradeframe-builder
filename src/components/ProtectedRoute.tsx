@@ -26,7 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
     // Показываем собственный лоадер для надежности
     return (
       <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-background font-sans">
-        <div className="w-[60px] h-[60px] bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-600/30">
+        <div className="w-[60px] h-[60px] bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-600/30">
           <Loader2 className="w-8 h-8 animate-spin text-white" />
         </div>
         <p className="text-base text-muted-foreground m-0">Проверка авторизации...</p>

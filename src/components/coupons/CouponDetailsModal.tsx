@@ -34,9 +34,9 @@ export function CouponDetailsModal({ isOpen, onOpenChange, coupon }: CouponDetai
               </div>
             </div>
 
-            <div className="flex justify-between py-2 border-b border-border bg-blue-100 dark:bg-blue-900/30 px-2 -mx-2 rounded">
+            <div className="flex justify-between py-2 border-b border-border bg-primary/10 dark:bg-blue-900/30 px-2 -mx-2 rounded">
               <span className="text-foreground/80 font-medium">Тип топлива:</span>
-              <span className="text-blue-600 dark:text-blue-300 font-bold text-lg">{coupon.service.service_name}</span>
+              <span className="text-primary dark:text-blue-300 font-bold text-lg">{coupon.service.service_name}</span>
             </div>
 
             <div className="flex justify-between py-2 border-b border-border">

@@ -53,7 +53,7 @@ export function TankCalibrationDialog({ tank, open, onOpenChange }: TankCalibrat
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-base">
             Параметры, анализ и версии калибровки:
-            <span className="ml-1 text-blue-600 dark:text-blue-400 font-semibold text-lg">
+            <span className="ml-1 text-primary dark:text-primary/70 font-semibold text-lg">
               {selectedNetwork?.name || 'Компания не выбрана'} / {selectedStation?.name || 'Станция не выбрана'} / {tank.name} ({tank.fuelType})
             </span>
           </DialogDescription>

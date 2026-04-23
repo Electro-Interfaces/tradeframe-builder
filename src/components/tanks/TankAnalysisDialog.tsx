@@ -217,7 +217,7 @@ function TankAnalysisPanel({ items }: { items: AnalysisItem[] }) {
 }
 
 const anomalySeverityConfig: Record<AnomalySeverity, { icon: string; border: string; bg: string; text: string }> = {
-  info: { icon: 'text-blue-500', border: 'border-blue-500/30', bg: 'bg-blue-500/5', text: 'text-blue-700 dark:text-blue-300' },
+  info: { icon: 'text-primary', border: 'border-primary/30', bg: 'bg-primary/5', text: 'text-primary dark:text-blue-300' },
   warning: { icon: 'text-amber-500', border: 'border-amber-500/30', bg: 'bg-amber-500/5', text: 'text-amber-700 dark:text-amber-300' },
   critical: { icon: 'text-red-500', border: 'border-red-500/30', bg: 'bg-red-500/5', text: 'text-red-700 dark:text-red-300' }
 };
@@ -483,7 +483,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
           <DialogHeader className="p-0 space-y-0">
             <DialogTitle className="text-base font-semibold flex items-center gap-2.5">
               {tank.name}
-              <Badge variant="outline" className="text-[10px] font-semibold px-2 py-0 h-5 border-blue-500/40 text-blue-500 dark:text-blue-400">
+              <Badge variant="outline" className="text-[10px] font-semibold px-2 py-0 h-5 border-primary/40 text-primary dark:text-primary/70">
                 {tank.fuelType}
               </Badge>
             </DialogTitle>
@@ -500,7 +500,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                 size="sm"
                 onClick={() => setPeriod(filter.value)}
                 disabled={loading}
-                className={`h-7 text-xs px-3 rounded-full ${period === filter.value ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`h-7 text-xs px-3 rounded-full ${period === filter.value ? 'bg-primary hover:bg-primary/80 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 {filter.label}
               </Button>
@@ -520,7 +520,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                 }
               }}
               disabled={loading}
-              className={`h-7 text-xs px-3 rounded-full ${period === 'custom' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`h-7 text-xs px-3 rounded-full ${period === 'custom' ? 'bg-primary hover:bg-primary/80 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Период
             </Button>
@@ -566,7 +566,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         {/* Состояние загрузки/ошибки */}
         {loading && (
           <div className="flex flex-col justify-center items-center flex-1 min-h-0 gap-3 px-5">
-            <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+            <RefreshCw className="w-8 h-8 text-primary animate-spin" />
             <div className="text-center">
               <p className="text-foreground/80 text-xs mb-2">{loadingStage}</p>
               <div className="flex gap-4 text-[11px]">

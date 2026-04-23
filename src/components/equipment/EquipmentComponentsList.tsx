@@ -122,10 +122,10 @@ const getStatusConfig = (status: ComponentStatus) => {
     case 'archived':
       return {
         icon: Archive,
-        color: 'text-blue-500',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200',
-        badgeColor: 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400',
+        color: 'text-primary',
+        bgColor: 'bg-primary/5',
+        borderColor: 'border-primary/20',
+        badgeColor: 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary/70',
         text: 'Архив'
       };
     default:
@@ -586,7 +586,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 w-8 p-0 text-foreground/80 hover:text-blue-400 hover:bg-blue-500/20 border border-border"
+                      className="h-8 w-8 p-0 text-foreground/80 hover:text-primary/70 hover:bg-primary/90/20 border border-border"
                       title="Управление командами"
                     >
                       <Terminal className="h-4 w-4" />
@@ -620,7 +620,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-blue-400"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-primary/70"
                                   onClick={() => handleEditCommand(command)}
                                   title="Редактировать"
                                 >
@@ -781,7 +781,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                   setCommandParams({});
                   setSelectedTemplateId('');
                 }}
-                className="border-border text-foreground/80 hover:bg-secondary hover:text-foreground"
+                
               >
                 Отмена
               </Button>
@@ -797,7 +797,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                 <Button 
                   onClick={handleAddCommand}
                   disabled={!selectedTemplateId || !showParamsForm}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-primary hover:bg-primary/80 text-white"
                 >
                   Добавить
                 </Button>

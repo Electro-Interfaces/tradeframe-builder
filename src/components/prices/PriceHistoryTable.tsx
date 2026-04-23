@@ -22,14 +22,14 @@ interface PriceHistoryTableProps {
 
 function getBarConfig(change: { diff: number; percent: number } | null | undefined) {
   if (!change) return {
-    barColor: 'bg-blue-500',
+    barColor: 'bg-primary',
     barGlow: 'dark:shadow-[0_0_12px_rgba(37,99,235,0.25)]',
     icon: null,
     textColor: 'text-di-on-surface-variant',
     text: 'Первая цена'
   };
   if (change.diff !== 0) return {
-    barColor: 'bg-blue-500',
+    barColor: 'bg-primary',
     barGlow: 'dark:shadow-[0_0_12px_rgba(37,99,235,0.25)]',
     icon: change.diff > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />,
     textColor: 'text-di-primary-light',
@@ -98,7 +98,7 @@ export function PriceHistoryTable({
       {/* Content */}
       {isLoadingSchedule ? (
         <div className="flex items-center justify-center py-8">
-          <RefreshCw className="w-5 h-5 animate-spin text-blue-500 mr-2" />
+          <RefreshCw className="w-5 h-5 animate-spin text-primary mr-2" />
           <span className="text-muted-foreground text-sm">Загрузка истории цен...</span>
         </div>
       ) : priceSchedule.length === 0 ? (

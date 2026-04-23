@@ -73,7 +73,7 @@ export default function Tanks() {
             <Fuel className="h-12 w-12 text-red-600 dark:text-red-400 mx-auto mb-4" />
             <h2 className="text-lg font-headline font-bold text-foreground mb-2">Ошибка загрузки</h2>
             <p className="text-muted-foreground text-sm mb-4">{error.message}</p>
-            <Button onClick={refreshTanks} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={refreshTanks} disabled={loading} size="sm" className="bg-primary hover:bg-primary/80 text-white">
               <RefreshCw className="w-4 h-4 mr-2" />
               Повторить
             </Button>
@@ -110,7 +110,7 @@ export default function Tanks() {
               size="sm"
               onClick={refreshTanks}
               disabled={loading}
-              className="border-di-outline-variant/15 text-muted-foreground hover:bg-di-surface-high"
+              
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -121,7 +121,7 @@ export default function Tanks() {
         {loading && tanks.length === 0 ? (
           <div className="flex justify-center items-center h-64">
             <div className="text-center">
-              <RefreshCw className="w-5 h-5 text-blue-500 animate-spin mx-auto mb-3" />
+              <RefreshCw className="w-5 h-5 text-primary animate-spin mx-auto mb-3" />
               <p className="text-muted-foreground text-sm">Загрузка резервуаров...</p>
             </div>
           </div>

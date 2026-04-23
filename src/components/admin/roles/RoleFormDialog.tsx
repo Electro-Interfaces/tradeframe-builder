@@ -380,7 +380,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
               {(formData.scope === 'trading_point' || formData.scope === 'assigned') && (
                 <div className="space-y-4 p-4 bg-card/50 border border-border rounded-lg">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
                     <h4 className="font-medium text-foreground">Ограничение доступа к торговым точкам</h4>
                   </div>
 
@@ -435,7 +435,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
               {/* Подсказка о следующем шаге */}
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <div className="text-blue-600 dark:text-blue-400">ℹ️</div>
+                  <div className="text-primary dark:text-primary/70">ℹ️</div>
                   <div>
                     <h4 className="font-medium text-foreground">Следующий шаг: Настройка разрешений</h4>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -450,7 +450,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-blue-600 dark:text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-primary dark:text-primary/70 hover:text-blue-300"
                         onClick={() => setActiveTab('permissions')}
                       >
                         Перейти к настройке разрешений →
@@ -481,8 +481,8 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     <span className="text-green-600 dark:text-green-300 font-medium">Чтение</span> - просмотр данных
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-blue-200 dark:bg-blue-800 border border-blue-600 rounded"></div>
-                    <span className="text-blue-600 dark:text-blue-300 font-medium">Запись</span> - создание и редактирование
+                    <div className="w-3 h-3 bg-primary/20 dark:bg-primary/90 border border-primary rounded"></div>
+                    <span className="text-primary dark:text-blue-300 font-medium">Запись</span> - создание и редактирование
                   </div>
                   <div className="flex items-center space-x-1">
                     <div className="w-3 h-3 bg-red-200 dark:bg-red-800 border border-red-600 rounded"></div>
@@ -577,7 +577,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                                 const isChecked = hasPermission(section.code, resource.code, action)
                                 const colorClasses = {
                                   read: isChecked ? 'border-green-500 bg-emerald-100 dark:bg-emerald-900 text-green-600 dark:text-green-300' : 'border-border bg-secondary text-muted-foreground',
-                                  write: isChecked ? 'border-blue-500 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : 'border-border bg-secondary text-muted-foreground', 
+                                  write: isChecked ? 'border-primary bg-primary/10 dark:bg-blue-900 text-primary dark:text-blue-300' : 'border-border bg-secondary text-muted-foreground', 
                                   delete: isChecked ? 'border-red-500 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300' : 'border-border bg-secondary text-muted-foreground',
                                   manage: isChecked ? 'border-purple-500 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300' : 'border-border bg-secondary text-muted-foreground',
                                   view_menu: isChecked ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300' : 'border-border bg-secondary text-muted-foreground'

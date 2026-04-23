@@ -155,7 +155,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "flex items-center justify-between w-full px-3 py-2 text-sm bg-secondary border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]",
+            "flex items-center justify-between w-full px-3 py-2 text-sm bg-secondary border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary min-w-[160px]",
             disabled && "opacity-50 cursor-not-allowed hover:bg-secondary",
             className
           )}
@@ -197,7 +197,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
-              className="w-full bg-secondary dark:bg-di-surface-lowest border border-border/20 dark:border-di-outline-variant/15 rounded-xl py-2.5 pl-10 pr-4 text-sm text-foreground focus:outline-none focus:border-blue-500/40 transition-all placeholder:text-muted-foreground/50"
+              className="w-full bg-secondary dark:bg-di-surface-lowest border border-border/20 dark:border-di-outline-variant/15 rounded-xl py-2.5 pl-10 pr-4 text-sm text-foreground focus:outline-none focus:border-primary/40 transition-all placeholder:text-muted-foreground/50"
               placeholder="Поиск станции..."
               type="text"
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -206,7 +206,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
           </div>
         </div>
 
-        <div className={cn("overflow-y-auto", isMobile ? "max-h-[45vh] px-4 py-1" : "max-h-[320px] px-3 py-1")}>
+        <div className={cn("overflow-y-auto", isMobile ? "max-h-[55vh] px-4 py-1" : "max-h-[60vh] px-3 py-1")}>
           <ul className="space-y-0.5">
             {/* Выбрать все */}
             {tradingPoints.length > 1 && (
@@ -215,19 +215,19 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
                 className={cn(
                   "flex items-center gap-3 rounded-xl cursor-pointer transition-all",
                   isMobile ? "px-3 py-2" : "px-3 py-1.5",
-                  isAllSelected ? "bg-blue-50 dark:bg-[#2563eb]/10 border border-blue-200 dark:border-[#2563eb]/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
+                  isAllSelected ? "bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
                 )}
                 onClick={handleToggleAll}
               >
                 <Checkbox
                   checked={isAllSelected}
                   className={cn(
-                    "data-[state=checked]:bg-[#2563eb] data-[state=checked]:border-[#2563eb] border-di-outline-variant",
+                    "data-[state=checked]:bg-primary data-[state=checked]:border-primary border-di-outline-variant",
                     isMobile && "h-5 w-5"
                   )}
                 />
-                <span className={cn("rounded-full bg-blue-400", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
-                <span className={cn("truncate font-medium text-foreground", isAllSelected && "text-blue-700 dark:text-blue-200")}>
+                <span className={cn("rounded-full bg-primary/70", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
+                <span className={cn("truncate font-medium text-foreground", isAllSelected && "text-primary dark:text-blue-200")}>
                   {hasRestrictedAccess ? `Все доступные (${tradingPoints.length})` : "Все торговые точки"}
                 </span>
               </li>
@@ -244,13 +244,13 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
                   className={cn(
                     "flex items-center gap-3 rounded-xl transition-all",
                     isMobile ? "px-3 py-2" : "px-3 py-1.5",
-                    isSelected ? "bg-blue-50 dark:bg-[#2563eb]/10 border border-blue-200 dark:border-[#2563eb]/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
+                    isSelected ? "bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
                   )}
                 >
                   <Checkbox
                     checked={isSelected}
                     className={cn(
-                      "data-[state=checked]:bg-[#2563eb] data-[state=checked]:border-[#2563eb] border-di-outline-variant cursor-pointer shrink-0",
+                      "data-[state=checked]:bg-primary data-[state=checked]:border-primary border-di-outline-variant cursor-pointer shrink-0",
                       isMobile && "h-5 w-5"
                     )}
                     onCheckedChange={() => handleToggle(point.id)}
@@ -279,7 +279,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
                       {point.description && <span className="text-di-on-surface-variant"> - {point.description}</span>}
                     </span>
                     {point.external_id && (
-                      <span className="text-xs text-blue-400 font-mono shrink-0">({point.external_id})</span>
+                      <span className="text-xs text-primary/70 font-mono shrink-0">({point.external_id})</span>
                     )}
                   </div>
                 </li>
@@ -304,7 +304,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
               )}
               <button
                 className={cn(
-                  "flex-1 font-bold text-white bg-[#2563eb] hover:bg-blue-600 active:scale-[0.98] rounded-xl transition-all shadow-[0_8px_20px_rgba(37,99,235,0.3)] flex items-center justify-center gap-1",
+                  "flex-1 font-bold text-white bg-primary hover:bg-primary active:scale-[0.98] rounded-xl transition-all shadow-[0_8px_20px_rgba(37,99,235,0.3)] flex items-center justify-center gap-1",
                   isMobile ? "px-4 py-3 text-sm" : "px-3 py-1.5 text-sm"
                 )}
                 onClick={() => setOpen(false)}

@@ -171,7 +171,7 @@ export function PermissionBuilder() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -248,7 +248,7 @@ export function PermissionBuilder() {
                     size="sm"
                     onClick={resetPermissions}
                     disabled={!hasChanges()}
-                    className="border-border text-foreground/80 hover:bg-secondary"
+                    
                   >
                     Сбросить
                   </Button>
@@ -256,7 +256,7 @@ export function PermissionBuilder() {
                     size="sm"
                     onClick={savePermissions}
                     disabled={!hasChanges() || saving}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-primary hover:bg-primary/80"
                   >
                     {saving ? 'Сохранение...' : 'Сохранить'}
                   </Button>
@@ -295,7 +295,7 @@ export function PermissionBuilder() {
                               const isChecked = hasPermission(section.code, resource.code, typedAction)
                               const colorClasses: Record<PermissionAction, string> = {
                                 read: isChecked ? 'border-green-500 bg-emerald-100 dark:bg-emerald-900 text-green-600 dark:text-green-300' : 'border-border bg-secondary text-muted-foreground hover:border-green-400',
-                                write: isChecked ? 'border-blue-500 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : 'border-border bg-secondary text-muted-foreground hover:border-blue-400',
+                                write: isChecked ? 'border-primary bg-primary/10 dark:bg-blue-900 text-primary dark:text-blue-300' : 'border-border bg-secondary text-muted-foreground hover:border-primary/40',
                                 delete: isChecked ? 'border-red-500 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300' : 'border-border bg-secondary text-muted-foreground hover:border-red-400',
                                 manage: isChecked ? 'border-purple-500 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300' : 'border-border bg-secondary text-muted-foreground hover:border-purple-400',
                                 view_menu: isChecked ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300' : 'border-border bg-secondary text-muted-foreground hover:border-yellow-400'

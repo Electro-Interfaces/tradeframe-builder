@@ -108,7 +108,7 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
 
           <div className="space-y-2">
             <Label htmlFor="external_id" className="text-foreground block">
-              ID для API <span className="text-blue-600 dark:text-blue-400">*</span>
+              ID для API <span className="text-primary dark:text-primary/70">*</span>
             </Label>
             <Input
               id="external_id"
@@ -199,14 +199,14 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
               variant="outline" 
               onClick={handleCancel}
               disabled={loading}
-              className="border-border text-foreground hover:bg-secondary"
+              
             >
               Отмена
             </Button>
             <Button 
               onClick={handleSubmit}
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-primary/80 text-white"
             >
               {loading ? "Сохранение..." : "Сохранить"}
             </Button>

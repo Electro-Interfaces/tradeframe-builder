@@ -112,8 +112,8 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const isActive = (path: string) => window.location.pathname === path;
   const getNavCls = (active: boolean) =>
     active
-      ? "bg-blue-600 text-white font-medium transition-colors duration-200"
-      : "transition-colors duration-200 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground";
+      ? "bg-primary text-white font-medium transition-colors duration-200 shadow-md shadow-primary/20"
+      : "transition-colors duration-200 hover:bg-sidebar-accent text-sidebar-foreground/80 hover:text-sidebar-foreground";
 
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
@@ -292,7 +292,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
           {renderMenuContent()}
         </div>
       ) : (
-        <Sidebar collapsible="icon" className="border-r-0 bg-sidebar">
+        <Sidebar collapsible="icon" className="border-r-0 bg-sidebar shadow-[4px_0_16px_0_rgba(13,28,46,0.04)]">
           <SidebarContent
             className="pt-header scrollbar-hide bg-sidebar"
             onScroll={handleScroll}

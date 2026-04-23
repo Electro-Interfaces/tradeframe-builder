@@ -329,8 +329,8 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
       <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-3xl max-h-[90vh]'} overflow-hidden flex flex-col bg-background border-border text-foreground`}>
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
-              <UserIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <UserIcon className="w-5 h-5 text-primary dark:text-primary/70" />
             </div>
             {user ? 'Редактирование пользователя' : 'Новый пользователь'}
           </DialogTitle>
@@ -358,7 +358,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Иван Петров"
                   required
-                  className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500"
+                  className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -373,7 +373,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="user@company.com"
                   required
-                  className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500"
+                  className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -387,7 +387,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                       key={option.value}
                       className={`relative flex items-start space-x-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
                         formData.status === option.value
-                          ? 'border-blue-500 bg-blue-500/10'
+                          ? 'border-primary bg-primary/10'
                           : 'border-border bg-card hover:border-border'
                       }`}
                       onClick={() => setFormData(prev => ({ ...prev, status: option.value }))}
@@ -429,7 +429,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   htmlFor="no-role"
                   className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
                     selectedRole === ''
-                      ? 'border-blue-500 bg-blue-500/10'
+                      ? 'border-primary bg-primary/10'
                       : 'border-border bg-card/50 hover:bg-card'
                   }`}
                 >
@@ -439,7 +439,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     name="user-role"
                     checked={selectedRole === ''}
                     onChange={() => setSelectedRole('')}
-                    className="mt-1 h-4 w-4 text-blue-600 border-border bg-card focus:ring-blue-500"
+                    className="mt-1 h-4 w-4 text-primary border-border bg-card focus:ring-primary"
                   />
                   <div className="flex-1">
                     <span className="font-medium text-foreground">Без роли</span>
@@ -454,7 +454,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     htmlFor={`role-${role.id}`}
                     className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
                       selectedRole === role.id
-                        ? 'border-blue-500 bg-blue-500/10'
+                        ? 'border-primary bg-primary/10'
                         : 'border-border bg-card/50 hover:bg-card'
                     }`}
                   >
@@ -464,7 +464,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                       name="user-role"
                       checked={selectedRole === role.id}
                       onChange={() => setSelectedRole(role.id)}
-                      className="mt-1 h-4 w-4 text-blue-600 border-border bg-card focus:ring-blue-500"
+                      className="mt-1 h-4 w-4 text-primary border-border bg-card focus:ring-primary"
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -519,8 +519,8 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
             )}
 
             {selectedRoleData && (selectedRoleData.scope === 'trading_point' || selectedRoleData.scope === 'assigned') && (
-              <div className="mt-4 p-4 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700/50 rounded-lg space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-300">
+              <div className="mt-4 p-4 bg-primary/10 dark:bg-blue-900/20 border border-primary/30 dark:border-blue-700/50 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary dark:text-blue-300">
                   <MapPin className="w-4 h-4" />
                   Доступ к торговым точкам
                 </div>
@@ -551,7 +551,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   />
                 </div>
                 {scopePointIds.length > 0 && (
-                  <div className="text-xs text-blue-600 dark:text-blue-400">
+                  <div className="text-xs text-primary dark:text-primary/70">
                     ✓ Выбрано точек: {scopePointIds.length}
                   </div>
                 )}
@@ -573,7 +573,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                 variant="outline"
                 size="sm"
                 onClick={handleGeneratePassword}
-                className="border-border text-foreground/80 hover:bg-secondary hover:text-foreground"
+                
               >
                 <Sparkles className="w-3.5 h-3.5 mr-2" />
                 Сгенерировать
@@ -581,8 +581,8 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
             </div>
 
             {user && (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                <p className="text-sm text-blue-600 dark:text-blue-300">
+              <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
+                <p className="text-sm text-primary dark:text-blue-300">
                   💡 Оставьте поля пустыми, если не хотите изменять пароль
                 </p>
               </div>
@@ -601,7 +601,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Минимум 6 символов"
                     required={!user}
-                    className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500 pr-10"
+                    className="h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary pr-10"
                   />
                   <button
                     type="button"
@@ -625,7 +625,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                   onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   placeholder="Повторите пароль"
                   required={!user}
-                  className={`h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500 ${
+                  className={`h-11 bg-card border-border text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary ${
                     formData.confirmPassword && formData.password !== formData.confirmPassword
                       ? 'border-red-500 focus:ring-red-500' : ''
                   }`}
@@ -644,14 +644,14 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="border-border text-foreground/80 hover:bg-secondary hover:text-foreground"
+            
           >
             Отмена
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 min-w-[120px]"
+            className="bg-primary hover:bg-primary/80 min-w-[120px]"
           >
             {loading ? 'Сохранение...' : user ? 'Сохранить' : 'Создать'}
           </Button>

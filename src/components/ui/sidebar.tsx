@@ -397,7 +397,7 @@ function SidebarDragEdge() {
   return (
     <div
       onMouseDown={handleMouseDown}
-      className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500/30 active:bg-blue-500/50 transition-colors z-20"
+      className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/90/30 active:bg-primary/50 transition-colors z-20"
       title="Потяните для сворачивания меню"
     />
   )

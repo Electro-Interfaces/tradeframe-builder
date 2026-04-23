@@ -344,14 +344,14 @@ export default function Messages() {
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <Mail className="h-4 w-4 text-foreground" />
                 </div>
                 <h2 className="text-lg font-semibold text-foreground">Техподдержка</h2>
               </div>
               <Button 
                 onClick={() => setIsCreateTicketOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary hover:bg-primary/80 text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Создать тикет
@@ -458,14 +458,14 @@ export default function Messages() {
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <Bot className="h-4 w-4 text-foreground" />
                 </div>
                 <h2 className="text-lg font-semibold text-foreground">Telegram-боты</h2>
               </div>
               <Button 
                 onClick={() => setIsCreateBotOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary hover:bg-primary/80 text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Добавить бота
@@ -580,7 +580,7 @@ export default function Messages() {
               {/* ... форма создания тикета ... */}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateTicketOpen(false)}>Отмена</Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700"><Send className="h-4 w-4 mr-2" />Отправить</Button>
+                <Button type="submit" className="bg-primary hover:bg-primary/80"><Send className="h-4 w-4 mr-2" />Отправить</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -601,7 +601,7 @@ export default function Messages() {
               {/* ... форма создания/редактирования бота ... */}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => { setIsCreateBotOpen(false); setEditingBot(null); }}>Отмена</Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700"><Settings className="h-4 w-4 mr-2" />{editingBot ? "Обновить" : "Создать"}</Button>
+                <Button type="submit" className="bg-primary hover:bg-primary/80"><Settings className="h-4 w-4 mr-2" />{editingBot ? "Обновить" : "Создать"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>

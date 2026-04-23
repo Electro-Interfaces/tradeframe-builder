@@ -442,7 +442,7 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
               >
                 Отмена
               </Button>
-              <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/80">
                 {saving ? 'Сохранение...' : isEditing ? 'Сохранить' : 'Создать'}
               </Button>
             </DialogFooter>

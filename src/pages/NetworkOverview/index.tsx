@@ -271,7 +271,7 @@ export function NetworkOverview() {
             <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
               {pullState === 'refreshing' ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
                   <span className="text-sm font-medium">Обновление...</span>
                 </>
               ) : pullState === 'canRefresh' ? (
@@ -304,7 +304,7 @@ export function NetworkOverview() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
+                      variant="outline"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Экспорт
@@ -358,7 +358,7 @@ export function NetworkOverview() {
                         handleManualRefresh();
                       }}
                       disabled={loading}
-                      className="border-border text-foreground hover:bg-secondary"
+                      
                     >
                       <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
@@ -556,7 +556,7 @@ export function NetworkOverview() {
         {initializing && (
           <div className="bg-card border border-border rounded-lg p-8 text-center">
             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Инициализация</h3>
             <p className="text-muted-foreground">Загружаем конфигурацию и данные...</p>
@@ -596,7 +596,7 @@ export function NetworkOverview() {
             <p className="text-muted-foreground mb-4">Измените диапазон дат или нажмите кнопку "Обновить данные" для загрузки актуальной информации.</p>
             <Button
               onClick={() => loadTransactions()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-primary/80 text-white"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Обновить данные
@@ -640,7 +640,7 @@ export function NetworkOverview() {
                   }, 1000);
                 }}
                 variant="outline"
-                className="border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-700/20"
+                className="border-primary text-primary dark:text-primary/70 hover:bg-primary/80/20"
               >
                 🔄 Перепроверить настройки
               </Button>

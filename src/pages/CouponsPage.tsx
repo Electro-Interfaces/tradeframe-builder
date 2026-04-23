@@ -10,7 +10,8 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useStationNetworkId } from '@/hooks/useStationNetworkId';
 import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
-import { Download, Plus, RefreshCw } from 'lucide-react';
+import { Download, Plus, RefreshCw, Filter, ChevronDown, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { PullToRefreshIndicator } from '@/components/common/PullToRefreshIndicator';
 import { LastDataTransfer } from '@/components/common/LastDataTransfer';
 
@@ -131,23 +132,27 @@ export default function CouponsPage() {
             <LastDataTransfer />
           </div>
           <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-center shrink-0`}>
-            {!isMobile && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRefreshData()}
-                disabled={loading}
-                className="border-di-outline-variant/15 text-muted-foreground hover:bg-di-surface-high"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshData}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
             {filteredCoupons.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExport}
-                className="border-di-outline-variant/15 text-muted-foreground hover:bg-di-surface-high"
+                
               >
                 <Download className={`h-4 w-4 ${isMobile ? '' : 'mr-2'}`} />
                 {!isMobile && 'Экспорт'}
@@ -157,7 +162,7 @@ export default function CouponsPage() {
               <Button
                 size="sm"
                 onClick={() => setIsCreateOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary hover:bg-primary/80 text-white"
               >
                 <Plus className={`h-4 w-4 ${isMobile ? '' : 'mr-2'}`} />
                 {!isMobile && 'Создать купон'}
@@ -166,42 +171,75 @@ export default function CouponsPage() {
           </div>
         </div>
 
-        {/* Stats */}
-        {searchResult && searchResult.stats && (
-          <CouponStatsCards stats={searchResult.stats} {...computedStats} />
+        {/* Filters + Stats row */}
+        <div className={isMobile ? 'space-y-4 mb-8' : 'flex gap-4 mb-8 items-stretch'}>
+          {/* Filter block */}
+          <div className={isMobile ? '' : 'flex-1 min-w-0 flex'}>
+            <div className="bg-di-surface-mid rounded-xl border border-transparent flex-1 flex flex-col justify-between">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-foreground">Фильтры</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={clearAllFilters}>
+                  Очистить фильтры
+                </Button>
+              </div>
+              {filtersOpen && (
+                <div className="px-4 pb-4 border-t border-di-outline-variant/10 pt-4">
+                  <CouponFilters filters={filters} setFilters={setFilters} />
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Stats block — hidden when filter collapsed */}
+          {filtersOpen && searchResult && searchResult.stats && (
+            <CouponStatsCards stats={searchResult.stats} {...computedStats} />
+          )}
+        </div>
+
+        {/* KPI badges — mobile only */}
+        {isMobile && (
+          <div className="mb-8">
+            <CouponKpiCards
+              uniqueStates={uniqueStates}
+              uniqueFuelTypes={uniqueFuelTypes}
+              fuelStats={fuelStats}
+              allCoupons={allCoupons}
+              filteredCoupons={filteredCoupons}
+              selectedKpiStates={selectedKpiStates}
+              selectedFuelType={selectedFuelType}
+              onStateClick={handleKpiStateClick}
+              onFuelTypeClick={handleFuelTypeKpiClick}
+              onResetAll={handleKpiResetAll}
+            />
+          </div>
         )}
-
-        {/* Filters */}
-        <CouponFilters
-          filters={filters}
-          setFilters={setFilters}
-          filtersOpen={filtersOpen}
-          setFiltersOpen={setFiltersOpen}
-          loading={loading}
-          onRefresh={() => loadCouponsData(filters)}
-          onClearFilters={clearAllFilters}
-        />
-
-        {/* KPI */}
-        <CouponKpiCards
-          uniqueStates={uniqueStates}
-          uniqueFuelTypes={uniqueFuelTypes}
-          fuelStats={fuelStats}
-          allCoupons={allCoupons}
-          filteredCoupons={filteredCoupons}
-          selectedKpiStates={selectedKpiStates}
-          selectedFuelType={selectedFuelType}
-          onStateClick={handleKpiStateClick}
-          onFuelTypeClick={handleFuelTypeKpiClick}
-          onResetAll={handleKpiResetAll}
-        />
 
         {/* Table */}
         <div className="bg-di-surface-mid rounded-xl border border-transparent p-4">
-          <h2 className={`font-headline font-bold text-foreground mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>
-            Журнал купонов
-            <span className="text-muted-foreground ml-2 font-normal text-sm">({filteredCoupons.length})</span>
-          </h2>
+          <div className={`flex items-center gap-4 mb-6 ${isMobile ? 'flex-col items-start' : ''}`}>
+            <h2 className={`font-headline font-bold text-foreground shrink-0 ${isMobile ? 'text-base' : 'text-lg'}`}>
+              Журнал купонов
+              <span className="text-muted-foreground ml-2 font-normal text-sm">({filteredCoupons.length})</span>
+            </h2>
+            {!isMobile && (
+              <div className="flex-1 overflow-x-auto">
+                <CouponKpiCards
+                  uniqueStates={uniqueStates}
+                  uniqueFuelTypes={uniqueFuelTypes}
+                  fuelStats={fuelStats}
+                  allCoupons={allCoupons}
+                  filteredCoupons={filteredCoupons}
+                  selectedKpiStates={selectedKpiStates}
+                  selectedFuelType={selectedFuelType}
+                  onStateClick={handleKpiStateClick}
+                  onFuelTypeClick={handleFuelTypeKpiClick}
+                  onResetAll={handleKpiResetAll}
+                />
+              </div>
+            )}
+          </div>
 
           {isMobile ? (
             <CouponTableMobile

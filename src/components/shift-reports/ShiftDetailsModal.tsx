@@ -153,7 +153,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
         );
       case 'closed':
         return (
-          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500 flex items-center gap-1">
+          <Badge className="bg-primary/10 text-primary dark:text-primary/70 border-primary flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
             Закрыта
           </Badge>
@@ -187,7 +187,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                     size="sm"
                     onClick={() => setExportDialogOpen(true)}
                     disabled={isExporting}
-                    className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white mr-2"
+                    className=" mr-2"
                   >
                     <FileDown className="h-4 w-4 mr-2" />
                     Экспорт
@@ -204,7 +204,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                 size="sm"
                 onClick={() => setExportDialogOpen(true)}
                 disabled={isExporting}
-                className="w-full border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
+                className="w-full "
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Экспорт
@@ -238,7 +238,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                       Открыта
                     </Badge>
                   ) : details.status === 'closed' ? (
-                    <Badge className={`bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500 flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
+                    <Badge className={`bg-primary/10 text-primary dark:text-primary/70 border-primary flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
                       <CheckCircle className={isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
                       Закрыта
                     </Badge>

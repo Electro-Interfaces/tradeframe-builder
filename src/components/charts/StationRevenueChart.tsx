@@ -129,7 +129,7 @@ export const StationRevenueChart: React.FC<StationRevenueChartProps> = ({
                       <div className="space-y-1 text-sm">
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-muted-foreground">Выручка:</span>
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                          <span className="text-primary dark:text-primary/70 font-semibold">
                             {formatCurrency(data.revenue)} ₽
                           </span>
                         </div>
@@ -171,7 +171,7 @@ export const StationRevenueChart: React.FC<StationRevenueChartProps> = ({
           </div>
           <div className={`bg-secondary/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
             <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Общая выручка</div>
-            <div className={`font-semibold text-blue-600 dark:text-blue-400 ${isMobile ? 'text-sm' : 'text-lg'}`}>
+            <div className={`font-semibold text-primary dark:text-primary/70 ${isMobile ? 'text-sm' : 'text-lg'}`}>
               {formatCurrency(chartData.reduce((sum, item) => sum + item.revenue, 0))} ₽
             </div>
           </div>

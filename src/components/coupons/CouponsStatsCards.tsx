@@ -164,8 +164,8 @@ export default function CouponsStatsCards({
         value={stats.totalCoupons}
         subtitle="В системе"
         icon={Receipt}
-        color="text-blue-600"
-        bgColor="bg-blue-100"
+        color="text-primary"
+        bgColor="bg-primary/10"
         compact={compact}
       />
 
@@ -272,7 +272,7 @@ export function CouponsStatsCompact({ stats }: { stats: CouponsStats }) {
   return (
     <div className="flex gap-6 text-sm">
       <div className="flex items-center gap-2">
-        <Receipt className="w-4 h-4 text-blue-500" />
+        <Receipt className="w-4 h-4 text-primary" />
         <span className="font-medium">{formatNumber(stats.totalCoupons)}</span>
         <span className="text-muted-foreground">всего</span>
       </div>

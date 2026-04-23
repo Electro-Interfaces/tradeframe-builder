@@ -64,7 +64,7 @@ export function PriceScheduleDialog({
                   <div key={entry.id} className="bg-di-surface-high rounded-xl p-3.5 border border-di-outline-variant/10">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5">
-                        <Fuel className="w-3.5 h-3.5 text-blue-500 dark:text-di-primary-light" />
+                        <Fuel className="w-3.5 h-3.5 text-primary dark:text-di-primary-light" />
                         <span className="text-foreground font-headline font-bold text-sm">{entry.fuelType}</span>
                         <span className="text-[9px] text-di-on-surface-variant">{entry.fuelCode}</span>
                       </div>
@@ -119,7 +119,7 @@ export function PriceScheduleDialog({
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            <Fuel className="w-4 h-4 text-blue-500 dark:text-di-primary-light" />
+                            <Fuel className="w-4 h-4 text-primary dark:text-di-primary-light" />
                             <div>
                               <span className="text-foreground font-medium text-sm">{entry.fuelType}</span>
                               <span className="text-[10px] text-di-on-surface-variant ml-1.5">{entry.fuelCode}</span>

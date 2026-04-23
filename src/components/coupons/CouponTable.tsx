@@ -24,28 +24,28 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
 
   return (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="table-fixed w-full border-separate border-spacing-y-1">
         <TableHeader>
-          <TableRow className="bg-secondary dark:bg-di-surface-highest border-b-2 border-di-outline-variant/20 hover:bg-secondary dark:hover:bg-di-surface-highest">
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">ТТ</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Номер купона</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Дата создания</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Тип топлива</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Цена за литр</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Остаток (л)</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Остаток (₽)</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Статус</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Тип</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Автор</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Комментарий</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Смена</TableHead>
-            <TableHead className="text-xs font-semibold text-foreground/80 whitespace-nowrap py-3">Действия</TableHead>
+          <TableRow className="hover:bg-transparent border-none">
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[8%]">ТТ</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[9%]">Номер купона</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[9%]">Дата создания</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[8%]">Тип топлива</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Цена за литр</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Остаток (л)</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Остаток (₽)</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Статус</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Тип</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Автор</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[10%]">Комментарий</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[9%]">Смена</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[5%]">Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {coupons.map((coupon) => (
-            <TableRow key={coupon.number} className={`border-border hover:bg-card ${coupon.isOptimistic ? 'bg-amber-100 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : ''}`}>
-              <TableCell className="text-foreground/80 text-sm min-w-[120px]">
+            <TableRow key={coupon.number} className={`bg-di-surface-low hover:bg-di-surface-high transition-colors group h-16 border-b-0 ${coupon.isOptimistic ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : ''}`}>
+              <TableCell className="text-foreground/80 text-sm min-w-[120px] rounded-l-xl">
                 <span>{coupon.stationName || `ТТ ${coupon.stationCode}`}</span>
               </TableCell>
               <TableCell className="text-foreground/80 font-mono text-sm min-w-[120px]">
@@ -112,7 +112,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                   <Badge className={`text-[10px] px-1.5 py-0.5 ${
                     coupon.type.id === 0
                       ? 'bg-secondary text-foreground hover:bg-muted-foreground'
-                      : 'bg-blue-600 text-white hover:bg-blue-500'
+                      : 'bg-primary text-white hover:bg-primary/90'
                   }`}>
                     {coupon.type.name}
                   </Badge>
@@ -142,7 +142,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                   <span className="text-xs text-muted-foreground">Операция #{coupon.opernum}</span>
                 </div>
               </TableCell>
-              <TableCell className="min-w-[100px]">
+              <TableCell className="min-w-[100px] rounded-r-xl">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -182,7 +182,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
             variant="outline"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="border-border text-foreground/80 hover:bg-secondary"
+            
           >
             ← Предыдущая страница
           </Button>
@@ -206,11 +206,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                   variant={currentPage === pageNum ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => onPageChange(pageNum)}
-                  className={
-                    currentPage === pageNum
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'border-border text-foreground/80 hover:bg-secondary'
-                  }
+                  className=""
                 >
                   {pageNum}
                 </Button>
@@ -222,7 +218,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
             variant="outline"
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="border-border text-foreground/80 hover:bg-secondary"
+            
           >
             Следующая страница →
           </Button>

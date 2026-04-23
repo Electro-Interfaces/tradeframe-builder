@@ -48,8 +48,8 @@
    - Основные endpoints: /v1/transactions, /v1/tanks, /v1/shifts, /v1/prices
 
    **Notification System:**
-   - Telegram Bot PROD: @TradeFrameDW_Bot (token: 8049816280:AAEHimSlNiuyRIRA_sjrG9f78lvc9aprwa8)
-   - Telegram Bot TEST: @TradeFrameTest_Bot (token: 8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0)
+   - Telegram Bot PROD: @TradeFrameDW_Bot (token хранить только в operator vault)
+   - Telegram Bot TEST: @TradeFrameTest_Bot (token хранить только в operator vault)
    - Email: Nodemailer через SMTP
    - Планировщик: node-cron (купюроприемники каждые 6ч, offline каждые 30мин, топливо каждые 4ч)
    - Команды бота: /start [code], /help, /status, /unlink

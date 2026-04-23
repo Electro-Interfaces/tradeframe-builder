@@ -22,7 +22,7 @@ export function MessageHistory({ messages, loading }: MessageHistoryProps) {
           История сообщений
         </h2>
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       </Card>
     );
@@ -68,10 +68,10 @@ interface MessageCardProps {
 
 function MessageCard({ message }: MessageCardProps) {
   return (
-    <div className="p-4 bg-background/50 border border-border rounded-lg hover:border-blue-500/50 transition-all cursor-pointer group">
+    <div className="p-4 bg-background/50 border border-border rounded-lg hover:border-primary/50 transition-all cursor-pointer group">
       {/* Заголовок и статус */}
       <div className="flex items-start justify-between mb-2">
-        <h3 className="font-medium text-foreground text-sm line-clamp-1 group-hover:text-blue-400 transition-colors">
+        <h3 className="font-medium text-foreground text-sm line-clamp-1 group-hover:text-primary/70 transition-colors">
           {message.title}
         </h3>
         <Badge

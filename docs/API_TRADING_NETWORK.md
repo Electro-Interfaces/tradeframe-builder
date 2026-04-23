@@ -14,13 +14,13 @@ POST https://pos.autooplata.ru/tms/v1/login
 
 **Тестовые данные:**
 - username: `UserTest`
-- password: `sys5tem6`
+- password: `<в operator vault>`
 
 **Пример тела запроса:**
 ```json
 {
   "username": "UserTest",
-  "password": "sys5tem6"  
+  "password": "__TF_API_PASSWORD__"  
 }
 ```
 
@@ -410,7 +410,7 @@ const authResponse = await fetch('https://pos.autooplata.ru/tms/v1/login', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     username: 'UserTest',
-    password: 'sys5tem6'
+    password: '<в operator vault>'
   })
 });
 const token = await authResponse.text();

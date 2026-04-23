@@ -87,7 +87,7 @@ export function MultiPointSelect({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "flex items-center justify-between w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[42px]",
+            "flex items-center justify-between w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary min-h-[42px]",
             disabled && "opacity-50 cursor-not-allowed hover:bg-card",
             className
           )}
@@ -104,7 +104,7 @@ export function MultiPointSelect({
                   <Badge
                     key={point.id}
                     variant="secondary"
-                    className="text-xs bg-blue-600/30 text-blue-600 dark:text-blue-300 border border-blue-500/30"
+                    className="text-xs bg-primary/30 text-primary dark:text-blue-300 border border-primary/30"
                   >
                     {point.name}
                     <X
@@ -115,7 +115,7 @@ export function MultiPointSelect({
                 ))}
               </div>
             ) : (
-              <span className="text-blue-600 dark:text-blue-300">
+              <span className="text-primary dark:text-blue-300">
                 Выбрано: {selectedPoints.length} из {tradingPoints.length}
               </span>
             )}
@@ -173,14 +173,14 @@ export function MultiPointSelect({
                     className={cn(
                       "flex items-center gap-2 px-2 py-2 rounded-md cursor-pointer transition-colors",
                       isSelected
-                        ? "bg-blue-600/20 border border-blue-500/30"
+                        ? "bg-primary/20 border border-primary/30"
                         : "hover:bg-secondary border border-transparent"
                     )}
                     onClick={() => handleToggle(point.id)}
                   >
                     <Checkbox
                       checked={isSelected}
-                      className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                     <span
                       className={cn(
@@ -192,12 +192,12 @@ export function MultiPointSelect({
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           "truncate",
-                          isSelected ? "text-blue-700 dark:text-blue-200 font-medium" : "text-foreground"
+                          isSelected ? "text-primary dark:text-blue-200 font-medium" : "text-foreground"
                         )}>
                           {point.name}
                         </span>
                         {point.external_id && (
-                          <span className="text-xs text-blue-600 dark:text-blue-400 font-mono shrink-0">
+                          <span className="text-xs text-primary dark:text-primary/70 font-mono shrink-0">
                             ({point.external_id})
                           </span>
                         )}
@@ -209,7 +209,7 @@ export function MultiPointSelect({
                       )}
                     </div>
                     {isSelected && (
-                      <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <Check className="h-4 w-4 text-primary dark:text-primary/70 shrink-0" />
                     )}
                   </li>
                 );

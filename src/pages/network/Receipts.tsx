@@ -623,7 +623,7 @@ export default function Receipts() {
           <div className="mb-6 pt-4">
             <h1 className="text-2xl font-semibold text-foreground">Поступления топлива</h1>
           </div>
-          <div className="bg-card rounded-lg border border-border p-4 md:p-6">
+          <div className="bg-di-surface-mid rounded-xl border border-transparent p-4">
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
@@ -678,7 +678,7 @@ export default function Receipts() {
           >
             <div className="bg-card/90 backdrop-blur-sm rounded-full p-3 shadow-lg border border-border">
               {pullState === 'refreshing' ? (
-                <RefreshCw className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
+                <RefreshCw className="h-5 w-5 text-primary dark:text-primary/70 animate-spin" />
               ) : pullDistance >= PULL_THRESHOLD ? (
                 <RefreshCw className="h-5 w-5 text-green-600 dark:text-green-400" />
               ) : (
@@ -688,65 +688,58 @@ export default function Receipts() {
           </div>
         )}
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h1 className="text-2xl font-semibold text-foreground">Поступления топлива</h1>
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Расценка вынесена на отдельную страницу */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                disabled={filteredReceipts.length === 0}
-                className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Экспорт
-              </Button>
-            </div>
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex-1 min-w-0">
+            <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Поступления топлива</h1>
+          </div>
+          <div className="flex gap-3 items-center shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={filteredReceipts.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Экспорт
+            </Button>
           </div>
         </div>
 
-        {/* Панель фильтров */}
-        <div className="mb-6">
-          <Card className="bg-card border-border">
-            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/50 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium text-foreground">Фильтры</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        clearFilters();
-                      }}
-                    >
-                      Очистить фильтры
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        refetch();
-                      }}
-                      disabled={isLoading}
-                      className="border-border text-foreground hover:bg-secondary"
-                    >
-                      <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    </Button>
-                    {filtersOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  </div>
+        {/* Панель фильтров + карточки топлива */}
+        {filtersOpen && (
+        <div className={isMobile ? 'space-y-4 mb-8' : 'flex gap-4 mb-8 items-stretch'}>
+          <div className={isMobile ? '' : 'flex-1 min-w-0 flex'}>
+            <div className="bg-di-surface-mid rounded-xl border border-transparent flex-1 flex flex-col justify-between">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-foreground">Фильтры</span>
                 </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="p-4 border-t border-border">
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                >
+                  Очистить фильтры
+                </Button>
+              </div>
+              <div className="px-4 pb-4 border-t border-di-outline-variant/10 pt-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                     {/* Дата от */}
                     <div>
                       <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
@@ -755,7 +748,7 @@ export default function Receipts() {
                         type="date"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        className="mt-1"
+                        className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
                       />
                     </div>
 
@@ -767,7 +760,7 @@ export default function Receipts() {
                         type="date"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        className="mt-1"
+                        className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
                       />
                     </div>
 
@@ -780,7 +773,7 @@ export default function Receipts() {
                         placeholder="Введите номер"
                         value={ttnNumber}
                         onChange={(e) => setTtnNumber(e.target.value)}
-                        className="mt-1"
+                        className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
                       />
                     </div>
 
@@ -788,7 +781,7 @@ export default function Receipts() {
                     <div>
                       <Label htmlFor="base" className="text-xs text-muted-foreground">Нефтебаза</Label>
                       <Select value={baseId || undefined} onValueChange={setBaseId}>
-                        <SelectTrigger id="base" className="mt-1">
+                        <SelectTrigger id="base" className="mt-1 border-di-outline-variant/20 bg-di-surface-low">
                           <SelectValue placeholder="Все" />
                         </SelectTrigger>
                         <SelectContent>
@@ -811,28 +804,17 @@ export default function Receipts() {
                         placeholder="Введите номер"
                         value={shiftNumber}
                         onChange={(e) => setShiftNumber(e.target.value)}
-                        className="mt-1"
+                        className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
                       />
                     </div>
                   </div>
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </Card>
-        </div>
-
-        {/* Карточки видов топлива */}
-        {flatReceipts.length > 0 && (
-          <div className="mb-6">
-            <div className="flex justify-between items-center px-2 mb-2">
-              <h3 className={`text-foreground/80 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
-              {selectedKpiFuels.size > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  {selectedKpiFuels.size} {selectedKpiFuels.size === 1 ? 'выбран' : 'выбрано'}
-                </span>
-              )}
             </div>
-            <div className={`grid gap-4 ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+          </div>
+          {/* Карточки видов топлива — справа от фильтра */}
+          {flatReceipts.length > 0 && (
+            <div className="bg-di-surface-mid rounded-xl border border-transparent p-4 shrink-0 md:w-[420px]">
+              <div className="grid grid-cols-2 gap-2">
               {filterOptions.fuelTypes.map((fuel) => {
                 // Используем baseFilteredReceipts - данные БЕЗ фильтра по видам топлива
                 const fuelReceipts = baseFilteredReceipts.filter(r => r.service.service_name === fuel);
@@ -865,8 +847,10 @@ export default function Receipts() {
                 receiptCount={baseFilteredReceipts.length}
                 onClick={() => setSelectedKpiFuels(new Set())}
               />
+              </div>
             </div>
-          </div>
+          )}
+        </div>
         )}
 
         {/* KPI маржи */}
@@ -876,9 +860,9 @@ export default function Receipts() {
               <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Средняя закупочная</div>
               <div className="text-lg font-bold text-amber-700 dark:text-amber-300">{marginSummary.avgCostPerLiter.toFixed(2)} ₽/л</div>
             </div>
-            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
-              <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Общая стоимость</div>
-              <div className="text-lg font-bold text-blue-700 dark:text-blue-300">{marginSummary.totalCost.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽</div>
+            <div className="rounded-lg border border-primary/20 dark:border-primary bg-primary/5 dark:bg-blue-900/20 p-3">
+              <div className="text-[10px] text-primary dark:text-primary/70 font-medium">Общая стоимость</div>
+              <div className="text-lg font-bold text-primary dark:text-blue-300">{marginSummary.totalCost.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽</div>
             </div>
             <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3">
               <div className="text-[10px] text-green-600 dark:text-green-400 font-medium">Объём с ценой</div>
@@ -919,7 +903,7 @@ export default function Receipts() {
               <div>
                 <Label className="text-xs text-muted-foreground">Вид топлива</Label>
                 <Select value={bulkFillFuel || undefined} onValueChange={setBulkFillFuel}>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1 border-di-outline-variant/20 bg-di-surface-low">
                     <SelectValue placeholder="Выберите" />
                   </SelectTrigger>
                   <SelectContent>
@@ -940,7 +924,7 @@ export default function Receipts() {
                   placeholder="0.00"
                   value={bulkFillPrice}
                   onChange={e => setBulkFillPrice(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
                 />
               </div>
               <div className="text-xs text-muted-foreground">
@@ -974,7 +958,7 @@ export default function Receipts() {
         )}
 
         {/* Таблица */}
-        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
+        <div className="bg-di-surface-mid rounded-xl border border-transparent p-4">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               Журнал поступлений
@@ -984,10 +968,10 @@ export default function Receipts() {
             </h2>
           </div>
 
-          <Card className="bg-background border-border">
+          <Card className="bg-transparent border-transparent shadow-none">
         {/* Панель массового подтверждения */}
         {checkedKeys.size > 0 && (
-          <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-di-outline-variant/10 bg-di-surface-low">
             <span className="text-sm text-muted-foreground">
               Выбрано: <span className="font-medium text-foreground">{checkedKeys.size}</span>
             </span>
@@ -1047,29 +1031,29 @@ export default function Receipts() {
             } : undefined}
           />
         ) : (
-          <Table>
+          <Table className="border-separate border-spacing-y-1">
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-8 px-2">
+              <TableRow className="hover:bg-transparent border-none">
+                <TableHead className="w-8 px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   <Checkbox
                     checked={unconfirmedReceipts.length > 0 && checkedKeys.size >= unconfirmedReceipts.length}
                     onCheckedChange={toggleCheckAll}
                     aria-label="Выбрать все"
                   />
                 </TableHead>
-                <TableHead className="text-muted-foreground">Дата и время</TableHead>
-                <TableHead className="text-muted-foreground">ТТ</TableHead>
-                <TableHead className="text-muted-foreground">Смена</TableHead>
-                <TableHead className="text-muted-foreground">ТТН</TableHead>
-                <TableHead className="text-muted-foreground">Топливо</TableHead>
-                <TableHead className="text-right text-muted-foreground">Объем (л)</TableHead>
-                <TableHead className="text-right text-muted-foreground">Масса (кг)</TableHead>
-                <TableHead className="text-right text-muted-foreground">Отклонение (кг)</TableHead>
+                <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Дата и время</TableHead>
+                <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ТТ</TableHead>
+                <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Смена</TableHead>
+                <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ТТН</TableHead>
+                <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Топливо</TableHead>
+                <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Объем (л)</TableHead>
+                <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Масса (кг)</TableHead>
+                <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Отклонение (кг)</TableHead>
                 <TableHead className="text-center text-muted-foreground w-10"></TableHead>
                 {showMargin && (
                   <>
-                    <TableHead className="text-right text-muted-foreground w-28">{marginInputUnit === 'liter' ? '₽/л' : '₽/кг'}</TableHead>
-                    <TableHead className="text-right text-muted-foreground">Итого ₽</TableHead>
+                    <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-28">{marginInputUnit === 'liter' ? '₽/л' : '₽/кг'}</TableHead>
+                    <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Итого ₽</TableHead>
                   </>
                 )}
               </TableRow>
@@ -1091,14 +1075,14 @@ export default function Receipts() {
                   <TableRow
                     key={receiptId}
                     className={cn(
-                      'cursor-pointer hover:bg-secondary/50 transition-colors border-border',
-                      isConfirmed && 'bg-muted/60',
+                      'cursor-pointer bg-di-surface-low hover:bg-di-surface-high transition-colors group h-16 border-b-0 [&>td:last-child]:rounded-r-xl',
+                      isConfirmed && 'bg-muted/40',
                       conf?.status === 'corrected' && 'border-l-2 border-l-amber-400',
                       conf?.status === 'rejected' && 'border-l-2 border-l-red-400',
                     )}
                     onClick={() => handleSelectReceipt(receipt)}
                   >
-                    <TableCell className="px-2" onClick={e => e.stopPropagation()}>
+                    <TableCell className="px-2 rounded-l-xl" onClick={e => e.stopPropagation()}>
                       <Checkbox
                         checked={checkedKeys.has(rKey)}
                         onCheckedChange={() => toggleCheck(rKey)}

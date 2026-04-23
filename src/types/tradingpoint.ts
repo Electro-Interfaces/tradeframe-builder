@@ -104,6 +104,8 @@ export interface TradingPoint {
 
 export interface TradingPointInput {
   networkId: NetworkId;
+  code?: string;
+  externalId?: string;
   name: string;
   description?: string;
   geolocation: TradingPointGeolocation;

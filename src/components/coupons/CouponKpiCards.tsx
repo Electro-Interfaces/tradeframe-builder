@@ -21,8 +21,8 @@ interface CouponKpiCardsProps {
 const stateColors: Record<string, string> = {
   'Активный': 'bg-green-500',
   'Active': 'bg-green-500',
-  'Погашен': 'bg-blue-500',
-  'Redeemed': 'bg-blue-500',
+  'Погашен': 'bg-primary',
+  'Redeemed': 'bg-primary',
   'Просрочен': 'bg-red-500',
   'Expired': 'bg-red-500',
 };
@@ -35,7 +35,7 @@ export function CouponKpiCards({
   if (allCoupons.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
+    <div className="flex flex-wrap gap-2">
       {/* Status pills */}
       {uniqueStates.map((state) => {
         const count = filteredCoupons.filter((c) => c.state.name === state).length;
@@ -46,15 +46,15 @@ export function CouponKpiCards({
           <button
             key={state}
             onClick={() => onStateClick(state)}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-[11px] font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[11px] font-bold transition-all ${
               isSelected
-                ? 'bg-blue-500/10 border-blue-500/30 text-foreground'
-                : 'bg-di-surface-mid border-transparent text-foreground hover:border-di-outline-variant/20'
+                ? 'bg-primary/10 border-primary/30 text-foreground'
+                : 'bg-di-surface-low border border-border/20 text-foreground hover:bg-di-surface-high hover:border-primary/20 cursor-pointer'
             }`}
           >
             <span className={`w-2 h-2 rounded-xl ${dotColor}`} />
             <span>{state}:</span>
-            <span className="text-blue-500">{count}</span>
+            <span className="text-primary">{count}</span>
           </button>
         );
       })}
@@ -71,10 +71,10 @@ export function CouponKpiCards({
           <button
             key={stat.fuelType}
             onClick={() => onFuelTypeClick(stat.fuelType)}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-[11px] font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[11px] font-bold transition-all ${
               isSelected
-                ? 'bg-blue-500/10 border-blue-500/30 text-foreground'
-                : 'bg-di-surface-mid border-transparent text-foreground hover:border-di-outline-variant/20'
+                ? 'bg-primary/10 border-primary/30 text-foreground'
+                : 'bg-di-surface-low border border-border/20 text-foreground hover:bg-di-surface-high hover:border-primary/20 cursor-pointer'
             }`}
           >
             <span className="text-[10px] text-muted-foreground">{stat.fuelType}</span>

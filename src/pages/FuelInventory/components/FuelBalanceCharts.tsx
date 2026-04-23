@@ -76,8 +76,8 @@ export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBa
       <Card className="bg-card border-border">
         <CardContent className="py-8">
           <div className="flex items-center justify-center gap-3">
-            <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
-            <p className="text-blue-600 dark:text-blue-400">Загрузка данных для графиков...</p>
+            <RefreshCw className="w-5 h-5 text-primary dark:text-primary/70 animate-spin" />
+            <p className="text-primary dark:text-primary/70">Загрузка данных для графиков...</p>
           </div>
         </CardContent>
       </Card>

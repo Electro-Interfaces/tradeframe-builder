@@ -275,7 +275,7 @@ export function CalibrationTablesHistory({
       case 'sensor':
         return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
       case 'trk':
-        return 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300';
+        return 'border-primary/30 bg-primary/10 text-primary dark:text-blue-300';
       case 'manual':
         return 'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300';
       case 'unknown':
@@ -666,12 +666,12 @@ export function CalibrationTablesHistory({
       {/* Контент */}
       <div className="space-y-3">
         {highlightedTable && (
-          <Card className="border-blue-500/20 bg-blue-500/10">
+          <Card className="border-primary/20 bg-primary/10">
             <div className="p-3 text-sm">
-              <p className="font-medium text-blue-700 dark:text-blue-300">
+              <p className="font-medium text-primary dark:text-blue-300">
                 Выделена версия v{highlightedTable.version} из сводки сравнения.
               </p>
-              <p className="mt-1 text-xs text-blue-700/80 dark:text-blue-200/80">
+              <p className="mt-1 text-xs text-primary/80 dark:text-blue-200/80">
                 Ниже подсвечена строка этой таблицы в истории.
               </p>
             </div>
@@ -715,7 +715,7 @@ export function CalibrationTablesHistory({
               <Card
                 key={table.id}
                 id={`calibration-table-${table.id}`}
-                className={`${table.is_active ? 'bg-card/50' : ''} ${table.id === highlightedTableId ? 'ring-2 ring-blue-500/40 border-blue-500/40' : ''}`}
+                className={`${table.is_active ? 'bg-card/50' : ''} ${table.id === highlightedTableId ? 'ring-2 ring-primary/40 border-primary/40' : ''}`}
               >
                 <div className="p-3">
                   <div className="flex items-start justify-between gap-2">
@@ -808,7 +808,7 @@ export function CalibrationTablesHistory({
                     <Fragment key={table.id}>
                       <TableRow
                         id={`calibration-table-${table.id}`}
-                        className={`${table.is_active ? 'bg-card/50' : ''} ${table.id === highlightedTableId ? 'bg-blue-500/10' : ''}`}
+                        className={`${table.is_active ? 'bg-card/50' : ''} ${table.id === highlightedTableId ? 'bg-primary/10' : ''}`}
                       >
                         <TableCell>
                           <div className="space-y-2">
@@ -877,7 +877,7 @@ export function CalibrationTablesHistory({
                         </TableCell>
                       </TableRow>
                       {isExpanded && (
-                        <TableRow className={table.id === highlightedTableId ? 'bg-blue-500/5' : ''}>
+                        <TableRow className={table.id === highlightedTableId ? 'bg-primary/5' : ''}>
                           <TableCell colSpan={6}>
                             {renderExpandedDetails(table)}
                           </TableCell>

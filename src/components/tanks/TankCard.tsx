@@ -31,12 +31,21 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
   const temp = tank.temperature || tank.apiData?.temperature || 0;
   const density = tank.density || tank.apiData?.density || 0;
   const waterMm = tank.waterLevelMm || tank.apiData?.water?.level || 0;
+  // Текущая масса (кг) = текущий объём × плотность / 1000. Показываем реальное значение,
+  // а не amount_begin/amount_end (те — по регистру смены, зафиксированы на начало/конец).
+  const currentMassKg = currentLevel > 0 && density > 0
+    ? Math.round((currentLevel * density) / 1000 * 100) / 100
+    : (tank.apiData?.amount_end ?? tank.mass ?? 0);
+  // Свободно: берём из STS volume_free (учитывает объём воды); fallback — самостоятельный расчёт.
+  const freeLiters = tank.apiData?.volume_free && tank.apiData.volume_free > 0
+    ? tank.apiData.volume_free
+    : Math.max(0, capacity - currentLevel);
 
   // Status
   const statusText = isBlocked ? 'БЛОК' : tank.noSensorData ? 'КНИЖ.' : tankStatus === 'critical' ? 'КРИТ.' : tankStatus === 'warning' ? 'НИЗКИЙ' : 'OK';
   const statusColor = isBlocked || tankStatus === 'critical' ? 'text-red-600' : tankStatus === 'warning' ? 'text-amber-600' : 'text-green-600';
   const dotColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500' : tankStatus === 'warning' ? 'bg-amber-500' : 'bg-green-500';
-  const barColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500' : tankStatus === 'warning' ? 'bg-amber-500' : 'bg-blue-500';
+  const barColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500' : tankStatus === 'warning' ? 'bg-amber-500' : 'bg-primary';
   const borderClass = isBlocked ? 'border-red-500/30' : 'border-transparent hover:border-di-primary/20';
 
   return (
@@ -60,7 +69,7 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
       {/* Header: Name + Fuel type + Status */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Fuel className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500 shrink-0`} />
+          <Fuel className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-primary shrink-0`} />
           <div className="min-w-0">
             <h3 className={`font-headline font-bold text-foreground truncate ${isMobile ? 'text-sm' : 'text-base'}`}>{tank.name}</h3>
             <p className="text-[10px] text-muted-foreground uppercase">{tank.fuelType}</p>
@@ -89,7 +98,7 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
         )}
         <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
           <span>{tank.noSensorData ? 'Книжный остаток' : `Ёмкость: ${capacity.toLocaleString('ru-RU')} л`}</span>
-          {!tank.noSensorData && <span>Свободно: {(capacity - currentLevel).toLocaleString('ru-RU')} л</span>}
+          {!tank.noSensorData && <span>Свободно: {freeLiters.toLocaleString('ru-RU')} л</span>}
         </div>
       </div>
 
@@ -110,9 +119,9 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Масса</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5" title="Текущая масса = Текущий объём × Плотность ÷ 1000">Масса</p>
           <p className="font-headline font-bold text-foreground text-xs">
-            {(tank.apiData?.amount_begin || tank.mass || 0).toLocaleString('ru-RU')}
+            {currentMassKg.toLocaleString('ru-RU')}
           </p>
         </div>
       </div>
@@ -130,33 +139,42 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
               {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'Норма' : 'Проверка'}
             </span>
           </div>
+          {/* Строка 2: пара по объёму (л) — начало смены + отпуск за смену */}
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Объём нач:</span>
+            <span className="text-muted-foreground" title="Объём на начало смены">Объём на начало смены:</span>
             <span className="text-foreground font-medium">{(tank.apiData?.volume_begin || 0).toLocaleString('ru-RU')} л</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Объём кон:</span>
-            <span className="text-foreground font-medium">{(tank.apiData?.volume_end || 0).toLocaleString('ru-RU')} л</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Отпуск об:</span>
+            <span className="text-muted-foreground" title="Отпущено за смену (объём, из STS)">Отпуск за смену:</span>
             <span className="text-foreground font-medium">{(tank.apiData?.release?.volume || 0).toLocaleString('ru-RU')} л</span>
           </div>
+          {/* Строка 3: пара по массе (кг) — начало смены + отпуск за смену */}
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Отпуск м:</span>
-            <span className="text-foreground font-medium">{(tank.apiData?.release?.amount || 0).toLocaleString('ru-RU')} кг</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Масса нач:</span>
+            <span className="text-muted-foreground" title="Масса на начало смены">Масса на начало смены:</span>
             <span className="text-foreground font-medium">{(tank.apiData?.amount_begin || 0).toLocaleString('ru-RU')} кг</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Масса кон:</span>
-            <span className="text-foreground font-medium">{(tank.apiData?.amount_end || 0).toLocaleString('ru-RU')} кг</span>
+            <span className="text-muted-foreground" title="Отпущено за смену (масса, из STS)">Отпуск за смену:</span>
+            <span className="text-foreground font-medium">{(tank.apiData?.release?.amount || 0).toLocaleString('ru-RU')} кг</span>
           </div>
+          {/* Поля «на конец смены» — только если смена закрыта и значения реально отличаются от «нач» */}
+          {tank.apiData?.volume_end != null && Math.abs((tank.apiData.volume_end ?? 0) - (tank.apiData.volume_begin ?? 0)) > 0.01 && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground" title="Объём на конец смены (фиксируется при закрытии смены)">Объём на конец смены:</span>
+                <span className="text-foreground font-medium">{(tank.apiData.volume_end || 0).toLocaleString('ru-RU')} л</span>
+              </div>
+              {tank.apiData?.amount_end != null && Math.abs((tank.apiData.amount_end ?? 0) - (tank.apiData.amount_begin ?? 0)) > 0.01 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground" title="Масса на конец смены (фиксируется при закрытии смены)">Масса на конец смены:</span>
+                  <span className="text-foreground font-medium">{(tank.apiData.amount_end || 0).toLocaleString('ru-RU')} кг</span>
+                </div>
+              )}
+            </>
+          )}
           <div className="flex justify-between">
             <span className="text-muted-foreground">Код:</span>
-            <span className="text-blue-600 dark:text-blue-400 font-semibold">{tank.apiData?.fuel || tank.id}</span>
+            <span className="text-primary dark:text-primary/70 font-semibold">{tank.apiData?.fuel || tank.id}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Обновлено:</span>

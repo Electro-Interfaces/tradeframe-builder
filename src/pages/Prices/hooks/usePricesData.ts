@@ -89,7 +89,7 @@ export const getStatusText = (status: string) => {
 
 export const getSourceColor = (source: string) => {
   switch (source) {
-    case "manual": return "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30";
+    case "manual": return "bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary/70 border-primary/30";
     case "import": return "bg-emerald-100 dark:bg-emerald-500/20 text-green-600 dark:text-green-400 border-green-500/30";
     case "api": return "bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30";
     default: return "bg-muted-foreground/20 text-muted-foreground border-border/30";

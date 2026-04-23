@@ -171,14 +171,14 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
         <div className="px-4 md:px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                 <FileText className="w-4 h-4 text-foreground" />
               </div>
               <h2 className="text-lg font-semibold text-foreground">Справочник видов топлива</h2>
             </div>
             <Button 
               onClick={onCreate}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+              className="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
             >
               <Plus className="h-4 w-4 mr-2" />
               Добавить
@@ -195,7 +195,7 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
               cta={
                 <Button 
                   onClick={onCreate}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-primary hover:bg-primary/80 text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Добавить вид топлива
@@ -242,7 +242,7 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
                           {item.networkApiSettings?.enabled ? (
                             <div className="flex flex-col gap-1">
                               {item.networkApiCode && (
-                                <code className="bg-blue-600/20 text-blue-600 dark:text-blue-300 px-2 py-1 rounded text-xs font-mono">
+                                <code className="bg-primary/20 text-primary dark:text-blue-300 px-2 py-1 rounded text-xs font-mono">
                                   {item.networkApiCode}
                                 </code>
                               )}

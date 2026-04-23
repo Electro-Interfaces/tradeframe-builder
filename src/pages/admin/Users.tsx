@@ -173,7 +173,7 @@ export default function Users() {
           <div className="px-4 md:px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <UsersIcon className="w-4 h-4 text-foreground" />
                 </div>
                 <div>
@@ -186,7 +186,7 @@ export default function Users() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={handleCreate}
-                  className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-initial"
+                  className="bg-primary hover:bg-primary/80 text-white flex-1 sm:flex-initial"
                   size="sm"
                 >
                   <Plus className="mr-2 h-4 w-4" />

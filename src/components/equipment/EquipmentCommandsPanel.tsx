@@ -329,7 +329,7 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 px-2 text-xs text-muted-foreground hover:text-blue-400"
+          className="h-8 px-2 text-xs text-muted-foreground hover:text-primary/70"
           onClick={() => onEditCommands?.(equipment.id)}
           title="Редактировать привязку команд"
         >

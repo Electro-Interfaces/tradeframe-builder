@@ -16,8 +16,8 @@ interface KPIShiftCardProps {
 
 const colorClasses = {
   blue: {
-    active: 'bg-secondary border-blue-500 border-2 shadow-[inset_0_-16px_0_0_rgb(59_130_246)]',
-    icon: 'text-blue-600 dark:text-blue-400',
+    active: 'bg-secondary border-primary border-2 shadow-[inset_0_-16px_0_0_rgb(59_130_246)]',
+    icon: 'text-primary dark:text-primary/70',
   },
   green: {
     active: 'bg-secondary border-green-500 border-2 shadow-[inset_0_-16px_0_0_rgb(34_197_94)]',

@@ -154,8 +154,8 @@ export function ComponentDetailCard({
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Layers3 className="w-5 h-5 text-blue-600" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Layers3 className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
               <DialogTitle className="text-xl">{component.display_name}</DialogTitle>

@@ -210,9 +210,9 @@ export function EquipmentWizard({
             className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
               step < currentStep
-                ? "bg-blue-600 text-white"
+                ? "bg-primary text-white"
                 : step === currentStep
-                ? "bg-blue-100 text-blue-600 border-2 border-blue-600"
+                ? "bg-primary/10 text-primary border-2 border-primary"
                 : "bg-muted text-muted-foreground"
             )}
           >
@@ -222,7 +222,7 @@ export function EquipmentWizard({
             <div
               className={cn(
                 "w-12 h-0.5 mx-2",
-                step < currentStep ? "bg-blue-600" : "bg-muted"
+                step < currentStep ? "bg-primary" : "bg-muted"
               )}
             />
           )}
@@ -247,7 +247,7 @@ export function EquipmentWizard({
             className={cn(
               "cursor-pointer transition-all hover:shadow-md bg-card border-border",
               selectedTemplate?.id === template.id
-                ? "ring-2 ring-blue-500 bg-secondary border-blue-500"
+                ? "ring-2 ring-primary bg-secondary border-primary"
                 : "hover:bg-secondary hover:border-border"
             )}
             onClick={() => handleTemplateSelect(template)}
@@ -316,8 +316,8 @@ export function EquipmentWizard({
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Settings className="w-4 h-4 text-blue-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Settings className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="font-medium">{selectedTemplate.name}</p>
@@ -788,8 +788,8 @@ export function EquipmentWizard({
             <CardContent className="pt-0">
               {selectedTemplate && (
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Settings className="w-4 h-4 text-blue-600" />
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Settings className="w-4 h-4 text-primary" />
                   </div>
                   <div>
                     <p className="font-medium">{selectedTemplate.name}</p>

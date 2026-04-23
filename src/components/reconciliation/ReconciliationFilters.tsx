@@ -110,7 +110,7 @@ export function ReconciliationFilters({
                 variant="outline"
                 size="sm"
                 onClick={onClearFilters}
-                className="border-border text-foreground/80 hover:bg-secondary"
+                
               >
                 <X className="h-4 w-4 mr-2" />
                 Сброс

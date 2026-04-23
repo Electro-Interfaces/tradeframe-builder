@@ -14,7 +14,7 @@ http://46.229.214.21:3000
 ### Учетные данные
 ```
 Username: tf-integration
-Password: dsvL!r25Api26
+Password: <в operator vault>
 ```
 
 ### Авторизация (Token-based)
@@ -29,7 +29,7 @@ Content-Type: application/json
 
 {
   "username": "tf-integration",
-  "password": "dsvL!r25Api26"
+  "password": "__MSTO_INTEGRATION_PASSWORD__"
 }
 ```
 
@@ -326,7 +326,7 @@ Content-Type: application/json
 
 {
   "username": "tf-integration",
-  "password": "dsvL!r25Api26"
+  "password": "__MSTO_INTEGRATION_PASSWORD__"
 }
 ```
 

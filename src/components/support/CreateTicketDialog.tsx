@@ -21,7 +21,7 @@ import VoiceInputButton from './VoiceInputButton';
 import type { TicketCategory, TicketPriority, TicketType } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
 
-const selectCls = "h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 appearance-none cursor-pointer";
+const selectCls = "h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 appearance-none cursor-pointer";
 
 export default function CreateTicketDialog() {
   const { isCreateDialogOpen, closeCreateDialog, buildAppContext } = useSupportContext();
@@ -162,7 +162,7 @@ export default function CreateTicketDialog() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300 transition-colors"
+                className="flex items-center gap-1 text-xs text-primary dark:text-primary/70 hover:text-blue-300 transition-colors"
               >
                 <Paperclip className="h-3 w-3" />
                 Прикрепить
@@ -193,7 +193,7 @@ export default function CreateTicketDialog() {
                     {file.type.startsWith('image/') ? (
                       <Image className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
                     ) : (
-                      <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                      <FileText className="h-3.5 w-3.5 text-primary dark:text-primary/70 flex-shrink-0" />
                     )}
                     <span className="truncate flex-1 text-foreground/80">{file.name}</span>
                     <span className="text-muted-foreground flex-shrink-0">{(file.size / 1024).toFixed(0)} KB</span>
@@ -291,7 +291,7 @@ export default function CreateTicketDialog() {
                 <div className="mt-2 rounded-md bg-card/50 border border-border/50 p-3 space-y-2 text-xs text-muted-foreground">
                   {/* Раздел + страница */}
                   <div className="flex items-center gap-1.5">
-                    <Route className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                    <Route className="h-3 w-3 text-primary dark:text-primary/70" />
                     <span><span className="text-muted-foreground">{appContext.section} →</span> {appContext.routeName || appContext.route}</span>
                   </div>
 
@@ -338,7 +338,7 @@ export default function CreateTicketDialog() {
           <Button
             onClick={handleSubmit}
             disabled={submitting || !title.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-primary hover:bg-primary/80 text-white"
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />

@@ -65,7 +65,7 @@ export const MobileTable: React.FC<MobileTableProps> = ({
     <div className="relative">
       {/* Подсказка о прокрутке */}
       {showHint && (
-        <div className="absolute top-0 left-0 right-0 z-10 bg-blue-600 text-white text-xs px-3 py-2 flex items-center gap-2 animate-in slide-in-from-top-2">
+        <div className="absolute top-0 left-0 right-0 z-10 bg-primary text-white text-xs px-3 py-2 flex items-center gap-2 animate-in slide-in-from-top-2">
           <Smartphone className="w-4 h-4" />
           <span>Проведите пальцем для прокрутки таблицы влево/вправо</span>
         </div>
@@ -93,7 +93,7 @@ export const MobileTable: React.FC<MobileTableProps> = ({
         {canScrollLeft && (
           <button
             onClick={scrollLeft}
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary/80 text-white p-2 rounded-full shadow-lg z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Прокрутить влево"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -103,7 +103,7 @@ export const MobileTable: React.FC<MobileTableProps> = ({
         {canScrollRight && (
           <button
             onClick={scrollRight}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary/80 text-white p-2 rounded-full shadow-lg z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Прокрутить вправо"
           >
             <ChevronRight className="w-5 h-5" />
@@ -115,11 +115,11 @@ export const MobileTable: React.FC<MobileTableProps> = ({
       <div className="flex justify-center mt-2 gap-1">
         <div className={cn(
           "w-2 h-2 rounded-full transition-colors",
-          canScrollLeft ? "bg-secondary" : "bg-blue-400"
+          canScrollLeft ? "bg-secondary" : "bg-primary/70"
         )} />
         <div className={cn(
           "w-2 h-2 rounded-full transition-colors",
-          canScrollRight ? "bg-secondary" : "bg-blue-400"
+          canScrollRight ? "bg-secondary" : "bg-primary/70"
         )} />
       </div>
     </div>

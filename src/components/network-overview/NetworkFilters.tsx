@@ -35,15 +35,15 @@ export function NetworkFilters({
         <CollapsibleTrigger asChild>
           <button className="flex items-center justify-between w-full px-4 md:px-6 py-3 hover:bg-secondary/50 transition-colors group">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground group-hover:text-blue-400 transition-colors" />
+              <Filter className="w-4 h-4 text-muted-foreground group-hover:text-primary/70 transition-colors" />
               <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground transition-colors">
                 Фильтры
               </span>
             </div>
             {filtersOpen ? (
-              <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-blue-400 transition-transform" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-primary/70 transition-transform" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-400 transition-transform" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary/70 transition-transform" />
             )}
           </button>
         </CollapsibleTrigger>
@@ -61,7 +61,7 @@ export function NetworkFilters({
                   type="date"
                   value={dateFrom}
                   onChange={(e) => onDateFromChange(e.target.value)}
-                  className="bg-secondary/50 border-border text-foreground focus:border-blue-500 focus:ring-blue-500"
+                  className="bg-secondary/50 border-border text-foreground focus:border-primary focus:ring-primary"
                 />
               </div>
 
@@ -75,7 +75,7 @@ export function NetworkFilters({
                   type="date"
                   value={dateTo}
                   onChange={(e) => onDateToChange(e.target.value)}
-                  className="bg-secondary/50 border-border text-foreground focus:border-blue-500 focus:ring-blue-500"
+                  className="bg-secondary/50 border-border text-foreground focus:border-primary focus:ring-primary"
                 />
               </div>
             </div>
@@ -85,7 +85,7 @@ export function NetworkFilters({
                 onClick={onRefresh}
                 disabled={loading}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary hover:bg-primary/80 text-white"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 {loading ? 'Обновление...' : 'Применить'}

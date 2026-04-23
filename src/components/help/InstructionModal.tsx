@@ -98,7 +98,7 @@ export function InstructionModal({ isOpen, onClose, instructionKey }: Instructio
 
         {loading && (
           <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <span className="ml-3 text-muted-foreground">Загрузка инструкции...</span>
           </div>
         )}

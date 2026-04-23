@@ -202,7 +202,7 @@ export default function UserNotificationSettingsPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             )}
-            <Bell className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-blue-600 dark:text-blue-400`} />
+            <Bell className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-primary dark:text-primary/70`} />
             <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-foreground`}>
               Настройки уведомлений
             </h1>
@@ -215,7 +215,7 @@ export default function UserNotificationSettingsPage() {
         {/* Telegram настройки */}
         <Card className="p-6 bg-card border-border">
           <div className="flex items-center gap-3 mb-4">
-            <MessageCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <MessageCircle className="w-6 h-6 text-primary dark:text-primary/70" />
             <h2 className="text-xl font-semibold text-foreground">Telegram уведомления</h2>
           </div>
 
@@ -238,7 +238,7 @@ export default function UserNotificationSettingsPage() {
                   onClick={handleSendTestNotification}
                   disabled={sendingTest}
                   variant="outline"
-                  className="w-full border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-900/20"
+                  className="w-full border-primary/30 dark:border-blue-700 text-primary dark:text-primary/70 hover:bg-blue-900/20"
                 >
                   <Send className="w-4 h-4 mr-2" />
                   {sendingTest ? 'Отправка...' : 'Отправить тестовое уведомление'}
@@ -255,22 +255,22 @@ export default function UserNotificationSettingsPage() {
                 <Button
                   onClick={handleGenerateTelegramLink}
                   disabled={generatingLink}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-primary hover:bg-primary/80"
                 >
                   <LinkIcon className="w-4 h-4 mr-2" />
                   {generatingLink ? 'Создание ссылки...' : 'Привязать Telegram'}
                 </Button>
 
                 {telegramLink && (
-                  <div className="p-4 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
-                    <p className="text-blue-600 dark:text-blue-400 text-sm mb-2">
+                  <div className="p-4 bg-primary/10 dark:bg-blue-900/20 border border-primary/30 dark:border-blue-700 rounded-lg">
+                    <p className="text-primary dark:text-primary/70 text-sm mb-2">
                       Перейдите по ссылке и нажмите "Start" в боте:
                     </p>
                     <a
                       href={telegramLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-300 hover:text-blue-200 underline break-all"
+                      className="text-primary dark:text-blue-300 hover:text-blue-200 underline break-all"
                     >
                       {telegramLink}
                     </a>
@@ -287,7 +287,7 @@ export default function UserNotificationSettingsPage() {
         {/* Режим "Не беспокоить" */}
         <Card className="p-6 bg-card border-border">
           <div className="flex items-center gap-3 mb-4">
-            <MoonStar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <MoonStar className="w-6 h-6 text-primary dark:text-primary/70" />
             <h2 className="text-xl font-semibold text-foreground">Режим "Не беспокоить"</h2>
           </div>
 
@@ -411,7 +411,7 @@ export default function UserNotificationSettingsPage() {
           <Button
             onClick={handleSaveSettings}
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-primary hover:bg-primary/80"
           >
             <Save className="w-4 h-4 mr-2" />
             {saving ? 'Сохранение...' : 'Сохранить настройки'}

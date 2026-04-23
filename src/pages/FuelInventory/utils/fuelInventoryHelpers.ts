@@ -40,8 +40,10 @@ export const filterInventory = (
   selectedStation: string
 ): TankInventory[] => {
   return inventory.filter(tank => {
-    // Пропускаем резервуары с некорректными данными
-    if (tank.volumeBook < 0 || tank.capacity <= 0) {
+    // Пропускаем резервуары только с явно некорректным книжным остатком.
+    // capacity = 0 допустим (STS /v1/tank_history не для всех АЗС возвращает volume_max,
+    // например АЗС 209/210 — в таком случае просто показываем остатки без прогресс-бара заполнения).
+    if (tank.volumeBook < 0) {
       return false;
     }
 

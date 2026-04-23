@@ -412,7 +412,7 @@ const LoginPageWithLegal = () => {
       }`}>
         {/* Логотип и заголовок - супер компактная версия */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-600 rounded-full mb-1">
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-primary rounded-full mb-1">
             <Shield className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-xl font-bold text-foreground mb-0.5">TradePoint</h1>
@@ -474,7 +474,7 @@ const LoginPageWithLegal = () => {
                     id="terms"
                     checked={acceptedTerms}
                     onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
-                    className="mt-1 border-border data-[state=checked]:bg-blue-600"
+                    className="mt-1 border-border data-[state=checked]:bg-primary"
                   />
                   <div className="space-y-1">
                     <Label htmlFor="terms" className="text-xs text-muted-foreground cursor-pointer">
@@ -482,7 +482,7 @@ const LoginPageWithLegal = () => {
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-primary dark:text-primary/70 hover:text-blue-300"
                         onClick={() => setShowTermsDialog(true)}
                       >
                         Пользовательское соглашение
@@ -496,7 +496,7 @@ const LoginPageWithLegal = () => {
                     id="privacy"
                     checked={acceptedPrivacy}
                     onCheckedChange={(checked) => setAcceptedPrivacy(checked as boolean)}
-                    className="mt-1 border-border data-[state=checked]:bg-blue-600"
+                    className="mt-1 border-border data-[state=checked]:bg-primary"
                   />
                   <div className="space-y-1">
                     <Label htmlFor="privacy" className="text-xs text-muted-foreground cursor-pointer">
@@ -504,7 +504,7 @@ const LoginPageWithLegal = () => {
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-primary dark:text-primary/70 hover:text-blue-300"
                         onClick={() => setShowPrivacyDialog(true)}
                       >
                         Политикой конфиденциальности
@@ -518,7 +518,7 @@ const LoginPageWithLegal = () => {
                     id="pdn"
                     checked={acceptedPdn}
                     onCheckedChange={(checked) => setAcceptedPdn(checked as boolean)}
-                    className="mt-1 border-border data-[state=checked]:bg-blue-600"
+                    className="mt-1 border-border data-[state=checked]:bg-primary"
                   />
                   <div className="space-y-1">
                     <Label htmlFor="pdn" className="text-xs text-muted-foreground cursor-pointer">
@@ -526,7 +526,7 @@ const LoginPageWithLegal = () => {
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-xs text-blue-600 dark:text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-primary dark:text-primary/70 hover:text-blue-300"
                         onClick={() => setShowPdnDialog(true)}
                       >
                         Защите персональных данных
@@ -542,7 +542,7 @@ const LoginPageWithLegal = () => {
                   id="remember"
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  className="border-border data-[state=checked]:bg-blue-600 h-3 w-3"
+                  className="border-border data-[state=checked]:bg-primary h-3 w-3"
                 />
                 <Label htmlFor="remember" className="text-xs text-muted-foreground cursor-pointer">
                   Запомнить меня
@@ -558,7 +558,7 @@ const LoginPageWithLegal = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700 h-8 text-sm mt-2"
+                className="w-full bg-primary hover:bg-primary/80 h-8 text-sm mt-2"
                 disabled={isLoading || !acceptedTerms || !acceptedPrivacy || !acceptedPdn}
               >
                 {isLoading ? (
@@ -607,7 +607,7 @@ const LoginPageWithLegal = () => {
                 setAcceptedTerms(true);
                 setShowTermsDialog(false);
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/80"
             >
               Принять соглашение
             </Button>
@@ -636,7 +636,7 @@ const LoginPageWithLegal = () => {
                 setAcceptedPrivacy(true);
                 setShowPrivacyDialog(false);
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/80"
             >
               Принять политику
             </Button>
@@ -665,7 +665,7 @@ const LoginPageWithLegal = () => {
                 setAcceptedPdn(true);
                 setShowPdnDialog(false);
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/80"
             >
               Принять положение
             </Button>

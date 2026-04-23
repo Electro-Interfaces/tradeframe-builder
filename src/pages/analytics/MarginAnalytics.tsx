@@ -1310,7 +1310,7 @@ export default function MarginAnalytics() {
               <Card className="mb-6">
                 <CardContent className="p-4 md:p-6">
                   <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-blue-500" />
+                    <BarChart3 className="h-4 w-4 text-primary" />
                     Маржинальность по видам топлива
                   </h3>
                   <div className="overflow-x-auto">
@@ -1507,7 +1507,7 @@ function KpiCard({
     green: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
     amber: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
     red: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-    blue: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+    blue: 'text-primary dark:text-primary/70 bg-primary/5 dark:bg-blue-900/20 border-primary/20 dark:border-primary',
   };
 
   return (

@@ -258,7 +258,7 @@ export function TradingPointEditDialog({
             onClick={() => setActiveTab('basic')}
             className={`${isMobile ? 'w-full' : 'flex-1'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'basic' 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-primary text-white' 
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
           >
@@ -268,7 +268,7 @@ export function TradingPointEditDialog({
             onClick={() => setActiveTab('codes')}
             className={`${isMobile ? 'w-full' : 'flex-1'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'codes' 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-primary text-white' 
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
           >
@@ -721,14 +721,14 @@ export function TradingPointEditDialog({
                 variant="outline" 
                 onClick={handleCancel}
                 disabled={loading}
-                className="border-border text-foreground hover:bg-secondary"
+                
               >
                 Отмена
               </Button>
               <Button 
                 onClick={handleSubmit}
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary hover:bg-primary/80 text-white"
               >
                 {loading ? "Сохранение..." : "Сохранить"}
               </Button>
@@ -741,7 +741,7 @@ export function TradingPointEditDialog({
                 variant="outline" 
                 onClick={handleCancel}
                 disabled={loading}
-                className="border-border text-foreground hover:bg-secondary"
+                
               >
                 Закрыть
               </Button>

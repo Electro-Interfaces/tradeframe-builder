@@ -29,7 +29,7 @@ export function PullToRefreshIndicator({ pullState, pullDistance }: PullToRefres
       <div className="bg-white/95 backdrop-blur-sm text-foreground px-4 py-2 rounded-full shadow-lg border border-border/50 flex items-center gap-2">
         {pullState === 'refreshing' ? (
           <>
-            <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+            <RefreshCw className="w-4 h-4 animate-spin text-primary" />
             <span className="text-sm font-medium">Обновление...</span>
           </>
         ) : pullState === 'canRefresh' ? (

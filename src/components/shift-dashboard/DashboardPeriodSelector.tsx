@@ -161,7 +161,7 @@ export function DashboardPeriodSelector({
             className={cn(
               'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap',
               period.preset === preset
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-primary text-white hover:bg-primary/80'
                 : 'text-foreground/80 hover:text-foreground hover:bg-secondary'
             )}
           >
@@ -240,8 +240,8 @@ export function DashboardPeriodSelector({
       </div>
 
       {/* Отображение выбранного периода - адаптивно */}
-      <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-50 dark:from-blue-900/50 to-card rounded-lg border border-blue-300 dark:border-blue-700/30">
-        <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+      <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-50 dark:from-blue-900/50 to-card rounded-lg border border-primary/30 dark:border-blue-700/30">
+        <CalendarDays className="h-5 w-5 text-primary dark:text-primary/70" />
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground uppercase tracking-wide">Период</span>
           <span className="text-sm text-foreground font-semibold">{formatPeriodLabel(period)}</span>
@@ -249,14 +249,14 @@ export function DashboardPeriodSelector({
         <div className="h-8 w-px bg-secondary mx-1" />
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground">Дней</span>
-          <span className="text-sm text-blue-600 dark:text-blue-400 font-bold">{calculateDays(period)}</span>
+          <span className="text-sm text-primary dark:text-primary/70 font-bold">{calculateDays(period)}</span>
         </div>
       </div>
 
       {/* Мобильная версия периода */}
-      <div className="flex sm:hidden items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-50 dark:from-blue-900/50 to-card rounded-lg border border-blue-300 dark:border-blue-700/30">
+      <div className="flex sm:hidden items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-50 dark:from-blue-900/50 to-card rounded-lg border border-primary/30 dark:border-blue-700/30">
         <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <CalendarDays className="h-4 w-4 text-primary dark:text-primary/70" />
           <span className="text-xs text-foreground font-medium">{calculateDays(period)} дн.</span>
         </div>
         <Button

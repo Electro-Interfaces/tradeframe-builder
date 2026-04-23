@@ -253,7 +253,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
       case 'success':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'creating':
-        return <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />;
+        return <Loader2 className="w-5 h-5 text-primary animate-spin" />;
       case 'error':
         return <XCircle className="w-5 h-5 text-red-500" />;
       default:
@@ -307,7 +307,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
           <Button 
             onClick={handleCreateAllRoles}
             disabled={isCreating}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-primary hover:bg-primary/80"
           >
             {isCreating ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -327,7 +327,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
               <div
                 key={role.code}
                 className={`p-4 border rounded-lg transition-all ${
-                  status === 'creating' ? 'border-blue-500 bg-blue-950/20' :
+                  status === 'creating' ? 'border-primary bg-primary/10' :
                   status === 'success' ? 'border-green-500 bg-emerald-950/20' :
                   status === 'error' ? 'border-red-500 bg-red-950/20' :
                   'border-border hover:border-border'
@@ -337,7 +337,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
                   {getStatusIcon(status)}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <IconComponent className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <IconComponent className="w-4 h-4 text-primary dark:text-primary/70" />
                       <h3 className="font-semibold text-foreground truncate">{role.name}</h3>
                       {getStatusBadge(roleStatus)}
                     </div>

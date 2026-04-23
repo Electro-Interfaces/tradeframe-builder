@@ -75,7 +75,7 @@ const MobileOperationsTable = React.memo(({ operations, onOperationClick, isDeta
             {/* Footer: Fuel + Payment */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
-                <Fuel className="w-4 h-4 text-blue-500 dark:text-di-primary-light" />
+                <Fuel className="w-4 h-4 text-primary dark:text-di-primary-light" />
                 <span className="text-sm font-medium text-foreground">
                   {op.fuelType || '—'} ({(op.quantity || 0).toFixed(1)} л)
                 </span>

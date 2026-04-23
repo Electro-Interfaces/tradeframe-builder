@@ -214,6 +214,25 @@ export interface FuelSalesBreakdown {
 
   /** Разница (литры) */
   difference: number;
+
+  /** Корпоративные (литры) — БАЛТОП, Инфорком, VIAcard, топливные карты */
+  corporateVolume?: number;
+
+  /** Корпоративные (рубли) */
+  corporateCost?: number;
+
+  /**
+   * Детализация по каждому уникальному типу оплаты (ключ — нормализованное название).
+   * Используется для построения колонок «БАЛТОП», «Инфорком», «VIAcard», «Мобил.Пр.» и т.д.
+   * как на бумажной распечатке АЗС.
+   */
+  byPayType?: Record<string, {
+    displayName: string;
+    category: 'cash' | 'card' | 'fuel_card' | 'corporate' | 'online' | 'coupon' | 'other';
+    volume: number;
+    cost: number;
+    discount: number;
+  }>;
 }
 
 /**

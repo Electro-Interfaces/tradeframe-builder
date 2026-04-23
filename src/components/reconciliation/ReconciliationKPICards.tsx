@@ -49,7 +49,7 @@ export function ReconciliationKPICards({
       <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-2">
-            <Fuel className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Fuel className="h-5 w-5 text-primary dark:text-primary/70" />
             <span className="text-muted-foreground text-sm">TF</span>
           </div>
           <div className="text-2xl font-bold text-foreground">

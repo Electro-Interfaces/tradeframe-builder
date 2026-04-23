@@ -149,7 +149,7 @@ export function Header({
             variant="ghost"
             size="sm"
             onClick={() => setIsConnectionDialogOpen(true)}
-            className="shrink-0 h-9 px-3 bg-[#2563eb] hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
+            className="shrink-0 h-9 px-3 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1" />
             Связь
@@ -192,7 +192,7 @@ export function Header({
             variant="outline"
             size="sm"
             onClick={() => setIsConnectionDialogOpen(true)}
-            className="h-9 px-3 bg-blue-100 dark:bg-blue-600/20 hover:bg-blue-600 text-blue-600 dark:text-blue-400 hover:text-white border border-blue-300 dark:border-blue-500/50 hover:border-blue-500 rounded-lg transition-all duration-200 font-medium"
+            className="h-9 px-3 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-lg transition-all duration-200 font-medium"
             title="Проверить связь со станциями"
           >
             <Wifi className="h-4 w-4 mr-1.5" />
@@ -203,7 +203,7 @@ export function Header({
             variant="outline"
             size="sm"
             onClick={openCreateDialog}
-            className="h-9 px-3 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-500 text-blue-600 dark:text-blue-400 hover:text-white border border-blue-200 dark:border-blue-500/30 hover:border-blue-500 rounded-lg transition-all duration-200 font-medium"
+            className="h-9 px-3 bg-primary/5 dark:bg-primary/10 hover:bg-primary/90 text-primary dark:text-primary/70 hover:text-white border border-primary/20 dark:border-primary/30 hover:border-primary rounded-lg transition-all duration-200 font-medium"
             title="Создать заявку в поддержку"
           >
             <LifeBuoy className="h-4 w-4 mr-1.5" />
@@ -227,7 +227,7 @@ export function Header({
                 variant="ghost"
                 className="flex items-center gap-3 px-0 md:px-3 transition-all duration-200 h-9 md:h-11 hover:bg-transparent md:hover:bg-accent rounded-lg border-none"
               >
-                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
+                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
                   <User className="w-3.5 h-3.5 md:w-5 md:h-5 text-white" />
                 </div>
                 <div className="hidden lg:flex flex-col items-start">
@@ -243,7 +243,7 @@ export function Header({
               {/* Header Section - User Info */}
               <div className="p-4 border-b border-border/20 dark:border-di-outline-variant/15">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
                     <User className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
@@ -253,7 +253,7 @@ export function Header({
                     <span className="text-xs text-muted-foreground truncate">
                       {user?.email || 'admin@tradecontrol.ru'}
                     </span>
-                    <span className="text-xs text-blue-500 dark:text-blue-400 font-medium mt-0.5">
+                    <span className="text-xs text-primary dark:text-primary/70 font-medium mt-0.5">
                       {getUserRole()}
                     </span>
                   </div>
@@ -266,8 +266,8 @@ export function Header({
                   onClick={() => navigate('/profile')}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary dark:hover:bg-di-surface-high cursor-pointer transition-all duration-200 text-foreground focus:bg-secondary dark:focus:bg-di-surface-high focus:text-foreground group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
-                    <User className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors duration-200" />
+                  <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-primary/90/20 flex items-center justify-center transition-colors duration-200">
+                    <User className="h-4 w-4 text-muted-foreground group-hover:text-primary/70 transition-colors duration-200" />
                   </div>
                   <div className="flex flex-col flex-1">
                     <span className="text-sm font-medium">Профиль</span>
@@ -279,11 +279,11 @@ export function Header({
                   onClick={(e) => { e.preventDefault(); toggleTheme(); }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary dark:hover:bg-di-surface-high cursor-pointer transition-all duration-200 text-foreground focus:bg-secondary dark:focus:bg-di-surface-high focus:text-foreground group md:hidden"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
+                  <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-primary/90/20 flex items-center justify-center transition-colors duration-200">
                     {theme === "dark" ? (
-                      <Sun className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors duration-200" />
+                      <Sun className="h-4 w-4 text-muted-foreground group-hover:text-primary/70 transition-colors duration-200" />
                     ) : (
-                      <Moon className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors duration-200" />
+                      <Moon className="h-4 w-4 text-muted-foreground group-hover:text-primary/70 transition-colors duration-200" />
                     )}
                   </div>
                   <div className="flex flex-col flex-1">
@@ -296,8 +296,8 @@ export function Header({
                   onClick={() => navigate('/settings/notifications')}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary dark:hover:bg-di-surface-high cursor-pointer transition-all duration-200 text-foreground focus:bg-secondary dark:focus:bg-di-surface-high focus:text-foreground group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
-                    <Bell className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors duration-200" />
+                  <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-primary/90/20 flex items-center justify-center transition-colors duration-200">
+                    <Bell className="h-4 w-4 text-muted-foreground group-hover:text-primary/70 transition-colors duration-200" />
                   </div>
                   <div className="flex flex-col flex-1">
                     <span className="text-sm font-medium">Уведомления</span>

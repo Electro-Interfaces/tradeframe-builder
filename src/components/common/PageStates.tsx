@@ -14,7 +14,7 @@ export function LoadingState({ message = 'Инициализация данны�
   return (
     <div className="flex items-center justify-center h-96">
       <div className="text-center">
-        <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+        <RefreshCw className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
         <p className="text-muted-foreground">{message}</p>
       </div>
     </div>

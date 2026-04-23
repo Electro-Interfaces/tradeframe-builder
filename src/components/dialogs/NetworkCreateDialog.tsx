@@ -128,14 +128,14 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
               variant="outline" 
               onClick={handleCancel}
               disabled={loading}
-              className="border-border text-foreground hover:bg-secondary"
+              
             >
               Отмена
             </Button>
             <Button 
               onClick={handleSubmit}
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-primary/80 text-white"
             >
               {loading ? "Создание..." : "Создать"}
             </Button>

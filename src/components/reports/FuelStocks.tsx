@@ -206,7 +206,7 @@ export function FuelStocks({ isNetworkOnly, isTradingPointSelected }: FuelStocks
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Fuel className="w-4 h-4 text-blue-500" />
+              <Fuel className="w-4 h-4 text-primary" />
               Текущий остаток
             </CardTitle>
           </CardHeader>

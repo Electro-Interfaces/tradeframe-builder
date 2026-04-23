@@ -261,12 +261,12 @@ export function CalculationDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <Calculator className="h-6 w-6 text-primary dark:text-primary/70" />
             Расчет таблицы по ТРК
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-base">
             Создание новой версии таблицы по реальным отпускам ТРК и показаниям резервуара за выбранный период
-            <span className="mt-2 block text-blue-600 dark:text-blue-300 font-semibold">
+            <span className="mt-2 block text-primary dark:text-blue-300 font-semibold">
               {networkName || 'Компания не выбрана'} / {stationName || 'Станция не выбрана'} / {tankName || 'Резервуар'}{fuelType ? ` (${fuelType})` : ''}
             </span>
           </DialogDescription>
@@ -277,7 +277,7 @@ export function CalculationDialog({
           <Card className="bg-card/50 border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <Clock className="h-4 w-4 text-primary dark:text-primary/70" />
                 Период анализа данных
               </CardTitle>
             </CardHeader>
@@ -307,9 +307,9 @@ export function CalculationDialog({
                   />
                 </div>
               </div>
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-2.5">
-                <p className="text-xs text-blue-600 dark:text-blue-300 flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-blue-400">i</span>
+              <div className="bg-primary/10 border border-primary/20 rounded-md p-2.5">
+                <p className="text-xs text-primary dark:text-blue-300 flex items-center gap-2">
+                  <span className="text-primary dark:text-primary/70">i</span>
                   Данные из /v1/tank_history (обновление каждые 10 минут)
                 </p>
               </div>
@@ -417,7 +417,7 @@ export function CalculationDialog({
           <Button
             onClick={handleCalculate}
             disabled={isCalculating || !startDate || !endDate}
-            className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700"
+            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/80"
             size="lg"
           >
             {isCalculating ? (

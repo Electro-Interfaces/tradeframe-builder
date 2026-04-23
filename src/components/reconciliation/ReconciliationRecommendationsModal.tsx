@@ -186,7 +186,7 @@ export function ReconciliationRecommendationsModal({
             {/* Детальный анализ - Только в TF */}
             {summary.onlyTf > 0 && (
               <section className="bg-card rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-medium text-primary dark:text-primary/70 mb-3 flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   Только в TF: {summary.onlyTf} транзакций
                 </h3>
@@ -205,7 +205,7 @@ export function ReconciliationRecommendationsModal({
                   )}
                 </div>
 
-                <div className="mt-3 p-2 bg-blue-100 dark:bg-blue-900/30 rounded text-xs text-blue-600 dark:text-blue-300 flex items-start gap-2">
+                <div className="mt-3 p-2 bg-primary/10 dark:bg-blue-900/30 rounded text-xs text-primary dark:text-blue-300 flex items-start gap-2">
                   <HelpCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
                     <strong>Вероятные причины:</strong>
@@ -315,7 +315,7 @@ export function ReconciliationRecommendationsModal({
                   {/* Есть только в TF */}
                   {summary.onlyTf > 0 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400 font-bold">{summary.onlyCorp > 0 ? '2' : '1'}.</span>
+                      <span className="text-primary dark:text-primary/70 font-bold">{summary.onlyCorp > 0 ? '2' : '1'}.</span>
                       <span>
                         Проверьте статус карт в TradeCorp. Возможно, карты деактивированы
                         или операции дублируются в TF.

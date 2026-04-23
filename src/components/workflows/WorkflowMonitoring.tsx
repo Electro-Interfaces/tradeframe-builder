@@ -163,8 +163,8 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                   Активных: {stats.active_workflows}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/20 rounded-full flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-primary dark:text-primary/70" />
               </div>
             </div>
           </CardContent>
@@ -389,10 +389,10 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                 )}
 
                 {stats.executions_last_24h === 0 && (
-                  <div className="flex items-start gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <div className="flex items-start gap-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                    <Zap className="w-5 h-5 text-primary dark:text-primary/70 mt-0.5" />
                     <div>
-                      <p className="font-medium text-blue-600 dark:text-blue-400">Нет выполнений</p>
+                      <p className="font-medium text-primary dark:text-primary/70">Нет выполнений</p>
                       <p className="text-sm text-muted-foreground">
                         За последние 24 часа не было выполнений регламентов.
                       </p>

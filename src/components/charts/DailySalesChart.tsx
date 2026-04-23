@@ -100,7 +100,7 @@ export const DailySalesChart = memo(function DailySalesChart({
                               </p>
                             );
                           })}
-                        <p className="text-blue-600 dark:text-blue-400 flex justify-between">
+                        <p className="text-primary dark:text-primary/70 flex justify-between">
                           <span>Операции:</span>
                           <span className="font-medium">{data.operations}</span>
                         </p>

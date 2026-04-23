@@ -255,7 +255,7 @@ export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
 
 export const TICKET_PRIORITY_COLORS: Record<TicketPriority, string> = {
   low: 'text-muted-foreground',
-  medium: 'text-blue-400',
+  medium: 'text-primary/70',
   high: 'text-amber-400',
   critical: 'text-red-400',
 };

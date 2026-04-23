@@ -9,6 +9,7 @@ import { useSelection } from '@/contexts/SelectionContext';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { getInventoryFromServer, getInventoryFromShiftReports, aggregateByFuel, type TankInventory, type FuelInventorySummary } from '@/services/fuelInventoryService';
+import { extractStationNumber } from '@/utils/tradingPointUtils';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
 export const useFuelInventory = (dateFrom: string, dateTo: string) => {
@@ -82,7 +83,7 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         const params = {
           system: parseInt(network.external_id),
           networkId: network.id,
-          station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
+          station: selectedStation ? extractStationNumber(selectedStation) : undefined,
           dt_beg: formatDateForApi(dateFrom, false),
           dt_end: formatDateForApi(dateTo, true),
           allowedStations: allowedStationNumbers,
@@ -110,10 +111,6 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
             // Continue with other networks
           }
         }
-      }
-
-      if (allData.length === 0) {
-        throw new Error('Нет данных об остатках топлива');
       }
 
       return allData;

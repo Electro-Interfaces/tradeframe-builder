@@ -66,6 +66,7 @@ export interface TankApiData {
   amount_end?: number;
   volume_begin?: number;
   volume_end?: number;
+  volume_free?: number;      // свободный объём из STS (учитывает объём воды)
   release?: {
     volume: number;
     amount: number;

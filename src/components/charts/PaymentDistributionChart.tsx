@@ -69,7 +69,7 @@ export const PaymentDistributionChart = memo(function PaymentDistributionChart({
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground text-lg flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <CreditCard className="h-5 w-5 text-primary dark:text-primary/70" />
             Распределение способов оплаты
           </CardTitle>
         </CardHeader>
@@ -109,7 +109,7 @@ export const PaymentDistributionChart = memo(function PaymentDistributionChart({
     <Card className={`bg-card border-border ${isMobile ? '' : 'lg:h-full lg:flex lg:flex-col'}`}>
       <CardHeader className={`${isMobile ? 'pb-2' : 'pb-3'}`}>
         <CardTitle className={`text-foreground ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-          <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <CreditCard className="h-5 w-5 text-primary dark:text-primary/70" />
           Способы оплаты
         </CardTitle>
       </CardHeader>
@@ -149,7 +149,7 @@ export const PaymentDistributionChart = memo(function PaymentDistributionChart({
                         <p className="text-foreground/80">
                           Объем: <span className="font-medium">{data.volume.toFixed(0)} л</span>
                         </p>
-                        <p className="text-blue-600 dark:text-blue-400">
+                        <p className="text-primary dark:text-primary/70">
                           Доля: <span className="font-medium">{data.share.toFixed(1)}%</span>
                         </p>
                       </div>

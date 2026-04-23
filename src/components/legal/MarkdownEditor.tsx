@@ -180,7 +180,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               <Button
                 onClick={handleSave}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-500 text-white"
+                className="bg-primary hover:bg-primary/90 text-white"
                 disabled={readOnly}
               >
                 <Save className="w-4 h-4 mr-2" />
@@ -206,7 +206,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 value={localContent}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder={placeholder}
-                className="min-h-[500px] bg-secondary border-border text-foreground font-mono text-sm resize-none focus:ring-blue-500"
+                className="min-h-[500px] bg-secondary border-border text-foreground font-mono text-sm resize-none focus:ring-primary"
                 readOnly={readOnly}
               />
               

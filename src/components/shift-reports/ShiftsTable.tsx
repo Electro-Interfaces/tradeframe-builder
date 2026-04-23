@@ -36,28 +36,28 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
     switch (status) {
       case 'open':
         return (
-          <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500 flex items-center gap-1">
+          <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500/30 inline-flex items-center gap-1 text-xs px-2.5 py-0.5">
             <ClockIcon className="w-3 h-3" />
             Открыта
           </Badge>
         );
       case 'closed':
         return (
-          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500 flex items-center gap-1">
+          <Badge className="bg-primary/10 text-primary dark:text-primary/70 border-primary/30 inline-flex items-center gap-1 text-xs px-2.5 py-0.5">
             <CheckCircle className="w-3 h-3" />
             Закрыта
           </Badge>
         );
       case 'synchronized':
         return (
-          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500 flex items-center gap-1">
+          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 inline-flex items-center gap-1 text-xs px-2.5 py-0.5">
             <CheckCircle className="w-3 h-3" />
             Синхронизирована
           </Badge>
         );
       default:
         return (
-          <Badge className="bg-muted-foreground/10 text-muted-foreground border-border">
+          <Badge className="bg-muted-foreground/10 text-muted-foreground border-border/30 inline-flex items-center gap-1 text-xs px-2.5 py-0.5">
             Неизвестно
           </Badge>
         );
@@ -86,54 +86,54 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead className="bg-secondary/80">
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm border-separate border-spacing-y-1">
+        <thead>
           <tr>
-            <th className="px-6 py-4 text-left text-foreground font-medium">ТТ</th>
-            <th className="px-6 py-4 text-left text-foreground font-medium">СМЕНА №</th>
-            <th className="px-6 py-4 text-left text-foreground font-medium">ОТКРЫТА</th>
-            <th className="px-6 py-4 text-left text-foreground font-medium">ЗАКРЫТА</th>
-            <th className="px-6 py-4 text-center text-foreground font-medium">СТАТУС</th>
+            <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ТТ</th>
+            <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">СМЕНА №</th>
+            <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ОТКРЫТА</th>
+            <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ЗАКРЫТА</th>
+            <th className="px-5 py-3 text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">СТАТУС</th>
           </tr>
         </thead>
-        <tbody className="bg-card">
+        <tbody>
           {shifts.map((shift) => (
             <tr
               key={shift.id}
-              className="border-b border-border hover:bg-secondary/50 transition-colors cursor-pointer"
+              className="bg-di-surface-low hover:bg-di-surface-high transition-colors cursor-pointer group"
               onClick={() => {
                 onSelectShift(shift);
               }}
             >
               {/* ТТ */}
-              <td className="px-6 py-4">
+              <td className="px-5 py-4 rounded-l-xl">
                 <div className="text-foreground">
                   {shift.stationName || `ТТ ${shift.stationCode}`}
                 </div>
               </td>
 
               {/* Номер смены */}
-              <td className="px-6 py-4">
+              <td className="px-5 py-4">
                 <span className="text-foreground font-semibold text-base">
                   #{shift.shiftNumber}
                 </span>
               </td>
 
               {/* Дата открытия */}
-              <td className="px-6 py-4">
+              <td className="px-5 py-4">
                 <div className="text-foreground">{formatDateTime(shift.openedAt)}</div>
               </td>
 
               {/* Дата закрытия */}
-              <td className="px-6 py-4">
+              <td className="px-5 py-4">
                 <div className="text-foreground">
                   {shift.closedAt ? formatDateTime(shift.closedAt) : '—'}
                 </div>
               </td>
 
               {/* Статус */}
-              <td className="px-6 py-4 text-center">
+              <td className="px-5 py-4 text-center rounded-r-xl">
                 {getStatusBadge(shift.status)}
               </td>
             </tr>

@@ -12,7 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { extractStationNumber } from "@/utils/tradingPointUtils";
 import { getSystemId } from "@/config/stsConfig";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FileCheck, Receipt, Construction, CreditCard, Loader2, Smartphone } from "lucide-react";
+import { LayoutDashboard, FileCheck, Receipt, Construction, CreditCard, Loader2, Smartphone, RefreshCw, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -76,6 +76,7 @@ export default function ShiftReportsV2() {
 
   // Управление фильтрами
   const { filters, setFilters } = useShiftFilters();
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   // Загрузка и фильтрация смен
   const { shifts, filteredShifts, loading, refresh } = useShiftReports({
@@ -221,8 +222,23 @@ export default function ShiftReportsV2() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigate('/point/shift-dashboard')}
-              className="bg-secondary border-border hover:bg-secondary text-foreground"
+              className=""
             >
               <LayoutDashboard className="w-4 h-4 mr-2" />
               Дашборд
@@ -231,7 +247,7 @@ export default function ShiftReportsV2() {
               variant="outline"
               size="sm"
               onClick={() => setIsReceiptsModalOpen(true)}
-              className="bg-secondary border-border hover:bg-secondary text-foreground"
+              className=""
             >
               <Receipt className="w-4 h-4 mr-2" />
               Чеки
@@ -240,7 +256,7 @@ export default function ShiftReportsV2() {
               variant="outline"
               size="sm"
               onClick={() => setIsReconciliationModalOpen(true)}
-              className="bg-secondary border-border hover:bg-secondary text-foreground"
+              className=""
             >
               <FileCheck className="w-4 h-4 mr-2" />
               Сверки
@@ -249,17 +265,19 @@ export default function ShiftReportsV2() {
         </div>
 
         {/* Фильтры */}
-        <div className="mb-6">
-          <ShiftFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            onRefresh={refresh}
-            loading={loading}
-          />
-        </div>
+        {filtersOpen && (
+          <div className="mb-8">
+            <ShiftFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              onRefresh={refresh}
+              loading={loading}
+            />
+          </div>
+        )}
 
         {/* Журнал смен */}
-        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
+        <div className="bg-di-surface-mid rounded-xl border border-transparent p-4 md:p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               Журнал смен

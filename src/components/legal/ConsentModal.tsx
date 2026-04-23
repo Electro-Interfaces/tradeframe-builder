@@ -179,7 +179,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
             </div>
             <div className="w-full bg-secondary rounded-full h-2">
               <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-primary h-2 rounded-full transition-all duration-300"
                 style={{ 
                   width: `${remainingDocuments.length > 0 ? (completedDocuments.length / remainingDocuments.length) * 100 : 0}%` 
                 }}
@@ -213,7 +213,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                 <div key={doc.type} className="bg-secondary/30 rounded-lg p-4 border border-border">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                         <FileText className="w-4 h-4 text-foreground" />
                       </div>
                       <div>

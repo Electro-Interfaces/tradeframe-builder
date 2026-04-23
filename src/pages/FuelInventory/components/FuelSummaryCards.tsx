@@ -56,17 +56,23 @@ export const FuelSummaryCards = ({ summaries, loading = false }: FuelSummaryCard
                   {formatNumber(summary.totalVolumeBook)} л
                 </span>
               </div>
-              {/* Прогресс-бар */}
-              <div className="h-2.5 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${getProgressColor((summary.totalVolumeBook / summary.totalCapacity) * 100)}`}
-                  style={{ width: `${(summary.totalVolumeBook / summary.totalCapacity) * 100}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>{((summary.totalVolumeBook / summary.totalCapacity) * 100).toFixed(1)}%</span>
-                <span>Вместимость: {formatNumber(summary.totalCapacity)} л</span>
-              </div>
+              {/* Прогресс-бар — только если известна ёмкость */}
+              {summary.totalCapacity > 0 ? (
+                <>
+                  <div className="h-2.5 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${getProgressColor((summary.totalVolumeBook / summary.totalCapacity) * 100)}`}
+                      style={{ width: `${Math.max(0, Math.min(100, (summary.totalVolumeBook / summary.totalCapacity) * 100))}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>{((summary.totalVolumeBook / summary.totalCapacity) * 100).toFixed(1)}%</span>
+                    <span>Вместимость: {formatNumber(summary.totalCapacity)} л</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-muted-foreground mt-1">Ёмкость резервуаров не задана</div>
+              )}
             </div>
 
             {/* Расчет книжного остатка */}
@@ -81,7 +87,7 @@ export const FuelSummaryCards = ({ summaries, loading = false }: FuelSummaryCard
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">- Реализация:</span>
-                <span className="text-blue-600 dark:text-blue-400">-{formatNumber(summary.totalSales)} л</span>
+                <span className="text-primary dark:text-primary/70">-{formatNumber(summary.totalSales)} л</span>
               </div>
               <div className="flex justify-between pt-1 border-t border-border">
                 <span className="text-muted-foreground font-medium">= Остаток:</span>

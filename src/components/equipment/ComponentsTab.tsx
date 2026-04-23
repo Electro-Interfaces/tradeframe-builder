@@ -246,7 +246,7 @@ export function ComponentsTab({
             <Button
               size="sm"
               onClick={() => setIsWizardOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/80"
               disabled={loading}
             >
               <Plus className="h-4 w-4" />
@@ -452,7 +452,7 @@ export function ComponentsTab({
 
         <Button 
           onClick={() => setIsWizardOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-primary hover:bg-primary/80"
           disabled={loading}
         >
           <Plus className="h-4 w-4 mr-2" />

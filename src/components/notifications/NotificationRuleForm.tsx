@@ -395,7 +395,7 @@ export function NotificationRuleForm({ initialData, users, onSubmit, onCancel }:
                         {users.map((user) => (
                           <SelectItem key={user.id} value={user.id}>
                             <div className="flex items-center gap-3">
-                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                                 <span className="text-foreground text-xs font-medium">
                                   {user.name.split(' ').map(n => n[0]).join('')}
                                 </span>

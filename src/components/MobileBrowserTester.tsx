@@ -177,13 +177,13 @@ export function MobileBrowserTester() {
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Smartphone className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <Smartphone className="h-6 w-6 text-primary dark:text-primary/70" />
           <h1 className="text-2xl font-bold">Тестирование мобильных браузеров</h1>
         </div>
         <Button 
           onClick={runTests} 
           disabled={isRunning}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-primary hover:bg-primary/80"
         >
           {isRunning ? 'Тестирование...' : 'Запустить тесты'}
         </Button>

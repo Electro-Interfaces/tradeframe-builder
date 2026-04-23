@@ -239,7 +239,7 @@ export function ComponentWizard({
         <div className="p-6">
           <DialogHeader className="pb-4">
             <DialogTitle className="flex items-center gap-2">
-              <Layers3 className="w-5 h-5 text-blue-600" />
+              <Layers3 className="w-5 h-5 text-primary" />
               Добавление компонента (ДЕМО)
             </DialogTitle>
             <DialogDescription>
@@ -569,7 +569,7 @@ export function ComponentWizard({
               <Button
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-primary hover:bg-primary/80"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 {isSubmitting ? "Создание..." : "Создать компонент"}

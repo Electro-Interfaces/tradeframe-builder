@@ -231,69 +231,140 @@ async function createTradingPoint(input) {
     [input.networkId]
   );
 
-  const maxCode = existingRows.reduce((currentMax, row) => {
-    const parsedCode = Number.parseInt(String(row.code || ''), 10);
-    return Number.isFinite(parsedCode) ? Math.max(currentMax, parsedCode) : currentMax;
-  }, 0);
-  const newCode = String(maxCode + 1);
+  let newCode;
+  if (input.code) {
+    const duplicate = existingRows.some((row) => String(row.code) === String(input.code));
+    if (duplicate) {
+      throw new Error(`Станция с кодом ${input.code} уже существует в этой сети`);
+    }
+    newCode = String(input.code);
+  } else {
+    const maxCode = existingRows.reduce((currentMax, row) => {
+      const parsedCode = Number.parseInt(String(row.code || ''), 10);
+      return Number.isFinite(parsedCode) ? Math.max(currentMax, parsedCode) : currentMax;
+    }, 0);
+    newCode = String(maxCode + 1);
+  }
+  const externalId = input.externalId ? String(input.externalId) : newCode;
   const pointId = generateStationId(network.code, newCode);
 
+  // Проверяем soft-deleted запись с таким же ID — восстанавливаем вместо INSERT
+  const { rows: deletedRows } = await postgres.query(
+    `SELECT id FROM trading_points WHERE id = $1 AND deleted_at IS NOT NULL`,
+    [pointId]
+  );
+
   return postgres.withTransaction(async (client) => {
-    const insertResult = await client.query(
-      `INSERT INTO trading_points (
-         id,
-         network_id,
-         code,
-         external_id,
-         name,
-         description,
-         latitude,
-         longitude,
-         region,
-         city,
-         address,
-         phone,
-         email,
-         website,
-         is_blocked,
-         block_reason,
-         schedule,
-         services,
-         bill_acceptor_thresholds,
-         fuel_level_thresholds,
-         metadata,
-         is_active
-       ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-         $11, $12, $13, $14, $15, $16, $17::jsonb, $18::jsonb,
-         $19::jsonb, $20::jsonb, $21::jsonb, $22
-       )
-       RETURNING *`,
-      [
-        pointId,
-        input.networkId,
-        newCode,
-        newCode,
-        input.name,
-        input.description || `${network.name} - ${input.name}`,
-        Number(input.geolocation?.latitude || 0),
-        Number(input.geolocation?.longitude || 0),
-        input.geolocation?.region || '',
-        input.geolocation?.city || '',
-        input.geolocation?.address || '',
-        input.phone || '',
-        input.email || '',
-        input.website || '',
-        Boolean(input.isBlocked),
-        input.blockReason || '',
-        JSON.stringify(input.schedule || {}),
-        JSON.stringify(input.services || {}),
-        JSON.stringify(input.billAcceptorThresholds || {}),
-        JSON.stringify(input.fuelLevelThresholds || {}),
-        JSON.stringify({}),
-        !input.isBlocked,
-      ]
-    );
+    let insertResult;
+
+    if (deletedRows.length > 0) {
+      insertResult = await client.query(
+        `UPDATE trading_points SET
+           code = $2,
+           external_id = $3,
+           name = $4,
+           description = $5,
+           latitude = $6,
+           longitude = $7,
+           region = $8,
+           city = $9,
+           address = $10,
+           phone = $11,
+           email = $12,
+           website = $13,
+           is_blocked = $14,
+           block_reason = $15,
+           schedule = $16::jsonb,
+           services = $17::jsonb,
+           bill_acceptor_thresholds = $18::jsonb,
+           fuel_level_thresholds = $19::jsonb,
+           metadata = $20::jsonb,
+           is_active = $21,
+           deleted_at = NULL,
+           updated_at = now()
+         WHERE id = $1
+         RETURNING *`,
+        [
+          pointId,
+          newCode,
+          externalId,
+          input.name,
+          input.description || `${network.name} - ${input.name}`,
+          Number(input.geolocation?.latitude || 0),
+          Number(input.geolocation?.longitude || 0),
+          input.geolocation?.region || '',
+          input.geolocation?.city || '',
+          input.geolocation?.address || '',
+          input.phone || '',
+          input.email || '',
+          input.website || '',
+          Boolean(input.isBlocked),
+          input.blockReason || '',
+          JSON.stringify(input.schedule || {}),
+          JSON.stringify(input.services || {}),
+          JSON.stringify(input.billAcceptorThresholds || {}),
+          JSON.stringify(input.fuelLevelThresholds || {}),
+          JSON.stringify({}),
+          !input.isBlocked,
+        ]
+      );
+    } else {
+      insertResult = await client.query(
+        `INSERT INTO trading_points (
+           id,
+           network_id,
+           code,
+           external_id,
+           name,
+           description,
+           latitude,
+           longitude,
+           region,
+           city,
+           address,
+           phone,
+           email,
+           website,
+           is_blocked,
+           block_reason,
+           schedule,
+           services,
+           bill_acceptor_thresholds,
+           fuel_level_thresholds,
+           metadata,
+           is_active
+         ) VALUES (
+           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+           $11, $12, $13, $14, $15, $16, $17::jsonb, $18::jsonb,
+           $19::jsonb, $20::jsonb, $21::jsonb, $22
+         )
+         RETURNING *`,
+        [
+          pointId,
+          input.networkId,
+          newCode,
+          externalId,
+          input.name,
+          input.description || `${network.name} - ${input.name}`,
+          Number(input.geolocation?.latitude || 0),
+          Number(input.geolocation?.longitude || 0),
+          input.geolocation?.region || '',
+          input.geolocation?.city || '',
+          input.geolocation?.address || '',
+          input.phone || '',
+          input.email || '',
+          input.website || '',
+          Boolean(input.isBlocked),
+          input.blockReason || '',
+          JSON.stringify(input.schedule || {}),
+          JSON.stringify(input.services || {}),
+          JSON.stringify(input.billAcceptorThresholds || {}),
+          JSON.stringify(input.fuelLevelThresholds || {}),
+          JSON.stringify({}),
+          !input.isBlocked,
+        ]
+      );
+    }
 
     const defaultExternalCodeId = createExternalCodeId();
     await client.query(

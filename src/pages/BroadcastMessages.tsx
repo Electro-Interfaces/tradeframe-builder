@@ -155,7 +155,7 @@ export default function BroadcastMessagesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className={`font-bold text-foreground flex items-center gap-2 md:gap-3 ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
-              <MessageSquare className={`text-blue-500 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
+              <MessageSquare className={`text-primary ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
               Рассылка сообщений
             </h1>
             <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>

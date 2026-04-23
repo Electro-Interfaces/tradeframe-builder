@@ -307,7 +307,7 @@ export function getCouponStateClasses(state: CouponState): string {
     case 'Погашен':
       return 'bg-muted text-foreground border-border';
     default:
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return 'bg-primary/10 text-primary border-primary/20';
   }
 }
 
@@ -317,7 +317,7 @@ export function getCouponStateClasses(state: CouponState): string {
 export function getCouponPriorityClasses(priority: CouponPriority): string {
   switch (priority) {
     case 'normal':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return 'bg-primary/10 text-primary border-primary/20';
     case 'attention':
       return 'bg-amber-100 text-amber-800 border-amber-200';
     case 'critical':

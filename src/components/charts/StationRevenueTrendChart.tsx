@@ -177,7 +177,7 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
                         {payload.length > 1 && (
                           <div className="border-t border-border mt-2 pt-2 flex items-center justify-between gap-3">
                             <span className="text-muted-foreground font-semibold text-xs">Всего:</span>
-                            <span className="text-blue-600 dark:text-blue-400 font-bold">
+                            <span className="text-primary dark:text-primary/70 font-bold">
                               {formatFull(total)} ₽
                             </span>
                           </div>
@@ -238,7 +238,7 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
               </div>
               <div className={`bg-secondary/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
                 <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Средняя выручка/день</div>
-                <div className={`font-semibold text-blue-600 dark:text-blue-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                <div className={`font-semibold text-primary dark:text-primary/70 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                   {formatFull(
                     chartData.reduce((sum, day) => {
                       const dayTotal = stations.reduce((s, st) => s + (day[st] || 0), 0);

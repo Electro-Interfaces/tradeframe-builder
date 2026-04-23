@@ -212,7 +212,7 @@ export const MESSAGE_CHANNEL_LABELS: Record<MessageChannel, string> = {
 
 // Цвета для приоритетов
 export const MESSAGE_PRIORITY_COLORS: Record<MessagePriority, string> = {
-  low: 'text-blue-600',
+  low: 'text-primary',
   medium: 'text-yellow-600',
   high: 'text-orange-600',
   critical: 'text-red-600'
@@ -221,7 +221,7 @@ export const MESSAGE_PRIORITY_COLORS: Record<MessagePriority, string> = {
 // Цвета для статусов
 export const MESSAGE_STATUS_COLORS: Record<MessageStatus, string> = {
   draft: 'text-muted-foreground',
-  scheduled: 'text-blue-600',
+  scheduled: 'text-primary',
   sending: 'text-yellow-600',
   sent: 'text-green-600',
   failed: 'text-red-600'

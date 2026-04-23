@@ -29,7 +29,7 @@ export const UpdateInfoDialog: React.FC<UpdateInfoDialogProps> = ({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Info className="h-5 w-5 text-blue-500" />
+            <Info className="h-5 w-5 text-primary" />
             Статус обновлений
           </DialogTitle>
           <DialogDescription>

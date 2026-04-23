@@ -9,7 +9,7 @@ interface LazyLoaderProps {
 const DefaultFallback = () => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="flex flex-col items-center space-y-4">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
       <p className="text-muted-foreground">Загрузка...</p>
     </div>
   </div>

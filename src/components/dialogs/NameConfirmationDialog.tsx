@@ -103,7 +103,7 @@ export function NameConfirmationDialog({
               variant="outline"
               onClick={() => handleOpenChange(false)}
               disabled={loading}
-              className="border-border text-foreground hover:bg-secondary"
+              
             >
               Отмена
             </Button>

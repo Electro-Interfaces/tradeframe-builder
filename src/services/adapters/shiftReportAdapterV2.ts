@@ -13,6 +13,7 @@ import type {
   PosInfoItem,
   NozzleReading,
 } from '@/types/shift-reports-v2';
+import { classifyPayment } from '@/utils/paymentUtils';
 
 /**
  * Преобразует ответ API в детальную информацию о смене
@@ -39,9 +40,6 @@ export class ShiftReportAdapterV2 {
 
     // Извлекаем поступления
     const receipts = this.extractReceipts(apiResponse.receipt);
-
-    // Извлекаем движение наличных
-    const cashMovements = this.extractCashMovements(apiResponse.money, shiftNumber);
 
     // Вычисляем итоговые показатели
     const totalRevenue = this.calculateTotalRevenue(paymentSales);
@@ -85,6 +83,10 @@ export class ShiftReportAdapterV2 {
         status = allClosed && closedAt ? 'closed' : 'open';
       }
     }
+
+    // Извлекаем движение наличных — после определения openedAt/closedAt,
+    // чтобы проставить корректные даты operation'ам вместо new Date()
+    const cashMovements = this.extractCashMovements(apiResponse.money, shiftNumber, openedAt, closedAt);
 
     const result = {
       // Базовая информация
@@ -309,8 +311,13 @@ export class ShiftReportAdapterV2 {
   /**
    * Извлечь детализированные продажи по топливу и способам оплаты
    * Для таблицы "Расшифровка реализации"
+   *
+   * Структура повторяет бумажную распечатку АЗС:
+   * - Прокачка = 0 (АЗС-система не выводит прокачку в этой форме)
+   * - Разница = Всего − (cash + card + nonCash) — балансовая проверка разложения по типам оплаты,
+   *   должна быть 0, если все типы корректно классифицированы.
    */
-  private static extractSalesBreakdown(sales: any[], nozzleReadings: NozzleReading[]): any[] {
+  private static extractSalesBreakdown(sales: any[], _nozzleReadings: NozzleReading[]): any[] {
     if (!sales || !Array.isArray(sales)) {
       return [];
     }
@@ -319,12 +326,13 @@ export class ShiftReportAdapterV2 {
     // Создаем карту: fuelCode -> { fuelName, по способам оплаты }
     const breakdownMap = new Map<number, any>();
 
-    sales.forEach((sale: any, index: number) => {
-      const paymentTypeName = (sale.pay_type?.name || '').toLowerCase();
-      const paymentTypeId = sale.pay_type?.id || 0;
+    sales.forEach((sale: any) => {
+      const paymentTypeRaw: string = sale.pay_type?.name || '';
+      const payKey = paymentTypeRaw.toLowerCase().trim();
+      const category = classifyPayment(paymentTypeRaw);
 
       if (sale.fuel && Array.isArray(sale.fuel)) {
-        sale.fuel.forEach((fuelItem: any, fuelIndex: number) => {
+        sale.fuel.forEach((fuelItem: any) => {
           const fuelCode = fuelItem.service?.service_code || 0;
           const fuelName = fuelItem.service?.service_name || 'Неизвестно';
           const volume = parseFloat(fuelItem.release?.volume || '0');
@@ -341,91 +349,70 @@ export class ShiftReportAdapterV2 {
               discountCost: 0,
               cashVolume: 0,
               cashCost: 0,
-              corporateVolume: 0,  // Корпоративные карты (КР)
+              corporateVolume: 0,
               corporateCost: 0,
               nonCashVolume: 0,
               totalVolume: 0,
               difference: 0,
+              byPayType: {} as Record<string, { displayName: string; category: string; volume: number; cost: number; discount: number }>,
             });
           }
 
           const breakdown = breakdownMap.get(fuelCode);
 
-          // Мапим способы оплаты (исключаем "купон на сдачу" - это техническая запись)
-          if (paymentTypeName.includes('купон')) {
-            // Купон на сдачу - корректировка объёма, попадает в "Безнал."
-            // Скидку из купонов НЕ учитываем
-            breakdown.nonCashVolume += volume;
-            breakdown.totalVolume += volume;
+          // Детализация по каждому уникальному типу оплаты (для колонок «БАЛТОП», «Инфорком», «VIAcard» и т.д.)
+          if (payKey) {
+            if (!breakdown.byPayType[payKey]) {
+              breakdown.byPayType[payKey] = { displayName: paymentTypeRaw, category, volume: 0, cost: 0, discount: 0 };
+            }
+            breakdown.byPayType[payKey].volume += volume;
+            breakdown.byPayType[payKey].cost += cost;
+            breakdown.byPayType[payKey].discount += discount;
           }
-          // Корпоративные карты (КР, корп.карты) - ВАЖНО: проверяем ПЕРЕД обычными картами!
-          else if (paymentTypeName === 'кр' ||
-                   paymentTypeName.includes('корпоратив') ||
-                   paymentTypeName.includes('корп.карт') ||
-                   paymentTypeName.includes('корп карт')) {
-            breakdown.corporateVolume += volume;
-            breakdown.corporateCost += cost;
-            breakdown.discountCost += discount;
-            breakdown.totalVolume += volume;
-          }
-          // Топливные карты - относим к корпоративным
-          else if (paymentTypeName.includes('топливн')) {
-            breakdown.corporateVolume += volume;
-            breakdown.corporateCost += cost;
-            breakdown.discountCost += discount;
-            breakdown.totalVolume += volume;
-          }
-          // "По картам" = сбербанк, карты, и т.д.
-          else if (paymentTypeName.includes('карт') ||
-              paymentTypeName.includes('сбербанк') ||
-              paymentTypeName.includes('visa') ||
-              paymentTypeName.includes('mastercard')) {
-            breakdown.cardVolume += volume;
-            breakdown.cardCost += cost;
-            breakdown.discountCost += discount; // Скидка из карт
-            breakdown.totalVolume += volume;
-          }
-          // "За наличные"
-          else if (paymentTypeName.includes('наличн')) {
-            breakdown.cashVolume += volume;
-            breakdown.cashCost += cost;
-            breakdown.discountCost += discount; // Скидка из наличных
-            breakdown.totalVolume += volume;
-          }
-          // "Безнал." = мобильные приложения, онлайн заказы
-          else if (paymentTypeName.includes('безнал') ||
-                   paymentTypeName.includes('мобил') ||
-                   paymentTypeName.includes('онлайн') ||
-                   paymentTypeName.includes('online')) {
-            breakdown.nonCashVolume += volume;
-            breakdown.discountCost += discount; // Скидка из безнала
-            breakdown.totalVolume += volume;
-          }
-          // Неизвестный тип - записываем в безнал как fallback
-          else {
-            breakdown.nonCashVolume += volume;
-            breakdown.totalVolume += volume;
+
+          // Агрегаты по категориям (обратная совместимость с ShiftDetailsModal)
+          switch (category) {
+            case 'cash':
+              breakdown.cashVolume += volume;
+              breakdown.cashCost += cost;
+              breakdown.discountCost += discount;
+              breakdown.totalVolume += volume;
+              break;
+            case 'card':
+              breakdown.cardVolume += volume;
+              breakdown.cardCost += cost;
+              breakdown.discountCost += discount;
+              breakdown.totalVolume += volume;
+              break;
+            case 'corporate':
+            case 'fuel_card':
+              breakdown.corporateVolume += volume;
+              breakdown.corporateCost += cost;
+              breakdown.nonCashVolume += volume;
+              breakdown.discountCost += discount;
+              breakdown.totalVolume += volume;
+              break;
+            case 'coupon':
+            case 'online':
+            case 'other':
+            default:
+              breakdown.nonCashVolume += volume;
+              breakdown.discountCost += discount;
+              breakdown.totalVolume += volume;
+              break;
           }
         });
       }
     });
 
-    // Вычисляем pumpVolume из показаний ТРК (nozzleReadings)
-    // и разницу между прокачкой и продажами
-    breakdownMap.forEach((breakdown, fuelCode) => {
-      // Суммируем объемы из всех пистолетов для данного топлива
-      const totalPumpVolume = nozzleReadings
-        .filter(nozzle => nozzle.fuelCode === fuelCode)
-        .reduce((sum, nozzle) => sum + nozzle.volume, 0);
-      
-      breakdown.pumpVolume = totalPumpVolume;
-      
-      // Вычисляем разницу = Прокачка - Всего (продажи)
-      breakdown.difference = breakdown.pumpVolume - breakdown.totalVolume;
+    // Балансовая проверка: Всего − (cash + card + nonCash) должно быть 0.
+    // Если не 0 — какой-то тип оплаты не попал ни в одну категорию в классификаторе.
+    breakdownMap.forEach((breakdown) => {
+      breakdown.pumpVolume = 0;
+      breakdown.difference = breakdown.totalVolume - (breakdown.cashVolume + breakdown.cardVolume + breakdown.nonCashVolume);
     });
 
-    const result = Array.from(breakdownMap.values());
-    return result;
+    return Array.from(breakdownMap.values());
   }
 
   /**
@@ -465,15 +452,23 @@ export class ShiftReportAdapterV2 {
   }
 
   /**
-   * Извлечь движение наличных
+   * Извлечь движение наличных.
+   * API не возвращает dt для записей в `money`, поэтому проставляем даты исходя из типа операции:
+   * opening → openedAt, остальные (income/expense/closing) → closedAt (или openedAt если смена ещё открыта).
    */
-  private static extractCashMovements(money: any[], shiftNumber: number): CashMovementItem[] {
+  private static extractCashMovements(
+    money: any[],
+    shiftNumber: number,
+    openedAt?: string,
+    closedAt?: string | null
+  ): CashMovementItem[] {
     if (!money || !Array.isArray(money)) {
       return [];
     }
 
-
     const filtered = money.filter((item: any) => item.shift === shiftNumber);
+    const fallbackDt = openedAt || new Date().toISOString();
+    const endDt = closedAt || fallbackDt;
 
     return filtered
       .map((item: any, index: number) => {
@@ -487,7 +482,7 @@ export class ShiftReportAdapterV2 {
 
         return {
           id: `money-${item.shift}-${item.pos}-${index}`,
-          datetime: new Date().toISOString(), // API не возвращает дату/время
+          datetime: operationType === 'opening' ? fallbackDt : endDt,
           operationType,
           amount: item.volume || 0,
           description: item.operation?.name || 'Неизвестная операция',
@@ -498,26 +493,19 @@ export class ShiftReportAdapterV2 {
   }
 
   /**
-   * Маппинг типа операции по ID
-   *
-   * По реальному отчету 1С:
-   * - id: 1 - Остаток на начало смены (opening)
-   * - id: 2 - ? (пока не встречался)
-   * - id: 3 - Выручка за смену (наличные) (income)
-   * - id: 4 - Остаток на конец смены по раб.местам (closing)
-   * - id: 5 - Показания ККТ на начало - НЕ движение денег
-   * - id: 6 - Показания ККТ на конец - НЕ движение денег
-   * - id: 7 - Остаток на конец смены по всей АЗС = "Передано по смене" (closing)
+   * Маппинг типа операции по ID.
+   * Разные АЗС могут использовать id 0 или 1 для «Принято по смене» — учитываем оба.
    */
   private static mapOperationType(operationId: number): 'income' | 'expense' | 'opening' | 'closing' | null {
     switch (operationId) {
-      case 1: return 'opening';  // "Принято по смене"
-      case 2: return 'expense';  // Возможно расход
-      case 3: return 'income';   // "Выручка за смену" (только наличные)
-      case 4: return null;       // Остаток на конец по ПСМ - не используем, берем id:7
-      case 5: return null;       // Показания ККТ на начало - игнорируем
-      case 6: return null;       // Показания ККТ на конец - игнорируем
-      case 7: return 'closing';  // "Передано по смене" (остаток на конец по всей АЗС)
+      case 0:                      // "Остаток на начало смены по раб.местам" (некоторые АЗС)
+      case 1: return 'opening';    // "Принято по смене"
+      case 2: return 'expense';    // Возможно расход
+      case 3: return 'income';     // "Выручка за смену" (только наличные)
+      case 4: return null;         // Остаток на конец по ПСМ - не используем, берём id:7
+      case 5: return null;         // Показания ККТ на начало - игнорируем
+      case 6: return null;         // Показания ККТ на конец - игнорируем
+      case 7: return 'closing';    // "Передано по смене" (остаток на конец по всей АЗС)
       default: return null;
     }
   }

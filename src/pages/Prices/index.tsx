@@ -268,7 +268,7 @@ export function Prices() {
                   variant="outline"
                   size="sm"
                   disabled={loadingFromSTSAPI}
-                  className="border-di-outline-variant/15 text-di-on-surface-variant hover:bg-di-surface-high"
+                  
                 >
                   <RefreshCw className={`w-4 h-4 ${loadingFromSTSAPI ? 'animate-spin' : ''}`} />
                 </Button>
@@ -318,7 +318,7 @@ export function Prices() {
             <Button
               onClick={handleCreatePrice}
               size="sm"
-              className="bg-di-primary-light hover:bg-blue-600 text-white"
+              className="bg-di-primary-light hover:bg-primary text-white"
             >
               <Plus className="w-4 h-4 mr-1.5" />
               Создать цену
@@ -486,7 +486,7 @@ export function Prices() {
                 >
                   Отмена
                 </Button>
-                <Button type="submit" size="sm" className="bg-di-primary-light hover:bg-blue-600 text-white">
+                <Button type="submit" size="sm" className="bg-di-primary-light hover:bg-primary text-white">
                   {selectedPrice ? 'Обновить' : 'Создать'}
                 </Button>
               </div>

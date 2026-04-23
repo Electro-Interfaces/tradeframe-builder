@@ -4,6 +4,7 @@
 
 import { stsProxyRequest } from './stsProxyClient';
 import { tradingPointsService } from './tradingPointsService';
+import { extractStationNumber } from '@/utils/tradingPointUtils';
 import type { TankHistoryRecord, ReceiptResponse, TransactionV2Response } from '@/types/tanks';
 
 /**
@@ -107,14 +108,15 @@ export async function getInventoryFromServer(params: InventoryParams): Promise<T
 
   const stations = tradingPoints
     .filter(point => {
-      if (!point.external_id) return false;
-      if (params.station && parseInt(point.external_id) !== params.station) return false;
-      if (params.allowedStations && !params.allowedStations.has(point.external_id)) return false;
+      const stationNum = extractStationNumber(point);
+      if (!stationNum) return false;
+      if (params.station && stationNum !== params.station) return false;
+      if (params.allowedStations && !params.allowedStations.has(point.external_id || String(stationNum))) return false;
       return true;
     })
     .map(point => ({
-      id: parseInt(point.external_id!),
-      name: point.name || `АЗС ${point.external_id}`
+      id: extractStationNumber(point)!,
+      name: point.name || `АЗС ${extractStationNumber(point)}`
     }));
 
   if (stations.length === 0) return [];
@@ -157,19 +159,20 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
   // ✅ ОПТИМИЗАЦИЯ: Обрабатываем все ТТ параллельно с Promise.all()
   const pointPromises = tradingPoints
     .filter(point => {
-      if (!point.external_id) return false;
+      const stationNum = extractStationNumber(point);
+      if (!stationNum) return false;
       // Если выбрана конкретная ТТ - обрабатываем только её
-      if (params.station && parseInt(point.external_id) !== params.station) {
+      if (params.station && stationNum !== params.station) {
         return false;
       }
       // Фильтрация по разрешенным станциям (RBAC)
-      if (params.allowedStations && !params.allowedStations.has(point.external_id)) {
+      if (params.allowedStations && !params.allowedStations.has(point.external_id || String(stationNum))) {
         return false;
       }
       return true;
     })
     .map(async (point) => {
-      const stationId = parseInt(point.external_id!);
+      const stationId = extractStationNumber(point)!;
 
       try {
       // 1. Получаем список всех смен
@@ -486,9 +489,8 @@ export async function validateBookInventory(params: InventoryParams): Promise<vo
 
     // Для каждой ТТ проверяем смены
     for (const point of tradingPoints) {
-      if (!point.external_id) continue;
-
-      const stationId = parseInt(point.external_id);
+      const stationId = extractStationNumber(point);
+      if (!stationId) continue;
 
       // Получаем список всех смен за период
       const shiftsResponse = await stsProxyRequest<any>(

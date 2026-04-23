@@ -176,7 +176,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
               variant="outline"
               size="sm"
               className={`justify-start ${
-                value === preset.cron ? 'bg-blue-600 text-white border-blue-600' : ''
+                value === preset.cron ? 'bg-primary text-white border-primary' : ''
               }`}
               onClick={() => handlePresetSelect(preset.cron)}
             >
@@ -312,7 +312,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
             {(config.customTimes || []).map((time) => (
               <Badge
                 key={time}
-                className="bg-blue-600 text-white cursor-pointer hover:bg-blue-700"
+                className="bg-primary text-white cursor-pointer hover:bg-primary/80"
                 onClick={() => handleRemoveCustomTime(time)}
               >
                 {time} ✕
@@ -330,7 +330,7 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Cron выражение:</span>
-          <code className="text-xs text-blue-600 dark:text-blue-400 bg-background px-2 py-1 rounded">
+          <code className="text-xs text-primary dark:text-primary/70 bg-background px-2 py-1 rounded">
             {generateCronExpression(config)}
           </code>
         </div>

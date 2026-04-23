@@ -61,7 +61,7 @@ function MobileTransactionCard({ tx }: { tx: ReconciliationTransaction }) {
         </div>
         <div>
           <span className="text-muted-foreground">TF:</span>
-          <span className="text-blue-600 dark:text-blue-400 ml-1">{tx.tfLiters ?? '—'}</span>
+          <span className="text-primary dark:text-primary/70 ml-1">{tx.tfLiters ?? '—'}</span>
         </div>
       </div>
       {tx.cardNumber && (
@@ -147,7 +147,7 @@ export function ReconciliationTransactionsTable({
                   </TableCell>
                   <TableCell className="text-right">
                     {tx.tfLiters != null ? (
-                      <span className="text-blue-600 dark:text-blue-400">{tx.tfLiters}</span>
+                      <span className="text-primary dark:text-primary/70">{tx.tfLiters}</span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}

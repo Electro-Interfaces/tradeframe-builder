@@ -147,7 +147,7 @@ export function EquipmentHeader({
               size="sm"
               onClick={onRefresh}
               disabled={loading}
-              className="border-di-outline-variant/15 text-di-on-surface-variant hover:bg-di-surface-high"
+              
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>

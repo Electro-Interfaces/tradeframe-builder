@@ -106,7 +106,7 @@ export function ReconciliationParamsModal({
         {/* Заголовок с градиентом */}
         <div className="relative px-4 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-background flex-shrink-0">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-primary/20">
               <FileSearch className="h-6 w-6 text-foreground" />
             </div>
             <div>
@@ -121,7 +121,7 @@ export function ReconciliationParamsModal({
               Corp
             </Badge>
             <ArrowRight className="h-3 w-3 text-muted-foreground" />
-            <Badge className="bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 border-blue-500/30 hover:bg-blue-500/30">
+            <Badge className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-300 border-primary/30 hover:bg-primary/90/30">
               TF
             </Badge>
             <ArrowRight className="h-3 w-3 text-muted-foreground" />
@@ -135,7 +135,7 @@ export function ReconciliationParamsModal({
           {/* Период */}
           <div className="space-y-3">
             <Label className="flex items-center gap-2 text-sm font-medium text-foreground/80">
-              <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-500/20">
+              <div className="p-1.5 rounded-md bg-primary/10 dark:bg-primary/20">
                 <Calendar className="h-4 w-4 text-foreground" />
               </div>
               Период сверки
@@ -157,7 +157,7 @@ export function ReconciliationParamsModal({
                              [&::-webkit-calendar-picker-indicator]:w-6
                              [&::-webkit-calendar-picker-indicator]:h-6
                              [&::-webkit-calendar-picker-indicator]:cursor-pointer
-                             focus:border-blue-500 focus:ring-blue-500/20"
+                             focus:border-primary focus:ring-primary/20"
                   />
                   <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 </div>
@@ -178,7 +178,7 @@ export function ReconciliationParamsModal({
                              [&::-webkit-calendar-picker-indicator]:w-6
                              [&::-webkit-calendar-picker-indicator]:h-6
                              [&::-webkit-calendar-picker-indicator]:cursor-pointer
-                             focus:border-blue-500 focus:ring-blue-500/20"
+                             focus:border-primary focus:ring-primary/20"
                   />
                   <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 </div>
@@ -201,14 +201,14 @@ export function ReconciliationParamsModal({
                 onClick={() => !isLoading && setAllStations(true)}
                 className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 text-left
                   ${allStations
-                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10'
+                    ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10'
                     : 'border-border bg-card/30 hover:border-border hover:bg-card/50'
                   }`}
               >
                 {allStations && (
-                  <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary dark:text-primary/70" />
                 )}
-                <Layers className={`h-5 w-5 mb-1.5 sm:mb-2 ${allStations ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
+                <Layers className={`h-5 w-5 mb-1.5 sm:mb-2 ${allStations ? 'text-primary dark:text-primary/70' : 'text-muted-foreground'}`} />
                 <div className={`text-sm sm:text-base font-medium ${allStations ? 'text-foreground' : 'text-foreground/80'}`}>
                   Все станции
                 </div>
@@ -222,14 +222,14 @@ export function ReconciliationParamsModal({
                 onClick={() => !isLoading && setAllStations(false)}
                 className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 text-left
                   ${!allStations
-                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10'
+                    ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10'
                     : 'border-border bg-card/30 hover:border-border hover:bg-card/50'
                   }`}
               >
                 {!allStations && (
-                  <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary dark:text-primary/70" />
                 )}
-                <Building2 className={`h-5 w-5 mb-1.5 sm:mb-2 ${!allStations ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
+                <Building2 className={`h-5 w-5 mb-1.5 sm:mb-2 ${!allStations ? 'text-primary dark:text-primary/70' : 'text-muted-foreground'}`} />
                 <div className={`text-sm sm:text-base font-medium ${!allStations ? 'text-foreground' : 'text-foreground/80'}`}>
                   Выбрать
                 </div>
@@ -244,7 +244,7 @@ export function ReconciliationParamsModal({
               <div className="grid grid-cols-2 gap-2 max-h-[120px] overflow-y-auto p-3 rounded-xl bg-card/30 border border-border/50">
                 {loadingStations ? (
                   <div className="col-span-2 flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+                    <Loader2 className="h-4 w-4 animate-spin text-primary dark:text-primary/70" />
                     <span className="ml-2 text-sm text-muted-foreground">Загрузка...</span>
                   </div>
                 ) : availableStations.length > 0 ? (
@@ -256,14 +256,14 @@ export function ReconciliationParamsModal({
                         onClick={() => toggleStation(station.external_id || 0)}
                         className={`flex items-center gap-2 p-2.5 rounded-lg cursor-pointer transition-all
                           ${isSelected
-                            ? 'bg-blue-100 dark:bg-blue-500/20 border border-blue-500/40'
+                            ? 'bg-primary/10 dark:bg-primary/20 border border-primary/40'
                             : 'bg-secondary/30 border border-transparent hover:bg-secondary/50'
                           }`}
                       >
                         <Checkbox
                           checked={isSelected}
                           disabled={isLoading}
-                          className="pointer-events-none data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                          className="pointer-events-none data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                         />
                         <span className={`text-sm truncate ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>
                           {station.name || `АЗС ${station.external_id}`}
@@ -295,7 +295,7 @@ export function ReconciliationParamsModal({
               checked={showAllShifts}
               onCheckedChange={setShowAllShifts}
               disabled={isLoading}
-              className="data-[state=checked]:bg-blue-500"
+              className="data-[state=checked]:bg-primary"
             />
           </div>
         </div>
@@ -321,7 +321,7 @@ export function ReconciliationParamsModal({
               onClick={handleSubmit}
               disabled={isLoading || (!allStations && selectedStationIds.length === 0)}
               className="flex-1 sm:flex-initial bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400
-                       text-foreground shadow-lg shadow-blue-500/25 sm:min-w-[140px]"
+                       text-foreground shadow-lg shadow-primary/25 sm:min-w-[140px]"
             >
               {isLoading ? (
                 <>

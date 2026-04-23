@@ -216,7 +216,7 @@ export function ReceiptsTTNTable({ receipts, isLoading, className }: ReceiptsTTN
                       <td className="px-4 py-3 text-right text-foreground/80">
                         {formatVolume(receipt.docVolume)}
                       </td>
-                      <td className="px-4 py-3 text-right text-blue-600 dark:text-blue-400">
+                      <td className="px-4 py-3 text-right text-primary dark:text-primary/70">
                         {formatVolume(receipt.factVolume)}
                       </td>
                       <td className="px-4 py-3 text-right">

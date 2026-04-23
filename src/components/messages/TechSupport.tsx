@@ -166,7 +166,7 @@ export function TechSupport() {
 
   const getStatusBadge = (status: SupportTicket['status']) => {
     const statusConfig = {
-      open: { label: "Открыт", color: "bg-blue-100 text-blue-800 border-blue-200", icon: MessageSquare },
+      open: { label: "Открыт", color: "bg-primary/10 text-primary border-primary/20", icon: MessageSquare },
       in_progress: { label: "В работе", color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
       waiting_response: { label: "Ожидает ответа", color: "bg-purple-100 text-purple-800 border-purple-200", icon: User },
       resolved: { label: "Решен", color: "bg-emerald-100 text-green-800 border-green-200", icon: CheckCircle },
@@ -187,7 +187,7 @@ export function TechSupport() {
   const getPriorityBadge = (priority: SupportTicket['priority']) => {
     const priorityConfig = {
       low: { label: "Низкий", color: "bg-muted text-foreground border-border" },
-      medium: { label: "Средний", color: "bg-blue-100 text-blue-800 border-blue-200" },
+      medium: { label: "Средний", color: "bg-primary/10 text-primary border-primary/20" },
       high: { label: "Высокий", color: "bg-orange-100 text-orange-800 border-orange-200" },
       critical: { label: "Критический", color: "bg-red-100 text-red-800 border-red-200" }
     };

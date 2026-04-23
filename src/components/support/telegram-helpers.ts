@@ -7,7 +7,7 @@
 const NAME_COLORS = [
   'text-red-400',
   'text-green-400',
-  'text-blue-400',
+  'text-primary/70',
   'text-yellow-400',
   'text-purple-400',
   'text-pink-400',

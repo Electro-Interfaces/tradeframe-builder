@@ -66,7 +66,7 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 /** Цвета топлива */
 const FUEL_COLORS: Record<string, string> = {
   'АИ-92': 'bg-emerald-500',
-  'АИ-95': 'bg-blue-500',
+  'АИ-95': 'bg-primary',
   'АИ-98': 'bg-purple-500',
   'ДТ': 'bg-amber-500',
   'ДТЗ': 'bg-orange-500',
@@ -245,7 +245,7 @@ export function OrderDetailsDialog({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <FileText className="w-5 h-5 text-primary dark:text-primary/70" />
               Детали заказа
             </DialogTitle>
             <Button
