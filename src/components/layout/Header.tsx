@@ -120,7 +120,7 @@ export function Header({
   };
 
   return (
-    <header className={`${isMobile ? 'relative shadow-[0_6px_16px_rgba(15,23,42,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6)]' : 'fixed top-0'} left-0 right-0 z-50 min-h-header bg-background border-b-0 mobile-safe-top`}>
+    <header className={`${isMobile ? 'relative shadow-[0_6px_16px_rgba(15,23,42,0.12)] dark:shadow-none dark:border-b dark:border-white/10' : 'fixed top-0'} left-0 right-0 z-50 min-h-header bg-background mobile-safe-top`}>
       <div className="flex items-center justify-between min-h-header px-4 md:px-6">
         {/* Mobile Header: Station selector + Bell + Sync + Avatar */}
         <div className="flex items-center gap-1.5 md:hidden flex-1 min-w-0">
