@@ -87,31 +87,31 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
           )}
         </div>
       )}
-      <div className="flex items-center justify-around h-14 px-1 pb-1">
+      <div className="flex items-center justify-around h-16 px-1 pb-1">
         {navItems.map((item) => {
           const active = isActive(item.url);
           return (
             <NavLink
               key={item.url}
               to={item.url}
-              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-colors duration-200 touch-manipulation active:translate-y-0.5 outline-none focus:outline-none focus-visible:outline-none ${
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors duration-200 touch-manipulation active:translate-y-0.5 outline-none focus:outline-none focus-visible:outline-none ${
                 active
                   ? "text-primary dark:text-[#2563eb]"
                   : "text-slate-500 dark:text-slate-400"
               }`}
             >
               <item.icon className={`w-5 h-5 ${active ? "stroke-[2.5]" : ""}`} />
-              <span className="text-[10px] font-semibold uppercase tracking-tighter leading-none">{item.title}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">{item.title}</span>
             </NavLink>
           );
         })}
         <button
           onClick={onMenuToggle}
-          className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-slate-500 dark:text-slate-400 transition-colors duration-200 touch-manipulation active:translate-y-0.5"
+          className="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-500 dark:text-slate-400 transition-colors duration-200 touch-manipulation active:translate-y-0.5"
           type="button"
         >
           <Menu className="w-5 h-5" />
-          <span className="text-[10px] font-semibold uppercase tracking-tighter leading-none">Меню</span>
+          <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">Меню</span>
         </button>
       </div>
     </nav>
