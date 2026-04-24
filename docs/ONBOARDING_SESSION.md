@@ -2,6 +2,7 @@
 
 > Материал для онбординга команды разработки.
 > Задача: [TF-47](https://mag.youtrack.cloud/issue/TF-47)
+> Статус ссылки на задачу: legacy YouTrack. Текущий трекер задач - Plane (`https://plan.dataworker.ru`), проект TradeFrame.
 
 ---
 
@@ -325,7 +326,9 @@ Test/prod среды, бэкапы, мониторинг, CI автотесты 
 
 ## 13. Первые задачи
 
-Доска: [YT проект TF](https://mag.youtrack.cloud/issues/TF)
+Текущая доска: Plane (`https://plan.dataworker.ru`), проект TradeFrame.
+
+Список ниже оставлен как исторический снимок из legacy YouTrack: [YT проект TF](https://mag.youtrack.cloud/issues/TF).
 
 | ID | Задача | Кто |
 |----|--------|-----|
@@ -342,6 +345,7 @@ Test/prod среды, бэкапы, мониторинг, CI автотесты 
 
 - **Документация:** `docs/` (20+ файлов на русском)
 - **STS Swagger:** https://pos.autooplata.ru/tms/docs
-- **YouTrack:** https://mag.youtrack.cloud/issues/TF
+- **Plane:** https://plan.dataworker.ru
+- **Legacy YouTrack:** https://mag.youtrack.cloud/issues/TF
 - **Test:** https://testtf.dataworker.ru
 - **Prod:** https://prod.dataworker.ru

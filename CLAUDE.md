@@ -9,6 +9,7 @@
 - `docs/ENVIRONMENT.md`
 - `docs/OPERATIONS_RUNBOOK.md`
 - `docs/DOCS_STATUS.md`
+- `docs/PLANE_SETUP.md`
 - `docs/TECH_DEBT.md`
 
 ## Назначение
@@ -75,6 +76,10 @@ npm run test:e2e:ui   # Playwright UI
 - Конфиг Playwright: `playwright.config.ts` (chromium, baseURL localhost:3000)
 
 **Важно:** тесты работают только с чистыми утилитами и UI. Никаких обращений к production БД, API или данным торговых точек.
+
+## Трекер задач
+
+Текущий трекер задач - Plane self-hosted: `https://plan.dataworker.ru`, проект TradeFrame. Новые задачи, баги, приемку и приоритеты вести только там. YouTrack в старой документации - legacy-источник для исторических ссылок, не текущий процесс.
 
 ## ENV-переменные
 

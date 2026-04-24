@@ -16,6 +16,7 @@ kb_path: /home/dev/ai/projects/tradeframe/
    - `docs/ENVIRONMENT.md`
    - `docs/OPERATIONS_RUNBOOK.md`
    - `docs/DOCS_STATUS.md`
+   - `docs/PLANE_SETUP.md`
    - `docs/TECH_DEBT.md`
 2. Если работа затрагивает инфраструктуру или смежные проекты, обнови KB: `cd /home/dev/ai && git pull --ff-only` (локально у МАГа — `D:/Users/magsp/ai-base/`).
 3. Прочитай общий `ai/AGENT.md` (если не читал в этой сессии).
@@ -58,6 +59,10 @@ curl -s -o /dev/null -w "%{http_code}\n" https://prod.dataworker.ru/api/healthz
 ## Inbox по проекту
 
 `AI/exchange/inbox/` с `project: tradeframe` во frontmatter — см. `procedures/agent-exchange.md`.
+
+## Трекер задач
+
+Текущий трекер задач TradeFrame - Plane (`https://plan.dataworker.ru`), проект TradeFrame. Новые задачи и приемку вести там. YouTrack считать legacy-источником только для старых ссылок и миграции.
 
 ## Для Claude Code
 

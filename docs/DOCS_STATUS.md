@@ -22,6 +22,7 @@
 | `OPERATIONS_RUNBOOK.md` | Актуально | эксплуатация и диагностика |
 | `DOCUMENTATION_AUDIT.md` | Актуально | аудит состояния docs |
 | `DOCS_STATUS.md` | Актуально | этот реестр |
+| `PLANE_SETUP.md` | Актуально | текущий трекер задач и правила работы |
 | `TECH_DEBT.md` | Актуально | технический долг передачи |
 
 ## Техническое ядро
@@ -39,7 +40,7 @@
 | `STS_API_EXAMPLES.md` | Частично актуально | сверять с `server/routes/sts.js` |
 | `TANK_CALIBRATION.md` | Требует ревизии | старая версия и TODO |
 | `VERSION_MANAGEMENT.md` | Актуально | обновлен под 2.1.3 |
-| `YOUTRACK_SETUP.md` | Частично актуально | сверять с текущим YouTrack CLI |
+| `YOUTRACK_SETUP.md` | История | legacy-трекер, новые задачи TradeFrame вести в Plane |
 | `RELEASE_NOTES.md` | История | старые release notes, не текущий деплой |
 | `ONBOARDING_SESSION.md` | Частично актуально | onboarding-контекст, требует сверки |
 
@@ -157,5 +158,6 @@
 | `../.claude/commands/load-memory.md` | Актуально | загрузка Knowledge Graph без Supabase/GitHub Pages как текущих источников |
 | `../.claude/skills/tradeframe-expert/SKILL.md` | Актуально | локальный skill проекта |
 | `../.claude/skills/git-workflow/SKILL.md` | Актуально | git/deploy workflow |
-| `../.claude/skills/youtrack-tasks/SKILL.md` | Актуально | YouTrack через CLI, не MCP |
+| `../.claude/skills/plane-tasks/SKILL.md` | Актуально | текущий трекер задач TradeFrame |
+| `../.claude/skills/youtrack-tasks/SKILL.md` | История | legacy YouTrack, только для старых ссылок |
 | `../.claude/skills/russian-code/SKILL.md` | Актуально | русский язык и стиль кода |

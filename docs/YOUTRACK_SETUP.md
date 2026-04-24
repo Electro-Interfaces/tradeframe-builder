@@ -1,5 +1,7 @@
 # YouTrack - Настройка и правила работы
 
+> **Статус: legacy.** Для TradeFrame / TradeControl текущий трекер задач - Plane (`https://plan.dataworker.ru`), проект TradeFrame. Новые задачи в YouTrack не заводить. Этот документ оставлен только для исторических ссылок и возможной миграции старого контекста.
+
 ## Общая информация
 
 - **URL:** https://mag.youtrack.cloud/

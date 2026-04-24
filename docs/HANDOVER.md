@@ -15,7 +15,9 @@ TradeFrame / TradeControl - веб-платформа для управлени�
 3. `docs/ARCHITECTURE_CURRENT.md` - текущая архитектура по коду.
 4. `docs/ENVIRONMENT.md` - переменные окружения и секреты.
 5. `docs/OPERATIONS_RUNBOOK.md` - эксплуатация, деплой, диагностика.
-6. `docs/DOCUMENTATION_AUDIT.md` - состояние старой документации.
+6. `docs/DOCS_STATUS.md` - полный реестр документов и статусов.
+7. `docs/DOCUMENTATION_AUDIT.md` - состояние старой документации.
+8. `docs/PLANE_SETUP.md` - текущий трекер задач.
 
 ## Окружения
 
@@ -59,6 +61,14 @@ npm run test:e2e
 ```
 
 Для production/test деплоя дополнительно проходит `npm run check:repo-guards` в GitHub Actions.
+
+## Трекер задач
+
+Основной трекер задач: Plane self-hosted, `https://plan.dataworker.ru`, проект TradeFrame.
+
+Новые задачи, баги, решения по приоритетам и приемку фиксировать только в Plane. YouTrack в старых документах и ссылках считать историческим источником; новые задачи TradeFrame там не заводить.
+
+Секреты Plane API и персональные токены не хранить в репозитории. Для автоматизации использовать защищенные переменные окружения или локальные agent skills, без хардкода токенов в docs/code.
 
 ## Основные правила разработки
 

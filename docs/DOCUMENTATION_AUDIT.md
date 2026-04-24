@@ -14,6 +14,7 @@
 - `docs/ENVIRONMENT.md`
 - `docs/OPERATIONS_RUNBOOK.md`
 - `docs/DOCS_STATUS.md`
+- `docs/PLANE_SETUP.md`
 - `docs/TECH_DEBT.md`
 - этот аудит
 
@@ -45,6 +46,7 @@
 | `docs/ENVIRONMENT.md` | новый актуальный | использовать вместо пересылки `.env` |
 | `docs/OPERATIONS_RUNBOOK.md` | новый актуальный | эксплуатация и инциденты |
 | `docs/DOCS_STATUS.md` | новый актуальный | полный реестр документов и статусов |
+| `docs/PLANE_SETUP.md` | новый актуальный | текущий трекер задач |
 | `docs/TECH_DEBT.md` | новый актуальный | backlog подготовки к передаче |
 
 ## Требуют обновления или имеют устаревшие фрагменты
@@ -67,6 +69,7 @@
 | `docs/STS_API_EXAMPLES.md` | вероятно полезен как API-примеры | сверять с текущим `server/routes/sts.js` |
 | `docs/API_SHIFT_REPORTS*.md` | предметная API-документация | сверять с текущими STS responses |
 | `docs/API_TRADING_NETWORK.md` | предметная API-документация | сверять с текущими routes/services |
+| `docs/YOUTRACK_SETUP.md` | legacy-трекер задач | новые задачи TradeFrame вести в Plane, документ использовать только для старых ссылок |
 
 ## Исторические и архивные документы
 
@@ -128,3 +131,4 @@
 | Backend Express | backend устанавливается из `server/package.json`, где Express 4.x; корневой `package.json` содержит Express 5.x, но backend runtime использует `server/` |
 | Test backend port | в CI/PM2 test backend — `3002`; локально backend — `3001` |
 | GitHub Pages | остался только build mode/исторические упоминания; штатный test-деплой сейчас `testtf.dataworker.ru` через GitHub Actions |
+| YouTrack | старый трекер задач; текущий процесс ведется в Plane (`https://plan.dataworker.ru`) |

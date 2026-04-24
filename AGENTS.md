@@ -8,6 +8,7 @@
 - `docs/ENVIRONMENT.md`
 - `docs/OPERATIONS_RUNBOOK.md`
 - `docs/DOCS_STATUS.md`
+- `docs/PLANE_SETUP.md`
 - `docs/TECH_DEBT.md`
 
 ## Project Overview
@@ -201,6 +202,7 @@ chore: обновить зависимости
 
 ## Agent-Specific Notes
 - **Язык:** Комментарии, сообщения, коммиты — на русском
+- **Задачи:** текущий трекер - Plane (`https://plan.dataworker.ru`), проект TradeFrame; YouTrack только legacy.
 - **Lint перед коммитом:** `npm run lint:fix && npm run type-check`
 - **API:** Все запросы через Backend Proxy (server/routes/sts.js)
 - **Кэширование:** NodeCache на backend, React Query на frontend

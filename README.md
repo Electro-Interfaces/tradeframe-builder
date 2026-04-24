@@ -14,7 +14,8 @@
 4. [`docs/OPERATIONS_RUNBOOK.md`](docs/OPERATIONS_RUNBOOK.md) — эксплуатация, деплой, диагностика.
 5. [`docs/DOCUMENTATION_AUDIT.md`](docs/DOCUMENTATION_AUDIT.md) — что в старой документации актуально, а что нет.
 6. [`docs/DOCS_STATUS.md`](docs/DOCS_STATUS.md) — полный реестр документов и статусов.
-7. [`docs/TECH_DEBT.md`](docs/TECH_DEBT.md) — технический долг, важный для передачи.
+7. [`docs/PLANE_SETUP.md`](docs/PLANE_SETUP.md) — текущий трекер задач и правила работы.
+8. [`docs/TECH_DEBT.md`](docs/TECH_DEBT.md) — технический долг, важный для передачи.
 
 ## Стек
 

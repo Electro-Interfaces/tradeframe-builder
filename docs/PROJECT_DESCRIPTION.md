@@ -884,14 +884,15 @@ node tools/sql-direct.js select equipment_templates    # Данные
 
 ---
 
-## 20. YouTrack (Управление задачами)
+## 20. Трекер задач
 
-- **URL:** https://mag.youtrack.cloud/
-- **Проект:** TradeControl (TF)
-- **Доска:** TradeControl Builder (ID: 147-35, спринт: 148-47)
-- **Формат задач:** TF-XXX
-- **Формат коммитов:** `тип(TF-XXX): описание на русском`
-- **Статусы:** Open → Подготовка → In Progress → To Verify → Done
+> Этот раздел обновлен после перехода на Plane. Старые ссылки на YouTrack в документе считать историческими.
+
+- **Текущий трекер:** Plane, `https://plan.dataworker.ru`
+- **Проект:** TradeFrame
+- **Назначение:** задачи разработки, баги, приемка, приоритеты, сопровождение
+- **Legacy:** YouTrack (`https://mag.youtrack.cloud/`) использовать только для старых ссылок и миграции контекста
+- **Правила:** новые задачи TradeFrame оформлять только в Plane
 
 ---
 
