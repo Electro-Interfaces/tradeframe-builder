@@ -218,11 +218,12 @@ export default function ShiftReportsV2() {
             <h1 className="text-2xl font-semibold text-foreground">Сменные отчеты</h1>
             <LastDataTransfer />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setFiltersOpen(!filtersOpen)}
+              title="Фильтры"
             >
               <Filter className="h-4 w-4" />
             </Button>
@@ -231,6 +232,7 @@ export default function ShiftReportsV2() {
               size="sm"
               onClick={refresh}
               disabled={loading}
+              title="Обновить"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -238,28 +240,28 @@ export default function ShiftReportsV2() {
               variant="outline"
               size="sm"
               onClick={() => navigate('/point/shift-dashboard')}
-              className=""
+              title="Дашборд"
             >
-              <LayoutDashboard className="w-4 h-4 mr-2" />
-              Дашборд
+              <LayoutDashboard className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Дашборд</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsReceiptsModalOpen(true)}
-              className=""
+              title="Чеки"
             >
-              <Receipt className="w-4 h-4 mr-2" />
-              Чеки
+              <Receipt className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Чеки</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsReconciliationModalOpen(true)}
-              className=""
+              title="Сверки"
             >
-              <FileCheck className="w-4 h-4 mr-2" />
-              Сверки
+              <FileCheck className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Сверки</span>
             </Button>
           </div>
         </div>

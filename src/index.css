@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* Light theme — M3 surface hierarchy from PrecisionFleet reference */
-    --background: 224 50% 94%;
+    --background: 224 50% 96%;
     --foreground: 218 60% 12%;
 
     --card: 0 0% 100%;
@@ -38,7 +38,7 @@
     --radius: 0.75rem;
 
     /* Sidebar — M3 surfaceContainerLow (#eff4ff) */
-    --sidebar-background: 221 100% 97%;
+    --sidebar-background: 221 100% 99%;
     --sidebar-foreground: 218 60% 12%;
     --sidebar-primary: 226 71% 40%;
     --sidebar-primary-foreground: 0 0% 100%;

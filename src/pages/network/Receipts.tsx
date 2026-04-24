@@ -690,7 +690,7 @@ export default function Receipts() {
         {/* Заголовок страницы */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex-1 min-w-0">
-            <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Поступления топлива</h1>
+            <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>{isMobile ? 'Поступления' : 'Поступления топлива'}</h1>
           </div>
           <div className="flex gap-3 items-center shrink-0">
             <Button

@@ -30,6 +30,13 @@ const allPointItems = [
   { title: "Оборудование", url: "/point/equipment", icon: Settings },
 ];
 
+/** Fallback для /point/* страниц, которых нет в allPointItems (например, shift-reports-v2) */
+const pointFallbackItems = [
+  { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
+  { title: "Цены", url: "/point/prices", icon: DollarSign },
+  { title: "Оборудование", url: "/point/equipment", icon: Settings },
+];
+
 /** Страницы торговой точки */
 const pointPages = ['/point/equipment', '/point/prices', '/point/tanks', '/'];
 
@@ -45,10 +52,14 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
     }
   }, [onRefreshProp]);
 
-  const isPointPage = pointPages.some(p => location.pathname === p || location.pathname.startsWith('/point/'));
-  const navItems = isPointPage
-    ? allPointItems.filter(item => item.url !== location.pathname)
+  const isPointPage = location.pathname === '/' || location.pathname.startsWith('/point/');
+  const rawItems = isPointPage
+    ? (allPointItems.some(item => item.url === location.pathname)
+        ? allPointItems.filter(item => item.url !== location.pathname)
+        : pointFallbackItems)
     : defaultNavItems;
+  // Гарантируем ≤ 3 пункта (+ Меню = 4 total)
+  const navItems = rawItems.slice(0, 3);
 
   const isActive = (url: string) => location.pathname === url;
 

@@ -62,9 +62,9 @@ test('01 - Страница логина (мобильная)', async ({ page })
     fullPage: true,
   });
 
-  // Проверяем что TradeControl отображается
+  // Проверяем что TradePoint отображается
   const heading = page.locator('h1');
-  await expect(heading).toContainText('TradeControl');
+  await expect(heading).toContainText('TradePoint');
 });
 
 if (LOGIN_EMAIL && LOGIN_PASSWORD) {
@@ -78,6 +78,15 @@ if (LOGIN_EMAIL && LOGIN_PASSWORD) {
 
     await page.fill('input[name="email"]', LOGIN_EMAIL);
     await page.fill('input[name="password"]', LOGIN_PASSWORD);
+
+    // Принимаем правовые документы (иначе submit disabled)
+    for (const id of ['terms', 'privacy', 'pdn']) {
+      const cb = page.locator(`#${id}`);
+      if (await cb.count()) {
+        await cb.click({ force: true }).catch(() => {});
+      }
+    }
+
     await page.click('button[type="submit"]');
 
     // Ждём редирект после логина
@@ -126,6 +135,36 @@ if (LOGIN_EMAIL && LOGIN_PASSWORD) {
       console.warn('⚠️ Не удалось выбрать сеть:', (e as Error).message);
     }
 
+    // Выбор конкретной торговой точки (на mobile PointSelect в BottomNav)
+    try {
+      // Сначала переходим на /point/tanks — там точно есть PointSelect в BottomNav
+      await page.goto('/point/tanks');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1500);
+
+      // Кликаем по PointSelect (кнопка с "Все торговые точки" или иконкой location)
+      const pointButton = page.locator('nav button:has-text("Все торговые точки"), nav button:has-text("Выбе")').first();
+      if (await pointButton.count()) {
+        await pointButton.click();
+        await page.waitForTimeout(800);
+
+        // Выбираем первую реальную точку (не "Все")
+        const firstPoint = page.locator('[role="option"], [data-radix-popper-content-wrapper] button, [data-radix-popper-content-wrapper] li')
+          .filter({ hasNotText: 'Все торговые' })
+          .first();
+        if (await firstPoint.count()) {
+          await firstPoint.click();
+          console.log('✅ Торговая точка выбрана');
+          await page.waitForTimeout(2000);
+        } else {
+          await page.keyboard.press('Escape');
+          console.warn('⚠️ Список точек пуст');
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Не удалось выбрать ТТ:', (e as Error).message);
+    }
+
     // Скриншот главной (после выбора сети/точки)
     await page.waitForTimeout(2000);
     await page.screenshot({
@@ -140,7 +179,7 @@ if (LOGIN_EMAIL && LOGIN_PASSWORD) {
       try {
         await page.goto(route.path, { timeout: 15000 });
         await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3500);
 
         await page.screenshot({
           path: `${SCREENSHOT_DIR}/${route.name}.png`,

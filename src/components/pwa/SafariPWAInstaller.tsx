@@ -79,7 +79,10 @@ export const SafariPWAInstaller: React.FC<SafariPWAInstallerProps> = ({ onDismis
   // Простой промпт
   if (!showInstructions) {
     return (
-      <Card className="fixed bottom-4 left-4 right-4 z-50 shadow-2xl border border-border bg-card backdrop-blur-md md:max-w-md md:mx-auto md:left-4 md:right-4 animate-in slide-in-from-bottom-5 duration-500">
+      <Card
+        className="fixed left-4 right-4 z-50 shadow-2xl border border-border bg-card backdrop-blur-md md:max-w-md md:mx-auto md:left-4 md:right-4 animate-in slide-in-from-bottom-5 duration-500"
+        style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
+      >
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">

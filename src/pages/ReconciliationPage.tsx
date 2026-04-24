@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -94,20 +95,20 @@ export default function ReconciliationPage() {
   // Если есть результат - показываем его
   if (result) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background">
+      <MainLayout fullWidth={true}>
         <div className="w-full px-4 md:px-6 lg:px-8 py-6 space-y-6">
           <ReconciliationResults
             result={result}
             onNewReconciliation={handleNewReconciliation}
           />
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   // Начальный экран
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background">
+    <MainLayout fullWidth={true}>
       <div className="w-full px-4 md:px-6 lg:px-8 py-6 space-y-6">
         {/* Заголовок страницы */}
         <div className="flex items-center justify-between">
@@ -253,6 +254,6 @@ export default function ReconciliationPage() {
           isLoading={isLoading}
         />
       </div>
-    </div>
+    </MainLayout>
   );
 }

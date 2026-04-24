@@ -128,56 +128,56 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
 
       {/* Additional data — compact */}
       <div className="border-t border-di-outline-variant/10 pt-3 mb-3">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Уровень:</span>
-            <span className="text-foreground font-medium">{parseFloat(tank.apiData?.level?.toString() || '0').toFixed(1)} мм</span>
+        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-x-4 gap-y-1 text-[11px]`}>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate">Уровень:</span>
+            <span className="text-foreground font-medium whitespace-nowrap">{parseFloat(tank.apiData?.level?.toString() || '0').toFixed(1)} мм</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Состояние:</span>
-            <span className={`font-medium ${tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'text-green-600' : 'text-red-600'}`}>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate">Состояние:</span>
+            <span className={`font-medium whitespace-nowrap ${tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'text-green-600' : 'text-red-600'}`}>
               {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'Норма' : 'Проверка'}
             </span>
           </div>
           {/* Строка 2: пара по объёму (л) — начало смены + отпуск за смену */}
-          <div className="flex justify-between">
-            <span className="text-muted-foreground" title="Объём на начало смены">Объём на начало смены:</span>
-            <span className="text-foreground font-medium">{(tank.apiData?.volume_begin || 0).toLocaleString('ru-RU')} л</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate" title="Объём на начало смены">Объём на начало смены:</span>
+            <span className="text-foreground font-medium whitespace-nowrap">{(tank.apiData?.volume_begin || 0).toLocaleString('ru-RU')} л</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground" title="Отпущено за смену (объём, из STS)">Отпуск за смену:</span>
-            <span className="text-foreground font-medium">{(tank.apiData?.release?.volume || 0).toLocaleString('ru-RU')} л</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate" title="Отпущено за смену (объём, из STS)">Отпуск за смену:</span>
+            <span className="text-foreground font-medium whitespace-nowrap">{(tank.apiData?.release?.volume || 0).toLocaleString('ru-RU')} л</span>
           </div>
           {/* Строка 3: пара по массе (кг) — начало смены + отпуск за смену */}
-          <div className="flex justify-between">
-            <span className="text-muted-foreground" title="Масса на начало смены">Масса на начало смены:</span>
-            <span className="text-foreground font-medium">{(tank.apiData?.amount_begin || 0).toLocaleString('ru-RU')} кг</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate" title="Масса на начало смены">Масса на начало смены:</span>
+            <span className="text-foreground font-medium whitespace-nowrap">{(tank.apiData?.amount_begin || 0).toLocaleString('ru-RU')} кг</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground" title="Отпущено за смену (масса, из STS)">Отпуск за смену:</span>
-            <span className="text-foreground font-medium">{(tank.apiData?.release?.amount || 0).toLocaleString('ru-RU')} кг</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate" title="Отпущено за смену (масса, из STS)">Отпуск за смену:</span>
+            <span className="text-foreground font-medium whitespace-nowrap">{(tank.apiData?.release?.amount || 0).toLocaleString('ru-RU')} кг</span>
           </div>
           {/* Поля «на конец смены» — только если смена закрыта и значения реально отличаются от «нач» */}
           {tank.apiData?.volume_end != null && Math.abs((tank.apiData.volume_end ?? 0) - (tank.apiData.volume_begin ?? 0)) > 0.01 && (
             <>
               <div className="flex justify-between">
                 <span className="text-muted-foreground" title="Объём на конец смены (фиксируется при закрытии смены)">Объём на конец смены:</span>
-                <span className="text-foreground font-medium">{(tank.apiData.volume_end || 0).toLocaleString('ru-RU')} л</span>
+                <span className="text-foreground font-medium whitespace-nowrap">{(tank.apiData.volume_end || 0).toLocaleString('ru-RU')} л</span>
               </div>
               {tank.apiData?.amount_end != null && Math.abs((tank.apiData.amount_end ?? 0) - (tank.apiData.amount_begin ?? 0)) > 0.01 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground" title="Масса на конец смены (фиксируется при закрытии смены)">Масса на конец смены:</span>
-                  <span className="text-foreground font-medium">{(tank.apiData.amount_end || 0).toLocaleString('ru-RU')} кг</span>
+                  <span className="text-foreground font-medium whitespace-nowrap">{(tank.apiData.amount_end || 0).toLocaleString('ru-RU')} кг</span>
                 </div>
               )}
             </>
           )}
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Код:</span>
-            <span className="text-primary dark:text-primary/70 font-semibold">{tank.apiData?.fuel || tank.id}</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate">Код:</span>
+            <span className="text-primary dark:text-primary/70 font-semibold whitespace-nowrap">{tank.apiData?.fuel || tank.id}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Обновлено:</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate">Обновлено:</span>
             <span className="text-foreground font-medium">
               {tank.apiData?.dt ? new Date(tank.apiData.dt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
             </span>
