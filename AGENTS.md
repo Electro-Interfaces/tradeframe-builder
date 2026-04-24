@@ -1,5 +1,15 @@
 # Repository Guidelines for AI Agents
 
+## Current Handover Docs
+Перед началом работы читать актуальные входные документы:
+- `README.md`
+- `docs/HANDOVER.md`
+- `docs/ARCHITECTURE_CURRENT.md`
+- `docs/ENVIRONMENT.md`
+- `docs/OPERATIONS_RUNBOOK.md`
+- `docs/DOCS_STATUS.md`
+- `docs/TECH_DEBT.md`
+
 ## Project Overview
 **TradeControl Builder** — платформа управления торговыми сетями АЗС.
 - **Frontend:** Vite + React 18 + TypeScript
@@ -35,7 +45,7 @@ npm run dev:host         # Dev с внешним доступом
 
 ### Build
 ```bash
-npm run build            # GitHub Pages (test environment)
+npm run build            # Legacy github-pages mode; для штатного deploy не использовать
 npm run build:prod       # Production build
 npm run build:dev        # Development build
 ```
@@ -49,15 +59,15 @@ npm run type-check       # TypeScript проверка (tsc --noEmit)
 
 ### Testing
 ```bash
-npm test                 # Placeholder (тесты не настроены)
-# Будущие тесты: Vitest для unit, Playwright для e2e
+npm test                 # Vitest unit tests
+npm run test:e2e         # Playwright E2E
 # Размещение: src/__tests__/*.test.tsx или рядом с компонентами
 ```
 
 ### Backend (server/)
 ```bash
-cd server && npm install && npm start   # Запуск Express
-npm run start:prod                       # PM2 production
+npm run start:backend    # Запуск Express backend :3001
+npm run dev:backend      # Backend watch mode
 ```
 
 ## Code Style Guidelines
@@ -187,6 +197,7 @@ chore: обновить зависимости
 - `VITE_*` — доступны в браузере
 - Без префикса — только backend (server/)
 - Секреты НЕ коммитить, использовать `.env.local`
+- Подробно: `docs/ENVIRONMENT.md`
 
 ## Agent-Specific Notes
 - **Язык:** Комментарии, сообщения, коммиты — на русском
@@ -194,6 +205,7 @@ chore: обновить зависимости
 - **API:** Все запросы через Backend Proxy (server/routes/sts.js)
 - **Кэширование:** NodeCache на backend, React Query на frontend
 - **PWA:** Service Worker отключен в dev mode
+- **Документация:** при расхождениях верить `docs/ARCHITECTURE_CURRENT.md` и `docs/DOCS_STATUS.md`
 
 ## Строгие запреты
 
@@ -221,12 +233,12 @@ Frontend (порт 3000) →  npm run dev
 
 **1. Запуск backend (порт 3001):**
 ```powershell
-powershell -Command "Start-Process -NoNewWindow -FilePath 'node' -ArgumentList 'index.js' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeControl\server'"
+powershell -Command "Start-Process -NoNewWindow -FilePath 'npm' -ArgumentList 'run','start:backend' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeFrame'"
 ```
 
 **2. Запуск frontend (порт 3000):**
 ```powershell
-powershell -Command "Start-Process -NoNewWindow -FilePath 'cmd' -ArgumentList '/c','npm run dev' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeControl'"
+powershell -Command "Start-Process -NoNewWindow -FilePath 'cmd' -ArgumentList '/c','npm run dev' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeFrame'"
 ```
 
 **3. Проверка портов:**

@@ -1,6 +1,20 @@
-# TradeControl
+# TradeFrame / TradeControl
 
-Платформа управления торговыми сетями АЗС — мониторинг, аналитика, управление ценами, сменами, оборудованием.
+Платформа управления торговыми сетями АЗС: мониторинг оборудования и резервуаров, операции, цены, смены, поступления, купоны, уведомления, пользователи, роли и интеграции.
+
+Версия приложения: `2.1.3`.
+
+## Передача разработчикам
+
+Для входа в проект читать в таком порядке:
+
+1. [`docs/HANDOVER.md`](docs/HANDOVER.md) — контекст передачи и правила работы.
+2. [`docs/ARCHITECTURE_CURRENT.md`](docs/ARCHITECTURE_CURRENT.md) — текущая архитектура по коду.
+3. [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md) — переменные окружения и секреты.
+4. [`docs/OPERATIONS_RUNBOOK.md`](docs/OPERATIONS_RUNBOOK.md) — эксплуатация, деплой, диагностика.
+5. [`docs/DOCUMENTATION_AUDIT.md`](docs/DOCUMENTATION_AUDIT.md) — что в старой документации актуально, а что нет.
+6. [`docs/DOCS_STATUS.md`](docs/DOCS_STATUS.md) — полный реестр документов и статусов.
+7. [`docs/TECH_DEBT.md`](docs/TECH_DEBT.md) — технический долг, важный для передачи.
 
 ## Стек
 
@@ -18,11 +32,18 @@ npm install
 # 2. Backend (порт 3001) — запускаем ПЕРВЫМ
 npm run start:backend
 
-# 3. Frontend (порт 3000) — в новом терминале
+# 3. Frontend (порт 3000)
 npm run dev
 ```
 
+Backend в watch-режиме:
+
+```bash
+npm run dev:backend
+```
+
 Production preview из корня:
+
 ```bash
 npm run build:prod
 npm run start
@@ -35,8 +56,11 @@ npm run start
 ## Тестирование
 
 ```bash
-npm test              # unit-тесты (Vitest)
-npm run test:e2e      # E2E (Playwright, автозапуск dev-сервера)
+npm run lint          # ESLint
+npm run type-check    # TypeScript
+npm test              # unit-тесты Vitest
+npm run build:prod    # production build
+npm run test:e2e      # E2E Playwright
 ```
 
 ## Деплой
@@ -47,6 +71,8 @@ npm run test:e2e      # E2E (Playwright, автозапуск dev-сервера
 | Production | `git push prod main` | prod.dataworker.ru |
 
 CI/CD: GitHub Actions (`deploy-prod.yml`, `deploy-test.yml`).
+
+Штатный деплой только через push в соответствующий remote. Ручной SSH-деплой использовать только как аварийную операцию после диагностики.
 
 ## Репозитории
 
@@ -92,3 +118,10 @@ e2e/                # E2E тесты (Playwright)
 | Сервер | 194.135.36.195 |
 | SSH | `ssh dw-prod` |
 | PM2 | `tradeframe-prod-frontend`, `tradeframe-prod-backend` |
+
+## Важные ограничения
+
+- Секреты не коммитить. `.env`, `server/.env`, `SECRETS_VALUES.txt`, `ADD_TO_GITHUB_SECRETS.txt` не должны попадать в репозиторий или архив передачи.
+- Frontend не ходит напрямую в PostgreSQL и внешние API с секретами; все через backend `/api/*`.
+- Новые `console.log`, `console.info`, `console.warn` в runtime-код не добавлять.
+- Источник версии — `src/config/version.ts`; остальные файлы синхронизируются через `npm run sync-version`.

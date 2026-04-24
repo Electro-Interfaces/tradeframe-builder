@@ -1,5 +1,7 @@
 # 👨‍💻 Руководство разработчика TradeControl
 
+> ⚠️ Документ частично устарел. Для передачи проекта и актуальных команд используйте `README.md`, `docs/HANDOVER.md`, `docs/ARCHITECTURE_CURRENT.md`, `docs/ENVIRONMENT.md` и `docs/OPERATIONS_RUNBOOK.md`. В этом файле встречаются старые команды и варианты деплоя.
+
 ## 🚀 Начало работы
 
 ### Требования к системе

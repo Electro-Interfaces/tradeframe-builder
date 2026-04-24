@@ -9,23 +9,34 @@ kb_path: /home/dev/ai/projects/tradeframe/
 
 ## Стартовый протокол
 
-1. Обнови KB: `cd /home/dev/ai && git pull --ff-only` (локально у МАГа — `D:/Users/magsp/ai-base/`).
-2. Прочитай общий `ai/AGENT.md` (если не читал в этой сессии).
-3. Прочитай проектный контекст:
+1. Прочитай локальный актуальный контекст:
+   - `README.md`
+   - `docs/HANDOVER.md`
+   - `docs/ARCHITECTURE_CURRENT.md`
+   - `docs/ENVIRONMENT.md`
+   - `docs/OPERATIONS_RUNBOOK.md`
+   - `docs/DOCS_STATUS.md`
+   - `docs/TECH_DEBT.md`
+2. Если работа затрагивает инфраструктуру или смежные проекты, обнови KB: `cd /home/dev/ai && git pull --ff-only` (локально у МАГа — `D:/Users/magsp/ai-base/`).
+3. Прочитай общий `ai/AGENT.md` (если не читал в этой сессии).
+4. Прочитай проектный контекст ai-base, если он нужен задаче:
    - `projects/tradeframe/README.md`
    - `projects/tradeframe/context.md`
    - `projects/tradeframe/tech.md`
-4. Проверь применимые скиллы: `projects/tradeframe/skills.md` + детальный `projects/tradeframe/SKILL.md`.
-5. Проверь `AI/exchange/inbox/` на задачи с `project: tradeframe` во frontmatter.
-6. Если в этой папке есть `CLAUDE.md` — прочитай (Claude-специфика).
+5. Проверь применимые скиллы: `projects/tradeframe/skills.md` + детальный `projects/tradeframe/SKILL.md`.
+6. Проверь `AI/exchange/inbox/` на задачи с `project: tradeframe` во frontmatter.
+7. Если в этой папке есть `CLAUDE.md` — прочитай (Claude-специфика).
 
 ## Ключевые команды
 
 ```bash
 # dev
-cd server && node index.js    # backend :3001
+npm run start:backend         # backend :3001
 npm run dev                   # frontend :3000
+npm run lint
+npm run type-check
 npm test
+npm run build:prod
 npm run test:e2e
 
 # prod (через SSH алиас dw-prod)

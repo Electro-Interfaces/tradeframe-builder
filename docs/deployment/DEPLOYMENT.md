@@ -1,201 +1,95 @@
-# 🚀 TradeControl Deployment
+# Деплой TradeFrame / TradeControl
 
-## 📋 Система двойного развертывания
+Дата актуализации: 2026-04-24
 
-### Test Environment
-Автоматический деплой при push в `main` репозитория `Electro-Interfaces/tradeframe-builder`:
+Этот документ описывает текущий штатный деплой. Старые варианты с GitHub Pages, Vercel/Netlify и ручной выкладкой не используются как основной процесс.
 
-1. **Делаем изменения и коммитим:**
-```bash
-git add .
-git commit -m "описание изменений"
-```
+## Окружения
 
-2. **Пушим в GitHub:**
-```bash
-git push origin main
-```
+| Окружение | URL | GitHub repo | Remote | Backend |
+| --- | --- | --- | --- | --- |
+| Test | `https://testtf.dataworker.ru` | `Electro-Interfaces/tradeframe-builder` | `test` | порт `3002` |
+| Production | `https://prod.dataworker.ru` | `Electro-Interfaces/TradeControl` | `prod` | порт `3001` |
 
-3. **GitHub Actions автоматически деплоит на:**
-- https://testtf.dataworker.ru/
-
-### Production Environment
-Репозиторий `electro-interfaces/TradeControl` с собственной схемой деплоя:
-- **Production URL**: https://prod.dataworker.ru/
-- Имеет собственную систему развертывания на рабочий домен
-
-## Быстрый старт для команды разработки
-
-### 1. Установка и запуск
-```bash
-# Клонирование репозитория
-git clone <repository-url>
-cd tradeframe-builder
-
-# Установка зависимостей
-npm install
-
-# Запуск в режиме разработки
-npm run dev          # Frontend (port 3000)
-npm run api:dev      # Backend API (port 3001)
-```
-
-### 2. Переменные окружения
-
-**Frontend** (корневой `.env`):
-```bash
-cp .env.example .env
-
-VITE_API_URL=http://localhost:3001
-VITE_BASE_URL=http://localhost:3000
-```
-
-**Backend** (`server/.env`):
-```bash
-DATABASE_URL=postgresql://user:password@host:5432/tradecontrol
-JWT_SECRET=your_jwt_secret
-```
-
-## 🎯 Готовность приложения (92%)
-
-### ✅ ГОТОВО К ПЕРЕДАЧЕ
-- **Архитектура**: React 18 + TypeScript + Vite (95%)
-- **Мобильная адаптация**: Все разделы оптимизированы (95%)
-- **PWA функциональность**: Service Worker + Manifest (90%)
-- **Безопасность**: JWT + PostgreSQL + requireAuth middleware (85%)
-- **Бизнес-логика**: 5 основных разделов (90%)
-- **Основные данные**: Торговые сети, точки, пользователи, роли - РЕАЛЬНАЯ система (не демо) - 100%
-
-### ⚠️ ТРЕБУЕТ ДОРАБОТКИ
-- **Docker конфигурация**: Отсутствует
-- **CI/CD pipeline**: Не настроен
-- **Unit тесты**: Не реализованы
-- **Health checks**: Отсутствуют
-
-### КРИТИЧНО ДЛЯ PRODUCTION
-- HTTPS настройка (обязательно для PWA)
-- PostgreSQL БД (уже развёрнута на 194.135.36.195)
-- Environment secrets управление
-- Мониторинг и логирование
-
-## Production развертывание
-
-### Подготовка конфигурации
-#### `.env.production`
-```bash
-VITE_API_URL=https://api.ваш-домен.com
-VITE_BASE_URL=https://ваш-домен.com
-```
-
-#### `server/.env` (production)
-```bash
-DATABASE_URL=postgresql://user:password@194.135.36.195:5432/tradecontrol
-JWT_SECRET=your_production_jwt_secret
-```
-
-### Docker конфигурация (пример)
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "run", "preview"]
-```
-
-### CI/CD Pipeline (пример — деплой через GitHub Actions)
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: npm ci
-      - run: npm run build
-      - run: npm run test
-```
-
-## Варианты деплоймента
-
-### Option 1: Vercel (рекомендуется)
-
-1. Подключите репозиторий к Vercel
-2. Установите environment variables в Vercel Dashboard
-3. Build Command: `npm run build:prod`
-4. Output Directory: `dist`
-
-### Option 2: Netlify
-
-1. Подключите репозиторий к Netlify
-2. Build Command: `npm run build:prod`
-3. Publish Directory: `dist`
-4. Добавьте файл `_redirects`:
+## Команды
 
 ```bash
-echo "/*    /index.html   200" > dist/_redirects
-```
-
-### Option 3: VPS/Dedicated Server
-
-1. Соберите приложение:
-```bash
+# Проверка перед деплоем
+npm run lint
+npm run type-check
+npm test
 npm run build:prod
+
+# Деплой на test
+git push test main
+
+# Деплой на production
+git push prod main
 ```
 
-2. Скопируйте папку `dist` на сервер
+## GitHub Actions
 
-3. Настройте nginx:
-```nginx
-server {
-    listen 80;
-    server_name ваш-домен.com;
-    root /path/to/dist;
-    index index.html;
+Файлы workflow:
 
-    # Обслуживание статических файлов
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+- `.github/workflows/deploy-test.yml`
+- `.github/workflows/deploy-prod.yml`
+- `.github/workflows/smoke-check.yml`
 
-    # Кэширование статических ресурсов
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
+Deploy workflow выполняет:
+
+1. `npm ci`
+2. `npm run check:repo-guards`
+3. `npm run sync-version`
+4. `npm run build:prod`
+5. упаковку `dist/`, `server/`, `package.json`, `ecosystem.*.config.cjs`
+6. копирование архива на сервер
+7. создание `server/.env` из GitHub Secrets
+8. `npm install --production` в `server/`
+9. пересоздание PM2 процессов
+10. проверку сайта, `/api/healthz` и авторизованный smoke
+
+## PM2 процессы
+
+| Окружение | Frontend | Backend |
+| --- | --- | --- |
+| Test | `tradeframe-test-frontend` | `tradeframe-test-backend` |
+| Production | `tradeframe-prod-frontend` | `tradeframe-prod-backend` |
+
+## Серверные пути
+
+| Окружение | Путь |
+| --- | --- |
+| Test | `/var/www/www-root/data/www/testTF.dataworker.ru` |
+| Production | `/var/www/www-root/data/www/prod.dataworker.ru` |
+
+## Проверка после деплоя
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://testtf.dataworker.ru
+curl -s -o /dev/null -w "%{http_code}\n" https://testtf.dataworker.ru/api/healthz
+
+curl -s -o /dev/null -w "%{http_code}\n" https://prod.dataworker.ru
+curl -s -o /dev/null -w "%{http_code}\n" https://prod.dataworker.ru/api/healthz
 ```
 
-## Контрольный список
+Проверка workflow:
 
-- [ ] Обновлены все домены в конфигурации
-- [ ] Создан `.env.production` с реальными данными
-- [ ] Добавлено изображение `og-image.jpg`
-- [ ] Проверен production build локально
-- [ ] Настроены SSL сертификаты
-- [ ] Работает HTTPS редирект
-- [ ] Проверена мобильная версия
-- [ ] Настроена база данных PostgreSQL
-- [ ] Протестирована авторизация
+```bash
+gh run list --repo Electro-Interfaces/tradeframe-builder --limit 3
+gh run list --repo Electro-Interfaces/TradeControl --limit 3
+```
 
-## После деплоймента
+## Секреты
 
-1. Проверьте работоспособность всех основных функций
-2. Протестируйте на мобильных устройствах
-3. Проверьте PWA функциональность
-4. Настройте мониторинг и аналитику
+`server/.env` на серверах создается workflow из GitHub Secrets. Не копировать локальные `.env` в репозиторий и не передавать их вместе с кодом.
 
-## Поддержка
+Подробно: `docs/ENVIRONMENT.md`.
 
-Если возникнут проблемы с деплойментом, проверьте:
-- Console браузера на ошибки
-- Network запросы
-- Environment variables
-- CORS настройки API
+## Откат
+
+Workflow создает backup перед распаковкой новой версии:
+
+- test: `/var/backups/tradeframe/test-backup-<timestamp>.tar.gz`
+- prod: `/var/backups/tradeframe/prod-backup-<timestamp>.tar.gz`
+
+Откат выполняется вручную на сервере только после диагностики причины сбоя.

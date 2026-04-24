@@ -13,11 +13,11 @@ description: Эксперт по проекту TradeFrame Builder. Исполь
 - **shadcn/ui** - UI компоненты в `src/components/ui/`
 - **Tailwind CSS** - стилизация
 - **React Query** - загрузка данных и кэширование
-- **Supabase** - база данных и аутентификация
+- **PostgreSQL через backend** - база данных и аутентификация
 
 ### Backend Proxy (Express)
 - **Express сервер** (порт 3001)
-- **JWT авторизация** для STS API
+- **App JWT** для frontend → backend и отдельный **STS JWT** для backend → STS API
 - **Telegram Bot** для уведомлений
 - **Email сервис** через Nodemailer
 
@@ -45,9 +45,11 @@ server/
 | Файл | Назначение |
 |------|-----------|
 | `src/config/version.ts` | **Версия приложения** - обновлять при изменениях! |
-| `server/.env` | Переменные окружения (STS API, Telegram, Supabase) |
+| `server/.env` | Переменные окружения (PostgreSQL, STS API, Telegram, интеграции) |
 | `vite.config.ts` | Конфигурация Vite и прокси |
 | `CLAUDE.md` | Инструкции для Claude Code |
+| `docs/ARCHITECTURE_CURRENT.md` | Текущая архитектура |
+| `docs/DOCS_STATUS.md` | Реестр документации |
 
 ## Запуск проекта
 
@@ -82,7 +84,7 @@ Frontend (3000) → Vite Proxy → Backend Proxy (3001) → STS API
 ## Система уведомлений
 
 **Компоненты:**
-- `server/telegram-bot.js` - Telegram Bot (@TradeFrameDW_Bot)
+- `server/telegram-bot-runtime.js` - Telegram Bot runtime (@TradeFrameDW_Bot)
 - `server/services/notificationEngine.js` - Ядро уведомлений
 - `server/services/emailService.js` - Email уведомления
 
@@ -95,7 +97,7 @@ Frontend (3000) → Vite Proxy → Backend Proxy (3001) → STS API
 ## Деплой
 
 ```bash
-# TEST (GitHub Pages)
+# TEST (testtf.dataworker.ru через GitHub Actions)
 git push test main
 
 # PRODUCTION (автоматически через GitHub Actions)
@@ -106,7 +108,7 @@ git push prod main
 
 1. **Версия** - обновлять `src/config/version.ts` при изменениях
 2. **Типы** - использовать TypeScript типы из `src/types/`
-3. **API** - все запросы через `stsProxyClient.ts`
+3. **API** - все запросы через backend `/api/*`, STS через `stsProxyClient.ts` / `STSApiService`
 4. **Стили** - Tailwind CSS, не инлайн стили
 5. **Компоненты** - shadcn/ui из `src/components/ui/`
 

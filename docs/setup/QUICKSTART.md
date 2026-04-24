@@ -1,5 +1,7 @@
 # ⚡ Быстрый старт TradeControl Builder
 
+> Актуальный набор документов для разработчиков: `README.md`, `docs/HANDOVER.md`, `docs/ARCHITECTURE_CURRENT.md`, `docs/ENVIRONMENT.md`, `docs/OPERATIONS_RUNBOOK.md`.
+
 > Краткое руководство по локальной разработке и деплою
 
 ## 🚀 Локальная разработка

@@ -1,5 +1,7 @@
 # 🌐 API Integration Guide
 
+> ⚠️ Документ частично устарел. Для текущей схемы backend-first, переменных и авторизации используйте `docs/ARCHITECTURE_CURRENT.md`, `docs/ENVIRONMENT.md` и `docs/architecture/API_AUTHENTICATION.md`. Этот файл читать как историческую справку по интеграциям.
+
 ## Обзор системы
 
 TradeControl Builder v1.5.16 использует гибридную систему доступа к данным с несколькими источниками.

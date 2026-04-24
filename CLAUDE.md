@@ -1,5 +1,16 @@
 # TradeFrame (TF)
 
+## Актуальный вход для AI/разработчиков
+
+Перед работой читать:
+- `README.md`
+- `docs/HANDOVER.md`
+- `docs/ARCHITECTURE_CURRENT.md`
+- `docs/ENVIRONMENT.md`
+- `docs/OPERATIONS_RUNBOOK.md`
+- `docs/DOCS_STATUS.md`
+- `docs/TECH_DEBT.md`
+
 ## Назначение
 
 Платформа управления торговыми сетями АЗС — мониторинг, аналитика, управление ценами, сменами, оборудованием.
@@ -19,6 +30,8 @@
 | TradeFrame backend | 3001 | http://localhost:3001 |
 | TSupport frontend | 3002 | http://localhost:3002 |
 | TSupport backend | 3080 (prod) | http://81.200.148.35:3080 |
+
+> Важно: `3002` в TradeFrame test-контуре используется backend на сервере `testtf.dataworker.ru`; локально TradeFrame backend — `3001`.
 
 ## Запуск dev-окружения
 
@@ -75,7 +88,7 @@ npm run test:e2e:ui   # Playwright UI
 **Vite** автоматически подхватывает все `VITE_*` из корневого `.env` — блок `define` в `vite.config.ts` не нужен.
 
 Необходимые переменные:
-- `VITE_FALLBACK_BACKEND_URL` (опционально, для GitHub Pages / test окружения)
+- `VITE_FALLBACK_BACKEND_URL` (опционально, для статического fallback)
 - `STS_API_URL`, `STS_API_USERNAME`, `STS_API_PASSWORD` (только в `server/.env`)
 - `TSUPPORT_API_URL`, `TSUPPORT_SDK_API_KEY`, `TSUPPORT_SDK_SECRET` (только в `server/.env`)
 

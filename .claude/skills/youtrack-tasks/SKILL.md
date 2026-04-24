@@ -8,13 +8,14 @@ description: Управление задачами YouTrack - просмотр, 
 ## Конфигурация проекта
 
 - **URL:** https://mag.youtrack.cloud/
-- **MCP:** Официальный YouTrack Remote MCP (JetBrains)
-- **REST API:** https://mag.youtrack.cloud/api (для расширенных операций)
+- **Основной способ:** локальный YouTrack CLI
+- **REST API:** используется CLI-оберткой
 - **Проект:** TradeFrame (**TF**) ← ЭТОТ РЕПОЗИТОРИЙ
 - **Доска:** TradeFrame Builder
 - **Язык:** Русский
 
-> **Примечание:** Основные операции выполняются через MCP. REST API используется для операций, не поддерживаемых MCP (создание проектов, досок, подсистем, bulk-операции).
+> **Важно:** Для этого проекта не использовать YouTrack MCP. Все операции выполнять через CLI:
+> `powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" <cmd> [args]`
 
 ### Структура проектов YouTrack
 
@@ -110,38 +111,23 @@ YouTrack (mag.youtrack.cloud)
 
 ---
 
-## Доступные инструменты MCP (19 инструментов)
+## CLI команды
 
-### Задачи
-| Инструмент | Описание |
-|------------|----------|
-| `get_issue` | Получить детали задачи |
-| `search_issues` | Поиск задач по запросу |
-| `update_issue` | Обновить задачу (статус, поля) |
-| `create_issue` | Создать новую задачу |
-| `create_draft_issue` | Создать черновик задачи |
-| `add_issue_comment` | Добавить комментарий |
-| `get_issue_comments` | Получить комментарии |
-| `link_issues` | Связать задачи |
-| `manage_issue_tags` | Управление тегами |
-| `change_issue_assignee` | Назначить исполнителя |
-| `log_work` | Логирование времени |
-| `get_issue_fields_schema` | Схема полей проекта |
+```powershell
+# Проекты
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" projects
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" project TF
 
-### Доски и спринты
-| Инструмент | Описание |
-|------------|----------|
-| `list_boards` | Список досок |
-| `get_board` | Детали доски |
-| `find_sprints` | Поиск спринтов |
-| `get_sprint` | Детали спринта |
+# Задачи
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" get TF-123
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" search "project: TF #Unresolved"
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" create TF Task "Название задачи"
 
-### Проекты
-| Инструмент | Описание |
-|------------|----------|
-| `list_projects` | Список проектов |
-| `find_projects_by_name` | Поиск проектов по имени |
-| `get_project` | Детали проекта |
+# Изменения
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" state TF-123 "В работе"
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" assign TF-123 МАГ
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" comment TF-123 "Текст комментария"
+```
 
 ---
 
@@ -174,7 +160,7 @@ project: TF description: API
 
 ### Конкретная задача
 ```
-youtrack_get_issue({ issueId: "TF-123" })
+powershell -ExecutionPolicy Bypass -File "C:\Users\magsp\.claude\skills\youtrack-workflow\scripts\yt-cli.ps1" get TF-123
 ```
 
 ---

@@ -1,11 +1,13 @@
-# Управление версиями TradeControl
+# Управление версиями TradeFrame / TradeControl
+
+> Актуализировано: 2026-04-24. Текущая версия приложения: `2.1.3`.
 
 ## 📌 Единый источник версии
 
 Версия приложения управляется из **одного места**: `src/config/version.ts`
 
 ```typescript
-export const APP_VERSION = '2.0.2';
+export const APP_VERSION = '2.1.3';
 ```
 
 ## 🔄 Автоматическая синхронизация
@@ -21,7 +23,7 @@ export const APP_VERSION = '2.0.2';
    - `<meta name="cache-buster">` - cache-buster с датой
    - `const APP_VERSION` - версия для мобильного скрипта
    - `<link rel="manifest">` - версия в query параметре
-   - `<p>v2.0.2</p>` - версия на экране загрузки
+   - версия на экране загрузки
 
 ### Скрипт синхронизации
 
@@ -45,7 +47,7 @@ npm run build:dev  # Development
 
 ```typescript
 // src/config/version.ts
-export const APP_VERSION = '1.5.26'; // Новая версия
+export const APP_VERSION = '2.1.4'; // Новая версия
 ```
 
 ### Шаг 2: Запустите синхронизацию (опционально)
@@ -75,13 +77,13 @@ npm run build
 
 ```typescript
 // Исправление бага
-'1.5.25' → '1.5.26'
+'2.1.3' → '2.1.4'
 
 // Новая функция
-'1.5.26' → '1.6.0'
+'2.1.4' → '2.2.0'
 
 // Breaking change
-'1.6.0' → '2.0.0'
+'2.2.0' → '3.0.0'
 ```
 
 ## ⚠️ Важные заметки
@@ -98,7 +100,7 @@ npm run build
 ```javascript
 // После загрузки приложения
 import { APP_VERSION } from './src/config/version';
-console.log(APP_VERSION); // "1.5.25"
+console.log(APP_VERSION); // "2.1.3"
 ```
 
 ### В терминале:

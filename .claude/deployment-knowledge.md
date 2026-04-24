@@ -32,12 +32,15 @@ git push test main && git push prod main
 
 1. Checkout кода
 2. `npm ci` - установка зависимостей
-3. `npm run build:prod` - сборка
-4. Создание архива `dist.tar.gz`
-5. SCP копирование на сервер
-6. Распаковка, `npm install` в server/
-7. `pm2 delete` + `pm2 start` (пересоздание процессов)
-8. Проверка HTTP 200
+3. `npm run check:repo-guards`
+4. `npm run sync-version`
+5. `npm run build:prod` - сборка
+6. Создание архива `deployment.tar.gz`
+7. SCP копирование на сервер
+8. Создание `server/.env` из GitHub Secrets
+9. Распаковка, `npm install --production` в server/
+10. `pm2 delete` + `pm2 start` (пересоздание процессов)
+11. Проверка сайта, `/api/healthz` и авторизованный smoke
 
 ## Проверка статуса деплоя
 

@@ -9,7 +9,7 @@ description: Помогает с Git операциями - коммиты, ве
 
 **Remotes:**
 - `origin` - основной репозиторий
-- `test` - тестовый сервер (GitHub Pages)
+- `test` - тестовый сервер `https://testtf.dataworker.ru`
 - `prod` - production сервер (TradeControl)
 
 ## Формат коммитов
@@ -67,7 +67,7 @@ git commit -m "feat(область): описание изменений"
 git push test main
 
 # GitHub Actions автоматически соберет и задеплоит
-# Проверить: https://electro-interfaces.github.io/tradeframe-builder/
+# Проверить: https://testtf.dataworker.ru/
 ```
 
 ### 3. Деплой на PRODUCTION
@@ -103,7 +103,7 @@ git status
 git diff
 
 # Проверить сборку
-npm run build
+npm run build:prod
 
 # Проверить типы
 npm run type-check
