@@ -64,7 +64,7 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
   const isActive = (url: string) => location.pathname === url;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#070e1b]/80 backdrop-blur-xl shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.4)] border-t border-border/30 dark:border-[#434655]/15 mobile-safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#070e1b]/80 backdrop-blur-xl shadow-[0_-6px_16px_rgba(15,23,42,0.12)] dark:shadow-[0_-12px_40px_rgba(0,0,0,0.6)] border-t border-border/30 dark:border-[#434655]/15 mobile-safe-bottom">
       {/* Point selector + refresh above tabs */}
       {showPointSelect && pointSelectProps && (
         <div className="px-3 pt-2 flex items-center gap-2">
