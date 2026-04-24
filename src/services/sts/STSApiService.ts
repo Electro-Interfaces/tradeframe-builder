@@ -105,7 +105,6 @@ class STSApiService {
         FUEL_TYPE_TO_SERVICE_CODE = { ...DEFAULT_FUEL_TYPE_TO_SERVICE_CODE, ...fuelToCode };
         SERVICE_CODE_TO_FUEL_TYPE = { ...DEFAULT_SERVICE_CODE_TO_FUEL_TYPE, ...codeToFuel };
         servicesLoaded = true;
-        console.log(`[STS] Справочник услуг загружен: ${services.length} записей`);
       } catch (error) {
         console.warn('[STS] Не удалось загрузить справочник услуг, используются значения по умолчанию:', error);
       } finally {
