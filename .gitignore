@@ -133,3 +133,6 @@ au92-logo.png
 
 # Server temp files
 server/tmp/
+
+# Local trash/temp
+.trash/
