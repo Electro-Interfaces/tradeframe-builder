@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, useCallback } from "react";
+import { memo, useCallback } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Network, Receipt, Clock, Menu, DollarSign, Database, RefreshCw, Settings } from "lucide-react";
 import { PointSelect } from "@/components/selects/PointSelect";
@@ -42,7 +42,7 @@ const pointPages = ['/point/equipment', '/point/prices', '/point/tanks', '/'];
 
 const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, onRefresh: onRefreshProp, refreshing: refreshingProp }: BottomNavProps) => {
   const location = useLocation();
-  const [refreshing, setRefreshing] = useState(false);
+  const refreshing = refreshingProp ?? false;
 
   const onRefresh = useCallback(() => {
     if (onRefreshProp) {
@@ -74,15 +74,16 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
             onPointClick={pointSelectProps.onPointClick}
             disabled={pointSelectProps.disabled}
             networkIds={pointSelectProps.networkIds}
-            className="w-full flex-1"
+            className="flex-1 min-w-0"
           />
           {onRefresh && (
             <button
               onClick={onRefresh}
               disabled={refreshing}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-di-surface-high border border-di-outline-variant/15 text-di-on-surface-variant hover:text-di-on-surface transition-colors duration-200 active:scale-95"
+              aria-label="Обновить"
+              className="shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-di-surface-high border border-di-outline-variant/15 text-di-on-surface-variant hover:text-di-on-surface transition-colors duration-200 active:scale-95"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           )}
         </div>

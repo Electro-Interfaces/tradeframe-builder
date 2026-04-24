@@ -554,7 +554,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
       ) : (
         // Desktop вид — Deep Intel Fuel Reservoirs table
         <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-y-1.5">
+          <table className="w-full border-separate border-spacing-y-0.5">
             <thead>
               <tr className="text-[10px] font-bold text-muted-foreground uppercase text-left">
                 <th className="px-5 py-3">Резервуар</th>

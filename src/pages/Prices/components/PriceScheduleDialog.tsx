@@ -94,7 +94,7 @@ export function PriceScheduleDialog({
           ) : (
             /* Десктоп таблица */
             <div className="overflow-x-auto">
-              <table className="w-full border-separate border-spacing-y-1">
+              <table className="w-full border-separate border-spacing-y-0.5">
                 <thead>
                   <tr>
                     <th className="text-left py-2 px-4 text-[10px] font-bold text-di-on-surface-variant tracking-widest uppercase">Время</th>

@@ -87,7 +87,7 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm border-separate border-spacing-y-1">
+      <table className="w-full text-sm border-separate border-spacing-y-0.5">
         <thead>
           <tr>
             <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ТТ</th>

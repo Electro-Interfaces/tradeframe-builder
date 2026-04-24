@@ -24,7 +24,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
 
   return (
     <div className="overflow-x-auto">
-      <Table className="table-fixed w-full border-separate border-spacing-y-1">
+      <Table className="table-fixed w-full border-separate border-spacing-y-0.5">
         <TableHeader>
           <TableRow className="hover:bg-transparent border-none">
             <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[8%]">ТТ</TableHead>

@@ -1031,7 +1031,7 @@ export default function Receipts() {
             } : undefined}
           />
         ) : (
-          <Table className="border-separate border-spacing-y-1">
+          <Table className="border-separate border-spacing-y-0.5">
             <TableHeader>
               <TableRow className="hover:bg-transparent border-none">
                 <TableHead className="w-8 px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
