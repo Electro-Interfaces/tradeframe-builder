@@ -87,7 +87,6 @@ export interface TradingPoint {
   networkId: NetworkId;
   networkName?: string;       // имя видимой сети (для alias-точек — целевой)
   networkCode?: string;       // код видимой сети
-  networkExternalId?: string; // external_id физической сети (= STS system); для alias-точек остаётся родным
   isAlias?: boolean;          // true, если точка показана через network_trading_point_aliases
   name: string;
   description?: string;

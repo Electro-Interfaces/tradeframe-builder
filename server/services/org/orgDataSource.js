@@ -15,6 +15,8 @@ module.exports = {
   deleteNetwork: (...args) => getSource().deleteNetwork(...args),
   deleteTradingPoint: (...args) => getSource().deleteTradingPoint(...args),
   findAliasAccess: (...args) => getSource().findAliasAccess(...args),
+  findAliasReverse: (...args) => getSource().findAliasReverse(...args),
+  getAliasExpansionsForSystem: (...args) => getSource().getAliasExpansionsForSystem(...args),
   getNetworkById: (...args) => getSource().getNetworkById(...args),
   getNetworks: (...args) => getSource().getNetworks(...args),
   getRequestedSource,

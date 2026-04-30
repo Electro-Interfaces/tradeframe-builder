@@ -5,6 +5,38 @@
 
 const axios = require('axios');
 const NodeCache = require('node-cache');
+const orgDataSource = require('./org/orgDataSource');
+
+// Эндпоинты, которые могут вызываться без station (per-network).
+// Для них при наличии alias-точек в сети делается fan-out:
+// основной запрос + параллельные запросы по каждой alias-точке с её
+// родными (system, station). Ответы (массивы) объединяются.
+const PER_NETWORK_FANOUT_ENDPOINTS = new Set([
+  '/v1/transactions',
+  '/v2/transactions',
+  '/v1/coupons',
+  '/v1/coupons_manual',
+  '/v1/report/receipts',
+]);
+
+// URL-паттерны, у которых station передаётся в URL, а не в query.
+// Возвращает stationCode или null. Регэксп строгий — без trailing.
+function extractStationFromUrl(urlPath) {
+  const match = /^\/v1\/(?:pos|schedule)\/prices\/([^/?]+)$/.exec(urlPath);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Стабильный хэш-сегмент алиасов сети для cache-key.
+// При изменении набора алиасов меняется ключ — старые склеенные ответы
+// автоматически перестают использоваться.
+function buildAliasCacheTag(expansions) {
+  if (!expansions || expansions.length === 0) return '';
+  const sorted = [...expansions]
+    .map(e => `${e.physicalSystem}-${e.stationCode}`)
+    .sort()
+    .join(',');
+  return `:alias=${sorted}`;
+}
 
 // ─── Кэш ───────────────────────────────────────────────
 
@@ -183,11 +215,75 @@ async function getStsClient(req) {
 
 // ─── Proxy Request ─────────────────────────────────────
 
+// Объединение ответов основного и alias-запросов для per-network endpoints.
+// Все per-network endpoints возвращают массив верхнего уровня — конкатенация.
+// Если endpoint вернёт объект — отдаём только основной ответ.
+function mergePerNetworkResponses(primaryData, aliasResponses) {
+  if (!Array.isArray(primaryData)) {
+    return primaryData;
+  }
+  const merged = [...primaryData];
+  for (const aliasData of aliasResponses) {
+    if (Array.isArray(aliasData)) {
+      merged.push(...aliasData);
+    }
+  }
+  return merged;
+}
+
 async function proxyRequest(req, res) {
   try {
     const { method, query, body } = req;
     const urlPath = req.path;
-    const cacheKey = generateCacheKey(urlPath, query);
+
+    // Парсим system и station с учётом query, body и URL-пути
+    const incomingSystem = query?.system ?? body?.system ?? null;
+    const stationFromUrl = extractStationFromUrl(urlPath);
+    const stationParam = query?.station ?? body?.station ?? stationFromUrl ?? null;
+    const hasStation = stationParam != null && String(stationParam) !== '';
+
+    // Per-station alias подмена: если фронт прислал (system=целевая, station=код)
+    // и есть alias на эту пару — подменяем system на physical для запроса к STS.
+    let effectiveQuery = { ...(query || {}) };
+    let effectiveBody = body && typeof body === 'object' ? { ...body } : body;
+    let aliasSubstituted = false;
+
+    if (incomingSystem != null && hasStation) {
+      try {
+        const reverse = await orgDataSource.findAliasReverse(incomingSystem, stationParam);
+        if (reverse && reverse.physicalSystem !== String(incomingSystem)) {
+          if (effectiveQuery.system != null) {
+            effectiveQuery.system = reverse.physicalSystem;
+          }
+          if (effectiveBody && typeof effectiveBody === 'object' && effectiveBody.system != null) {
+            effectiveBody.system = reverse.physicalSystem;
+          }
+          aliasSubstituted = true;
+        }
+      } catch (err) {
+        console.warn(`[STS Proxy alias] findAliasReverse failed for ${incomingSystem}/${stationParam}: ${err.message}`);
+      }
+    }
+
+    // Per-network fan-out: если запрос без station, на per-network endpoint и есть алиасы — расширяем.
+    let aliasExpansions = [];
+    const isFanoutCandidate =
+      method === 'GET' &&
+      !hasStation &&
+      incomingSystem != null &&
+      PER_NETWORK_FANOUT_ENDPOINTS.has(urlPath);
+
+    if (isFanoutCandidate) {
+      try {
+        aliasExpansions = await orgDataSource.getAliasExpansionsForSystem(incomingSystem);
+      } catch (err) {
+        console.warn(`[STS Proxy alias] getAliasExpansionsForSystem failed for ${incomingSystem}: ${err.message}`);
+        aliasExpansions = [];
+      }
+    }
+
+    const aliasTag = buildAliasCacheTag(aliasExpansions);
+    const cacheKey = generateCacheKey(urlPath, effectiveQuery) + aliasTag;
 
     // Cache check (GET only)
     if (method === 'GET') {
@@ -208,26 +304,50 @@ async function proxyRequest(req, res) {
     }
 
     // Normalize dates
-    const normalizedQuery = { ...query };
-    if (normalizedQuery.dt_beg && /^\d{4}-\d{2}-\d{2}$/.test(normalizedQuery.dt_beg)) {
-      normalizedQuery.dt_beg += ' 00:00:00';
+    if (effectiveQuery.dt_beg && /^\d{4}-\d{2}-\d{2}$/.test(effectiveQuery.dt_beg)) {
+      effectiveQuery.dt_beg += ' 00:00:00';
     }
-    if (normalizedQuery.dt_end && /^\d{4}-\d{2}-\d{2}$/.test(normalizedQuery.dt_end)) {
-      normalizedQuery.dt_end += ' 23:59:59';
+    if (effectiveQuery.dt_end && /^\d{4}-\d{2}-\d{2}$/.test(effectiveQuery.dt_end)) {
+      effectiveQuery.dt_end += ' 23:59:59';
     }
-
-    const requestConfig = {
-      method,
-      url: urlPath,
-      params: normalizedQuery,
-      ...(method !== 'GET' && method !== 'HEAD' && { data: body }),
-    };
 
     updateCurrentUser(req);
 
     const fetchPromise = (async () => {
       const client = await getStsClient(req);
-      const response = await client.request(requestConfig);
+
+      const primaryRequestConfig = {
+        method,
+        url: urlPath,
+        params: effectiveQuery,
+        ...(method !== 'GET' && method !== 'HEAD' && { data: effectiveBody }),
+      };
+
+      // Если нужен fan-out — параллельно делаем дополнительные запросы по alias-точкам.
+      if (aliasExpansions.length > 0) {
+        const primary = client.request(primaryRequestConfig);
+        const aliasRequests = aliasExpansions.map(ax =>
+          client.request({
+            method,
+            url: urlPath,
+            params: { ...effectiveQuery, system: ax.physicalSystem, station: ax.stationCode },
+          }).catch((err) => {
+            console.warn(`[STS Proxy alias] fan-out failed ${urlPath} system=${ax.physicalSystem} station=${ax.stationCode}: ${err.message}`);
+            return { data: [] }; // не валим основной запрос
+          })
+        );
+
+        const [primaryResp, ...aliasResps] = await Promise.all([primary, ...aliasRequests]);
+        const merged = mergePerNetworkResponses(primaryResp.data, aliasResps.map(r => r.data));
+
+        if (aliasSubstituted) {
+          console.log(`[STS Proxy alias] ${method} ${urlPath} fan-out across ${aliasExpansions.length} alias-station(s)`);
+        }
+
+        return { data: merged, status: primaryResp.status };
+      }
+
+      const response = await client.request(primaryRequestConfig);
       return { data: response.data, status: response.status };
     })();
 
@@ -249,7 +369,7 @@ async function proxyRequest(req, res) {
 
       if (method !== 'GET') {
         const elapsed = Date.now() - (req.startTime || Date.now());
-        console.log(`[STS Proxy] ${method} ${urlPath} → ${response.status} (${elapsed}ms)`);
+        console.log(`[STS Proxy] ${method} ${urlPath} → ${response.status} (${elapsed}ms)${aliasSubstituted ? ' [alias]' : ''}`);
       }
 
       res.status(response.status).json(response.data);
@@ -281,7 +401,24 @@ async function proxyRequest(req, res) {
 // ─── Internal request (for server-side aggregation) ────
 
 async function stsInternalRequest(urlPath, params, userHeaders) {
-  const cacheKey = generateCacheKey(urlPath, params);
+  // Подмена system для alias-точек, чтобы внутренние агрегации
+  // (например /api/sts/fuel-inventory) автоматически работали с настоящим STS.
+  let effectiveParams = { ...(params || {}) };
+  if (effectiveParams.system != null && effectiveParams.station != null) {
+    try {
+      const reverse = await orgDataSource.findAliasReverse(
+        effectiveParams.system,
+        effectiveParams.station
+      );
+      if (reverse && reverse.physicalSystem !== String(effectiveParams.system)) {
+        effectiveParams.system = reverse.physicalSystem;
+      }
+    } catch (err) {
+      console.warn(`[STS Internal alias] findAliasReverse failed: ${err.message}`);
+    }
+  }
+
+  const cacheKey = generateCacheKey(urlPath, effectiveParams);
   const cached = cache.get(cacheKey);
   if (cached !== undefined) {
     cacheStats.hits++;
@@ -291,7 +428,7 @@ async function stsInternalRequest(urlPath, params, userHeaders) {
 
   const fakeReq = { headers: userHeaders || {} };
   const client = await getStsClient(fakeReq);
-  const response = await client.request({ method: 'GET', url: urlPath, params });
+  const response = await client.request({ method: 'GET', url: urlPath, params: effectiveParams });
   cache.set(cacheKey, response.data, getTTL(urlPath));
   return response.data;
 }

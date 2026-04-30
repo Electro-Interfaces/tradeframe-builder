@@ -81,6 +81,11 @@ async function getNetworks() {
              FROM trading_points tp
             WHERE tp.network_id = n.id
               AND tp.deleted_at IS NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM network_trading_point_aliases a
+                WHERE a.trading_point_id = tp.id
+                  AND a.network_id <> n.id
+              )
            UNION
            SELECT a.trading_point_id
              FROM network_trading_point_aliases a
@@ -108,6 +113,11 @@ async function getNetworkById(networkId) {
              FROM trading_points tp
             WHERE tp.network_id = n.id
               AND tp.deleted_at IS NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM network_trading_point_aliases a
+                WHERE a.trading_point_id = tp.id
+                  AND a.network_id <> n.id
+              )
            UNION
            SELECT a.trading_point_id
              FROM network_trading_point_aliases a
@@ -198,7 +208,8 @@ async function deleteNetwork(networkId) {
 
 async function getTradingPoints(networkId) {
   // Случай 1: запрос всех точек без фильтра по сети — алиасы не подмешиваем
-  // (иначе одна точка появится дважды: как нативная и как alias).
+  // (иначе одна точка появится дважды). Точки с алиасом в другую сеть
+  // показываются один раз как родные.
   if (!networkId || networkId === 'all') {
     const { rows } = await postgres.query(
       `SELECT
@@ -220,8 +231,11 @@ async function getTradingPoints(networkId) {
   }
 
   // Случай 2: запрос точек конкретной сети — объединяем родные точки и алиасы.
+  // Точки, имеющие алиас в ДРУГУЮ сеть, скрываются из своей родной сети
+  // (концепция «переезд»: точка видна только в целевой сети алиаса).
   // Для alias-точек видимые поля сети (network_id/code/name) подменяются на
-  // целевую сеть, а network_external_id остаётся родным (для STS-запросов).
+  // целевую сеть, а network_external_id остаётся родным (используется
+  // в server-side эндпоинтах вроде /api/sts/fuel-inventory).
   const { rows: nativeRows } = await postgres.query(
     `SELECT
        tp.*,
@@ -235,6 +249,11 @@ async function getTradingPoints(networkId) {
      WHERE tp.network_id = $1
        AND tp.deleted_at IS NULL
        AND tp.is_active = true
+       AND NOT EXISTS (
+         SELECT 1 FROM network_trading_point_aliases a
+         WHERE a.trading_point_id = tp.id
+           AND a.network_id <> tp.network_id
+       )
      ORDER BY tp.name`,
     [networkId]
   );
@@ -773,6 +792,68 @@ async function removeExternalCode(pointId, codeId) {
   );
 }
 
+// Расширения fan-out для per-network STS-запросов.
+// Для сети с external_id = networkExternalId возвращает список физических
+// (system, station) пар, которые надо опросить дополнительно к основному запросу,
+// чтобы данные alias-точек попали в ответ.
+async function getAliasExpansionsForSystem(networkExternalId) {
+  if (networkExternalId == null || networkExternalId === '') return [];
+
+  const { rows } = await postgres.query(
+    `SELECT src_n.external_id AS physical_system,
+            tp.code           AS station_code
+       FROM network_trading_point_aliases a
+       INNER JOIN trading_points tp
+         ON tp.id = a.trading_point_id
+        AND tp.deleted_at IS NULL
+        AND tp.is_active = true
+       INNER JOIN networks tgt
+         ON tgt.id = a.network_id
+        AND tgt.deleted_at IS NULL
+       INNER JOIN networks src_n
+         ON src_n.id = tp.network_id
+        AND src_n.deleted_at IS NULL
+      WHERE tgt.external_id = $1`,
+    [String(networkExternalId)]
+  );
+
+  return rows.map((row) => ({
+    physicalSystem: String(row.physical_system),
+    stationCode: String(row.station_code),
+  }));
+}
+
+// Подмена per-station запроса. Если фронт прислал (system=<целевая_сеть>, station=<code>),
+// и в alias-таблице есть точка с таким code в указанной целевой сети — возвращает
+// родной physicalSystem (физическая сеть точки). Иначе — null (подмена не нужна).
+async function findAliasReverse(targetSystemExternalId, stationCode) {
+  if (targetSystemExternalId == null || stationCode == null) return null;
+
+  const row = await postgres.queryOne(
+    `SELECT src_n.external_id AS physical_system,
+            tp.code           AS station_code
+       FROM network_trading_point_aliases a
+       INNER JOIN trading_points tp
+         ON tp.id = a.trading_point_id
+        AND tp.deleted_at IS NULL
+        AND tp.is_active = true
+       INNER JOIN networks tgt
+         ON tgt.id = a.network_id
+        AND tgt.deleted_at IS NULL
+       INNER JOIN networks src_n
+         ON src_n.id = tp.network_id
+        AND src_n.deleted_at IS NULL
+      WHERE tgt.external_id = $1
+        AND tp.code = $2
+      LIMIT 1`,
+    [String(targetSystemExternalId), String(stationCode)]
+  );
+
+  return row
+    ? { physicalSystem: String(row.physical_system), stationCode: String(row.station_code) }
+    : null;
+}
+
 // Проверка alias-доступа: есть ли запись network_trading_point_aliases,
 // связывающая разрешённую сеть юзера с какой-либо точкой из физической сети,
 // чьим external_id юзер обращается к STS. Используется в validateStsAccess.
@@ -822,6 +903,8 @@ module.exports = {
   deleteNetwork,
   deleteTradingPoint,
   findAliasAccess,
+  findAliasReverse,
+  getAliasExpansionsForSystem,
   getNetworkById,
   getNetworks,
   getTradingPointById,
