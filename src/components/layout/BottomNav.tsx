@@ -81,9 +81,9 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
               onClick={onRefresh}
               disabled={refreshing}
               aria-label="Обновить"
-              className="shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-di-surface-high border border-di-outline-variant/15 text-di-on-surface-variant hover:text-di-on-surface transition-colors duration-200 active:scale-95"
+              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-di-surface-high border border-di-outline-variant/15 text-di-on-surface-variant hover:text-di-on-surface transition-colors duration-200 active:scale-95"
             >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           )}
         </div>

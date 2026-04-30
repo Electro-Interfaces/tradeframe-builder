@@ -127,7 +127,7 @@ export function Header({
             values={selectedNetworkIds}
             onValueChange={onNetworkChange}
             onValuesChange={onNetworkIdsChange}
-            className="!h-11 !py-0 text-sm min-w-0 flex-1 bg-white dark:bg-di-surface-high border border-border/20 dark:border-di-outline-variant/15 text-foreground dark:text-di-on-surface font-headline font-bold rounded-xl"
+            className="!h-9 !py-0 text-sm min-w-0 flex-1 bg-white dark:bg-di-surface-high border border-border/20 dark:border-di-outline-variant/15 text-foreground dark:text-di-on-surface font-headline font-bold rounded-xl"
           />
 
           {/* Support button */}
@@ -135,7 +135,7 @@ export function Header({
             variant="ghost"
             size="sm"
             onClick={openCreateDialog}
-            className="shrink-0 h-11 px-3 gap-2 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
+            className="shrink-0 h-9 px-3 gap-2 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Связь
@@ -169,7 +169,7 @@ export function Header({
             values={selectedNetworkIds}
             onValueChange={onNetworkChange}
             onValuesChange={onNetworkIdsChange}
-            className="!h-10 !py-0 rounded-xl"
+            className="!h-11 !py-0 rounded-xl"
           />
           <PointSelect
             values={selectedTradingPoints}
@@ -177,14 +177,14 @@ export function Header({
             onPointClick={onPointClick}
             disabled={!selectedNetwork}
             networkIds={selectedNetworkIds}
-            className="inline-flex !h-10 !py-0 rounded-xl"
+            className="inline-flex !h-11 !py-0 rounded-xl"
           />
           {/* Desktop Support Button */}
           <Button
             variant="outline"
             size="sm"
             onClick={openCreateDialog}
-            className="h-10 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
+            className="h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
             title="Создать заявку в поддержку"
           >
             <Wifi className="h-4 w-4" />
@@ -206,10 +206,10 @@ export function Header({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex items-center gap-3 px-0 md:px-3 transition-all duration-200 h-9 md:h-11 hover:bg-transparent md:hover:bg-accent rounded-lg border-none"
+                className="flex items-center gap-3 px-0 md:px-3 transition-all duration-200 h-9 md:h-10 hover:bg-transparent md:hover:bg-accent rounded-lg border-none"
               >
-                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
-                  <User className="w-3.5 h-3.5 md:w-5 md:h-5 text-white" />
+                <div className="p-2.5 bg-primary rounded-xl flex items-center justify-center">
+                  <User className="text-white" />
                 </div>
                 <div className="hidden lg:flex flex-col items-start">
                   <span className="font-medium text-sm text-foreground leading-none">{getUserDisplayName()}</span>

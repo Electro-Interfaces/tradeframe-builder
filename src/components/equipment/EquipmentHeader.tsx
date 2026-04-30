@@ -15,11 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-<<<<<<< HEAD
-import { RefreshCw, Power, Loader2, AlertTriangle, ClipboardList } from 'lucide-react';
-=======
-import { RefreshCw, Power, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
->>>>>>> 23fbda6 (fix(UX): Изменение UX на странице оборудование)
+import { RefreshCw, Power, Loader2, AlertTriangle, CheckCircle2, ClipboardList } from 'lucide-react';
 import type { TerminalInfo } from '@/types/equipment';
 import type { Tank } from '@/types/tanks';
 import { getEquipmentActionButtonClass, getEquipmentIconButtonClass } from './designTokens';
@@ -154,11 +150,7 @@ export function EquipmentHeader({
               size="sm"
               onClick={onRefresh}
               disabled={loading}
-<<<<<<< HEAD
-
-=======
               className={getEquipmentIconButtonClass(isMobile)}
->>>>>>> 23fbda6 (fix(UX): Изменение UX на странице оборудование)
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>

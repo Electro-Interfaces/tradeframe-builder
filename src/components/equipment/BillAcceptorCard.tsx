@@ -126,25 +126,25 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-[10px] text-di-outline uppercase">Порог купюр</Label>
-                <Input type="number" min="0" value={thresholdForm.billCountWarning}
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={thresholdForm.billCountWarning}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountWarning: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
                 <Label className="text-[10px] text-di-outline uppercase">Крит. купюр</Label>
-                <Input type="number" min="0" value={thresholdForm.billCountCritical}
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={thresholdForm.billCountCritical}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountCritical: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
                 <Label className="text-[10px] text-di-outline uppercase">Порог сумма</Label>
-                <Input type="number" min="0" value={thresholdForm.cashAmountWarning}
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={thresholdForm.cashAmountWarning}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountWarning: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
                 <Label className="text-[10px] text-di-outline uppercase">Крит. сумма</Label>
-                <Input type="number" min="0" value={thresholdForm.cashAmountCritical}
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={thresholdForm.cashAmountCritical}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountCritical: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
@@ -273,25 +273,25 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             <div className="grid grid-cols-4 gap-4">
               <div>
                 <Label className="text-[10px] text-di-outline uppercase">Порог купюр</Label>
-                <Input type="number" min="0" value={thresholdForm.billCountWarning}
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={thresholdForm.billCountWarning}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountWarning: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
                 <Label className="text-[10px] text-di-outline uppercase">Крит. купюр</Label>
-                <Input type="number" min="0" value={thresholdForm.billCountCritical}
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={thresholdForm.billCountCritical}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountCritical: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
                 <Label className="text-[10px] text-di-outline uppercase">Порог суммы</Label>
-                <Input type="number" min="0" value={thresholdForm.cashAmountWarning}
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={thresholdForm.cashAmountWarning}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountWarning: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
                 <Label className="text-[10px] text-di-outline uppercase">Крит. сумма</Label>
-                <Input type="number" min="0" value={thresholdForm.cashAmountCritical}
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={thresholdForm.cashAmountCritical}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountCritical: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>

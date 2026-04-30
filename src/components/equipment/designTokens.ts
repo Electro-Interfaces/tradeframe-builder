@@ -7,7 +7,7 @@ export const EQUIPMENT_CARD_INNER_PADDING_CLASS = 'p-4';
 export const EQUIPMENT_CONTROL_CONTENT_CLASS = 'gap-2';
 
 export function getEquipmentControlHeightClass(isMobile: boolean): string {
-  return isMobile ? 'h-11' : 'h-10';
+  return isMobile ? 'h-10' : 'h-10';
 }
 
 export function getEquipmentIconButtonClass(isMobile: boolean): string {
