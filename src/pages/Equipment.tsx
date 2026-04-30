@@ -5,6 +5,7 @@
 
 import { lazy, Suspense, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { useToast } from "@/hooks/use-toast";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEquipment } from "@/hooks/useEquipment";
@@ -26,6 +27,14 @@ export default function Equipment() {
   const { selectedNetwork, selectedTradingPoint, selectedStation, isInitialized } = useSelection();
   const stationNetworkId = useStationNetworkId();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+
+  const handleInventoryAdjustment = () => {
+    toast({
+      title: "Инвентаризация — в разработке",
+      description: `Форма ввода корректировки остатков по приказу инвентаризации. Спецификация в docs/INVENTORY_ADJUSTMENT_SPEC.md.`,
+    });
+  };
 
   const {
     billAcceptorThresholds,
@@ -146,6 +155,7 @@ export default function Equipment() {
           stationName={selectedStation?.name}
           onRefresh={refreshEquipment}
           onRestartTerminal={restartTerminal}
+          onInventoryAdjustment={handleInventoryAdjustment}
         />
 
         {loading && equipment.length === 0 ? (

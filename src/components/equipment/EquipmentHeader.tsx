@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { RefreshCw, Power, Loader2, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Power, Loader2, AlertTriangle, ClipboardList } from 'lucide-react';
 import type { TerminalInfo } from '@/types/equipment';
 import type { Tank } from '@/types/tanks';
 
@@ -30,6 +30,7 @@ interface EquipmentHeaderProps {
   stationName?: string;
   onRefresh: () => void;
   onRestartTerminal: () => Promise<boolean>;
+  onInventoryAdjustment?: () => void;
 }
 
 export function EquipmentHeader({
@@ -42,7 +43,8 @@ export function EquipmentHeader({
   tradingPointId,
   stationName,
   onRefresh,
-  onRestartTerminal
+  onRestartTerminal,
+  onInventoryAdjustment
 }: EquipmentHeaderProps) {
   // Самый свежий lastUpdate из всех постов
   const latestPosUpdate = terminalInfo?.pos?.reduce<string | undefined>((latest, p) => {
@@ -147,9 +149,21 @@ export function EquipmentHeader({
               size="sm"
               onClick={onRefresh}
               disabled={loading}
-              
+
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
+
+          {onInventoryAdjustment && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onInventoryAdjustment}
+              disabled={!networkName || !tradingPointId}
+            >
+              <ClipboardList className="w-4 h-4" />
+              {!isMobile && <span className="ml-2">Инвентаризация</span>}
             </Button>
           )}
 
