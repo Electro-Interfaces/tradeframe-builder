@@ -6,16 +6,19 @@
 
 ## Передача разработчикам
 
-Для входа в проект читать в таком порядке:
+**Если ты только что подключился к проекту — начни с [`docs/setup/FRONTEND_QUICKSTART.md`](docs/setup/FRONTEND_QUICKSTART.md):** там за 10 минут собран минимум, чтобы поднять фронт у себя локально (с тремя сценариями — от «без локального backend вообще» до полного offline-стека).
+
+После того как локально всё работает, для входа в проект читать в таком порядке:
 
 1. [`docs/HANDOVER.md`](docs/HANDOVER.md) — контекст передачи и правила работы.
 2. [`docs/ARCHITECTURE_CURRENT.md`](docs/ARCHITECTURE_CURRENT.md) — текущая архитектура по коду.
 3. [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md) — переменные окружения и секреты.
 4. [`docs/OPERATIONS_RUNBOOK.md`](docs/OPERATIONS_RUNBOOK.md) — эксплуатация, деплой, диагностика.
-5. [`docs/DOCUMENTATION_AUDIT.md`](docs/DOCUMENTATION_AUDIT.md) — что в старой документации актуально, а что нет.
-6. [`docs/DOCS_STATUS.md`](docs/DOCS_STATUS.md) — полный реестр документов и статусов.
-7. [`docs/PLANE_SETUP.md`](docs/PLANE_SETUP.md) — текущий трекер задач и правила работы.
-8. [`docs/TECH_DEBT.md`](docs/TECH_DEBT.md) — технический долг, важный для передачи.
+5. [`docs/DEV_ACCESS_CHECKLIST.md`](docs/DEV_ACCESS_CHECKLIST.md) — список доступов для разработчика.
+6. [`docs/DOCUMENTATION_AUDIT.md`](docs/DOCUMENTATION_AUDIT.md) — что в старой документации актуально, а что нет.
+7. [`docs/DOCS_STATUS.md`](docs/DOCS_STATUS.md) — полный реестр документов и статусов.
+8. [`docs/PLANE_SETUP.md`](docs/PLANE_SETUP.md) — текущий трекер задач и правила работы.
+9. [`docs/TECH_DEBT.md`](docs/TECH_DEBT.md) — технический долг, важный для передачи.
 
 ## Стек
 

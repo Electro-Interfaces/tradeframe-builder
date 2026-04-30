@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { manifestPlugin } from "./vite-plugin-manifest";
@@ -8,6 +8,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  // Цель проксирования /api/* в dev-режиме.
+  // По умолчанию — локальный backend (server/index.js) на :3001.
+  // Можно переопределить через VITE_API_PROXY_TARGET, например:
+  //   VITE_API_PROXY_TARGET=https://testtf.dataworker.ru
+  // тогда фронт локально работает с test-бэком — без поднятия backend и БД.
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:3001';
   // ============================================================================
   // ТРЕХУРОВНЕВАЯ СИСТЕМА ОКРУЖЕНИЙ
   // ============================================================================
@@ -46,21 +53,21 @@ export default defineConfig(({ mode }) => {
     port: 3000,
     allowedHosts: ["prod.dataworker.ru"],
     proxy: {
-      // Прокси для всех API запросов - перенаправляем на локальный backend proxy
+      // Прокси для всех API запросов. Цель задаётся через VITE_API_PROXY_TARGET
+      // (по умолчанию http://localhost:3001). См. блок выше — apiProxyTarget.
       '/api': {
-        target: 'http://localhost:3001',
+        target: apiProxyTarget,
         changeOrigin: true,
-        configure: (proxy, _options) => {
+        secure: apiProxyTarget.startsWith('https://'),
+        configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {
-            console.log('🔄 [Vite Proxy] Forwarding to backend:', req.url);
+            console.log(`[Vite Proxy] → ${apiProxyTarget}${req.url}`);
           });
-
           proxy.on('proxyRes', (proxyRes, req) => {
-            console.log('✅ [Vite Proxy] Backend response:', req.url, '→', proxyRes.statusCode);
+            console.log(`[Vite Proxy] ← ${req.url} ${proxyRes.statusCode}`);
           });
-
           proxy.on('error', (err, req) => {
-            console.error('❌ [Vite Proxy] Error:', req.url, err.message);
+            console.error(`[Vite Proxy] error ${req.url}: ${err.message}`);
           });
         },
       },
