@@ -36,7 +36,8 @@
 | `DESIGN_SYSTEM.md` | Частично актуально | использовать для UI, проверить брендинг |
 | `DESIGN_PROMPT.md` | Требует ревизии | использует TradePoint branding |
 | `FUEL_ACCOUNTING_SYSTEM.md` | Требует ревизии | есть Supabase-следы |
-| `INVENTORY_ADJUSTMENT_SPEC.md` | Актуально | ТЗ на корректировку остатков по приказу инвентаризации (черновик) |
+| `INVENTORY_ADJUSTMENT_SPEC.md` | Актуально | Техническое задание на корректировку остатков по приказу инвентаризации (для разработки, после согласования с заказчиком) |
+| `INVENTORY_ADJUSTMENT_PROPOSAL.md` | Актуально | Бизнес-документ для согласования с заказчиком процедуры корректировки остатков по инвентаризации |
 | `MSTO_INTEGRATION.md` | Частично актуально | сверять с `server/routes/msto.js` |
 | `STS_API_EXAMPLES.md` | Частично актуально | сверять с `server/routes/sts.js` |
 | `TANK_CALIBRATION.md` | Требует ревизии | старая версия и TODO |
