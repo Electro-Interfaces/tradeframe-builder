@@ -1253,11 +1253,11 @@ export function TankCalibrationSettingsComponent({
                       <SelectValue placeholder="Выберите тип датчика" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="radar">📡 Радарный (±1мм)</SelectItem>
-                      <SelectItem value="float">🎈 Поплавковый (±1мм)</SelectItem>
-                      <SelectItem value="capacitive">⚡ Емкостной (±3мм)</SelectItem>
-                      <SelectItem value="hydrostatic">💧 Гидростатический (±3мм)</SelectItem>
-                      <SelectItem value="other">🔧 Другой</SelectItem>
+                      <SelectItem value="radar">Радарный (±1мм)</SelectItem>
+                      <SelectItem value="float">Поплавковый (±1мм)</SelectItem>
+                      <SelectItem value="capacitive">Емкостной (±3мм)</SelectItem>
+                      <SelectItem value="hydrostatic">Гидростатический (±3мм)</SelectItem>
+                      <SelectItem value="other">Другой</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
@@ -1651,7 +1651,7 @@ export function TankCalibrationSettingsComponent({
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fuel_level_warning_percent">⚠️ Порог предупреждения (%)</Label>
+                    <Label htmlFor="fuel_level_warning_percent">Порог предупреждения (%)</Label>
                     <Input
                       id="fuel_level_warning_percent"
                       type="number"
@@ -1666,7 +1666,7 @@ export function TankCalibrationSettingsComponent({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="fuel_level_critical_percent">🔴 Критический порог (%)</Label>
+                    <Label htmlFor="fuel_level_critical_percent">Критический порог (%)</Label>
                     <Input
                       id="fuel_level_critical_percent"
                       type="number"

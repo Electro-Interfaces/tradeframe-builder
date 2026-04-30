@@ -304,7 +304,6 @@ export function NetworkOverview() {
                     <Button
                       variant="outline"
                       size="sm"
-                      variant="outline"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Экспорт

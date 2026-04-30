@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { tradingPointsService } from '@/services/tradingPointsService';
 import type { TradingPoint, BillAcceptorThresholds, FuelLevelThresholds } from '@/types/tradingpoint';
 
@@ -65,14 +66,18 @@ export function useThresholds(options: UseThresholdsOptions = {}): UseThresholds
    */
   const saveBillAcceptorThresholds = useCallback(async (thresholds: BillAcceptorThresholds) => {
     if (!tradingPointId) {
-      throw new Error('Не выбрана торговая точка');
+      const error = new Error('Не выбрана торговая точка');
+      toast.error(error.message);
+      throw error;
     }
 
     try {
       await tradingPointsService.updateBillAcceptorThresholds(tradingPointId, thresholds);
       setBillAcceptorThresholds(thresholds);
+      toast.success('Пороги купюроприёмника сохранены');
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Ошибка сохранения порогов купюроприемника');
+      toast.error(error.message);
       throw error;
     }
   }, [tradingPointId]);
@@ -82,14 +87,18 @@ export function useThresholds(options: UseThresholdsOptions = {}): UseThresholds
    */
   const saveFuelLevelThresholds = useCallback(async (thresholds: FuelLevelThresholds) => {
     if (!tradingPointId) {
-      throw new Error('Не выбрана торговая точка');
+      const error = new Error('Не выбрана торговая точка');
+      toast.error(error.message);
+      throw error;
     }
 
     try {
       await tradingPointsService.updateFuelLevelThresholds(tradingPointId, thresholds);
       setFuelLevelThresholds(thresholds);
+      toast.success('Пороги резервуаров сохранены');
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Ошибка сохранения порогов топлива');
+      toast.error(error.message);
       throw error;
     }
   }, [tradingPointId]);

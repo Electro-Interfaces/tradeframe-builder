@@ -15,9 +15,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+<<<<<<< HEAD
 import { RefreshCw, Power, Loader2, AlertTriangle, ClipboardList } from 'lucide-react';
+=======
+import { RefreshCw, Power, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+>>>>>>> 23fbda6 (fix(UX): Изменение UX на странице оборудование)
 import type { TerminalInfo } from '@/types/equipment';
 import type { Tank } from '@/types/tanks';
+import { getEquipmentActionButtonClass, getEquipmentIconButtonClass } from './designTokens';
 
 interface EquipmentHeaderProps {
   terminalInfo: TerminalInfo | null;
@@ -106,8 +111,8 @@ export function EquipmentHeader({
                   <span>
                     Данные: {new Date(latestPosUpdate).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     {isOk
-                      ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span>
-                      : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {diffMinutes}м)</span>}
+                      ? <span className="inline-flex items-center ml-1 align-middle"><CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" /></span>
+                      : <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 ml-1 align-middle"><AlertTriangle className="w-3 h-3" />{diffMinutes}м</span>}
                   </span>
                 );
               })()}
@@ -118,8 +123,8 @@ export function EquipmentHeader({
                   <span>
                     Резервуары: {new Date(latestTankDt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     {isOk
-                      ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span>
-                      : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {diffMinutes}м)</span>}
+                      ? <span className="inline-flex items-center ml-1 align-middle"><CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" /></span>
+                      : <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 ml-1 align-middle"><AlertTriangle className="w-3 h-3" />{diffMinutes}м</span>}
                   </span>
                 );
               })()}
@@ -129,12 +134,12 @@ export function EquipmentHeader({
               <p className="text-[10px] text-di-on-surface-variant mt-0.5">
                 {latestPosUpdate && (<>
                   Данные: {new Date(latestPosUpdate).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  {(() => { const d = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000); return d < 11 ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span> : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {d}м)</span>; })()}
+                  {(() => { const d = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000); return d < 11 ? <span className="inline-flex items-center ml-1 align-middle"><CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" /></span> : <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 ml-1 align-middle"><AlertTriangle className="w-3 h-3" />{d}м</span>; })()}
                 </>)}
                 {latestPosUpdate && latestTankDt && <span className="mx-1.5">·</span>}
                 {latestTankDt && (<>
                   Рез: {new Date(latestTankDt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  {(() => { const d = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000); return d < 11 ? <span className="text-green-600 dark:text-green-400 ml-1">(✓)</span> : <span className="text-red-600 dark:text-red-400 ml-1">(⚠ {d}м)</span>; })()}
+                  {(() => { const d = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000); return d < 11 ? <span className="inline-flex items-center ml-1 align-middle"><CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" /></span> : <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 ml-1 align-middle"><AlertTriangle className="w-3 h-3" />{d}м</span>; })()}
                 </>)}
               </p>
             )}
@@ -149,7 +154,11 @@ export function EquipmentHeader({
               size="sm"
               onClick={onRefresh}
               disabled={loading}
+<<<<<<< HEAD
 
+=======
+              className={getEquipmentIconButtonClass(isMobile)}
+>>>>>>> 23fbda6 (fix(UX): Изменение UX на странице оборудование)
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -173,16 +182,14 @@ export function EquipmentHeader({
                 variant="outline"
                 size="sm"
                 disabled={restartingTerminal || !networkName || !tradingPointId}
-                className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                className={`${getEquipmentActionButtonClass(isMobile)} border-red-600 text-red-600 hover:bg-red-600 hover:text-white ${isMobile ? 'w-11 p-0' : ''}`}
               >
                 {restartingTerminal ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Power className="w-4 h-4" />
                 )}
-                {!isMobile && (
-                  <span className="ml-2">{restartingTerminal ? 'Перезагрузка...' : 'Перезагрузить'}</span>
-                )}
+                {!isMobile && <span>{restartingTerminal ? 'Перезагрузка...' : 'Перезагрузить'}</span>}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent className={`bg-card border border-border ${isMobile ? 'max-w-[95vw]' : ''}`}>
@@ -191,24 +198,35 @@ export function EquipmentHeader({
                   <AlertTriangle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 dark:text-red-600 dark:text-red-400`} />
                   Подтверждение перезагрузки
                 </AlertDialogTitle>
-                <AlertDialogDescription className={`text-foreground/80 ${isMobile ? 'text-sm' : ''}`}>
-                  Вы уверены, что хотите перезагрузить терминал?
-                  <br />
-                  <br />
-                  <strong className="text-amber-600 dark:text-amber-400">⚠️ ВНИМАНИЕ:</strong>
-                  <br />
-                  • Терминал будет недоступен во время перезагрузки
-                  <br />
-                  • Все активные операции будут прерваны
-                  <br />
-                  • Процесс может занять до 2-3 минут
-                  <br />
-                  <br />
-                  <span className="text-foreground">
-                    Сеть: <strong>{networkName}</strong>
-                    <br />
-                    Торговая точка: <strong>{tradingPointId}</strong>
-                  </span>
+                <AlertDialogDescription className={`text-left text-foreground/80 ${isMobile ? 'text-sm' : ''}`}>
+                  <p>Вы уверены, что хотите перезагрузить терминал?</p>
+
+                  <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-left">
+                    <p className="font-semibold text-amber-700 dark:text-amber-400">Внимание</p>
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 text-amber-600 dark:text-amber-400">-</span>
+                        <span>Терминал будет недоступен во время перезагрузки</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 text-amber-600 dark:text-amber-400">-</span>
+                        <span>Все активные операции будут прерваны</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 text-amber-600 dark:text-amber-400">-</span>
+                        <span>Процесс может занять до 2-3 минут</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 text-foreground">
+                    <p>
+                      Сеть: <strong>{networkName}</strong>
+                    </p>
+                    <p>
+                      Торговая точка: <strong>{tradingPointId}</strong>
+                    </p>
+                  </div>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>

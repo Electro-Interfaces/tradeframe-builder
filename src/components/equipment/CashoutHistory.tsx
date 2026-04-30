@@ -9,6 +9,10 @@ import { ChevronDown, ChevronUp, History, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { CashoutRecord } from '@/types/equipment';
+import {
+  EQUIPMENT_DIALOG_CARD_CLASS,
+  getEquipmentActionButtonClass,
+} from './designTokens';
 
 interface CashoutHistoryProps {
   cashoutRecords: CashoutRecord[];
@@ -59,24 +63,20 @@ export function CashoutHistory({ cashoutRecords, loading, isMobile }: CashoutHis
         variant="outline"
         onClick={() => setIsExpanded(!isExpanded)}
         disabled={loading}
-        className="w-full border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white transition-colors"
+        className={`w-full ${getEquipmentActionButtonClass(isMobile)} border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white transition-colors`}
       >
         {loading ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
             <span className={isMobile ? 'text-sm' : ''}>Загрузка журнала инкассации...</span>
           </>
         ) : (
           <>
-            <History className="w-4 h-4 mr-2" />
+            <History className="w-4 h-4" />
             <span className={isMobile ? 'text-sm' : ''}>
               {isExpanded ? 'Скрыть' : 'Показать'} журнал инкассации ({sortedRecords.length})
             </span>
-            {isExpanded ? (
-              <ChevronUp className="w-4 h-4 ml-2" />
-            ) : (
-              <ChevronDown className="w-4 h-4 ml-2" />
-            )}
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </>
         )}
       </Button>
@@ -90,13 +90,13 @@ export function CashoutHistory({ cashoutRecords, loading, isMobile }: CashoutHis
               {sortedRecords.map((record, index) => (
                 <div
                   key={`${record.shift}-${record.cashoutno}-${index}`}
-                  className="bg-secondary/30 p-3 rounded-lg"
+                  className={`${EQUIPMENT_DIALOG_CARD_CLASS} p-4`}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="text-xs text-muted-foreground">
                       {formatDateTime(record.dt)}
                     </div>
-                    <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                    <div className="text-sm font-bold text-di-on-surface">
                       {formatRubles(record.value)} ₽
                     </div>
                   </div>
@@ -148,7 +148,7 @@ export function CashoutHistory({ cashoutRecords, loading, isMobile }: CashoutHis
                       <span className="text-foreground font-medium">{record.cashoutno}</span>
                     </td>
                     <td className="py-2 px-2 text-right">
-                      <span className="text-green-600 dark:text-green-400 font-bold">{formatRubles(record.value)} ₽</span>
+                      <span className="text-di-on-surface font-bold">{formatRubles(record.value)} ₽</span>
                     </td>
                   </tr>
                 ))}

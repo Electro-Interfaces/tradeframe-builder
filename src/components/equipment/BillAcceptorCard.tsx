@@ -11,6 +11,12 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import type { TerminalEquipmentItem, CashoutRecord } from '@/types/equipment';
 import type { BillAcceptorThresholds } from '@/types/tradingpoint';
 import { checkBillAcceptorThresholds } from '@/utils/billAcceptorThresholds';
+import {
+  EQUIPMENT_CARD_INNER_PADDING_CLASS,
+  EQUIPMENT_SUBCARD_CLASS,
+  EQUIPMENT_SURFACE_CARD_CLASS,
+  getEquipmentActionButtonClass,
+} from './designTokens';
 
 const CashoutHistoryDialog = lazy(() => import('./CashoutHistoryDialog').then(m => ({ default: m.CashoutHistoryDialog })));
 
@@ -74,7 +80,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
   // ─── Mobile view ───
   if (isMobile) {
     return (
-      <div className="bg-di-surface-mid rounded-xl p-4 space-y-4">
+      <div className={`${EQUIPMENT_SURFACE_CARD_CLASS} ${EQUIPMENT_CARD_INNER_PADDING_CLASS} space-y-4`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded bg-emerald-500/10 flex items-center justify-center">
@@ -93,11 +99,11 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-di-surface-low p-3 rounded-xl">
+          <div className={`${EQUIPMENT_SUBCARD_CLASS} p-4`}>
             <p className="text-[10px] font-bold text-di-outline uppercase mb-1">Купюр</p>
             <p className="font-headline text-xl font-bold text-di-on-surface">{billCount}</p>
           </div>
-          <div className="bg-di-surface-low p-3 rounded-xl">
+          <div className={`${EQUIPMENT_SUBCARD_CLASS} p-4`}>
             <p className="text-[10px] font-bold text-di-outline uppercase mb-1">Сумма</p>
             <p className="font-headline text-xl font-bold text-di-on-surface">{billAmount.toLocaleString('ru-RU')}</p>
           </div>
@@ -108,9 +114,10 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             <CashoutHistoryDialog cashoutRecords={cashoutRecords} loading={cashoutLoading} isMobile={isMobile} />
           </Suspense>
           <Button size="sm" variant="outline" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
-            className="flex-1 border-di-outline-variant/30 text-di-on-surface-variant hover:bg-di-surface">
+            className={`flex-1 ${getEquipmentActionButtonClass(isMobile)} border-di-outline-variant text-di-on-surface-variant hover:bg-di-surface`}>
             <Settings className="w-4 h-4" />
-            {isSettingsExpanded ? <ChevronUp className="w-4 h-4 ml-2" /> : <ChevronDown className="w-4 h-4 ml-2" />}
+            <span>{isSettingsExpanded ? 'Пороги' : 'Пороги'}</span>
+            {isSettingsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </div>
 
@@ -118,25 +125,25 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
           <div className="space-y-3 border-t border-di-outline-variant/15 pt-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-[10px] text-di-outline uppercase">⚠ Порог купюр</Label>
+                <Label className="text-[10px] text-di-outline uppercase">Порог купюр</Label>
                 <Input type="number" min="0" value={thresholdForm.billCountWarning}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountWarning: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
-                <Label className="text-[10px] text-di-outline uppercase">🔴 Крит. купюр</Label>
+                <Label className="text-[10px] text-di-outline uppercase">Крит. купюр</Label>
                 <Input type="number" min="0" value={thresholdForm.billCountCritical}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountCritical: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
-                <Label className="text-[10px] text-di-outline uppercase">⚠ Порог сумма</Label>
+                <Label className="text-[10px] text-di-outline uppercase">Порог сумма</Label>
                 <Input type="number" min="0" value={thresholdForm.cashAmountWarning}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountWarning: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
-                <Label className="text-[10px] text-di-outline uppercase">🔴 Крит. сумма</Label>
+                <Label className="text-[10px] text-di-outline uppercase">Крит. сумма</Label>
                 <Input type="number" min="0" value={thresholdForm.cashAmountCritical}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountCritical: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
@@ -156,7 +163,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
   return (
     <div className="grid grid-cols-12 gap-8">
       {/* ── Left: Capacity Panel (8 cols) ── */}
-      <div className="col-span-8 bg-di-surface-mid rounded-xl p-5 relative overflow-hidden">
+      <div className={`col-span-8 ${EQUIPMENT_SURFACE_CARD_CLASS} ${EQUIPMENT_CARD_INNER_PADDING_CLASS} relative overflow-hidden`}>
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5 border-b border-di-outline-variant/10 pb-3 relative z-10">
@@ -173,10 +180,10 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
               <CashoutHistoryDialog cashoutRecords={cashoutRecords} loading={cashoutLoading} isMobile={false} />
             </Suspense>
             <Button size="sm" variant="outline" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
-              className="border-di-outline-variant/20 text-di-on-surface-variant hover:bg-di-surface text-xs">
-              <Settings className="w-4 h-4 mr-1.5" />
+              className={`${getEquipmentActionButtonClass(false)} border-di-outline-variant text-di-on-surface-variant hover:bg-di-surface text-xs`}>
+              <Settings className="w-4 h-4" />
               {isSettingsExpanded ? 'Скрыть' : 'Пороги'}
-              {isSettingsExpanded ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+              {isSettingsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </Button>
           </div>
         </div>
@@ -225,29 +232,33 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
 
           {/* Metrics grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-di-surface-low p-3 rounded-xl">
+            <div className={`${EQUIPMENT_SUBCARD_CLASS} p-4`}>
               <p className="text-[10px] font-bold text-di-outline uppercase mb-0.5">Средн. номинал</p>
               <p className="font-headline text-xl font-bold text-di-on-surface tracking-tight">{avgNote.toFixed(0)}</p>
             </div>
-            <div className="bg-di-surface-low p-3 rounded-xl">
+            <div className={`${EQUIPMENT_SUBCARD_CLASS} p-4`}>
               <p className="text-[10px] font-bold text-di-outline uppercase mb-0.5">Статус</p>
-              <p className="font-headline text-xl font-bold text-di-on-surface tracking-tight">
-                {billAcceptor.status === 'online' ? '✓' : '✗'}
-              </p>
+              <div className="mb-1">
+                {billAcceptor.status === 'online' ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-400" />
+                )}
+              </div>
               <div className={`flex items-center gap-1 text-[10px] font-bold ${
                 billAcceptor.status === 'online' ? 'text-green-500' : 'text-red-400'
               }`}>
-                {billAcceptor.status === 'online' ? 'Nominal' : 'Offline'}
+                {billAcceptor.status === 'online' ? 'онлайн' : 'офлайн'}
               </div>
             </div>
-            <div className="bg-di-surface-low p-3 rounded-xl">
-              <p className="text-[10px] font-bold text-di-outline uppercase mb-0.5">Порог ⚠</p>
+            <div className={`${EQUIPMENT_SUBCARD_CLASS} p-4`}>
+              <p className="text-[10px] font-bold text-di-outline uppercase mb-0.5">Порог</p>
               <p className="font-headline text-xl font-bold text-di-on-surface tracking-tight">
                 {thresholds?.billCountWarning || '—'}
               </p>
             </div>
-            <div className="bg-di-surface-low p-3 rounded-xl">
-              <p className="text-[10px] font-bold text-di-outline uppercase mb-0.5">Порог 🔴</p>
+            <div className={`${EQUIPMENT_SUBCARD_CLASS} p-4`}>
+              <p className="text-[10px] font-bold text-di-outline uppercase mb-0.5">Крит. порог</p>
               <p className="font-headline text-xl font-bold text-di-on-surface tracking-tight">
                 {thresholds?.billCountCritical || '—'}
               </p>
@@ -261,25 +272,25 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             <h3 className="text-[10px] font-bold text-di-outline uppercase tracking-widest mb-4">Настройка порогов</h3>
             <div className="grid grid-cols-4 gap-4">
               <div>
-                <Label className="text-[10px] text-di-outline uppercase">⚠ Купюр</Label>
+                <Label className="text-[10px] text-di-outline uppercase">Порог купюр</Label>
                 <Input type="number" min="0" value={thresholdForm.billCountWarning}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountWarning: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
-                <Label className="text-[10px] text-di-outline uppercase">🔴 Купюр</Label>
+                <Label className="text-[10px] text-di-outline uppercase">Крит. купюр</Label>
                 <Input type="number" min="0" value={thresholdForm.billCountCritical}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountCritical: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
-                <Label className="text-[10px] text-di-outline uppercase">⚠ Сумма</Label>
+                <Label className="text-[10px] text-di-outline uppercase">Порог суммы</Label>
                 <Input type="number" min="0" value={thresholdForm.cashAmountWarning}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountWarning: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
               </div>
               <div>
-                <Label className="text-[10px] text-di-outline uppercase">🔴 Сумма</Label>
+                <Label className="text-[10px] text-di-outline uppercase">Крит. сумма</Label>
                 <Input type="number" min="0" value={thresholdForm.cashAmountCritical}
                   onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountCritical: e.target.value }))}
                   className="bg-di-surface-lowest border-di-outline-variant/20 text-di-on-surface h-8 text-sm mt-1" />
@@ -296,7 +307,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
       </div>
 
       {/* ── Right: Recent Activity (4 cols) ── */}
-      <div className="col-span-4 bg-di-surface-mid rounded-xl p-5 flex flex-col">
+      <div className={`col-span-4 ${EQUIPMENT_SURFACE_CARD_CLASS} ${EQUIPMENT_CARD_INNER_PADDING_CLASS} flex flex-col`}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-headline text-base font-bold text-di-on-surface">Последние события</h2>
           <Suspense fallback={null}>

@@ -15,6 +15,10 @@ import { History, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { CashoutRecord } from '@/types/equipment';
+import {
+  EQUIPMENT_DIALOG_CARD_CLASS,
+  getEquipmentActionButtonClass,
+} from './designTokens';
 
 interface CashoutHistoryDialogProps {
   cashoutRecords: CashoutRecord[];
@@ -30,6 +34,12 @@ function formatRubles(rubles: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   });
+}
+
+function getDifferenceColor(value: number): string {
+  if (value > 0) return 'text-green-600 dark:text-green-400';
+  if (value < 0) return 'text-red-600 dark:text-red-400';
+  return 'text-di-on-surface';
 }
 
 /**
@@ -64,19 +74,19 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
           size="sm"
           variant="outline"
           disabled={loading}
-          className={`border-primary text-primary dark:text-primary/70 hover:bg-primary hover:text-white transition-colors ${
+          className={`${getEquipmentActionButtonClass(isMobile)} border-primary text-primary dark:text-primary/70 hover:bg-primary hover:text-white transition-colors ${
             isMobile ? 'flex-1' : ''
           }`}
         >
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              {!isMobile && <span className="ml-1.5">Загрузка...</span>}
+              {!isMobile && <span>Загрузка...</span>}
             </>
           ) : (
             <>
               <History className="w-4 h-4" />
-              {!isMobile && <span className="ml-1.5">Журнал инкассации</span>}
+              {!isMobile && <span>Журнал инкассации</span>}
             </>
           )}
         </Button>
@@ -94,21 +104,21 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
         {sortedRecords.length > 0 && (
           <div className="mb-4 space-y-3">
             <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-4 gap-4'}`}>
-              <div className="bg-secondary/30 p-3 rounded-lg">
+              <div className={`${EQUIPMENT_DIALOG_CARD_CLASS} p-4`}>
                 <div className="text-xs text-muted-foreground mb-1">Всего инкассаций</div>
-                <div className="text-lg font-bold text-primary dark:text-primary/70">{sortedRecords.length}</div>
+                <div className="text-lg font-bold text-di-on-surface">{sortedRecords.length}</div>
               </div>
-              <div className="bg-secondary/30 p-3 rounded-lg">
+              <div className={`${EQUIPMENT_DIALOG_CARD_CLASS} p-4`}>
                 <div className="text-xs text-muted-foreground mb-1">Касса</div>
-                <div className="text-lg font-bold text-green-600 dark:text-green-400">{formatRubles(totalAmount)} ₽</div>
+                <div className="text-lg font-bold text-di-on-surface">{formatRubles(totalAmount)} ₽</div>
               </div>
-              <div className="bg-secondary/30 p-3 rounded-lg">
+              <div className={`${EQUIPMENT_DIALOG_CARD_CLASS} p-4`}>
                 <div className="text-xs text-muted-foreground mb-1">Купюры</div>
-                <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{formatRubles(totalBills)} ₽</div>
+                <div className="text-lg font-bold text-di-on-surface">{formatRubles(totalBills)} ₽</div>
               </div>
-              <div className="bg-secondary/30 p-3 rounded-lg">
+              <div className={`${EQUIPMENT_DIALOG_CARD_CLASS} p-4`}>
                 <div className="text-xs text-muted-foreground mb-1">Разница</div>
-                <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{formatRubles(totalCoins)} ₽</div>
+                <div className={`text-lg font-bold ${getDifferenceColor(totalCoins)}`}>{formatRubles(totalCoins)} ₽</div>
               </div>
             </div>
           </div>
@@ -133,13 +143,13 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
                 return (
                   <div
                     key={`${record.shift}-${record.cashoutno}-${index}`}
-                    className="bg-secondary/30 p-3 rounded-lg border border-border"
+                    className={`${EQUIPMENT_DIALOG_CARD_CLASS} p-4`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="text-xs text-muted-foreground">
                         {formatDateTime(record.dt)}
                       </div>
-                      <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                      <div className="text-sm font-bold text-di-on-surface">
                         {formatRubles(record.value)} ₽
                       </div>
                     </div>
@@ -160,11 +170,11 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
                     <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border">
                       <div>
                         <div className="text-muted-foreground">Купюры</div>
-                        <div className="text-purple-600 dark:text-purple-400 font-medium">{formatRubles(record.billsum)} ₽</div>
+                        <div className="text-di-on-surface font-medium">{formatRubles(record.billsum)} ₽</div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">Разница</div>
-                        <div className="text-orange-600 dark:text-orange-400 font-medium">{formatRubles(coins)} ₽</div>
+                        <div className={`font-medium ${getDifferenceColor(coins)}`}>{formatRubles(coins)} ₽</div>
                       </div>
                     </div>
                   </div>
@@ -206,13 +216,13 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
                         <span className="text-foreground font-medium">{record.cashoutno}</span>
                       </td>
                       <td className="py-2 px-2 text-right">
-                        <span className="text-green-600 dark:text-green-400 font-bold">{formatRubles(record.value)} ₽</span>
+                        <span className="text-di-on-surface font-bold">{formatRubles(record.value)} ₽</span>
                       </td>
                       <td className="py-2 px-2 text-right">
-                        <span className="text-purple-600 dark:text-purple-400 font-semibold">{formatRubles(record.billsum)} ₽</span>
+                        <span className="text-di-on-surface font-semibold">{formatRubles(record.billsum)} ₽</span>
                       </td>
                       <td className="py-2 px-2 text-right">
-                        <span className="text-orange-600 dark:text-orange-400 font-semibold">{formatRubles(coins)} ₽</span>
+                        <span className={`font-semibold ${getDifferenceColor(coins)}`}>{formatRubles(coins)} ₽</span>
                       </td>
                     </tr>
                   );

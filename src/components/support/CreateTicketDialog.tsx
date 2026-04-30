@@ -12,8 +12,15 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronDown, Send, Loader2, MapPin, Monitor, Route, Paperclip, X, Image, FileText } from 'lucide-react';
+import { Send, Loader2, Paperclip, X, Image, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupportContext } from '@/contexts/SupportContext';
 import { createTicket, getCategories, uploadFiles } from '@/services/supportService';
@@ -21,7 +28,9 @@ import VoiceInputButton from './VoiceInputButton';
 import type { TicketCategory, TicketPriority, TicketType } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
 
-const selectCls = "h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 appearance-none cursor-pointer";
+const selectTriggerCls = 'h-10 w-full bg-card border-border text-foreground';
+const selectContentCls = 'bg-card border-border text-foreground';
+const emptySelectValue = '__none__';
 
 export default function CreateTicketDialog() {
   const { isCreateDialogOpen, closeCreateDialog, buildAppContext } = useSupportContext();
@@ -35,7 +44,6 @@ export default function CreateTicketDialog() {
   const [categories, setCategories] = useState<TicketCategory[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [contextOpen, setContextOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Загрузить категории при каждом открытии (инвалидация кэша)
@@ -57,7 +65,6 @@ export default function CreateTicketDialog() {
       setParentCategory('');
       setChildCategory('');
       setFiles([]);
-      setContextOpen(false);
     }
   }, [isCreateDialogOpen]);
 
@@ -117,8 +124,6 @@ export default function CreateTicketDialog() {
       setSubmitting(false);
     }
   };
-
-  const appContext = isCreateDialogOpen ? buildAppContext() : null;
 
   return (
     <Dialog open={isCreateDialogOpen} onOpenChange={(open) => !open && closeCreateDialog()}>
@@ -217,31 +222,42 @@ export default function CreateTicketDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Категория</label>
-              <select
-                value={parentCategory}
-                onChange={e => { setParentCategory(e.target.value); setChildCategory(''); }}
-                className={selectCls}
+              <Select
+                value={parentCategory || emptySelectValue}
+                onValueChange={(value) => {
+                  setParentCategory(value === emptySelectValue ? '' : value);
+                  setChildCategory('');
+                }}
               >
-                <option value="">Выберите</option>
-                {categories.map(cat => (
-                  <option key={cat.code} value={cat.code}>{cat.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className={selectTriggerCls}>
+                  <SelectValue placeholder="Выберите" />
+                </SelectTrigger>
+                <SelectContent className={selectContentCls}>
+                  <SelectItem value={emptySelectValue}>Выберите</SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat.code} value={cat.code}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Подкатегория</label>
-              <select
-                value={childCategory}
-                onChange={e => setChildCategory(e.target.value)}
+              <Select
+                value={childCategory || emptySelectValue}
+                onValueChange={(value) => setChildCategory(value === emptySelectValue ? '' : value)}
                 disabled={childCategories.length === 0}
-                className={selectCls}
               >
-                <option value="">{childCategories.length ? 'Выберите' : '—'}</option>
-                {childCategories.map(cat => (
-                  <option key={cat.code} value={cat.code}>{cat.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className={selectTriggerCls}>
+                  <SelectValue placeholder={childCategories.length ? 'Выберите' : '—'} />
+                </SelectTrigger>
+                <SelectContent className={selectContentCls}>
+                  <SelectItem value={emptySelectValue}>{childCategories.length ? 'Выберите' : '—'}</SelectItem>
+                  {childCategories.map(cat => (
+                    <SelectItem key={cat.code} value={cat.code}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -249,90 +265,40 @@ export default function CreateTicketDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Приоритет</label>
-              <select
+              <Select
                 value={priority}
-                onChange={e => setPriority(e.target.value as TicketPriority)}
-                className={selectCls}
+                onValueChange={value => setPriority(value as TicketPriority)}
               >
-                <option value="low">Низкий</option>
-                <option value="medium">Средний</option>
-                <option value="high">Высокий</option>
-                <option value="critical">Критический</option>
-              </select>
+                <SelectTrigger className={selectTriggerCls}>
+                  <SelectValue placeholder="Выберите" />
+                </SelectTrigger>
+                <SelectContent className={selectContentCls}>
+                  <SelectItem value="low">Низкий</SelectItem>
+                  <SelectItem value="medium">Средний</SelectItem>
+                  <SelectItem value="high">Высокий</SelectItem>
+                  <SelectItem value="critical">Критический</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Тип</label>
-              <select
+              <Select
                 value={type}
-                onChange={e => setType(e.target.value as TicketType)}
-                className={selectCls}
+                onValueChange={value => setType(value as TicketType)}
               >
-                <option value="incident">Инцидент</option>
-                <option value="request">Запрос</option>
-                <option value="question">Вопрос</option>
-                <option value="problem">Проблема</option>
-              </select>
+                <SelectTrigger className={selectTriggerCls}>
+                  <SelectValue placeholder="Выберите" />
+                </SelectTrigger>
+                <SelectContent className={selectContentCls}>
+                  <SelectItem value="incident">Инцидент</SelectItem>
+                  <SelectItem value="request">Запрос</SelectItem>
+                  <SelectItem value="question">Вопрос</SelectItem>
+                  <SelectItem value="problem">Проблема</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-
-          {/* Контекст приложения */}
-          {appContext && (
-            <div>
-              <button
-                type="button"
-                onClick={() => setContextOpen(!contextOpen)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/80 transition-colors"
-              >
-                <ChevronDown className={`h-3 w-3 transition-transform ${contextOpen ? '' : '-rotate-90'}`} />
-                Контекст приложения
-              </button>
-              {contextOpen && (
-                <div className="mt-2 rounded-md bg-card/50 border border-border/50 p-3 space-y-2 text-xs text-muted-foreground">
-                  {/* Раздел + страница */}
-                  <div className="flex items-center gap-1.5">
-                    <Route className="h-3 w-3 text-primary dark:text-primary/70" />
-                    <span><span className="text-muted-foreground">{appContext.section} →</span> {appContext.routeName || appContext.route}</span>
-                  </div>
-
-                  {/* Сеть */}
-                  {appContext.networkName && (
-                    <div className="flex items-center gap-1.5">
-                      <Monitor className="h-3 w-3 text-green-600 dark:text-green-400" />
-                      <span>Сеть: <span className="text-foreground">{appContext.networkName}</span></span>
-                    </div>
-                  )}
-
-                  {/* ТТ */}
-                  {appContext.tradingPointId && appContext.tradingPointId !== 'all' && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                      <span>ТТ: <span className="text-foreground">{appContext.tradingPointName || appContext.tradingPointId}</span></span>
-                    </div>
-                  )}
-
-                  {/* URL-фильтры */}
-                  {appContext.urlParams && Object.keys(appContext.urlParams).length > 0 && (
-                    <div className="text-muted-foreground font-mono text-[10px]">
-                      Фильтры: {Object.entries(appContext.urlParams).map(([k, v]) => `${k}=${v}`).join(', ')}
-                    </div>
-                  )}
-
-                  {/* Данные страницы */}
-                  {appContext.pageData && Object.keys(appContext.pageData).length > 0 && (
-                    <div className="border-t border-border/50 pt-1.5 text-muted-foreground font-mono text-[10px] break-all">
-                      {JSON.stringify(appContext.pageData, null, 0)}
-                    </div>
-                  )}
-
-                  {/* Размер экрана */}
-                  <div className="text-muted-foreground text-[10px]">
-                    Экран: {appContext.screenSize}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Кнопка отправки */}
           <Button

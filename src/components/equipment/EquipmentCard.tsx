@@ -3,7 +3,7 @@
  * bg-surface-container-low, dot status, transparent border, hover accent
  */
 
-import { Cpu, CreditCard, Receipt, Radio, Banknote, Settings, Fuel } from 'lucide-react';
+import { Cpu, CreditCard, Receipt, Radio, Banknote, Settings, Fuel, AlertCircle, AlertTriangle, CheckCircle2, Dot } from 'lucide-react';
 import type { TerminalEquipmentItem } from '@/types/equipment';
 
 interface EquipmentCardProps {
@@ -45,10 +45,7 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
     ? (equipment.posType.id === 1 ? 'Автомат' : 'Оператор')
     : equipment.name;
 
-  // Dot color + label
-  const dotColor = isError ? 'bg-red-500' : isOnline ? 'bg-green-500' : 'bg-red-500';
-  const dotPulse = isError ? 'animate-pulse' : isOnline ? '' : '';
-  const statusLabel = isError ? 'Авария' : isWarning ? 'Внимание' : equipment.statusText;
+  const statusLabel = isError ? 'Авария' : isWarning ? 'Внимание' : isOnline ? 'онлайн' : 'офлайн';
   const statusLabelColor = isError
     ? 'text-red-400'
     : isWarning
@@ -63,7 +60,15 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
       <div className="flex justify-between items-start mb-3">
         <DeviceIcon name={equipment.name} className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
         <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full ${dotColor} ${dotPulse}`} />
+          {isError ? (
+            <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+          ) : isWarning ? (
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+          ) : isOnline ? (
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+          ) : (
+            <Dot className="w-4 h-4 text-red-500" />
+          )}
           <span className={`text-[10px] font-bold uppercase ${statusLabelColor}`}>
             {statusLabel}
           </span>

@@ -15,6 +15,28 @@ interface StorageData<T> {
   metadata: StorageMetadata;
 }
 
+type SafeStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>;
+
+function getSafeStorage(): SafeStorage | null {
+  if (typeof globalThis === 'undefined' || !("localStorage" in globalThis)) {
+    return null;
+  }
+
+  const storage = globalThis.localStorage as Partial<Storage>;
+
+  if (
+    typeof storage?.getItem !== 'function' ||
+    typeof storage?.setItem !== 'function' ||
+    typeof storage?.removeItem !== 'function' ||
+    typeof storage?.key !== 'function' ||
+    typeof storage?.length !== 'number'
+  ) {
+    return null;
+  }
+
+  return storage as SafeStorage;
+}
+
 class PersistentStorageClass {
   private static readonly VERSION = '2.0.0';
   private static readonly PREFIX = 'tradeframe_';
@@ -23,19 +45,24 @@ class PersistentStorageClass {
    * Сохранить данные в localStorage (новый API для совместимости с auth)
    */
   async setItem<T>(key: string, data: T[]): Promise<void> {
+    const storage = getSafeStorage();
+    if (!storage) {
+      return;
+    }
+
     const storageKey = PersistentStorageClass.PREFIX + key;
     const storageData: StorageData<T> = {
       data,
       metadata: {
         version: PersistentStorageClass.VERSION,
         lastModified: new Date().toISOString(),
-        userId: localStorage.getItem('tradeframe_session') ? 'current' : undefined,
+        userId: storage.getItem('tradeframe_session') ? 'current' : undefined,
         environment: import.meta.env.MODE as 'development' | 'production'
       }
     };
 
     try {
-      localStorage.setItem(storageKey, JSON.stringify(storageData, (key, value) => {
+      storage.setItem(storageKey, JSON.stringify(storageData, (key, value) => {
         // Конвертируем Date объекты в ISO строки
         if (value instanceof Date) {
           return value.toISOString();
@@ -49,7 +76,7 @@ class PersistentStorageClass {
         this.cleanupOldData();
         // Повторная попытка
         try {
-          localStorage.setItem(storageKey, JSON.stringify(storageData));
+          storage.setItem(storageKey, JSON.stringify(storageData));
         } catch (retryError) {
           console.error('❌ Не удалось сохранить даже после очистки', retryError);
           throw retryError;
@@ -64,10 +91,15 @@ class PersistentStorageClass {
    * Загрузить данные из localStorage (новый API для совместимости с auth)
    */
   async getItem<T>(key: string, defaultValue: T[] = []): Promise<T[]> {
+    const storage = getSafeStorage();
+    if (!storage) {
+      return defaultValue;
+    }
+
     const storageKey = PersistentStorageClass.PREFIX + key;
     
     try {
-      const stored = localStorage.getItem(storageKey);
+      const stored = storage.getItem(storageKey);
       if (!stored) {
         // Сохраняем начальные данные в localStorage
         if (defaultValue.length > 0) {
@@ -111,10 +143,15 @@ class PersistentStorageClass {
    * Загрузить данные из localStorage (старый API для обратной совместимости)
    */
   static load<T>(key: string, defaultValue: T[] = []): T[] {
+    const storage = getSafeStorage();
+    if (!storage) {
+      return defaultValue;
+    }
+
     const storageKey = this.PREFIX + key;
     
     try {
-      const stored = localStorage.getItem(storageKey);
+      const stored = storage.getItem(storageKey);
       if (!stored) {
         // Сохраняем начальные данные в localStorage
         if (defaultValue.length > 0) {
@@ -141,22 +178,33 @@ class PersistentStorageClass {
    * Удалить данные из localStorage
    */
   static remove(key: string): void {
+    const storage = getSafeStorage();
+    if (!storage) {
+      return;
+    }
+
     const storageKey = this.PREFIX + key;
-    localStorage.removeItem(storageKey);
+    storage.removeItem(storageKey);
   }
 
   /**
    * Проверить наличие данных
    */
   static exists(key: string): boolean {
+    const storage = getSafeStorage();
+    if (!storage) {
+      return false;
+    }
+
     const storageKey = this.PREFIX + key;
-    return localStorage.getItem(storageKey) !== null;
+    return storage.getItem(storageKey) !== null;
   }
 
   /**
    * Экспортировать все данные для миграции
    */
   static exportAll(): Record<string, any> {
+    const storage = getSafeStorage();
     const exportData: Record<string, any> = {
       metadata: {
         exportDate: new Date().toISOString(),
@@ -166,13 +214,17 @@ class PersistentStorageClass {
       data: {}
     };
 
+    if (!storage) {
+      return exportData;
+    }
+
     // Собираем все ключи с нашим префиксом
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
       if (key && key.startsWith(this.PREFIX)) {
         const dataKey = key.replace(this.PREFIX, '');
         try {
-          const stored = localStorage.getItem(key);
+          const stored = storage.getItem(key);
           if (stored) {
             exportData.data[dataKey] = JSON.parse(stored);
           }
@@ -211,10 +263,15 @@ class PersistentStorageClass {
       throw new Error('Неверный формат данных для импорта');
     }
 
+    const storage = getSafeStorage();
+    if (!storage) {
+      return;
+    }
+
     Object.entries(importData.data).forEach(([key, value]) => {
       const storageKey = this.PREFIX + key;
       try {
-        localStorage.setItem(storageKey, JSON.stringify(value));
+        storage.setItem(storageKey, JSON.stringify(value));
       } catch (error) {
         console.error(`❌ Ошибка импорта ${key}:`, error);
       }
@@ -248,20 +305,25 @@ class PersistentStorageClass {
    * Очистить старые данные для освобождения места
    */
   private static cleanupOldData(): void {
+    const storage = getSafeStorage();
+    if (!storage) {
+      return;
+    }
+
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - 1); // Удаляем данные старше месяца
 
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
+    for (let i = storage.length - 1; i >= 0; i--) {
+      const key = storage.key(i);
       if (key && key.startsWith(this.PREFIX)) {
         try {
-          const stored = localStorage.getItem(key);
+          const stored = storage.getItem(key);
           if (stored) {
             const data: StorageData<any> = JSON.parse(stored);
             const lastModified = new Date(data.metadata.lastModified);
             
             if (lastModified < cutoffDate) {
-              localStorage.removeItem(key);
+              storage.removeItem(key);
             }
           }
         } catch (error) {
@@ -275,11 +337,17 @@ class PersistentStorageClass {
    * Получить размер используемого хранилища
    */
   static getStorageSize(): { used: number; percentage: number } {
+    const storage = getSafeStorage();
     let totalSize = 0;
+
+    if (!storage) {
+      return { used: 0, percentage: 0 };
+    }
     
-    for (const key in localStorage) {
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
       if (key.startsWith(this.PREFIX)) {
-        totalSize += localStorage[key].length + key.length;
+        totalSize += (storage.getItem(key)?.length ?? 0) + key.length;
       }
     }
 
@@ -297,35 +365,45 @@ class PersistentStorageClass {
    * Очистить все данные приложения
    */
   static clearAll(): void {
+    const storage = getSafeStorage();
+    if (!storage) {
+      return;
+    }
+
     const keys: string[] = [];
     
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
       if (key && key.startsWith(this.PREFIX)) {
         keys.push(key);
       }
     }
 
-    keys.forEach(key => localStorage.removeItem(key));
+    keys.forEach(key => storage.removeItem(key));
   }
   /**
    * Очистить старые данные для освобождения места
    */
   private cleanupOldData(): void {
+    const storage = getSafeStorage();
+    if (!storage) {
+      return;
+    }
+
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - 1); // Удаляем данные старше месяца
 
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
+    for (let i = storage.length - 1; i >= 0; i--) {
+      const key = storage.key(i);
       if (key && key.startsWith(PersistentStorageClass.PREFIX)) {
         try {
-          const stored = localStorage.getItem(key);
+          const stored = storage.getItem(key);
           if (stored) {
             const data: StorageData<any> = JSON.parse(stored);
             const lastModified = new Date(data.metadata.lastModified);
             
             if (lastModified < cutoffDate) {
-              localStorage.removeItem(key);
+              storage.removeItem(key);
             }
           }
         } catch (error) {

@@ -66,7 +66,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   try {
     const supportCtx = useSupportContext();
     unreadCounts = supportCtx.unreadCounts;
-  } catch {}
+  } catch {
+    // Sidebar can render outside the support provider in lightweight/test contexts.
+  }
 
   useEffect(() => {
     localStorage.setItem('appSidebar_openGroups', JSON.stringify(openGroups));

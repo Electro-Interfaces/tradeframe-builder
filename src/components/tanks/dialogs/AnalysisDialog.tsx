@@ -2167,10 +2167,10 @@ export function AnalysisDialog({
                                 formatter={(value: number, name: string) => [
                                   `${value.toFixed(0)} л`,
                                   name === 'geometric_volume'
-                                    ? '🟢 Геометрическая модель'
+                                    ? 'Геометрическая модель'
                                     : name === 'trk_volume'
-                                      ? '🔵 Калибровка ТРК'
-                                      : '🟠 Датчик (текущий)'
+                                      ? 'Калибровка ТРК'
+                                      : 'Датчик (текущий)'
                                 ]}
                                 labelFormatter={(label) => `Уровень: ${label} мм`}
                               />
@@ -2235,10 +2235,10 @@ export function AnalysisDialog({
                             </RechartsLineChart>
                           </ResponsiveContainer>
                           <p className="text-xs text-muted-foreground mt-2 text-center">
-                            🟢 <strong>Зеленая</strong> — геометрическая модель по размерам резервуара,
-                            🟠 <strong>Оранжевая</strong> — датчик (текущая калибровка),
-                            🔵 <strong>Синяя</strong> — калибровка ТРК,
-                            🔴 <strong>Красная точка</strong> — опорная точка (здесь синяя и оранжевая совпадают).
+                            <strong>Зеленая</strong> — геометрическая модель по размерам резервуара,
+                            <strong> оранжевая</strong> — датчик (текущая калибровка),
+                            <strong> синяя</strong> — калибровка ТРК,
+                            <strong> красная точка</strong> — опорная точка (здесь синяя и оранжевая совпадают).
                           </p>
                         </div>
                       );

@@ -18,7 +18,6 @@ import { APP_VERSION } from "@/config/version";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useMobile, mobileUtils } from "@/hooks/useMobile";
-import StationsConnectionDialog from "@/components/operations/StationsConnectionDialog";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useSupportContext } from "@/contexts/SupportContext";
 
@@ -56,7 +55,9 @@ export function Header({
     const sidebar = useSidebar();
     sidebarState = sidebar.state;
     toggleSidebar = sidebar.toggleSidebar;
-  } catch {}
+  } catch {
+    // Header can render outside the sidebar provider in isolated layouts/tests.
+  }
 
   // Состояние для диалога информации об обновлениях
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
@@ -70,9 +71,6 @@ export function Header({
     swScope: string;
     lastCheck: string;
   } | null>(null);
-
-  // Состояние для диалога проверки связи
-  const [isConnectionDialogOpen, setIsConnectionDialogOpen] = useState(false);
 
   const handleShowUpdateInfo = (details: {
     version: string;
@@ -122,36 +120,24 @@ export function Header({
   return (
     <header className={`${isMobile ? 'relative shadow-[0_6px_16px_rgba(15,23,42,0.12)] dark:shadow-none dark:border-b dark:border-white/10' : 'fixed top-0'} left-0 right-0 z-50 min-h-header bg-background mobile-safe-top`}>
       <div className="flex items-center justify-between min-h-header px-4 md:px-6">
-        {/* Mobile Header: Station selector + Bell + Sync + Avatar */}
+        {/* Mobile Header: Station selector + support entry + Avatar */}
         <div className="flex items-center gap-1.5 md:hidden flex-1 min-w-0">
           <NetworkSelect
             value={selectedNetwork}
             values={selectedNetworkIds}
             onValueChange={onNetworkChange}
             onValuesChange={onNetworkIdsChange}
-            className="!h-9 !py-0 text-sm min-w-0 flex-1 bg-white dark:bg-di-surface-high border border-border/20 dark:border-di-outline-variant/15 text-foreground dark:text-di-on-surface font-headline font-bold rounded-xl"
+            className="!h-11 !py-0 text-sm min-w-0 flex-1 bg-white dark:bg-di-surface-high border border-border/20 dark:border-di-outline-variant/15 text-foreground dark:text-di-on-surface font-headline font-bold rounded-xl"
           />
 
-          {/* Bell with badge */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={openCreateDialog}
-            aria-label="Уведомления"
-            className="shrink-0 h-9 w-9 text-di-on-surface-variant hover:text-di-on-surface transition-all relative"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-          </Button>
-
-          {/* Sync button */}
+          {/* Support button */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsConnectionDialogOpen(true)}
-            className="shrink-0 h-9 px-3 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
+            onClick={openCreateDialog}
+            className="shrink-0 h-11 px-3 gap-2 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
           >
-            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+            <RefreshCw className="h-3.5 w-3.5" />
             Связь
           </Button>
         </div>
@@ -176,38 +162,33 @@ export function Header({
           )}
         </div>
 
-        {/* Desktop Center: Context Selectors + Connection Button */}
+        {/* Desktop Center: Context Selectors + Support Button */}
         <div className="hidden md:flex items-center justify-center gap-2">
-          <NetworkSelect value={selectedNetwork} values={selectedNetworkIds} onValueChange={onNetworkChange} onValuesChange={onNetworkIdsChange} />
+          <NetworkSelect
+            value={selectedNetwork}
+            values={selectedNetworkIds}
+            onValueChange={onNetworkChange}
+            onValuesChange={onNetworkIdsChange}
+            className="!h-10 !py-0 rounded-xl"
+          />
           <PointSelect
             values={selectedTradingPoints}
             onValuesChange={onTradingPointsChange}
             onPointClick={onPointClick}
             disabled={!selectedNetwork}
             networkIds={selectedNetworkIds}
-            className="inline-flex"
+            className="inline-flex !h-10 !py-0 rounded-xl"
           />
-          {/* Desktop Connection Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsConnectionDialogOpen(true)}
-            className="h-9 px-3 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-lg transition-all duration-200 font-medium"
-            title="Проверить связь со станциями"
-          >
-            <Wifi className="h-4 w-4 mr-1.5" />
-            Связь
-          </Button>
           {/* Desktop Support Button */}
           <Button
             variant="outline"
             size="sm"
             onClick={openCreateDialog}
-            className="h-9 px-3 bg-primary/5 dark:bg-primary/10 hover:bg-primary/90 text-primary dark:text-primary/70 hover:text-white border border-primary/20 dark:border-primary/30 hover:border-primary rounded-lg transition-all duration-200 font-medium"
+            className="h-10 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
             title="Создать заявку в поддержку"
           >
-            <LifeBuoy className="h-4 w-4 mr-1.5" />
-            Заявка
+            <Wifi className="h-4 w-4" />
+            Связь
           </Button>
         </div>
 
@@ -336,10 +317,6 @@ export function Header({
         details={updateDetails}
       />
 
-      <StationsConnectionDialog
-        open={isConnectionDialogOpen}
-        onOpenChange={setIsConnectionDialogOpen}
-      />
     </header>
   );
 }

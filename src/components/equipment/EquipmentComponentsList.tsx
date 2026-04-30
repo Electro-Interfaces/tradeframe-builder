@@ -87,54 +87,42 @@ const getStatusConfig = (status: ComponentStatus) => {
       return {
         icon: CircleCheck,
         color: 'text-green-500',
-        bgColor: 'bg-emerald-50',
-        borderColor: 'border-green-200',
-        badgeColor: 'bg-emerald-100 dark:bg-emerald-500/20 text-green-600 dark:text-green-400',
+        badgeColor: 'bg-secondary text-foreground border border-border',
         text: 'Работает'
       };
     case 'error':
       return {
         icon: XCircle,
         color: 'text-red-500',
-        bgColor: 'bg-red-50',
-        borderColor: 'border-red-200',
-        badgeColor: 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400',
+        badgeColor: 'bg-secondary text-foreground border border-border',
         text: 'Ошибка'
       };
     case 'offline':
       return {
         icon: AlertCircle,
         color: 'text-amber-500',
-        bgColor: 'bg-amber-50',
-        borderColor: 'border-amber-200',
-        badgeColor: 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
+        badgeColor: 'bg-secondary text-foreground border border-border',
         text: 'Офлайн'
       };
     case 'disabled':
       return {
         icon: Power,
         color: 'text-muted-foreground',
-        bgColor: 'bg-muted',
-        borderColor: 'border-border',
-        badgeColor: 'bg-muted-foreground/20 text-muted-foreground',
+        badgeColor: 'bg-secondary text-foreground border border-border',
         text: 'Отключен'
       };
     case 'archived':
       return {
         icon: Archive,
         color: 'text-primary',
-        bgColor: 'bg-primary/5',
-        borderColor: 'border-primary/20',
-        badgeColor: 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary/70',
+        badgeColor: 'bg-secondary text-foreground border border-border',
         text: 'Архив'
       };
     default:
       return {
         icon: AlertCircle,
         color: 'text-muted-foreground',
-        bgColor: 'bg-muted',
-        borderColor: 'border-border',
-        badgeColor: 'bg-muted-foreground/20 text-muted-foreground',
+        badgeColor: 'bg-secondary text-foreground border border-border',
         text: 'Неизвестно'
       };
   }

@@ -5,7 +5,7 @@
 
 import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Fuel, LineChart, Settings, Lock, AlertTriangle } from "lucide-react";
+import { Fuel, LineChart, Settings, Lock, AlertTriangle, AlertCircle, CheckCircle2, Dot, Droplet } from "lucide-react";
 import { TankAnalysisDialog } from "./TankAnalysisDialog";
 import { TankCalibrationDialog } from "./TankCalibrationDialog";
 import type { Tank, TankStatus } from "@/types/tanks";
@@ -42,9 +42,8 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
     : Math.max(0, capacity - currentLevel);
 
   // Status
-  const statusText = isBlocked ? 'БЛОК' : tank.noSensorData ? 'КНИЖ.' : tankStatus === 'critical' ? 'КРИТ.' : tankStatus === 'warning' ? 'НИЗКИЙ' : 'OK';
+  const statusText = isBlocked ? 'БЛОК' : tank.noSensorData ? 'КНИЖ.' : tankStatus === 'critical' ? 'КРИТ.' : tankStatus === 'warning' ? 'НИЗКИЙ' : 'НОРМА';
   const statusColor = isBlocked || tankStatus === 'critical' ? 'text-red-600' : tankStatus === 'warning' ? 'text-amber-600' : 'text-green-600';
-  const dotColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500' : tankStatus === 'warning' ? 'bg-amber-500' : 'bg-green-500';
   const barColor = isBlocked || tankStatus === 'critical' ? 'bg-red-500' : tankStatus === 'warning' ? 'bg-amber-500' : 'bg-primary';
   const borderClass = isBlocked ? 'border-red-500/30' : 'border-transparent hover:border-di-primary/20';
 
@@ -76,7 +75,17 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+          {isBlocked ? (
+            <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+          ) : tank.noSensorData ? (
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+          ) : tankStatus === 'critical' ? (
+            <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+          ) : tankStatus === 'warning' ? (
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+          ) : (
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+          )}
           <span className={`text-[10px] font-bold uppercase ${statusColor}`}>{statusText}</span>
         </div>
       </div>
@@ -114,7 +123,8 @@ const TankCardComponent = ({ tank, isMobile }: { tank: Tank; isMobile: boolean }
         </div>
         <div>
           <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Вода</p>
-          <p className={`font-headline font-bold text-xs ${waterMm > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+          <p className={`inline-flex items-center gap-1 font-headline font-bold text-xs ${waterMm > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+            <Droplet className="w-3 h-3" />
             {waterMm > 0 ? `${waterMm.toFixed(1)}мм` : 'нет'}
           </p>
         </div>

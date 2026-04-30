@@ -155,7 +155,9 @@ const SidebarProvider = React.forwardRef<
       try {
         const match = document.cookie.match(new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`))
         if (match) return match[1] === "true"
-      } catch {}
+      } catch {
+        // Cookie access can fail in non-browser test environments.
+      }
       return defaultOpen
     })
     const open = openProp ?? _open
