@@ -17,6 +17,7 @@ module.exports = {
   findAliasAccess: (...args) => getSource().findAliasAccess(...args),
   findAliasReverse: (...args) => getSource().findAliasReverse(...args),
   getAliasExpansionsForSystem: (...args) => getSource().getAliasExpansionsForSystem(...args),
+  getOutgoingAliasesFromSystem: (...args) => getSource().getOutgoingAliasesFromSystem(...args),
   getNetworkById: (...args) => getSource().getNetworkById(...args),
   getNetworks: (...args) => getSource().getNetworks(...args),
   getRequestedSource,

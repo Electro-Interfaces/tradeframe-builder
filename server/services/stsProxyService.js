@@ -231,6 +231,29 @@ function mergePerNetworkResponses(primaryData, aliasResponses) {
   return merged;
 }
 
+// Фильтрация ответа STS от данных станций, «уехавших» через alias
+// в другую сеть. Применяется к per-network запросам на физическую сеть,
+// чтобы данные alias-точек не появлялись и в родной, и в целевой сети.
+const STATION_ID_FIELDS = ['station', 'stationNumber', 'station_id', 'station_number'];
+function filterOutMigratedStations(data, stationCodesToExclude) {
+  if (!Array.isArray(data) || stationCodesToExclude.length === 0) return data;
+  const excludeSet = new Set(stationCodesToExclude.map(String));
+  return data.filter((item) => {
+    if (!item || typeof item !== 'object') return true;
+    for (const field of STATION_ID_FIELDS) {
+      const v = item[field];
+      if (v != null && excludeSet.has(String(v))) return false;
+    }
+    return true;
+  });
+}
+
+function buildOutgoingCacheTag(stationCodes) {
+  if (!stationCodes || stationCodes.length === 0) return '';
+  const sorted = [...stationCodes].map(String).sort().join(',');
+  return `:moved=${sorted}`;
+}
+
 async function proxyRequest(req, res) {
   try {
     const { method, query, body } = req;
@@ -265,25 +288,35 @@ async function proxyRequest(req, res) {
       }
     }
 
-    // Per-network fan-out: если запрос без station, на per-network endpoint и есть алиасы — расширяем.
+    // Per-network fan-out: запрос на ЦЕЛЕВУЮ сеть алиасов (например ГИГ) →
+    // нужно дополнительно опросить физические сети алиас-точек.
+    // Per-network filter-out: запрос на РОДНУЮ сеть алиасов (например БТО) →
+    // нужно убрать из ответа данные «уехавших» станций.
+    // Эти две операции взаимоисключающие — точка либо целевая, либо родная.
     let aliasExpansions = [];
-    const isFanoutCandidate =
+    let movedStations = [];
+    const isPerNetwork =
       method === 'GET' &&
       !hasStation &&
       incomingSystem != null &&
       PER_NETWORK_FANOUT_ENDPOINTS.has(urlPath);
 
-    if (isFanoutCandidate) {
+    if (isPerNetwork) {
       try {
-        aliasExpansions = await orgDataSource.getAliasExpansionsForSystem(incomingSystem);
+        const [expansions, moved] = await Promise.all([
+          orgDataSource.getAliasExpansionsForSystem(incomingSystem),
+          orgDataSource.getOutgoingAliasesFromSystem(incomingSystem),
+        ]);
+        aliasExpansions = expansions;
+        movedStations = moved;
       } catch (err) {
-        console.warn(`[STS Proxy alias] getAliasExpansionsForSystem failed for ${incomingSystem}: ${err.message}`);
-        aliasExpansions = [];
+        console.warn(`[STS Proxy alias] alias-info failed for ${incomingSystem}: ${err.message}`);
       }
     }
 
-    const aliasTag = buildAliasCacheTag(aliasExpansions);
-    const cacheKey = generateCacheKey(urlPath, effectiveQuery) + aliasTag;
+    const cacheKey = generateCacheKey(urlPath, effectiveQuery)
+      + buildAliasCacheTag(aliasExpansions)
+      + buildOutgoingCacheTag(movedStations);
 
     // Cache check (GET only)
     if (method === 'GET') {
@@ -340,14 +373,24 @@ async function proxyRequest(req, res) {
         const [primaryResp, ...aliasResps] = await Promise.all([primary, ...aliasRequests]);
         const merged = mergePerNetworkResponses(primaryResp.data, aliasResps.map(r => r.data));
 
-        if (aliasSubstituted) {
-          console.log(`[STS Proxy alias] ${method} ${urlPath} fan-out across ${aliasExpansions.length} alias-station(s)`);
-        }
+        console.log(`[STS Proxy alias] ${method} ${urlPath} fan-out across ${aliasExpansions.length} alias-station(s)`);
 
         return { data: merged, status: primaryResp.status };
       }
 
       const response = await client.request(primaryRequestConfig);
+
+      // Filter-out: если это per-network запрос на родную сеть алиасов —
+      // убрать из ответа данные станций, «уехавших» в другие сети.
+      if (movedStations.length > 0 && Array.isArray(response.data)) {
+        const before = response.data.length;
+        const filtered = filterOutMigratedStations(response.data, movedStations);
+        if (before !== filtered.length) {
+          console.log(`[STS Proxy alias] ${method} ${urlPath} filter-out ${before - filtered.length} migrated rows (stations: ${movedStations.join(',')})`);
+        }
+        return { data: filtered, status: response.status };
+      }
+
       return { data: response.data, status: response.status };
     })();
 

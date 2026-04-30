@@ -823,6 +823,31 @@ async function getAliasExpansionsForSystem(networkExternalId) {
   }));
 }
 
+// Список station codes, физически принадлежащих сети с указанным external_id,
+// но «уехавших» из неё через alias в другую сеть. Используется в STS-прокси
+// для фильтрации ответов per-network запросов: данные «уехавших» станций
+// не должны появляться в их родной сети, иначе будет дубликат с целевой.
+async function getOutgoingAliasesFromSystem(physicalSystemExternalId) {
+  if (physicalSystemExternalId == null || physicalSystemExternalId === '') return [];
+
+  const { rows } = await postgres.query(
+    `SELECT tp.code AS station_code
+       FROM trading_points tp
+       INNER JOIN networks src_n
+         ON src_n.id = tp.network_id
+        AND src_n.deleted_at IS NULL
+       INNER JOIN network_trading_point_aliases a
+         ON a.trading_point_id = tp.id
+        AND a.network_id <> tp.network_id
+      WHERE src_n.external_id = $1
+        AND tp.deleted_at IS NULL
+        AND tp.is_active = true`,
+    [String(physicalSystemExternalId)]
+  );
+
+  return rows.map((row) => String(row.station_code));
+}
+
 // Подмена per-station запроса. Если фронт прислал (system=<целевая_сеть>, station=<code>),
 // и в alias-таблице есть точка с таким code в указанной целевой сети — возвращает
 // родной physicalSystem (физическая сеть точки). Иначе — null (подмена не нужна).
@@ -905,6 +930,7 @@ module.exports = {
   findAliasAccess,
   findAliasReverse,
   getAliasExpansionsForSystem,
+  getOutgoingAliasesFromSystem,
   getNetworkById,
   getNetworks,
   getTradingPointById,
