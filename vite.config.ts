@@ -60,7 +60,19 @@ export default defineConfig(({ mode }) => {
         changeOrigin: true,
         secure: apiProxyTarget.startsWith('https://'),
         configure: (proxy) => {
+          // Если проксируем на удалённый сервер (test/prod backend) —
+          // подменяем заголовки Origin/Referer, чтобы CORS-проверка
+          // на удалённом сервере пропустила запрос.
+          // ALLOWED_ORIGINS на test/prod не содержит localhost:3000,
+          // и без подмены backend отвечает «Origin not allowed».
+          const isRemote = /^https?:\/\//.test(apiProxyTarget)
+            && !/localhost|127\.0\.0\.1/.test(apiProxyTarget);
+
           proxy.on('proxyReq', (proxyReq, req) => {
+            if (isRemote) {
+              proxyReq.setHeader('Origin', apiProxyTarget);
+              proxyReq.setHeader('Referer', apiProxyTarget);
+            }
             console.log(`[Vite Proxy] → ${apiProxyTarget}${req.url}`);
           });
           proxy.on('proxyRes', (proxyRes, req) => {

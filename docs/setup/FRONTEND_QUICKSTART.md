@@ -270,6 +270,9 @@ Telegram-бот не запускается, если в `server/.env` нет `T
 ### `network error` / `ERR_CONNECTION_REFUSED` в DevTools на запросах `/api/*`
 В сценарии A не задан `VITE_API_PROXY_TARGET` — vite пытается стучать в `localhost:3001`, а локального backend нет. Создай `.env` с `VITE_API_PROXY_TARGET=https://testtf.dataworker.ru` и перезапусти `npm run dev`.
 
+### `Origin http://localhost:3000 not allowed by CORS` при логине в сценарии A
+Это значило, что vite-proxy не подменял заголовок `Origin` при перенаправлении на test backend, и backend срабатывал по CORS. Поправлено в `vite.config.ts` — теперь при удалённом `VITE_API_PROXY_TARGET` proxy подменяет `Origin`/`Referer` на target. После `git pull` и перезапуска `npm run dev` логин работает.
+
 ### Логин не работает, отдаёт 401
 Учётки `dev/dev` не существует. Используй боевую учётку для test или prod (получи у МАГа).
 
