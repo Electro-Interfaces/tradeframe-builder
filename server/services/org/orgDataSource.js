@@ -14,6 +14,7 @@ module.exports = {
   createTradingPoint: (...args) => getSource().createTradingPoint(...args),
   deleteNetwork: (...args) => getSource().deleteNetwork(...args),
   deleteTradingPoint: (...args) => getSource().deleteTradingPoint(...args),
+  findAliasAccess: (...args) => getSource().findAliasAccess(...args),
   getNetworkById: (...args) => getSource().getNetworkById(...args),
   getNetworks: (...args) => getSource().getNetworks(...args),
   getRequestedSource,

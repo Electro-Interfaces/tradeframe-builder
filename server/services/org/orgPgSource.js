@@ -26,7 +26,8 @@ async function getTradingPointRowById(pointId) {
     `SELECT
        tp.*,
        n.name AS network_name,
-       n.code AS network_code
+       n.code AS network_code,
+       n.external_id AS network_external_id
      FROM trading_points tp
      INNER JOIN networks n
        ON n.id = tp.network_id
@@ -74,14 +75,23 @@ async function getNetworks() {
   const { rows } = await postgres.query(
     `SELECT
        n.*,
-       COUNT(tp.id) FILTER (WHERE tp.deleted_at IS NULL) AS points_count
+       (
+         SELECT COUNT(*) FROM (
+           SELECT tp.id
+             FROM trading_points tp
+            WHERE tp.network_id = n.id
+              AND tp.deleted_at IS NULL
+           UNION
+           SELECT a.trading_point_id
+             FROM network_trading_point_aliases a
+             INNER JOIN trading_points tp ON tp.id = a.trading_point_id
+            WHERE a.network_id = n.id
+              AND tp.deleted_at IS NULL
+         ) s
+       ) AS points_count
      FROM networks n
-     LEFT JOIN trading_points tp
-       ON tp.network_id = n.id
-      AND tp.deleted_at IS NULL
      WHERE n.deleted_at IS NULL
        AND n.is_active = true
-     GROUP BY n.id
      ORDER BY n.name`
   );
 
@@ -92,14 +102,23 @@ async function getNetworkById(networkId) {
   const { rows } = await postgres.query(
     `SELECT
        n.*,
-       COUNT(tp.id) FILTER (WHERE tp.deleted_at IS NULL) AS points_count
+       (
+         SELECT COUNT(*) FROM (
+           SELECT tp.id
+             FROM trading_points tp
+            WHERE tp.network_id = n.id
+              AND tp.deleted_at IS NULL
+           UNION
+           SELECT a.trading_point_id
+             FROM network_trading_point_aliases a
+             INNER JOIN trading_points tp ON tp.id = a.trading_point_id
+            WHERE a.network_id = n.id
+              AND tp.deleted_at IS NULL
+         ) s
+       ) AS points_count
      FROM networks n
-     LEFT JOIN trading_points tp
-       ON tp.network_id = n.id
-      AND tp.deleted_at IS NULL
      WHERE n.id = $1
        AND n.deleted_at IS NULL
-     GROUP BY n.id
      LIMIT 1`,
     [networkId]
   );
@@ -178,33 +197,84 @@ async function deleteNetwork(networkId) {
 }
 
 async function getTradingPoints(networkId) {
-  const params = [];
-  let whereClause = `
-    tp.deleted_at IS NULL
-    AND tp.is_active = true
-  `;
+  // Случай 1: запрос всех точек без фильтра по сети — алиасы не подмешиваем
+  // (иначе одна точка появится дважды: как нативная и как alias).
+  if (!networkId || networkId === 'all') {
+    const { rows } = await postgres.query(
+      `SELECT
+         tp.*,
+         n.name AS network_name,
+         n.code AS network_code,
+         n.external_id AS network_external_id
+       FROM trading_points tp
+       INNER JOIN networks n
+         ON n.id = tp.network_id
+        AND n.deleted_at IS NULL
+       WHERE tp.deleted_at IS NULL
+         AND tp.is_active = true
+       ORDER BY n.name, tp.name`
+    );
 
-  if (networkId && networkId !== 'all') {
-    params.push(networkId);
-    whereClause += ` AND tp.network_id = $${params.length}`;
+    const externalCodesRows = await loadExternalCodesForPoints(rows.map((row) => row.id));
+    return mapTradingPoints(rows, externalCodesRows);
   }
 
-  const { rows } = await postgres.query(
+  // Случай 2: запрос точек конкретной сети — объединяем родные точки и алиасы.
+  // Для alias-точек видимые поля сети (network_id/code/name) подменяются на
+  // целевую сеть, а network_external_id остаётся родным (для STS-запросов).
+  const { rows: nativeRows } = await postgres.query(
     `SELECT
        tp.*,
        n.name AS network_name,
-       n.code AS network_code
+       n.code AS network_code,
+       n.external_id AS network_external_id
      FROM trading_points tp
      INNER JOIN networks n
        ON n.id = tp.network_id
       AND n.deleted_at IS NULL
-     WHERE ${whereClause}
-     ORDER BY n.name, tp.name`,
-    params
+     WHERE tp.network_id = $1
+       AND tp.deleted_at IS NULL
+       AND tp.is_active = true
+     ORDER BY tp.name`,
+    [networkId]
   );
 
-  const externalCodesRows = await loadExternalCodesForPoints(rows.map((row) => row.id));
-  return mapTradingPoints(rows, externalCodesRows);
+  const { rows: aliasRows } = await postgres.query(
+    `SELECT
+       tp.*,
+       target_n.id   AS target_network_id,
+       target_n.name AS target_network_name,
+       target_n.code AS target_network_code,
+       src_n.external_id AS source_network_external_id
+     FROM trading_points tp
+     INNER JOIN network_trading_point_aliases a
+       ON a.trading_point_id = tp.id
+     INNER JOIN networks target_n
+       ON target_n.id = a.network_id
+      AND target_n.deleted_at IS NULL
+     INNER JOIN networks src_n
+       ON src_n.id = tp.network_id
+      AND src_n.deleted_at IS NULL
+     WHERE a.network_id = $1
+       AND tp.network_id <> $1
+       AND tp.deleted_at IS NULL
+       AND tp.is_active = true
+     ORDER BY tp.name`,
+    [networkId]
+  );
+
+  const aliasMapped = aliasRows.map((row) => ({
+    ...row,
+    network_id: row.target_network_id,
+    network_name: row.target_network_name,
+    network_code: row.target_network_code,
+    network_external_id: row.source_network_external_id,
+    is_alias: true,
+  }));
+
+  const allRows = [...nativeRows, ...aliasMapped];
+  const externalCodesRows = await loadExternalCodesForPoints(allRows.map((row) => row.id));
+  return mapTradingPoints(allRows, externalCodesRows);
 }
 
 async function getTradingPointById(pointId) {
@@ -703,12 +773,55 @@ async function removeExternalCode(pointId, codeId) {
   );
 }
 
+// Проверка alias-доступа: есть ли запись network_trading_point_aliases,
+// связывающая разрешённую сеть юзера с какой-либо точкой из физической сети,
+// чьим external_id юзер обращается к STS. Используется в validateStsAccess.
+async function findAliasAccess({
+  sourceNetworkId,
+  stationCode = null,
+  allowedNetworkIds = [],
+  allowedNetworkCodes = [],
+}) {
+  if (!sourceNetworkId) return false;
+  if (allowedNetworkIds.length === 0 && allowedNetworkCodes.length === 0) {
+    return false;
+  }
+
+  const row = await postgres.queryOne(
+    `SELECT 1
+       FROM network_trading_point_aliases a
+       INNER JOIN trading_points tp
+         ON tp.id = a.trading_point_id
+        AND tp.deleted_at IS NULL
+       INNER JOIN networks tgt
+         ON tgt.id = a.network_id
+        AND tgt.deleted_at IS NULL
+      WHERE tp.network_id = $1
+        AND ($2::text IS NULL OR tp.code = $2)
+        AND (
+          tgt.id = ANY($3::uuid[])
+          OR LOWER(tgt.code) = ANY($4::text[])
+          OR tgt.external_id = ANY($4::text[])
+        )
+      LIMIT 1`,
+    [
+      sourceNetworkId,
+      stationCode,
+      allowedNetworkIds,
+      allowedNetworkCodes.map((c) => String(c).toLowerCase()),
+    ]
+  );
+
+  return Boolean(row);
+}
+
 module.exports = {
   addExternalCode,
   createNetwork,
   createTradingPoint,
   deleteNetwork,
   deleteTradingPoint,
+  findAliasAccess,
   getNetworkById,
   getNetworks,
   getTradingPointById,

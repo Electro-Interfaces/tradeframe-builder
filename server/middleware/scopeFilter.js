@@ -197,7 +197,21 @@ async function validateStsAccess(req, res, next) {
     return next(); // Сеть не найдена в нашей БД — пропускаем, STS API разберётся
   }
 
-  if (!hasNetworkAccess(network, scope)) {
+  if (hasNetworkAccess(network, scope)) {
+    return next();
+  }
+
+  // Прямого доступа нет — проверяем alias-привязку: возможно, точка из этой
+  // физической сети (network) одолжена в одну из разрешённых юзеру сетей.
+  const stationParam = req.query.station || req.body?.station;
+  const aliasAllowed = await orgDataSource.findAliasAccess({
+    sourceNetworkId: network.id,
+    stationCode: stationParam ? String(stationParam) : null,
+    allowedNetworkIds: Array.from(scope.networkIds),
+    allowedNetworkCodes: Array.from(scope.networkCodes),
+  });
+
+  if (!aliasAllowed) {
     return res.status(403).json({
       error: 'Нет доступа к данным этой сети'
     });

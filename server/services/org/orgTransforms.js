@@ -97,6 +97,9 @@ function normalizeTradingPointFromTenant(tenant, station) {
     external_id: stationCode,
     networkId: tenant.id,
     networkName: tenant.name,
+    networkCode: tenant.code,
+    networkExternalId: tenant.code,
+    isAlias: false,
     name: stationName,
     description: station.description || `${tenant.name} - ${stationName}`,
     geolocation: {
@@ -143,6 +146,9 @@ function normalizeTradingPointFromPgRow(row, externalCodes = []) {
     external_id: row.external_id || row.code,
     networkId: row.network_id,
     networkName: row.network_name,
+    networkCode: row.network_code,
+    networkExternalId: row.network_external_id,
+    isAlias: Boolean(row.is_alias),
     name: row.name,
     description: row.description || '',
     geolocation: {
