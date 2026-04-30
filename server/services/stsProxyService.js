@@ -11,13 +11,23 @@ const orgDataSource = require('./org/orgDataSource');
 // Для них при наличии alias-точек в сети делается fan-out:
 // основной запрос + параллельные запросы по каждой alias-точке с её
 // родными (system, station). Ответы (массивы) объединяются.
-const PER_NETWORK_FANOUT_ENDPOINTS = new Set([
-  '/v1/transactions',
-  '/v2/transactions',
-  '/v1/coupons',
-  '/v1/coupons_manual',
-  '/v1/report/receipts',
-]);
+//
+// Для каждого endpoint указаны имена полей, по которым в массиве ответа
+// определяется код станции. Используется и в filter-out (чтобы убрать
+// «уехавшие» алиас-станции из ответа их родной сети), и в потенциальной
+// дедупликации.
+const PER_NETWORK_CONFIG = {
+  '/v1/transactions':    ['stationNumber', 'number', 'station'],
+  '/v2/transactions':    ['number'],
+  '/v1/coupons':         ['number'],
+  '/v1/coupons_manual':  ['number'],
+  '/v1/report/receipts': ['number'],
+};
+const PER_NETWORK_FANOUT_ENDPOINTS = new Set(Object.keys(PER_NETWORK_CONFIG));
+
+function getStationFieldsForEndpoint(urlPath) {
+  return PER_NETWORK_CONFIG[urlPath] || [];
+}
 
 // URL-паттерны, у которых station передаётся в URL, а не в query.
 // Возвращает stationCode или null. Регэксп строгий — без trailing.
@@ -234,13 +244,12 @@ function mergePerNetworkResponses(primaryData, aliasResponses) {
 // Фильтрация ответа STS от данных станций, «уехавших» через alias
 // в другую сеть. Применяется к per-network запросам на физическую сеть,
 // чтобы данные alias-точек не появлялись и в родной, и в целевой сети.
-const STATION_ID_FIELDS = ['station', 'stationNumber', 'station_id', 'station_number'];
-function filterOutMigratedStations(data, stationCodesToExclude) {
-  if (!Array.isArray(data) || stationCodesToExclude.length === 0) return data;
+function filterOutMigratedStations(data, stationCodesToExclude, stationFields) {
+  if (!Array.isArray(data) || stationCodesToExclude.length === 0 || !stationFields?.length) return data;
   const excludeSet = new Set(stationCodesToExclude.map(String));
   return data.filter((item) => {
     if (!item || typeof item !== 'object') return true;
-    for (const field of STATION_ID_FIELDS) {
+    for (const field of stationFields) {
       const v = item[field];
       if (v != null && excludeSet.has(String(v))) return false;
     }
@@ -383,10 +392,11 @@ async function proxyRequest(req, res) {
       // Filter-out: если это per-network запрос на родную сеть алиасов —
       // убрать из ответа данные станций, «уехавших» в другие сети.
       if (movedStations.length > 0 && Array.isArray(response.data)) {
+        const stationFields = getStationFieldsForEndpoint(urlPath);
         const before = response.data.length;
-        const filtered = filterOutMigratedStations(response.data, movedStations);
+        const filtered = filterOutMigratedStations(response.data, movedStations, stationFields);
         if (before !== filtered.length) {
-          console.log(`[STS Proxy alias] ${method} ${urlPath} filter-out ${before - filtered.length} migrated rows (stations: ${movedStations.join(',')})`);
+          console.log(`[STS Proxy alias] ${method} ${urlPath} filter-out ${before - filtered.length} migrated rows by [${stationFields.join('|')}] (stations: ${movedStations.join(',')})`);
         }
         return { data: filtered, status: response.status };
       }
