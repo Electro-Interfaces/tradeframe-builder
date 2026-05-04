@@ -122,11 +122,26 @@ jobs:
 
             # JWT Token Secret
             JWT_SECRET=${{ secrets.JWT_SECRET_PROD }}
+
+            # SMTP — рассылка приказов корректировки остатков (Mailcow)
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            SMTP_SECURE=${{ secrets.SMTP_SECURE }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            SMTP_FROM=${{ secrets.SMTP_FROM }}
             ENV_EOF
+
+            # Каталог для PDF-приказов корректировки
+            mkdir -p server/uploads/inventory-adjustments
+            chmod -R u+rwX server/uploads
 
             # Устанавливаем зависимости backend
             cd server
             npm install --production
+
+            # Накатываем миграции БД (idempotent)
+            npm run db:migrate
             cd ..
 
             # Перезапуск PM2
