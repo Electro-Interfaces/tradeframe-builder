@@ -28,6 +28,9 @@ import NotFound from "./pages/NotFound";
 // Главные страницы — lazy (после авторизации)
 const Equipment = lazy(() => import("./pages/Equipment"));
 const NetworkOverview = lazy(() => import("./pages/NetworkOverview"));
+const InventoryAdjustments = lazy(() => import("./pages/InventoryAdjustments"));
+const InventoryAdjustmentEditor = lazy(() => import("./pages/InventoryAdjustments/Editor"));
+const InventoryRecipients = lazy(() => import("./pages/admin/InventoryRecipients"));
 
 // Самые тяжелые страницы - ленивая загрузка (приоритет 1)
 const Prices = lazy(() => import("./pages/Prices"));
@@ -244,6 +247,12 @@ const App = () => {
 
                   {/* Equipment страницы - приоритет 3 */}
                   <Route path="/point/equipment" element={<ProtectedRoute><LazyLoader><Equipment /></LazyLoader></ProtectedRoute>} />
+
+                  {/* Корректировка остатков по инвентаризации */}
+                  <Route path="/point/inventory-adjustments" element={<ProtectedRoute><LazyLoader><InventoryAdjustments /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/point/inventory-adjustments/new" element={<ProtectedRoute><LazyLoader><InventoryAdjustmentEditor /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/point/inventory-adjustments/:id" element={<ProtectedRoute><LazyLoader><InventoryAdjustmentEditor /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/inventory-recipients" element={<ProtectedRoute requireAdmin><LazyLoader><InventoryRecipients /></LazyLoader></ProtectedRoute>} />
 
                   {/* Остальные страницы - приоритет 4 */}
                   <Route path="/admin/users-and-roles-new" element={<ProtectedRoute requireAdmin><LazyLoader><NewUsersAndRoles /></LazyLoader></ProtectedRoute>} />

@@ -4,6 +4,7 @@
  */
 
 import { lazy, Suspense, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useSelection } from "@/contexts/SelectionContext";
@@ -28,12 +29,10 @@ export default function Equipment() {
   const stationNetworkId = useStationNetworkId();
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleInventoryAdjustment = () => {
-    toast({
-      title: "Инвентаризация — в разработке",
-      description: `Форма ввода корректировки остатков по приказу инвентаризации. Спецификация в docs/INVENTORY_ADJUSTMENT_SPEC.md.`,
-    });
+    navigate('/point/inventory-adjustments?create=1');
   };
 
   const {

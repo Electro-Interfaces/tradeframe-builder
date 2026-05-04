@@ -24,6 +24,7 @@ const supportRoutes = require('./routes/support');
 const receiptCostsRoutes = require('./routes/receiptCosts');
 const receiptConfirmationsRoutes = require('./routes/receiptConfirmations');
 const equipmentTemplatesRoutes = require('./routes/equipmentTemplates');
+const inventoryAdjustmentsRoutes = require('./routes/inventoryAdjustments');
 const { initTelegramBot } = require('./telegram-bot-runtime');
 const postgres = require('./db/pool');
 
@@ -168,6 +169,9 @@ app.use('/api/support', supportRoutes);
 app.use('/api/receipt-costs', receiptCostsRoutes);
 app.use('/api/receipt-confirmations', receiptConfirmationsRoutes);
 app.use('/api/equipment-templates', equipmentTemplatesRoutes);
+
+// Корректировки остатков по результатам инвентаризации (АКАЗС)
+app.use('/api/inventory-adjustments', inventoryAdjustmentsRoutes);
 
 // Smoke-test — полная проверка модулей (только для авторизованных)
 const { requireAuth: smokeAuth } = require('./middleware/auth');
