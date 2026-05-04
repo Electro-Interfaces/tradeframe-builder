@@ -15,7 +15,11 @@ function getMigrationFiles() {
 }
 
 function getChecksum(content) {
-  return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+  // Нормализуем line-endings, чтобы файл с CRLF (Windows) и LF (Linux/CI)
+  // давал одинаковый checksum. Без этого деплой с CI ругается на миграции,
+  // изначально применённые с Windows-машины разработчика.
+  const normalized = String(content).replace(/\r\n/g, '\n');
+  return crypto.createHash('sha256').update(normalized, 'utf8').digest('hex');
 }
 
 async function ensureSchemaMigrationsTable(client) {
