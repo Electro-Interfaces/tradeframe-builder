@@ -1,12 +1,10 @@
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, AlertTriangle, CheckCircle, Clock as ClockIcon } from "lucide-react";
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { ShiftListItem } from '@/types/shift-reports-v2';
+import { getShiftStatusBadgeClass, getShiftStatusConfig } from './shiftStatus';
 
 interface MobileShiftsTableProps {
   shifts: ShiftListItem[];
@@ -25,49 +23,8 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
   onToggleShiftSelection,
   onToggleAllShifts,
 }) => {
-  const formatCurrency = (value: number | null | undefined) => {
-    if (value == null) return '0.00 ₽';
-    return value.toLocaleString('ru-RU', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }) + ' ₽';
-  };
-
-  const formatVolume = (value: number | null | undefined) => {
-    if (value == null) return '0 л';
-    return value.toFixed(0) + ' л';
-  };
-
   const formatDateTime = (dateString: string) => {
     return format(new Date(dateString), 'dd.MM.yy HH:mm', { locale: ru });
-  };
-
-  const getStatusBadge = (status: ShiftListItem['status']) => {
-    switch (status) {
-      case 'open':
-        return (
-          <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500 flex items-center gap-1">
-            <ClockIcon className="w-3 h-3" />
-            Открыта
-          </Badge>
-        );
-      case 'closed':
-        return (
-          <Badge className="bg-primary/10 text-primary dark:text-primary/70 border-primary flex items-center gap-1">
-            <CheckCircle className="w-3 h-3" />
-            Закрыта
-          </Badge>
-        );
-      case 'synchronized':
-        return (
-          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500 flex items-center gap-1">
-            <CheckCircle className="w-3 h-3" />
-            Синхр.
-          </Badge>
-        );
-      default:
-        return <Badge className="bg-muted-foreground/10 text-muted-foreground border-border">—</Badge>;
-    }
   };
 
   if (loading) {
@@ -103,7 +60,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
             checked={allSelected}
             onCheckedChange={(checked) => onToggleAllShifts(!!checked)}
             aria-label="Выбрать все смены"
-            className="border-border"
+            className="h-4 w-4 rounded-[2px] border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <span className="text-sm text-foreground/80">
             {allSelected ? 'Снять все' : someSelected ? `Выбрано: ${selectedShiftIds.length}` : 'Выбрать все'}
@@ -111,94 +68,79 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
         </div>
       )}
 
-      {shifts.map((shift) => {
-        const isSelected = selectedShiftIds.includes(shift.id);
+      <div className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+        {shifts.map((shift) => {
+          const isSelected = selectedShiftIds.includes(shift.id);
+          const status = getShiftStatusConfig(shift.status, shift.openedAt, shift.hasDiscrepancies);
+          const StatusIcon = status.icon;
 
-        return (
-          <Card
-            key={shift.id}
-            className={`border transition-all ${
-              isSelected
-                ? 'bg-primary/10 dark:bg-blue-900/20 border-primary/50'
-                : ''
-            }`}
-          >
-            <CardContent className="p-3">
-              {/* Заголовок карточки с чекбоксом */}
-              <div className="flex items-start gap-3 mb-3">
+          return (
+            <div
+              key={shift.id}
+              onClick={() => onSelectShift(shift)}
+              className={`p-4 transition-colors cursor-pointer active:bg-secondary ${
+                isSelected ? 'bg-primary/10' : ''
+              }`}
+            >
+              <div className="flex items-start gap-3">
                 {onToggleShiftSelection && (
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => onToggleShiftSelection(shift.id)}
                     onClick={(e) => e.stopPropagation()}
                     aria-label={`Выбрать смену ${shift.shiftNumber}`}
-                    className="mt-0.5 border-border"
+                    className="mt-0.5 h-4 w-4 rounded-[2px] border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
                 )}
 
-                <div
-                  className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => onSelectShift(shift)}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-foreground font-semibold text-base">
-                      Смена #{shift.shiftNumber}
-                    </span>
-                    {getStatusBadge(shift.status)}
-                  </div>
-
-                  {/* ТТ */}
-                  <div className="mb-2">
-                    <span className="text-foreground/80 text-sm">
-                      {shift.stationName || `ТТ ${shift.stationCode}`}
-                    </span>
-                  </div>
-
-                  {/* Даты - компактный вид */}
-                  <div className="space-y-1 text-sm mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground text-xs">Открыта:</span>
-                      <span className="text-foreground">{formatDateTime(shift.openedAt)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between mb-2 gap-2">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="text-sm font-medium text-foreground truncate max-w-[180px]">
+                        {shift.stationName || `ТТ ${shift.stationCode}`}
+                      </span>
+                      <Badge className={`${getShiftStatusBadgeClass(status.tone)} flex items-center gap-1`}>
+                        <StatusIcon className="w-3 h-3" />
+                        {status.label}
+                      </Badge>
                     </div>
-                    {shift.closedAt && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-xs">Закрыта:</span>
-                        <span className="text-foreground">{formatDateTime(shift.closedAt)}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(shift.openedAt)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 text-sm text-foreground/80">
+                      <span className="font-mono">#{shift.shiftNumber}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {shift.closedAt ? `Закрыта ${formatDateTime(shift.closedAt)}` : 'Смена активна'}
+                      </span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {shift.transactionCount} чек.
+                    </span>
+                  </div>
+
+                  <div className="text-sm space-y-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Объём: {shift.totalVolume.toFixed(0)} л</span>
+                      <span className="font-medium text-di-on-surface font-mono">
+                        {shift.totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+                      </span>
+                    </div>
+                    {shift.hasDiscrepancies && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Статус смены</span>
+                        <span className="font-medium text-red-600 dark:text-red-400">Есть расхождения</span>
                       </div>
                     )}
                   </div>
-
-                  {/* Метрики - компактный вид */}
-                  <div className="grid grid-cols-2 gap-2 text-sm bg-card/50 rounded-md p-2">
-                    <div>
-                      <div className="text-muted-foreground text-xs">Выручка</div>
-                      <div className="text-foreground font-semibold">{formatCurrency(shift.totalRevenue)}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground text-xs">Объем</div>
-                      <div className="text-foreground font-semibold">{formatVolume(shift.totalVolume)}</div>
-                    </div>
-                  </div>
-
-                  {/* Кнопка просмотра */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 w-full text-xs h-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectShift(shift);
-                    }}
-                  >
-                    <Eye className="w-3 h-3 mr-1" />
-                    Подробнее
-                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

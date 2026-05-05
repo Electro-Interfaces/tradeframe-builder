@@ -168,7 +168,7 @@ export function MultiNetworkSelect({
                     />
                     <span
                       className={cn(
-                        "h-2 w-2 rounded-full shrink-0",
+                        "h-2 w-2 rounded-[2px] shrink-0",
                         "bg-emerald-400"
                       )}
                     />

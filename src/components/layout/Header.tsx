@@ -18,6 +18,7 @@ import { APP_VERSION } from "@/config/version";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useMobile, mobileUtils } from "@/hooks/useMobile";
+import StationsConnectionDialog from "@/components/operations/StationsConnectionDialog";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useSupportContext } from "@/contexts/SupportContext";
 
@@ -71,6 +72,7 @@ export function Header({
     swScope: string;
     lastCheck: string;
   } | null>(null);
+  const [isConnectionDialogOpen, setIsConnectionDialogOpen] = useState(false);
 
   const handleShowUpdateInfo = (details: {
     version: string;
@@ -134,7 +136,7 @@ export function Header({
           <Button
             variant="ghost"
             size="sm"
-            onClick={openCreateDialog}
+            onClick={() => setIsConnectionDialogOpen(true)}
             className="shrink-0 h-9 px-3 gap-2 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -183,9 +185,9 @@ export function Header({
           <Button
             variant="outline"
             size="sm"
-            onClick={openCreateDialog}
+            onClick={() => setIsConnectionDialogOpen(true)}
             className="h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
-            title="Создать заявку в поддержку"
+            title="Связь со станциями"
           >
             <Wifi className="h-4 w-4" />
             Связь
@@ -315,6 +317,11 @@ export function Header({
         open={showUpdateDialog}
         onOpenChange={setShowUpdateDialog}
         details={updateDetails}
+      />
+
+      <StationsConnectionDialog
+        open={isConnectionDialogOpen}
+        onOpenChange={setIsConnectionDialogOpen}
       />
 
     </header>

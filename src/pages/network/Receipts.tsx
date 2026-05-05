@@ -73,6 +73,17 @@ import { MobileReceiptsTable } from '@/components/receipts/MobileReceiptsTable';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ReceiptFuelCard from '@/components/receipts/ReceiptFuelCard';
+import { FuelBadge } from '@/components/common/FuelBadge';
+import { FuelLegend } from '@/components/common/FuelLegend';
+import {
+  FILTER_PANEL_ACTION_FIELD_CLASS,
+  FILTER_PANEL_CLASS,
+  FILTER_PANEL_CONTROL_CLASS,
+  FILTER_PANEL_FIELD_CLASS,
+  FILTER_PANEL_FIELDS_CLASS,
+  FILTER_PANEL_HEADER_CLASS,
+  FILTER_PANEL_TITLE_CLASS,
+} from '@/components/common/filterPanel';
 
 const PULL_THRESHOLD = 80;
 const MAX_PULL_DISTANCE = 120;
@@ -720,105 +731,13 @@ export default function Receipts() {
           </div>
         </div>
 
-        {/* Панель фильтров + карточки топлива */}
+        {/* Карточки видов топлива + панель фильтров */}
         {filtersOpen && (
-        <div className={isMobile ? 'space-y-4 mb-8' : 'flex gap-4 mb-8 items-stretch'}>
-          <div className={isMobile ? '' : 'flex-1 min-w-0 flex'}>
-            <div className="bg-di-surface-mid rounded-xl border border-transparent flex-1 flex flex-col justify-between">
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground">Фильтры</span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearFilters}
-                >
-                  Очистить фильтры
-                </Button>
-              </div>
-              <div className="px-4 pb-4 border-t border-di-outline-variant/10 pt-4">
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                    {/* Дата от */}
-                    <div>
-                      <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
-                      <Input
-                        id="date-from"
-                        type="date"
-                        value={dateFrom}
-                        onChange={(e) => setDateFrom(e.target.value)}
-                        className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
-                      />
-                    </div>
-
-                    {/* Дата до */}
-                    <div>
-                      <Label htmlFor="date-to" className="text-xs text-muted-foreground">Дата до</Label>
-                      <Input
-                        id="date-to"
-                        type="date"
-                        value={dateTo}
-                        onChange={(e) => setDateTo(e.target.value)}
-                        className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
-                      />
-                    </div>
-
-                    {/* Номер ТТН */}
-                    <div>
-                      <Label htmlFor="ttn" className="text-xs text-muted-foreground">Номер ТТН</Label>
-                      <Input
-                        id="ttn"
-                        type="text"
-                        placeholder="Введите номер"
-                        value={ttnNumber}
-                        onChange={(e) => setTtnNumber(e.target.value)}
-                        className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
-                      />
-                    </div>
-
-                    {/* Нефтебаза */}
-                    <div>
-                      <Label htmlFor="base" className="text-xs text-muted-foreground">Нефтебаза</Label>
-                      <Select value={baseId || undefined} onValueChange={setBaseId}>
-                        <SelectTrigger id="base" className="mt-1 border-di-outline-variant/20 bg-di-surface-low">
-                          <SelectValue placeholder="Все" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Все</SelectItem>
-                          {filterOptions.bases.map((base) => (
-                            <SelectItem key={base.id} value={base.id.toString()}>
-                              {base.name || `База ${base.id}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Номер смены */}
-                    <div>
-                      <Label htmlFor="shift-number" className="text-xs text-muted-foreground">Номер смены</Label>
-                      <Input
-                        id="shift-number"
-                        type="number"
-                        placeholder="Введите номер"
-                        value={shiftNumber}
-                        onChange={(e) => setShiftNumber(e.target.value)}
-                        className="mt-1 border-di-outline-variant/20 bg-di-surface-low"
-                      />
-                    </div>
-                  </div>
-                </div>
-            </div>
-          </div>
-          {/* Карточки видов топлива — справа от фильтра */}
+        <div className="space-y-4 mb-4">
           {flatReceipts.length > 0 && (
-            <div className="bg-di-surface-mid rounded-xl border border-transparent p-4 shrink-0 md:w-[420px]">
-              <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3">
               {filterOptions.fuelTypes.map((fuel) => {
-                // Используем baseFilteredReceipts - данные БЕЗ фильтра по видам топлива
                 const fuelReceipts = baseFilteredReceipts.filter(r => r.service.service_name === fuel);
-                // Используем документальные данные (doc) для избежания ошибок в фактических данных
                 const totalVolume = fuelReceipts.reduce((sum, r) => sum + parseFloat(r.doc.volume), 0);
                 const totalAmount = fuelReceipts.reduce((sum, r) => sum + parseFloat(r.doc.amount), 0);
                 const isSelected = selectedKpiFuels.has(fuel);
@@ -837,7 +756,6 @@ export default function Receipts() {
                 );
               })}
 
-              {/* Итоговая карточка */}
               <ReceiptFuelCard
                 fuel="Итого"
                 isSelected={false}
@@ -847,9 +765,93 @@ export default function Receipts() {
                 receiptCount={baseFilteredReceipts.length}
                 onClick={() => setSelectedKpiFuels(new Set())}
               />
-              </div>
             </div>
           )}
+
+          <div className={`${FILTER_PANEL_CLASS} flex-1`}>
+              <div className={FILTER_PANEL_HEADER_CLASS}>
+                <div className={FILTER_PANEL_TITLE_CLASS}>
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-foreground">Фильтры</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                >
+                  Очистить фильтры
+                </Button>
+              </div>
+              <div className={FILTER_PANEL_FIELDS_CLASS}>
+                    {/* Дата от */}
+                    <div className={FILTER_PANEL_FIELD_CLASS}>
+                      <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
+                      <Input
+                        id="date-from"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className={FILTER_PANEL_CONTROL_CLASS}
+                      />
+                    </div>
+
+                    {/* Дата до */}
+                    <div className={FILTER_PANEL_FIELD_CLASS}>
+                      <Label htmlFor="date-to" className="text-xs text-muted-foreground">Дата до</Label>
+                      <Input
+                        id="date-to"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className={FILTER_PANEL_CONTROL_CLASS}
+                      />
+                    </div>
+
+                    {/* Номер ТТН */}
+                    <div className={FILTER_PANEL_FIELD_CLASS}>
+                      <Label htmlFor="ttn" className="text-xs text-muted-foreground">Номер ТТН</Label>
+                      <Input
+                        id="ttn"
+                        type="text"
+                        placeholder="Введите номер"
+                        value={ttnNumber}
+                        onChange={(e) => setTtnNumber(e.target.value)}
+                        className={FILTER_PANEL_CONTROL_CLASS}
+                      />
+                    </div>
+
+                    {/* Нефтебаза */}
+                    <div className={FILTER_PANEL_FIELD_CLASS}>
+                      <Label htmlFor="base" className="text-xs text-muted-foreground">Нефтебаза</Label>
+                      <Select value={baseId || undefined} onValueChange={setBaseId}>
+                        <SelectTrigger id="base" className={FILTER_PANEL_CONTROL_CLASS}>
+                          <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Все</SelectItem>
+                          {filterOptions.bases.map((base) => (
+                            <SelectItem key={base.id} value={base.id.toString()}>
+                              {base.name || `База ${base.id}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Номер смены */}
+                    <div className={FILTER_PANEL_FIELD_CLASS}>
+                      <Label htmlFor="shift-number" className="text-xs text-muted-foreground">Номер смены</Label>
+                      <Input
+                        id="shift-number"
+                        type="number"
+                        placeholder="Введите номер"
+                        value={shiftNumber}
+                        onChange={(e) => setShiftNumber(e.target.value)}
+                        className={FILTER_PANEL_CONTROL_CLASS}
+                      />
+                    </div>
+              </div>
+            </div>
         </div>
         )}
 
@@ -959,13 +961,16 @@ export default function Receipts() {
 
         {/* Таблица */}
         <div className="bg-di-surface-mid rounded-xl border border-transparent p-4">
-          <div className="mb-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
             <h2 className="text-lg font-semibold text-foreground">
               Журнал поступлений
               <span className="text-muted-foreground ml-2 font-normal text-sm">
                 ({filteredReceipts.length})
               </span>
             </h2>
+            </div>
+            <FuelLegend />
           </div>
 
           <Card className="bg-transparent border-transparent shadow-none">
@@ -1039,6 +1044,7 @@ export default function Receipts() {
                     checked={unconfirmedReceipts.length > 0 && checkedKeys.size >= unconfirmedReceipts.length}
                     onCheckedChange={toggleCheckAll}
                     aria-label="Выбрать все"
+                    className="h-4 w-4 rounded-[2px] border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Дата и время</TableHead>
@@ -1088,6 +1094,7 @@ export default function Receipts() {
                         onCheckedChange={() => toggleCheck(rKey)}
                         disabled={isConfirmed}
                         aria-label="Выбрать поступление"
+                        className="h-4 w-4 rounded-[2px] border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       />
                     </TableCell>
                     <TableCell className="text-foreground/80">
@@ -1097,9 +1104,7 @@ export default function Receipts() {
                     <TableCell className="text-foreground/80">{receipt.shiftNumber}</TableCell>
                     <TableCell className="font-mono text-foreground/80">{receipt.ttn}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-secondary text-foreground border-border">
-                        {receipt.service.service_name}
-                      </Badge>
+                      <FuelBadge fuel={receipt.service.service_name} />
                     </TableCell>
 
                     {/* Документальные данные — с корректировкой если есть */}

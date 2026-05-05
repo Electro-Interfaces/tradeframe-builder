@@ -1,10 +1,17 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Eye, AlertTriangle, CheckCircle, Clock as ClockIcon } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { ShiftListItem } from '@/types/shift-reports-v2';
+import { getShiftStatusBadgeClass, getShiftStatusConfig } from './shiftStatus';
 
 interface ShiftsTableProps {
   shifts: ShiftListItem[];
@@ -17,51 +24,8 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
   onSelectShift,
   loading = false,
 }) => {
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('ru-RU', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }) + ' ₽';
-  };
-
-  const formatVolume = (value: number) => {
-    return value.toFixed(0) + ' л';
-  };
-
   const formatDateTime = (dateString: string) => {
     return format(new Date(dateString), 'dd.MM.yyyy HH:mm', { locale: ru });
-  };
-
-  const getStatusBadge = (status: ShiftListItem['status']) => {
-    switch (status) {
-      case 'open':
-        return (
-          <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500/30 inline-flex items-center gap-1 text-xs px-2.5 py-0.5">
-            <ClockIcon className="w-3 h-3" />
-            Открыта
-          </Badge>
-        );
-      case 'closed':
-        return (
-          <Badge className="bg-primary/10 text-primary dark:text-primary/70 border-primary/30 inline-flex items-center gap-1 text-xs px-2.5 py-0.5">
-            <CheckCircle className="w-3 h-3" />
-            Закрыта
-          </Badge>
-        );
-      case 'synchronized':
-        return (
-          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 inline-flex items-center gap-1 text-xs px-2.5 py-0.5">
-            <CheckCircle className="w-3 h-3" />
-            Синхронизирована
-          </Badge>
-        );
-      default:
-        return (
-          <Badge className="bg-muted-foreground/10 text-muted-foreground border-border/30 inline-flex items-center gap-1 text-xs px-2.5 py-0.5">
-            Неизвестно
-          </Badge>
-        );
-    }
   };
 
   if (loading) {
@@ -87,59 +51,63 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm border-separate border-spacing-y-0.5">
-        <thead>
-          <tr>
-            <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ТТ</th>
-            <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">СМЕНА №</th>
-            <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ОТКРЫТА</th>
-            <th className="px-5 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ЗАКРЫТА</th>
-            <th className="px-5 py-3 text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">СТАТУС</th>
-          </tr>
-        </thead>
-        <tbody>
-          {shifts.map((shift) => (
-            <tr
+      <Table>
+        <TableHeader>
+          <TableRow className="border-border">
+            <TableHead className="text-muted-foreground">ТТ</TableHead>
+            <TableHead className="text-muted-foreground">Смена №</TableHead>
+            <TableHead className="text-muted-foreground">Открыта</TableHead>
+            <TableHead className="text-muted-foreground">Закрыта</TableHead>
+            <TableHead className="text-muted-foreground text-right">Выручка</TableHead>
+            <TableHead className="text-muted-foreground text-right">Объём</TableHead>
+            <TableHead className="text-muted-foreground text-center">Статус</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {shifts.map((shift) => {
+            const status = getShiftStatusConfig(shift.status, shift.openedAt, shift.hasDiscrepancies);
+            const StatusIcon = status.icon;
+
+            return (
+            <TableRow
               key={shift.id}
-              className="bg-di-surface-low hover:bg-di-surface-high transition-colors cursor-pointer group"
+              className="border-border transition-colors cursor-pointer hover:bg-secondary"
               onClick={() => {
                 onSelectShift(shift);
               }}
             >
-              {/* ТТ */}
-              <td className="px-5 py-4 rounded-l-xl">
-                <div className="text-foreground">
+              <TableCell>
+                <div className="text-foreground font-medium text-sm">
                   {shift.stationName || `ТТ ${shift.stationCode}`}
                 </div>
-              </td>
-
-              {/* Номер смены */}
-              <td className="px-5 py-4">
-                <span className="text-foreground font-semibold text-base">
+              </TableCell>
+              <TableCell>
+                <span className="text-foreground font-semibold font-mono text-sm">
                   #{shift.shiftNumber}
                 </span>
-              </td>
-
-              {/* Дата открытия */}
-              <td className="px-5 py-4">
-                <div className="text-foreground">{formatDateTime(shift.openedAt)}</div>
-              </td>
-
-              {/* Дата закрытия */}
-              <td className="px-5 py-4">
-                <div className="text-foreground">
+              </TableCell>
+              <TableCell className="text-foreground/80 text-sm whitespace-nowrap">
+                {formatDateTime(shift.openedAt)}
+              </TableCell>
+              <TableCell className="text-foreground/80 text-sm whitespace-nowrap">
                   {shift.closedAt ? formatDateTime(shift.closedAt) : '—'}
-                </div>
-              </td>
-
-              {/* Статус */}
-              <td className="px-5 py-4 text-center rounded-r-xl">
-                {getStatusBadge(shift.status)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </TableCell>
+              <TableCell className="text-right font-mono text-foreground/80 text-sm">
+                {shift.totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
+              </TableCell>
+              <TableCell className="text-right font-mono text-foreground/80 text-sm">
+                {shift.totalVolume.toFixed(0)} л
+              </TableCell>
+              <TableCell className="text-center">
+                <Badge className={`${getShiftStatusBadgeClass(status.tone)} inline-flex items-center gap-1 text-xs px-2.5 py-0.5`}>
+                  <StatusIcon className="w-3 h-3" />
+                  {status.label}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          )})}
+        </TableBody>
+      </Table>
     </div>
   );
 };

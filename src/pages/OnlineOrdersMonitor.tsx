@@ -47,6 +47,8 @@ import {
 import { getMstoOrderDetails } from '@/services/mstoProxyClient';
 import type { MSTOOrderDetailsResponse } from '@/types/mstoOrders';
 import { OrderDetailsDialog } from '@/components/online-orders/OrderDetailsDialog';
+import { FuelBadge } from '@/components/common/FuelBadge';
+import { FuelLegend } from '@/components/common/FuelLegend';
 
 /**
  * Извлекает MSTO servicePointId из externalCodes торговой точки
@@ -108,18 +110,6 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   pending: <Timer className="w-3 h-3" />,
   failed: <XCircle className="w-3 h-3" />,
   cancelled: <AlertCircle className="w-3 h-3" />
-};
-
-// Цвета для топлива
-const FUEL_COLORS: Record<string, string> = {
-  'АИ-92': 'bg-emerald-500',
-  'АИ-95': 'bg-primary',
-  'АИ-98': 'bg-purple-500',
-  'ДТ': 'bg-amber-500',
-  'ДТЗ': 'bg-orange-500',
-  'Пропан': 'bg-cyan-500',
-  'Газ': 'bg-cyan-500',
-  'Метан': 'bg-teal-500'
 };
 
 export default function OnlineOrdersMonitor() {
@@ -649,6 +639,9 @@ export default function OnlineOrdersMonitor() {
                   {filteredOrders.length}
                 </Badge>
               )}
+              <div className="ml-auto">
+                <FuelLegend />
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -716,16 +709,11 @@ export default function OnlineOrdersMonitor() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            FUEL_COLORS[order.fuelType] || 'bg-muted-foreground'
-                          }`}
-                        />
-                        <span className="text-sm text-foreground/80">{order.fuelType}</span>
-                        {order.columnNumber && (
-                          <span className="text-xs text-muted-foreground">ТРК {order.columnNumber}</span>
-                        )}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FuelBadge fuel={order.fuelType} />
+                          {order.columnNumber && (
+                            <span className="text-xs text-muted-foreground">ТРК {order.columnNumber}</span>
+                          )}
                       </div>
                       <span className="text-sm text-muted-foreground">
                         {order.price.toFixed(2)} ₽/л
@@ -796,14 +784,7 @@ export default function OnlineOrdersMonitor() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                FUEL_COLORS[order.fuelType] || 'bg-muted-foreground'
-                              }`}
-                            />
-                            <span className="text-foreground/80">{order.fuelType}</span>
-                          </div>
+                          <FuelBadge fuel={order.fuelType} />
                         </TableCell>
                         <TableCell className="text-right text-foreground/80">
                           {order.orderVolume.toFixed(2)} л

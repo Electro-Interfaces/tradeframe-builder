@@ -137,6 +137,11 @@ export function FuelLevelThresholdsCard({
     const critical = threshold?.levelCritical || 10;
     return currentPercent > critical && currentPercent <= warning;
   });
+  const hasHeaderAlert =
+    blockedTanks.length > 0 ||
+    noSensorTanks.length > 0 ||
+    criticalTanks.length > 0 ||
+    warningTanks.length > 0;
 
   const handleSave = async (fuelType: string) => {
     if (!onSaveThresholds) return;
@@ -340,6 +345,9 @@ export function FuelLevelThresholdsCard({
           >
             Резервуары
           </h2>
+          {hasHeaderAlert && (
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+          )}
           {!isMobile && (
             <div className="flex items-center gap-4 ml-4">
               {criticalTanks.length > 0 && (

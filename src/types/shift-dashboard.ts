@@ -671,38 +671,11 @@ export interface DashboardData {
 // Конфигурация визуализации
 // ============================================
 
+export { getFuelColorHex as getFuelColor } from '@/utils/fuelColors';
+
 /**
  * Определяет цвет топлива по названию (паттерн-матчинг)
  * Работает с любыми названиями: "АИ-92", "Бензин АИ-95", "Диз. топливо", "ДТ зимнее" и т.д.
- */
-export function getFuelColor(fuelName: string): string {
-  const fuel = fuelName.toLowerCase();
-
-  // АИ-92
-  if (fuel.includes('92')) return '#ef4444'; // красный
-  // АИ-95
-  if (fuel.includes('95')) return '#f97316'; // оранжевый
-  // АИ-98
-  if (fuel.includes('98')) return '#eab308'; // жёлтый
-  // АИ-100
-  if (fuel.includes('100')) return '#f59e0b'; // amber
-  // ДТ зимнее / Диз. топливо зимн
-  if ((fuel.includes('дт') || fuel.includes('диз')) && (fuel.includes('зимн') || fuel.includes('аркт'))) return '#3b82f6'; // синий
-  // ДТ летнее / Диз. топливо летн
-  if ((fuel.includes('дт') || fuel.includes('диз')) && fuel.includes('летн')) return '#22c55e'; // зелёный
-  // ДТ / Дизель / Диз. топливо (общий)
-  if (fuel.includes('дт') || fuel.includes('дизель') || fuel.includes('диз') || fuel.includes('diesel')) return '#10b981'; // emerald
-  // СУГ / Газ
-  if (fuel.includes('суг') || fuel.includes('газ') || fuel.includes('gas') || fuel.includes('lpg')) return '#8b5cf6'; // фиолетовый
-  // Бензин (общий, без марки)
-  if (fuel.includes('бензин') || fuel.includes('petrol') || fuel.includes('gasoline')) return '#f472b6'; // pink
-
-  // Fallback: генерация стабильного цвета из хеша имени
-  return hashColor(fuelName);
-}
-
-/**
- * Генерирует стабильный цвет из строки (для неизвестных типов)
  */
 function hashColor(str: string): string {
   let hash = 0;

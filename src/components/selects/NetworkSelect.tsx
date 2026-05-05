@@ -160,7 +160,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                   checked={selectedIds.length === networks.length}
                   className={cn("data-[state=checked]:bg-primary data-[state=checked]:border-primary border-di-outline-variant", isMobile && "h-5 w-5")}
                 />
-                <span className={cn("rounded-full bg-primary/70", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
+                <span className={cn("rounded-[2px] bg-primary/70", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
                 <span className={cn("truncate font-medium text-foreground", selectedIds.length === networks.length && "text-primary dark:text-blue-200")}>
                   Все сети ({networks.length})
                 </span>
@@ -187,7 +187,7 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
                     />
                   )}
                   <div className="min-w-0 flex-1 flex items-center gap-2 cursor-pointer transition-colors duration-200" onClick={() => handleRowClick(network.id)}>
-                    <span className={cn("rounded-full shrink-0", isMobile ? "h-2.5 w-2.5" : "h-2 w-2", isPrimary ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]")} aria-hidden />
+                    <span className={cn("rounded-[2px] shrink-0", isMobile ? "h-2.5 w-2.5" : "h-2 w-2", isPrimary ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]")} aria-hidden />
                     <span className={cn("truncate text-muted-foreground", isSelected && "font-bold !text-foreground")}>{network.name}</span>
                     {network.code && <span className="text-xs text-primary/70 font-mono shrink-0">({network.code})</span>}
                   </div>

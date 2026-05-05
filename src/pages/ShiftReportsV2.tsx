@@ -5,6 +5,8 @@
 
 import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
@@ -279,34 +281,38 @@ export default function ShiftReportsV2() {
         )}
 
         {/* Журнал смен */}
-        <div className="bg-di-surface-mid rounded-xl border border-transparent p-4 md:p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-foreground/80 flex items-center gap-2">
+              <Receipt className="w-4 h-4" />
               Журнал смен
-              <span className="text-muted-foreground ml-2 font-normal text-sm">
-                ({filteredShifts.length} из {shifts.length})
-              </span>
-            </h2>
-          </div>
-
-          {/* Таблица или карточки */}
-          {isMobile ? (
-            <MobileShiftsTable
-              shifts={filteredShifts}
-              onSelectShift={selectShift}
-              loading={loading}
-              selectedShiftIds={selectedShiftIds}
-              onToggleShiftSelection={toggleShiftSelection}
-              onToggleAllShifts={(selected) => toggleAllShifts(filteredShifts, selected)}
-            />
-          ) : (
-            <ShiftsTable
-              shifts={filteredShifts}
-              onSelectShift={selectShift}
-              loading={loading}
-            />
-          )}
-        </div>
+              <Badge variant="secondary" className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-300">
+                {filteredShifts.length} из {shifts.length}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {/* Таблица или карточки */}
+            {isMobile ? (
+              <div className="px-4 pb-4">
+                <MobileShiftsTable
+                  shifts={filteredShifts}
+                  onSelectShift={selectShift}
+                  loading={loading}
+                  selectedShiftIds={selectedShiftIds}
+                  onToggleShiftSelection={toggleShiftSelection}
+                  onToggleAllShifts={(selected) => toggleAllShifts(filteredShifts, selected)}
+                />
+              </div>
+            ) : (
+              <ShiftsTable
+                shifts={filteredShifts}
+                onSelectShift={selectShift}
+                loading={loading}
+              />
+            )}
+          </CardContent>
+        </Card>
 
         {/* Модальное окно деталей смены */}
         {selectedShift && (

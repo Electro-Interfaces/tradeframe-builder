@@ -273,6 +273,7 @@ export default function ShiftDashboard() {
                             <Checkbox
                               checked={selectedShifts.includes(shift.shiftNumber)}
                               onCheckedChange={() => handleShiftToggle(shift.shiftNumber)}
+                              className="h-4 w-4 rounded-[2px] border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                             />
                             <span className="text-sm text-foreground/80">
                               №{shift.shiftNumber}

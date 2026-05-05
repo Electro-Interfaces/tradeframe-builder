@@ -12,8 +12,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { FileDown, FolderOpen, Loader2, Trash2 } from 'lucide-react';
 import type { ExportFormat, ExportMode } from '@/services/shiftReportExportService';
@@ -88,35 +88,44 @@ export function ExportDialog({
           {/* Выбор формата */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Формат файла</Label>
-            <RadioGroup value={format} onValueChange={(value) => setFormat(value as ExportFormat)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="excel" id="excel" />
-                <Label htmlFor="excel" className="font-normal cursor-pointer">
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <Checkbox
+                  checked={format === 'excel'}
+                  onCheckedChange={(checked) => checked && setFormat('excel')}
+                />
+                <span className="font-normal">
                   Excel (.xlsx) - полная детализация с несколькими листами
-                </Label>
-              </div>
-            </RadioGroup>
+                </span>
+              </label>
+            </div>
           </div>
 
           {/* Выбор режима */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Режим экспорта</Label>
-            <RadioGroup value={mode} onValueChange={(value) => setMode(value as ExportMode)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="simple" id="simple" />
-                <Label htmlFor="simple" className="font-normal cursor-pointer flex items-center gap-2">
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <Checkbox
+                  checked={mode === 'simple'}
+                  onCheckedChange={(checked) => checked && setMode('simple')}
+                />
+                <span className="font-normal cursor-pointer flex items-center gap-2">
                   <FileDown className="h-4 w-4" />
                   Скачать на компьютер
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="folder" id="folder" />
-                <Label htmlFor="folder" className="font-normal cursor-pointer flex items-center gap-2">
+                </span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <Checkbox
+                  checked={mode === 'folder'}
+                  onCheckedChange={(checked) => checked && setMode('folder')}
+                />
+                <span className="font-normal cursor-pointer flex items-center gap-2">
                   <FolderOpen className="h-4 w-4" />
                   Экспорт в папку (пропускает существующие файлы)
-                </Label>
-              </div>
-            </RadioGroup>
+                </span>
+              </label>
+            </div>
           </div>
 
           {/* Выбор папки (только для режима folder) */}

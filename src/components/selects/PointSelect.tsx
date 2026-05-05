@@ -226,7 +226,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
                     isMobile && "h-5 w-5"
                   )}
                 />
-                <span className={cn("rounded-full bg-primary/70", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
+                <span className={cn("rounded-[2px] bg-primary/70", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
                 <span className={cn("truncate font-medium text-foreground", isAllSelected && "text-primary dark:text-blue-200")}>
                   {hasRestrictedAccess ? `Все доступные (${tradingPoints.length})` : "Все торговые точки"}
                 </span>
@@ -266,7 +266,7 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
                   >
                     <span
                       className={cn(
-                        "rounded-full shrink-0",
+                        "rounded-[2px] shrink-0",
                         isMobile ? "h-2.5 w-2.5" : "h-2 w-2",
                         !point.isBlocked
                           ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"

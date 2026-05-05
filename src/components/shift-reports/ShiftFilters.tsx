@@ -12,6 +12,14 @@ import { format, parse, isValid } from "date-fns";
 import { ru } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { ShiftFilters as ShiftFiltersType } from '@/types/shift-reports-v2';
+import {
+  FILTER_PANEL_CLASS,
+  FILTER_PANEL_CONTROL_CLASS,
+  FILTER_PANEL_FIELD_CLASS,
+  FILTER_PANEL_FIELDS_CLASS,
+  FILTER_PANEL_HEADER_CLASS,
+  FILTER_PANEL_TITLE_CLASS,
+} from '@/components/common/filterPanel';
 
 interface ShiftFiltersProps {
   filters: ShiftFiltersType;
@@ -85,9 +93,9 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
   };
 
   return (
-    <Card className="bg-di-surface-mid border-transparent">
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-2">
+    <div className={FILTER_PANEL_CLASS}>
+      <div className={FILTER_PANEL_HEADER_CLASS}>
+        <div className={FILTER_PANEL_TITLE_CLASS}>
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium text-foreground">Фильтры</span>
         </div>
@@ -99,10 +107,9 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
           Очистить фильтры
         </Button>
       </div>
-      <div className="px-4 pb-4 border-t border-di-outline-variant/10 pt-4">
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={FILTER_PANEL_FIELDS_CLASS}>
               {/* Дата начала */}
-              <div>
+              <div className={FILTER_PANEL_FIELD_CLASS}>
                 <Label className="text-xs text-muted-foreground">
                   Дата от
                 </Label>
@@ -110,12 +117,12 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
                   type="date"
                   value={filters.dateFrom}
                   onChange={(e) => handleDateFromChange(e.target.value)}
-                  className="mt-1"
+                  className={FILTER_PANEL_CONTROL_CLASS}
                 />
               </div>
 
               {/* Дата до */}
-              <div>
+              <div className={FILTER_PANEL_FIELD_CLASS}>
                 <Label className="text-xs text-muted-foreground">
                   Дата до
                 </Label>
@@ -123,17 +130,17 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
                   type="date"
                   value={filters.dateTo}
                   onChange={(e) => handleDateToChange(e.target.value)}
-                  className="mt-1"
+                  className={FILTER_PANEL_CONTROL_CLASS}
                 />
               </div>
 
               {/* Статус смены */}
-              <div>
+              <div className={FILTER_PANEL_FIELD_CLASS}>
                 <Label htmlFor="status" className="text-xs text-muted-foreground">
                   Статус
                 </Label>
                 <Select value={filters.status} onValueChange={handleStatusChange}>
-                  <SelectTrigger id="status" className="mt-1">
+                  <SelectTrigger id="status" className={FILTER_PANEL_CONTROL_CLASS}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -146,7 +153,7 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
               </div>
 
               {/* Номер смены */}
-              <div>
+              <div className={FILTER_PANEL_FIELD_CLASS}>
                 <Label htmlFor="shiftNumber" className="text-xs text-muted-foreground">
                   Номер смены
                 </Label>
@@ -156,12 +163,11 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
                   placeholder="Введите номер"
                   value={filters.shiftNumber || ''}
                   onChange={(e) => handleShiftNumberChange(e.target.value)}
-                  className="mt-1"
+                  className={FILTER_PANEL_CONTROL_CLASS}
                 />
               </div>
-            </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

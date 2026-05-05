@@ -40,6 +40,14 @@ import {
   sortInventory,
   calculateTotals
 } from './utils/fuelInventoryHelpers';
+import { getFuelColor } from '@/types/shift-dashboard';
+import { FuelBadge } from '@/components/common/FuelBadge';
+import { FuelLegend } from '@/components/common/FuelLegend';
+import {
+  FILTER_PANEL_CLASS,
+  FILTER_PANEL_HEADER_CLASS,
+  FILTER_PANEL_TITLE_CLASS,
+} from '@/components/common/filterPanel';
 
 export default function FuelInventory() {
   const { selectedNetwork } = useSelection();
@@ -114,14 +122,14 @@ export default function FuelInventory() {
         </div>
 
         {/* Фильтры */}
-        <div className="mb-8">
-          <div className="bg-di-surface-mid rounded-xl border border-transparent">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-2">
+        <div className="mb-4">
+          <div className={FILTER_PANEL_CLASS}>
+            <div className={FILTER_PANEL_HEADER_CLASS}>
+              <div className={FILTER_PANEL_TITLE_CLASS}>
                 <span className="font-medium text-foreground">Фильтры</span>
               </div>
             </div>
-            <div className="px-4 pb-4 border-t border-di-outline-variant/10 pt-4">
+            <div>
               <FuelInventoryFilters
                 dateFrom={dateFrom}
                 dateTo={dateTo}
@@ -180,8 +188,10 @@ export default function FuelInventory() {
         <div className="bg-di-surface-mid rounded-xl border border-transparent p-4">
           <div className={`flex ${isMobile ? 'flex-col gap-3' : 'flex-row justify-between items-center'} mb-4`}>
             <h2 className="font-headline font-bold text-foreground text-lg">Остатки по резервуарам</h2>
-              {/* Фильтр по виду топлива */}
-              <Select value={selectedFuel} onValueChange={setSelectedFuel}>
+              <div className="flex items-center gap-2">
+                <FuelLegend />
+               {/* Фильтр по виду топлива */}
+               <Select value={selectedFuel} onValueChange={setSelectedFuel}>
                 <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background`}>
                   <SelectValue placeholder="Все виды топлива" />
                 </SelectTrigger>
@@ -194,6 +204,7 @@ export default function FuelInventory() {
                   ))}
                 </SelectContent>
               </Select>
+              </div>
           </div>
             {isMobile ? (
               /* Мобильный вид - карточки */
@@ -345,7 +356,7 @@ export default function FuelInventory() {
                         </TableCell>
                         <TableCell className="text-foreground">Р{tank.tankNumber}</TableCell>
                         <TableCell>
-                          <span className="text-foreground">{tank.fuelName}</span>
+                          <FuelBadge fuel={tank.fuelName} />
                         </TableCell>
                         <TableCell className="text-center font-mono text-primary dark:text-primary/70">
                           {tank.receiptCount || 0}

@@ -184,7 +184,7 @@ export function MultiPointSelect({
                     />
                     <span
                       className={cn(
-                        "h-2 w-2 rounded-full shrink-0",
+                        "h-2 w-2 rounded-[2px] shrink-0",
                         !point.isBlocked ? "bg-emerald-400" : "bg-muted-foreground"
                       )}
                     />

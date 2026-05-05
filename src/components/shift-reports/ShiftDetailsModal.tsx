@@ -18,6 +18,7 @@ import { exportShiftReport, type ExportFormat, type ExportMode } from '@/service
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { isCashOrCard } from '@/utils/paymentUtils';
+import { getShiftStatusBadgeClass, getShiftStatusConfig } from './shiftStatus';
 
 interface ShiftDetailsModalProps {
   isOpen: boolean;
@@ -142,34 +143,6 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'open':
-        return (
-          <Badge className="bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            Открыта
-          </Badge>
-        );
-      case 'closed':
-        return (
-          <Badge className="bg-primary/10 text-primary dark:text-primary/70 border-primary flex items-center gap-1">
-            <CheckCircle className="w-3 h-3" />
-            Закрыта
-          </Badge>
-        );
-      case 'synchronized':
-        return (
-          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500 flex items-center gap-1">
-            <CheckCircle className="w-3 h-3" />
-            Синхронизирована
-          </Badge>
-        );
-      default:
-        return <Badge className="bg-muted-foreground/10 text-muted-foreground border-border">Неизвестно</Badge>;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] bg-card border-border flex flex-col">
@@ -179,7 +152,16 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
               <div className="flex items-center justify-between">
                 <DialogTitle className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold text-foreground flex ${isMobile ? 'flex-col gap-2' : 'items-center gap-3'}`}>
                   <span>Детали смены #{shiftNumber}</span>
-                  {details && getStatusBadge(details.status)}
+                  {details && (() => {
+                    const status = getShiftStatusConfig(details.status, details.openedAt, details.hasDiscrepancies);
+                    const StatusIcon = status.icon;
+                    return (
+                      <Badge className={`${getShiftStatusBadgeClass(status.tone)} flex items-center gap-1`}>
+                        <StatusIcon className="w-3 h-3" />
+                        {status.label}
+                      </Badge>
+                    );
+                  })()}
                 </DialogTitle>
                 {details && !isMobile && (
                   <Button
@@ -232,22 +214,16 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
               <div className={`bg-secondary/50 rounded-lg ${isMobile ? 'p-1.5' : 'p-2.5'}`}>
                 <div className={`text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-xs'} mb-0.5`}>Статус</div>
                 <div className={isMobile ? 'mt-0.5' : 'mt-1'}>
-                  {details.status === 'open' ? (
-                    <Badge className={`bg-emerald-500/10 text-green-600 dark:text-green-400 border-green-500 flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
-                      <Clock className={isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
-                      Открыта
-                    </Badge>
-                  ) : details.status === 'closed' ? (
-                    <Badge className={`bg-primary/10 text-primary dark:text-primary/70 border-primary flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
-                      <CheckCircle className={isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
-                      Закрыта
-                    </Badge>
-                  ) : (
-                    <Badge className={`bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500 flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
-                      <CheckCircle className={isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
-                      Синхронизирована
-                    </Badge>
-                  )}
+                  {(() => {
+                    const status = getShiftStatusConfig(details.status, details.openedAt, details.hasDiscrepancies);
+                    const StatusIcon = status.icon;
+                    return (
+                      <Badge className={`${getShiftStatusBadgeClass(status.tone)} flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
+                        <StatusIcon className={isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+                        {status.label}
+                      </Badge>
+                    );
+                  })()}
                 </div>
               </div>
               <div className={`bg-secondary/50 rounded-lg ${isMobile ? 'p-1.5' : 'p-2.5'}`}>
