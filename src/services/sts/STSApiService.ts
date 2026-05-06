@@ -720,15 +720,25 @@ class STSApiService {
     const firstPosResult = posArray[0];
     const firstFiscalStatus = firstPosResult?.devices?.fiscalRegister?.status;
 
+    // Самое свежее dt_info среди всех постов — станция считается на связи,
+    // если хотя бы один пост недавно отвечал. Иначе диалог "Связь со станциями"
+    // помечал многопостовые АЗС офлайн по устаревшему dt_info первого поста.
+    const latestDtInfo: string | undefined = (data?.pos || []).reduce((latest: string | undefined, p: any) => {
+      const dt = p?.dt_info;
+      if (!dt) return latest;
+      if (!latest) return dt;
+      return new Date(dt) > new Date(latest) ? dt : latest;
+    }, undefined);
+
     return {
       terminalState,
       terminal: {
         id: `${data?.system || 0}-${data?.station || 0}`,
         name: `АЗС ${data?.station || 0}`,
         version: '2.1.4',
-        status: firstPosData?.dt_info ? 'online' : 'offline',
+        status: latestDtInfo ? 'online' : 'offline',
         uptime: firstPosData?.uptime ? new Date(firstPosData.uptime).getTime() : 0,
-        lastHeartbeat: firstPosData?.dt_info || new Date().toISOString(),
+        lastHeartbeat: latestDtInfo || new Date().toISOString(),
         cpu: { usage: 25, temperature: 42 },
         memory: { total: 8192, used: 3456, free: 4736 },
         disk: { total: 250000, used: 125000, free: 125000 },

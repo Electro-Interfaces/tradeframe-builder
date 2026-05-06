@@ -88,8 +88,14 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
             tradingPointId: tp.external_id
           });
 
-          const lastConnectionStr = (terminalInfo.pos as any)?.lastUpdate ||
-                                     terminalInfo.terminal?.lastHeartbeat;
+          // Берём самый свежий dt_info среди всех постов (станция считается на связи,
+          // если хотя бы один пост недавно отвечал). Fallback — terminal.lastHeartbeat.
+          const latestPosUpdate = (terminalInfo.pos || []).reduce<string | undefined>((latest, p) => {
+            if (!p?.lastUpdate) return latest;
+            if (!latest) return p.lastUpdate;
+            return new Date(p.lastUpdate) > new Date(latest) ? p.lastUpdate : latest;
+          }, undefined);
+          const lastConnectionStr = latestPosUpdate || terminalInfo.terminal?.lastHeartbeat;
 
           const lastConnection = lastConnectionStr ? new Date(lastConnectionStr) : null;
 
