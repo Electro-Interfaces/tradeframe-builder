@@ -133,8 +133,21 @@ export function useNetworkOverviewData() {
         ? selectedStation.external_id
         : undefined;
 
-      // Загружаем транзакции по всем выбранным сетям
-      const stsTransactions = await fetchTransactionsForNetworks(dateFrom, dateTo, selectedExternalIds, tradingPointId);
+      // При выборе конкретной станции опрашиваем только её родную сеть.
+      // Иначе для alias-точки (Выборг 2, Первомайская 4 и т.п.) запросы
+      // улетят и в БТО (system=15&station=2), и в ГИГ (system=65&station=2 →
+      // прокси через findAliasReverse подменит на system=15&station=2),
+      // и оба ответа вернут одни и те же транзакции — задвоение.
+      const transactionExternalIds = tradingPointId
+        ? [
+            (selectedStation?.networkId
+              ? selectedNetworks.find(n => n.id === selectedStation.networkId)?.external_id
+              : null) || selectedExternalIds[0],
+          ]
+        : selectedExternalIds;
+
+      // Загружаем транзакции по выбранным сетям
+      const stsTransactions = await fetchTransactionsForNetworks(dateFrom, dateTo, transactionExternalIds, tradingPointId);
       const filtered = await filterBySelectedPoints(stsTransactions);
       setTransactions(filtered);
 
@@ -147,7 +160,7 @@ export function useNetworkOverviewData() {
         const prevFrom = new Date(prevTo.getTime() - periodMs);
         const prevFromStr = prevFrom.toISOString().split('T')[0];
         const prevToStr = prevTo.toISOString().split('T')[0];
-        const prevTxns = await fetchTransactionsForNetworks(prevFromStr, prevToStr, selectedExternalIds, tradingPointId);
+        const prevTxns = await fetchTransactionsForNetworks(prevFromStr, prevToStr, transactionExternalIds, tradingPointId);
         setPrevPeriodTransactions(await filterBySelectedPoints(prevTxns));
       } catch {
         setPrevPeriodTransactions([]);

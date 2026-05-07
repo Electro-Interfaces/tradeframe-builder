@@ -36,7 +36,7 @@ import {
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
-  const { selectedExternalIds } = useSelectedNetworks();
+  const { selectedExternalIds, selectedNetworks } = useSelectedNetworks();
   const { user } = useNewAuth();
   const isMobile = useIsMobile();
 
@@ -217,16 +217,19 @@ export default function OperationsTransactionsPageSimple() {
           throw new Error(`У торговой точки "${tradingPointName || selectedTradingPoint}" отсутствует external_id. Настройте его в разделе администрирования.`);
         }
 
-        // Загружаем по всем выбранным сетям с этой торговой точкой
-        const results = await Promise.all(
-          selectedExternalIds.map(networkId =>
-            stsApiService.getTransactions(dateFrom, dateTo, 0, {
-              networkId,
-              tradingPointId: tradingPointExternalId!
-            }).catch(() => [] as any[])
-          )
-        );
-        transactions = results.flat();
+        // Опрашиваем только родную сеть точки. Для alias-точек (Выборг 2,
+        // Первомайская 4 и т.п.) запрос на «другую» выбранную сеть прокси
+        // через findAliasReverse подменит system на родной — и обе сети
+        // вернут одни и те же транзакции, что даёт задвоение.
+        const stationNetworkExtId =
+          (selectedStation?.networkId
+            ? selectedNetworks.find(n => n.id === selectedStation.networkId)?.external_id
+            : null) || selectedExternalIds[0];
+        const txData = await stsApiService.getTransactions(dateFrom, dateTo, 0, {
+          networkId: stationNetworkExtId,
+          tradingPointId: tradingPointExternalId!
+        }).catch(() => [] as any[]);
+        transactions = txData;
       } else {
         setLoadingFromSTS(false);
         return;
