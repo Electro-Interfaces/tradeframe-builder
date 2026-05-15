@@ -9,19 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle, RefreshCw, Filter, ChevronDown, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, RefreshCw, Filter } from "lucide-react";
 import { operationsService } from "@/services/operationsService";
-import { stsApiService, Transaction } from "@/services/stsApi";
+import { stsApiService } from "@/services/stsApi";
 import { tradingPointsService } from "@/services/tradingPointsService";
-import { TradingPoint } from "@/types/tradingpoint";
 import KPIFuelCard from "@/components/operations/KPIFuelCard";
 import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
-import MobileOperationsTable from "@/components/operations/MobileOperationsTable";
 import { VirtualizedOperationsTable } from "@/components/operations/VirtualizedOperationsTable";
 import { exportToExcel, exportToPdf } from "@/services/operationsExportService";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
@@ -29,6 +25,14 @@ import { todayString, daysAgoString } from "@/utils/dateUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import {
+  FILTER_PANEL_CLASS,
+  FILTER_PANEL_CONTROL_CLASS,
+  FILTER_PANEL_FIELD_CLASS,
+  FILTER_PANEL_FIELDS_CLASS,
+  FILTER_PANEL_HEADER_CLASS,
+  FILTER_PANEL_TITLE_CLASS,
+} from "@/components/common/filterPanel";
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
@@ -66,14 +70,10 @@ export default function OperationsTransactionsPageSimple() {
   const {
     filters,
     debouncedFilters,
-    setSelectedFuelType,
-    setSelectedPaymentMethod,
     setSelectedStatus,
     setDateFrom,
     setDateTo,
     setSearchQuery,
-    setSelectedKpiFuels,
-    setSelectedKpiPayments,
     clearFilters,
     handleKpiFuelClick,
     handleKpiPaymentClick
@@ -115,9 +115,6 @@ export default function OperationsTransactionsPageSimple() {
 
   // Фильтр по номеру поста (POS)
   const [selectedPosNumber, setSelectedPosNumber] = useState("Все");
-
-  // Состояние раскрытия фильтров
-  const [filtersOpen, setFiltersOpen] = useState(true);
 
   const lastAutoLoadKeyRef = useRef<string | null>(null);
   const currentRequestIdRef = useRef(0);
@@ -609,9 +606,9 @@ export default function OperationsTransactionsPageSimple() {
       case 'in_progress':
         return <Badge className="bg-secondary text-foreground">Выполняется</Badge>;
       case 'failed':
-        return <Badge className="bg-red-600 text-white">Ошибка</Badge>;
+        return <Badge className="border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">Ошибка</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-600 text-white">Ожидание</Badge>;
+        return <Badge className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">Ожидание</Badge>;
       case 'cancelled':
         return <Badge className="bg-secondary text-foreground">Отменено</Badge>;
       default:
@@ -624,16 +621,23 @@ export default function OperationsTransactionsPageSimple() {
       case 'completed':
         return <Badge className="bg-secondary text-foreground text-xs px-1 py-0">ОК</Badge>;
       case 'in_progress':
-        return <Badge className="bg-primary text-white text-xs px-1 py-0">В работе</Badge>;
+        return <Badge className="bg-secondary text-foreground text-xs px-1 py-0">В работе</Badge>;
       case 'failed':
-        return <Badge className="bg-red-600 text-white text-xs px-1 py-0">Ошибка</Badge>;
+        return <Badge className="border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 text-xs px-1 py-0">Ошибка</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-600 text-white text-xs px-1 py-0">Ожидает</Badge>;
+        return <Badge className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300 text-xs px-1 py-0">Ожидает</Badge>;
       case 'cancelled':
         return <Badge className="bg-secondary text-foreground text-xs px-1 py-0">Отмена</Badge>;
       default:
         return <Badge variant="secondary" className="text-xs px-1 py-0">{status}</Badge>;
     }
+  };
+
+  const formatExact = (value, fractionDigits = 2) => {
+    return value.toLocaleString('ru-RU', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    });
   };
 
 
@@ -730,286 +734,95 @@ export default function OperationsTransactionsPageSimple() {
           </div>
         </div>
 
-        {/* Компактные фильтры */}
-        <Card className="bg-di-surface-mid rounded-xl border border-di-outline-variant/20 mb-4">
-          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-di-surface-high transition-colors duration-200">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground">Фильтры</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedStatus("Все");
-                      setSelectedPosNumber("Все");
-                      setSearchQuery("");
-                      setDateFrom(daysAgoString(1));
-                      setDateTo(todayString());
-                    }}
-                  >
-                    Очистить фильтры
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      loadFromStsApi(true);
-                    }}
-                    disabled={loading || loadingFromSTS}
-                    className="border-di-outline-variant/20 text-muted-foreground hover:bg-di-surface-high"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${(loading || loadingFromSTS) ? 'animate-spin' : ''}`} />
-                  </Button>
-                  {filtersOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                </div>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="p-4 border-t border-border">
-                <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
-                  {/* Дата от */}
-                  <div>
-                    <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
-                    <Input
-                      id="date-from"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  {/* Дата до */}
-                  <div>
-                    <Label htmlFor="date-to" className="text-xs text-muted-foreground">Дата до</Label>
-                    <Input
-                      id="date-to"
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  {/* Статус */}
-                  <div>
-                    <Label htmlFor="status" className="text-xs text-muted-foreground">Статус</Label>
-                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger id="status" className="mt-1">
-                        <SelectValue placeholder="Все" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statusTypes.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status === "Все" ? status : ({
-                              'completed': 'Завершено',
-                              'in_progress': 'Выполняется',
-                              'failed': 'Ошибка',
-                              'pending': 'Ожидание',
-                              'cancelled': 'Отменено'
-                            }[status] || status)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Пост (POS) — показывается только для многопостовых станций */}
-                  {showPosFilter && (
-                    <div>
-                      <Label htmlFor="pos-number" className="text-xs text-muted-foreground">Пост</Label>
-                      <Select value={selectedPosNumber} onValueChange={setSelectedPosNumber}>
-                        <SelectTrigger id="pos-number" className="mt-1">
-                          <SelectValue placeholder="Все" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Все">Все</SelectItem>
-                          {uniquePosNumbers.map((pos) => (
-                            <SelectItem key={pos} value={pos}>Пост {pos}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {/* Поиск */}
-                  <div className={isMobile ? 'col-span-2' : ''}>
-                    <Label htmlFor="search" className="text-xs text-muted-foreground">Поиск</Label>
-                    <Input
-                      id="search"
-                      type="text"
-                      placeholder="смена 9 азс 6, ID, карта..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
-
-        {/* СТАРЫЙ КОД ФИЛЬТРОВ - УДАЛИТЬ */}
-        <div style={{ display: 'none' }}>
-          <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
-            {/* Верхняя строка - Статус и Поиск */}
-            <div className={`${isMobile ? 'space-y-3 mb-4' : 'grid grid-cols-2 gap-6 mb-4'}`}>
-              {/* Статус */}
-              <div className={`${isMobile ? 'flex items-center gap-3 min-w-0' : ''}`}>
-                {isMobile ? (
-                  <>
-                    <Label htmlFor="status" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">Статус:</Label>
-                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="bg-secondary border-border text-foreground h-8 text-sm flex-1 min-w-0">
-                        <SelectValue placeholder="Все" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        {statusTypes.map((status) => (
-                          <SelectItem key={status} value={status} className="text-foreground focus:bg-secondary">
-                            {status === "Все" ? status : ({
-                              'completed': 'Завершено',
-                              'in_progress': 'Выполняется',
-                              'failed': 'Ошибка',
-                              'pending': 'Ожидание',
-                              'cancelled': 'Отменено'
-                            }[status] || status)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </>
-                ) : (
-                  <>
-                    <Label htmlFor="status" className="text-foreground/80 text-sm font-medium mb-2 block">Статус №</Label>
-                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="bg-secondary border-border text-foreground h-10 text-base">
-                        <SelectValue placeholder="Выберите статус" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        {statusTypes.map((status) => (
-                          <SelectItem key={status} value={status} className="text-foreground focus:bg-secondary">
-                            {status === "Все" ? status : ({
-                              'completed': 'Завершено',
-                              'in_progress': 'Выполняется',
-                              'failed': 'Ошибка',
-                              'pending': 'Ожидание',
-                              'cancelled': 'Отменено'
-                            }[status] || status)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </>
-                )}
-              </div>
-
-              {/* Поиск */}
-              <div className={`${isMobile ? 'flex items-center gap-3 min-w-0' : ''}`}>
-                {isMobile ? (
-                  <>
-                    <Label htmlFor="search" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">Поиск:</Label>
-                    <Input
-                      id="search"
-                      type="text"
-                      placeholder="ID, устройство..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-secondary border-border text-foreground placeholder-muted-foreground h-8 text-sm flex-1 min-w-0"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Label htmlFor="search" className="text-foreground/80 text-sm font-medium mb-2 block">Поиск по операциям</Label>
-                    <Input
-                      id="search"
-                      type="text"
-                      placeholder="Поиск по ID операции, устройству, номеру ТО..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-secondary border-border text-foreground placeholder-muted-foreground h-10 text-base"
-                    />
-                  </>
-                )}
-              </div>
+        <div className={`${FILTER_PANEL_CLASS} mb-4`}>
+          <div className={FILTER_PANEL_HEADER_CLASS}>
+            <div className={FILTER_PANEL_TITLE_CLASS}>
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">Фильтры</span>
             </div>
-
-            {/* Нижняя строка - Даты */}
-            <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-2 gap-6'}`}>
-              {/* Дата начала */}
-              <div className={`${isMobile ? 'flex items-center gap-3 min-w-0' : ''}`}>
-                {isMobile ? (
-                  <>
-                    <Label htmlFor="dateFrom" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">С:</Label>
-                    <Input
-                      id="dateFrom"
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="bg-secondary border-border text-foreground h-8 text-sm flex-1 min-w-0"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Label htmlFor="dateFrom" className="text-foreground/80 text-sm font-medium mb-2 block">Дата начала</Label>
-                    <div className="relative">
-                      <Input
-                        id="dateFrom"
-                        type="date"
-                        value={dateFrom}
-                        onChange={(e) => setDateFrom(e.target.value)}
-                        className="bg-secondary border-border text-foreground h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                      />
-                      <Calendar
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-primary/70 transition-colors pointer-events-none"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Дата окончания */}
-              <div className={`${isMobile ? 'flex items-center gap-3 min-w-0' : ''}`}>
-                {isMobile ? (
-                  <>
-                    <Label htmlFor="dateTo" className="text-foreground/80 text-xs font-medium w-14 flex-shrink-0">По:</Label>
-                    <Input
-                      id="dateTo"
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      className="bg-secondary border-border text-foreground h-8 text-sm flex-1 min-w-0"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Label htmlFor="dateTo" className="text-foreground/80 text-sm font-medium mb-2 block">Дата окончания</Label>
-                    <div className="relative">
-                      <Input
-                        id="dateTo"
-                        type="date"
-                        value={dateTo}
-                        onChange={(e) => setDateTo(e.target.value)}
-                        className="bg-secondary border-border text-foreground h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                      />
-                      <Calendar
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-primary/70 transition-colors pointer-events-none"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedStatus("Все");
+                  setSelectedPosNumber("Все");
+                  setSearchQuery("");
+                  setDateFrom(daysAgoString(1));
+                  setDateTo(todayString());
+                }}
+              >
+                Очистить фильтры
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadFromStsApi(true)}
+                disabled={loading || loadingFromSTS}
+              >
+                <RefreshCw className={`w-4 h-4 ${(loading || loadingFromSTS) ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
-          </CardContent>
+          </div>
+          <div className={FILTER_PANEL_FIELDS_CLASS}>
+            <div className={FILTER_PANEL_FIELD_CLASS}>
+              <Label htmlFor="date-from" className="text-xs text-muted-foreground">Дата от</Label>
+              <Input id="date-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={FILTER_PANEL_CONTROL_CLASS} />
+            </div>
+            <div className={FILTER_PANEL_FIELD_CLASS}>
+              <Label htmlFor="date-to" className="text-xs text-muted-foreground">Дата до</Label>
+              <Input id="date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={FILTER_PANEL_CONTROL_CLASS} />
+            </div>
+            <div className={FILTER_PANEL_FIELD_CLASS}>
+              <Label htmlFor="status" className="text-xs text-muted-foreground">Статус</Label>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger id="status" className={FILTER_PANEL_CONTROL_CLASS}>
+                  <SelectValue placeholder="Все" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusTypes.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status === "Все" ? status : ({
+                        completed: 'Завершено',
+                        in_progress: 'Выполняется',
+                        failed: 'Ошибка',
+                        pending: 'Ожидание',
+                        cancelled: 'Отменено'
+                      }[status] || status)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {showPosFilter && (
+              <div className={FILTER_PANEL_FIELD_CLASS}>
+                <Label htmlFor="pos-number" className="text-xs text-muted-foreground">Пост</Label>
+                <Select value={selectedPosNumber} onValueChange={setSelectedPosNumber}>
+                  <SelectTrigger id="pos-number" className={FILTER_PANEL_CONTROL_CLASS}>
+                    <SelectValue placeholder="Все" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Все">Все</SelectItem>
+                    {uniquePosNumbers.map((pos) => (
+                      <SelectItem key={pos} value={pos}>Пост {pos}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className={FILTER_PANEL_FIELD_CLASS}>
+              <Label htmlFor="search" className="text-xs text-muted-foreground">Поиск</Label>
+              <Input
+                id="search"
+                type="text"
+                placeholder="Поиск (ID операции, смена, карта)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={FILTER_PANEL_CONTROL_CLASS}
+              />
+            </div>
+          </div>
         </div>
-        {/* КОНЕЦ СТАРОГО КОДА ФИЛЬТРОВ */}
-
 
         {/* KPI карточки */}
         {!loading && !loadingFromSTS && operations.length > 0 && (
@@ -1104,21 +917,21 @@ export default function OperationsTransactionsPageSimple() {
                     </div>
                     {/* Остальные — название, при выборе раскрываются данные */}
                     {restCards.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                         {restCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
                           <button
                             key={key}
                             onClick={() => handleKpiPaymentClick(key)}
                             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
                               isSelected
-                                ? 'bg-primary text-white shadow-md'
+                                ? 'bg-secondary text-foreground border border-border shadow-md'
                                 : 'bg-secondary text-foreground/80 hover:bg-secondary'
                             }`}
                           >
                             {display}
                             {isSelected && (
                               <span className="ml-1.5 opacity-90">
-                                {filteredPaymentOps.length} · {filteredVolume >= 1000 ? `${(filteredVolume / 1000).toFixed(1)}K` : filteredVolume.toFixed(0)} л · {filteredRevenue >= 1000 ? `${(filteredRevenue / 1000).toFixed(1)}K` : filteredRevenue.toFixed(0)} ₽
+                                {filteredPaymentOps.length} · {formatExact(filteredVolume, 2)} л · {formatExact(filteredRevenue, 2)} ₽
                               </span>
                             )}
                           </button>
@@ -1185,8 +998,8 @@ export default function OperationsTransactionsPageSimple() {
                                   </div>
                                 </div>
                                 <div className="text-right flex-shrink-0 ml-2">
-                                  <div className="text-foreground text-xs font-semibold">{totalVolume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
-                                  <div className="text-foreground text-xs font-semibold">{totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
+                                  <div className="text-foreground text-xs font-semibold">{formatExact(totalVolume)} л</div>
+                                  <div className="text-foreground text-xs font-semibold">{formatExact(totalRevenue)} ₽</div>
                                 </div>
                               </div>
                             </div>
@@ -1200,8 +1013,8 @@ export default function OperationsTransactionsPageSimple() {
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0">
-                                <div className="text-foreground text-sm font-semibold">{totalVolume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
-                                <div className="text-foreground text-sm font-semibold">{totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
+                                <div className="text-foreground text-sm font-semibold">{formatExact(totalVolume)} л</div>
+                                <div className="text-foreground text-sm font-semibold">{formatExact(totalRevenue)} ₽</div>
                               </div>
                             </div>
                           )}
@@ -1237,8 +1050,8 @@ export default function OperationsTransactionsPageSimple() {
 
         {/* Таблица № */}
         {!loading && !loadingFromSTS && (
-          <Card className={`bg-di-surface-mid rounded-xl border border-di-outline-variant/20 ${isMobile ? 'mx-0 mt-1' : ''}`}>
-            <CardHeader className={`${isMobile ? 'px-3 py-1.5' : 'pb-4'}`}>
+          <Card className={`bg-card rounded-xl border border-border ${isMobile ? 'mx-0 mt-1' : ''}`}>
+            <CardHeader className={`${isMobile ? 'px-3 py-1.5' : 'pb-2'}`}>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : 'text-xl'}`}>
@@ -1257,7 +1070,7 @@ export default function OperationsTransactionsPageSimple() {
               {/* Пагинация только на мобильном — десктоп использует виртуализированный скролл */}
             </div>
           </CardHeader>
-          <CardContent className={`${isMobile ? 'px-0 pb-3' : ''}`}>
+          <CardContent className={isMobile ? 'px-0 pb-3' : 'p-0'}>
             {isMobile ? (
               // Mobile compact table layout
               <div>
@@ -1300,12 +1113,12 @@ export default function OperationsTransactionsPageSimple() {
                             ) : '-'}
                           </td>
                           <td className="px-2 py-2 text-foreground text-right font-mono">
-                            {record.actualQuantity ? `${record.actualQuantity.toFixed(2)}л` :
-                             record.quantity ? `${record.quantity.toFixed(2)}л` : '-'}
+                            {record.actualQuantity ? `${formatExact(record.actualQuantity)}л` :
+                             record.quantity ? `${formatExact(record.quantity)}л` : '-'}
                           </td>
                           <td className="px-2 py-2 text-foreground text-right font-mono font-bold">
-                            {record.actualAmount ? `${record.actualAmount.toFixed(2)}₽` :
-                             record.totalCost ? `${record.totalCost.toFixed(2)}₽` : '-'}
+                            {record.actualAmount ? `${formatExact(record.actualAmount)}₽` :
+                             record.totalCost ? `${formatExact(record.totalCost)}₽` : '-'}
                           </td>
                           <td className="px-2 py-2 text-center text-foreground text-xs">
                             {(() => {
@@ -1370,7 +1183,7 @@ export default function OperationsTransactionsPageSimple() {
               </div>
             ) : (
             // Desktop: Виртуализированная таблица для оптимальной производительности
-            <div className="space-y-4">
+            <div>
               {filteredOperations.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   {loading ? (

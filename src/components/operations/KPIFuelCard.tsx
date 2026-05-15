@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity } from "lucide-react";
+import { FuelBadge } from "@/components/common/FuelBadge";
 
 interface KPIFuelCardProps {
   fuel: string;
@@ -24,7 +25,7 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
         className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
           isSelected
             ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-            : 'bg-di-surface-mid border-di-outline-variant/20 hover:bg-di-surface-high'
+            : 'bg-card border-border hover:bg-secondary'
         }`}
         onClick={handleClick}
       >
@@ -32,7 +33,7 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
           <div className="relative">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-foreground font-semibold text-sm truncate mb-1">{fuel}</p>
+                <FuelBadge fuel={fuel} className="mb-1" />
                 <div className="flex items-center gap-1">
                   <Activity className="w-4 h-4 text-muted-foreground" />
                   <span className="text-foreground text-sm font-medium">{transactionCount}</span>
@@ -53,17 +54,17 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
   return (
     <Card
       key={fuel}
-      className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-        isSelected
-          ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-          : 'bg-di-surface-mid border-di-outline-variant/20 hover:bg-di-surface-high'
-      }`}
+        className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+          isSelected
+            ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+            : 'bg-card border-border hover:bg-secondary'
+        }`}
       onClick={handleClick}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-foreground font-semibold text-base truncate pr-2">{fuel}</p>
+            <FuelBadge fuel={fuel} className="pr-2" />
             <div className="flex items-center gap-1">
               <Activity className="w-3 h-3 text-muted-foreground" />
               <span className="text-foreground/80 text-sm">{transactionCount}</span>

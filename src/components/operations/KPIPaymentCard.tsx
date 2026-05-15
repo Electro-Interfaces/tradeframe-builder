@@ -13,10 +13,11 @@ interface KPIPaymentCardProps {
   onClick: (paymentKey: string) => void;
 }
 
-const formatCompact = (value: number): string => {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toFixed(0);
+const formatExact = (value: number, fractionDigits = 2): string => {
+  return value.toLocaleString('ru-RU', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
 };
 
 const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, volume, cost, transactionCount, onClick }: KPIPaymentCardProps) => {
@@ -31,7 +32,7 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
         className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
           isSelected
             ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-            : 'bg-di-surface-mid border-di-outline-variant/20 hover:bg-di-surface-high'
+            : 'bg-card border-border hover:bg-secondary'
         }`}
         onClick={handleClick}
       >
@@ -45,8 +46,8 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
               </div>
             </div>
             <div className="flex items-center justify-between text-[10px]">
-              <span className="text-muted-foreground">{formatCompact(volume)} л</span>
-              <span className="text-foreground font-semibold">{formatCompact(cost)} ₽</span>
+              <span className="text-muted-foreground">{formatExact(volume)} л</span>
+              <span className="text-foreground font-semibold">{formatExact(cost)} ₽</span>
             </div>
           </div>
         </CardContent>
@@ -58,11 +59,11 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
   return (
     <Card
       key={paymentKey}
-      className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-        isSelected
-          ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
-          : 'bg-di-surface-mid border-di-outline-variant/20 hover:bg-di-surface-high'
-      }`}
+        className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+          isSelected
+            ? 'bg-secondary border-border border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)] hover:shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+            : 'bg-card border-border hover:bg-secondary'
+        }`}
       onClick={handleClick}
     >
       <CardContent className="p-3">
@@ -75,8 +76,8 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
             </div>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="text-foreground/80 text-xs">{formatCompact(volume)} л</div>
-            <div className="text-foreground text-xs font-semibold">{formatCompact(cost)} ₽</div>
+            <div className="text-foreground/80 text-xs">{formatExact(volume)} л</div>
+            <div className="text-foreground text-xs font-semibold">{formatExact(cost)} ₽</div>
           </div>
         </div>
       </CardContent>

@@ -166,6 +166,16 @@ function calculateProgress(actual: number, ordered: number): number {
   return Math.min(Math.round(percent), 100);
 }
 
+function getAmountTextClass(orderedVolume: number, actualVolume: number): string {
+  if (actualVolume <= 0) {
+    return 'text-foreground';
+  }
+
+  return Math.abs(actualVolume - orderedVolume) < 0.01
+    ? 'text-foreground'
+    : 'text-amber-500 dark:text-amber-400';
+}
+
 // ============================================================================
 // Типы
 // ============================================================================
@@ -384,11 +394,11 @@ export function OrderDetailsDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Заказано</p>
-                    <span className="text-amber-600 dark:text-amber-400 font-medium">{orderedVolume.toFixed(2)} л</span>
+                    <span className={`${getAmountTextClass(orderedVolume, actualVolume)} font-medium`}>{orderedVolume.toFixed(2)} л</span>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Отпущено</p>
-                    <span className="text-green-600 dark:text-green-400 font-medium">
+                    <span className={`${getAmountTextClass(orderedVolume, actualVolume)} font-medium`}>
                       {actualVolume > 0 ? `${actualVolume.toFixed(2)} л` : '—'}
                     </span>
                   </div>
@@ -422,13 +432,13 @@ export function OrderDetailsDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Оплачено</p>
-                    <span className="text-amber-600 dark:text-amber-400 font-medium">
+                    <span className={`${getAmountTextClass(orderedVolume, actualVolume)} font-medium`}>
                       {onlineOrdersService.formatCurrency(orderedSum)}
                     </span>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Фактически</p>
-                    <span className="text-green-600 dark:text-green-400 font-medium">
+                    <span className={`${getAmountTextClass(orderedVolume, actualVolume)} font-medium`}>
                       {actualSum > 0 ? onlineOrdersService.formatCurrency(actualSum) : '—'}
                     </span>
                   </div>

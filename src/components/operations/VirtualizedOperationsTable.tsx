@@ -1,6 +1,14 @@
 import React, { memo } from "react";
-import { List } from "react-window";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { FuelBadge } from "@/components/common/FuelBadge";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
 
 interface Operation {
@@ -32,224 +40,109 @@ interface VirtualizedOperationsTableProps {
   onRowClick?: (operation: Operation) => void;
 }
 
-const getStatusBadge = (status: string) => {
+function formatExact(value?: number): string {
+  if (value === undefined || value === null) {
+    return "—";
+  }
+
+  return value.toLocaleString("ru-RU", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function getStatusBadge(status: string) {
   switch (status) {
-    case 'completed':
+    case "completed":
       return <Badge className="bg-secondary text-foreground">Завершено</Badge>;
-    case 'in_progress':
+    case "in_progress":
       return <Badge className="bg-secondary text-foreground">Выполняется</Badge>;
-    case 'failed':
-      return <Badge className="bg-red-600 text-white">Ошибка</Badge>;
-    case 'pending':
-      return <Badge className="bg-yellow-600 text-white">Ожидание</Badge>;
-    case 'cancelled':
+    case "failed":
+      return <Badge className="border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">Ошибка</Badge>;
+    case "pending":
+      return <Badge className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">Ожидание</Badge>;
+    case "cancelled":
       return <Badge className="bg-secondary text-foreground">Отменено</Badge>;
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
-};
+}
 
-// Мемоизированный компонент строки для оптимизации
-const TableRowComponent = memo(({ index, style, operations, onRowClick }: {
-  index: number;
-  style: React.CSSProperties;
-  operations: Operation[];
-  onRowClick?: (op: Operation) => void;
-}) => {
-  const record = operations[index];
-
-  return (
-    <div
-      style={{
-        ...style,
-        display: 'flex',
-        alignItems: 'center',
-        cursor: 'pointer'
-      }}
-      className={`border-b border-border hover:bg-accent transition-colors ${
-        record.isFromStsApi ? 'bg-primary/5' : 'bg-card'
-      }`}
-      onClick={() => onRowClick?.(record)}
-    >
-      <div className="flex-shrink-0 w-16 px-2 text-foreground/80 text-sm text-center">{record.stationNumber || '-'}</div>
-      <div className="flex-shrink-0 w-24 px-2">{getStatusBadge(record.status)}</div>
-      <div className="flex-shrink-0 w-32 px-2 text-foreground/80 font-mono text-xs truncate">{record.id}</div>
-      <div className="flex-shrink-0 w-36 px-2 text-foreground/80 text-sm">
-        {new Date(record.startTime).toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        })}
-      </div>
-      <div className="flex-shrink-0 w-20 px-2 text-foreground/80 text-sm text-center">{record.nozzleNumber || '-'}</div>
-      <div className="flex-shrink-0 w-28 px-2" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-        {record.fuelType ? (
-          <Badge variant="outline" className="bg-secondary text-foreground border-border">
-            {record.fuelType}
-          </Badge>
-        ) : '-'}
-      </div>
-      <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm text-right" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-        {record.actualQuantity ? record.actualQuantity.toFixed(2) : record.quantity ? record.quantity.toFixed(2) : '-'}
-      </div>
-      <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm text-right" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-        {record.price ? record.price.toFixed(2) : '-'}
-      </div>
-      <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm text-right" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-        {record.actualAmount ? record.actualAmount.toFixed(2) : record.totalCost ? record.totalCost.toFixed(2) : '-'}
-      </div>
-      <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-        {normalizePaymentMethod(record.paymentMethod || '')}
-      </div>
-      <div className="flex-shrink-0 w-16 px-2 text-foreground/80 text-sm text-center">{record.posNumber || '-'}</div>
-      <div className="flex-shrink-0 w-20 px-2 text-foreground/80 text-sm text-center">{record.shiftNumber || '-'}</div>
-      <div className="flex-shrink-0 w-32 px-2 text-foreground/80 text-sm font-mono truncate">{record.cardNumber || '-'}</div>
-      <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm font-mono">{record.receiptNumber || '-'}</div>
-      <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm">{record.operationType || '-'}</div>
-      <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm text-right">
-        {record.orderedQuantity ? record.orderedQuantity.toFixed(2) : '-'}
-      </div>
-      <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm text-right">
-        {record.orderedAmount ? record.orderedAmount.toFixed(2) : '-'}
-      </div>
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  // Кастомное сравнение для оптимизации
-  const prevOp = prevProps.operations[prevProps.index];
-  const nextOp = nextProps.operations[nextProps.index];
-  return prevOp?.id === nextOp?.id && prevProps.style === nextProps.style;
-});
-
-TableRowComponent.displayName = 'TableRowComponent';
-
-// Главный компонент виртуализированной таблицы
 export const VirtualizedOperationsTable = memo(function VirtualizedOperationsTable({
   operations,
-  onRowClick
+  onRowClick,
 }: VirtualizedOperationsTableProps) {
-
-  // Высота одной строки
-  const ROW_HEIGHT = 48;
-
-  // Максимальная высота таблицы (viewport height - отступы)
-  const TABLE_HEIGHT = Math.min(
-    window.innerHeight - 400, // Вычитаем высоту заголовка, фильтров и т.д.
-    operations.length * ROW_HEIGHT
-  );
-
-  // Минимальная ширина контента таблицы (сумма всех колонок ~1750px)
-  const MIN_TABLE_WIDTH = 1800;
-
   return (
-    <div className="w-full border border-border rounded-lg">
-      {/* Единый контейнер с горизонтальным скроллом */}
-      <div
-        className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-secondary scrollbar-track-card"
-        style={{ maxHeight: TABLE_HEIGHT + 42 }}
-      >
-        <div style={{ width: MIN_TABLE_WIDTH }}>
-          {/* Заголовок таблицы */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              minHeight: '42px',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10
-            }}
-            className="bg-muted border-b border-border"
-          >
-            <div className="flex-shrink-0 w-16 px-2 text-foreground/80 text-sm font-medium">ТТ</div>
-            <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm font-medium">Статус</div>
-            <div className="flex-shrink-0 w-32 px-2 text-foreground/80 text-sm font-medium">ID</div>
-            <div className="flex-shrink-0 w-36 px-2 text-foreground/80 text-sm font-medium">Время начала</div>
-            <div className="flex-shrink-0 w-20 px-2 text-foreground/80 text-sm font-medium">Пист.</div>
-            <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm font-medium" style={{backgroundColor: 'hsl(var(--primary) / 0.08)'}}>Вид топлива</div>
-            <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm font-medium" style={{backgroundColor: 'hsl(var(--primary) / 0.08)'}}>Факт.(литры)</div>
-            <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm font-medium" style={{backgroundColor: 'hsl(var(--primary) / 0.08)'}}>Цена за л</div>
-            <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm font-medium" style={{backgroundColor: 'hsl(var(--primary) / 0.08)'}}>Факт.(сумма)</div>
-            <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm font-medium" style={{backgroundColor: 'hsl(var(--primary) / 0.08)'}}>Вид оплаты</div>
-            <div className="flex-shrink-0 w-16 px-2 text-foreground/80 text-sm font-medium">POS</div>
-            <div className="flex-shrink-0 w-20 px-2 text-foreground/80 text-sm font-medium">Смена</div>
-            <div className="flex-shrink-0 w-32 px-2 text-foreground/80 text-sm font-medium">Карта</div>
-            <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm font-medium">№ чека</div>
-            <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm font-medium">Тип оп.</div>
-            <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm font-medium">Заказ (литры)</div>
-            <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm font-medium">Заказ (сумма)</div>
-          </div>
-
-          {/* Тело таблицы */}
-          <div style={{ height: TABLE_HEIGHT, overflowY: 'auto' }} className="scrollbar-thin scrollbar-thumb-secondary scrollbar-track-card">
-            {operations.map((record, index) => (
-              <div
-                key={record.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  height: ROW_HEIGHT
-                }}
-                className={`border-b border-border hover:bg-accent transition-colors ${
-                  record.isFromStsApi ? 'bg-primary/5' : (index % 2 === 0 ? 'bg-card' : 'bg-muted/50')
-                }`}
-                onClick={() => onRowClick?.(record)}
-              >
-                <div className="flex-shrink-0 w-16 px-2 text-foreground/80 text-sm text-center">{record.stationNumber || '-'}</div>
-                <div className="flex-shrink-0 w-24 px-2">{getStatusBadge(record.status)}</div>
-                <div className="flex-shrink-0 w-32 px-2 text-foreground/80 font-mono text-xs truncate">{record.id}</div>
-                <div className="flex-shrink-0 w-36 px-2 text-foreground/80 text-sm">
-                  {new Date(record.startTime).toLocaleString('ru-RU', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-border">
+            <TableHead className="text-muted-foreground">Дата/время</TableHead>
+            <TableHead className="text-muted-foreground">ТТ</TableHead>
+            <TableHead className="text-muted-foreground">Топливо</TableHead>
+            <TableHead className="text-muted-foreground text-right">Факт</TableHead>
+            <TableHead className="text-muted-foreground text-right">Цена</TableHead>
+            <TableHead className="text-muted-foreground text-right">Сумма</TableHead>
+            <TableHead className="text-muted-foreground">Оплата</TableHead>
+            <TableHead className="text-muted-foreground text-center">POS</TableHead>
+            <TableHead className="text-muted-foreground text-center">Смена</TableHead>
+            <TableHead className="text-muted-foreground">Статус</TableHead>
+            <TableHead className="text-muted-foreground text-center">Пистолет</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {operations.map((record) => (
+            <TableRow
+              key={record.id}
+              onClick={() => onRowClick?.(record)}
+              className={`cursor-pointer border-border transition-colors ${record.isFromStsApi ? "bg-primary/5" : "hover:bg-secondary"}`}
+            >
+              <TableCell className="whitespace-nowrap text-foreground/80 text-sm">
+                {new Date(record.startTime).toLocaleString("ru-RU", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </TableCell>
+              <TableCell>
+                <div className="space-y-0.5">
+                  <div className="font-medium text-foreground">{record.stationName || `АЗС ${record.stationNumber || "—"}`}</div>
+                  <div className="font-mono text-xs text-muted-foreground">ID: {record.id}</div>
                 </div>
-                <div className="flex-shrink-0 w-20 px-2 text-foreground/80 text-sm text-center">{record.nozzleNumber || '-'}</div>
-                <div className="flex-shrink-0 w-28 px-2" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-                  {record.fuelType ? (
-                    <Badge variant="outline" className="bg-secondary text-foreground border-border">
-                      {record.fuelType}
-                    </Badge>
-                  ) : '-'}
-                </div>
-                <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm text-right" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-                  {record.actualQuantity ? record.actualQuantity.toFixed(2) : record.quantity ? record.quantity.toFixed(2) : '-'}
-                </div>
-                <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm text-right" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-                  {record.price ? record.price.toFixed(2) : '-'}
-                </div>
-                <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm text-right" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-                  {record.actualAmount ? record.actualAmount.toFixed(2) : record.totalCost ? record.totalCost.toFixed(2) : '-'}
-                </div>
-                <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm" style={{backgroundColor: 'hsl(var(--primary) / 0.04)'}}>
-                  {normalizePaymentMethod(record.paymentMethod || '')}
-                </div>
-                <div className="flex-shrink-0 w-16 px-2 text-foreground/80 text-sm text-center">{record.posNumber || '-'}</div>
-                <div className="flex-shrink-0 w-20 px-2 text-foreground/80 text-sm text-center">{record.shiftNumber || '-'}</div>
-                <div className="flex-shrink-0 w-32 px-2 text-foreground/80 text-sm font-mono truncate">{record.cardNumber || '-'}</div>
-                <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm font-mono">{record.receiptNumber || '-'}</div>
-                <div className="flex-shrink-0 w-24 px-2 text-foreground/80 text-sm">{record.operationType || '-'}</div>
-                <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm text-right">
-                  {record.orderedQuantity ? record.orderedQuantity.toFixed(2) : '-'}
-                </div>
-                <div className="flex-shrink-0 w-28 px-2 text-foreground/80 text-sm text-right">
-                  {record.orderedAmount ? record.orderedAmount.toFixed(2) : '-'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+              </TableCell>
+              <TableCell>
+                {record.fuelType ? <FuelBadge fuel={record.fuelType} /> : <span className="text-muted-foreground">—</span>}
+              </TableCell>
+              <TableCell className="text-right font-mono text-foreground/80">
+                {(record.actualQuantity ?? record.quantity) ? `${formatExact(record.actualQuantity ?? record.quantity)} л` : "—"}
+              </TableCell>
+              <TableCell className="text-right text-foreground/80">
+                {record.price ? `${formatExact(record.price)} ₽` : "—"}
+              </TableCell>
+              <TableCell className="text-right font-medium text-foreground">
+                {(record.actualAmount ?? record.totalCost) ? `${formatExact(record.actualAmount ?? record.totalCost)} ₽` : "—"}
+              </TableCell>
+              <TableCell className="text-foreground/80">
+                {normalizePaymentMethod(record.paymentMethod || "") || "—"}
+              </TableCell>
+              <TableCell className="text-center text-foreground/80 font-medium">
+                {record.posNumber || "—"}
+              </TableCell>
+              <TableCell className="text-center text-foreground/80 font-medium">
+                {record.shiftNumber || "—"}
+              </TableCell>
+              <TableCell>{getStatusBadge(record.status)}</TableCell>
+              <TableCell className="text-center text-foreground/80 font-medium">
+                {record.nozzleNumber || "—"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Проверяем, изменились ли операции
-  return (
-    prevProps.operations.length === nextProps.operations.length &&
-    prevProps.operations === nextProps.operations
-  );
+  return prevProps.operations.length === nextProps.operations.length && prevProps.operations === nextProps.operations;
 });

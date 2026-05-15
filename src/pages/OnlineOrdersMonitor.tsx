@@ -112,6 +112,16 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   cancelled: <AlertCircle className="w-3 h-3" />
 };
 
+function getOrderAmountTextClass(orderVolume: number, actualVolume: number): string {
+  if (actualVolume <= 0) {
+    return 'text-foreground';
+  }
+
+  return Math.abs(actualVolume - orderVolume) < 0.01
+    ? 'text-foreground'
+    : 'text-amber-500 dark:text-amber-400';
+}
+
 export default function OnlineOrdersMonitor() {
   const isMobile = useIsMobile();
 
@@ -795,10 +805,10 @@ export default function OnlineOrdersMonitor() {
                         <TableCell className="text-right text-foreground/80">
                           {order.price.toFixed(2)} ₽
                         </TableCell>
-                        <TableCell className="text-right font-medium text-amber-600 dark:text-amber-400">
+                        <TableCell className={`text-right font-medium ${getOrderAmountTextClass(order.orderVolume, order.volume)}`}>
                           {onlineOrdersService.formatCurrency(order.orderTotal)}
                         </TableCell>
-                        <TableCell className="text-right font-medium text-green-600 dark:text-green-400">
+                        <TableCell className={`text-right font-medium ${getOrderAmountTextClass(order.orderVolume, order.volume)}`}>
                           {order.total > 0 ? onlineOrdersService.formatCurrency(order.total) : '—'}
                         </TableCell>
                         <TableCell>
