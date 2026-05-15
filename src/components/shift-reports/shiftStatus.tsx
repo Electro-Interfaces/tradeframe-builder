@@ -45,13 +45,13 @@ export function getShiftStatusConfig(
 export function getShiftStatusBadgeClass(tone: ShiftStatusTone): string {
   switch (tone) {
     case 'blue':
-      return 'bg-blue-600 text-white border-blue-600';
+      return 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300';
     case 'green':
-      return 'bg-emerald-600 text-white border-emerald-600';
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300';
     case 'red':
-      return 'bg-red-600 text-white border-red-600';
+      return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300';
     case 'amber':
-      return 'bg-amber-500 text-white border-amber-500';
+      return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300';
     case 'gray':
     default:
       return 'bg-secondary text-foreground border-border';

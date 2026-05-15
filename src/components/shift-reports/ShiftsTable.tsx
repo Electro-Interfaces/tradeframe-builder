@@ -28,6 +28,10 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
     return format(new Date(dateString), 'dd.MM.yyyy HH:mm', { locale: ru });
   };
 
+  const formatInteger = (value: number) => {
+    return value.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -38,29 +42,30 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
 
   if (shifts.length === 0) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center">
-          <p className="text-muted-foreground text-lg mb-2">Смены не найдены</p>
-          <p className="text-muted-foreground text-sm">
-            Измените фильтры или период для отображения данных
-          </p>
+      <div className="px-4 py-4 md:px-6 md:py-6">
+        <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 py-16">
+          <div className="text-center">
+            <p className="text-lg font-medium text-foreground">Смены не найдены</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Измените фильтры или период для отображения данных
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
+    <Table>
         <TableHeader>
-          <TableRow className="border-border">
-            <TableHead className="text-muted-foreground">ТТ</TableHead>
-            <TableHead className="text-muted-foreground">Смена №</TableHead>
-            <TableHead className="text-muted-foreground">Открыта</TableHead>
-            <TableHead className="text-muted-foreground">Закрыта</TableHead>
-            <TableHead className="text-muted-foreground text-right">Выручка</TableHead>
-            <TableHead className="text-muted-foreground text-right">Объём</TableHead>
-            <TableHead className="text-muted-foreground text-center">Статус</TableHead>
+          <TableRow>
+            <TableHead>ТТ</TableHead>
+            <TableHead>Смена №</TableHead>
+            <TableHead>Открыта</TableHead>
+            <TableHead>Закрыта</TableHead>
+            <TableHead className="text-right">Выручка</TableHead>
+            <TableHead className="text-right">Объём</TableHead>
+            <TableHead className="text-center">Статус</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -69,46 +74,41 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
             const StatusIcon = status.icon;
 
             return (
-            <TableRow
-              key={shift.id}
-              className="border-border transition-colors cursor-pointer hover:bg-secondary"
-              onClick={() => {
-                onSelectShift(shift);
-              }}
-            >
-              <TableCell>
-                <div className="text-foreground font-medium text-sm">
+              <TableRow
+                key={shift.id}
+                className="cursor-pointer"
+                onClick={() => {
+                  onSelectShift(shift);
+                }}
+              >
+                <TableCell className="font-medium text-foreground">
                   {shift.stationName || `ТТ ${shift.stationCode}`}
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className="text-foreground font-semibold font-mono text-sm">
+                </TableCell>
+                <TableCell className="font-mono font-semibold text-foreground">
                   #{shift.shiftNumber}
-                </span>
-              </TableCell>
-              <TableCell className="text-foreground/80 text-sm whitespace-nowrap">
-                {formatDateTime(shift.openedAt)}
-              </TableCell>
-              <TableCell className="text-foreground/80 text-sm whitespace-nowrap">
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-foreground/80">
+                  {formatDateTime(shift.openedAt)}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-foreground/80">
                   {shift.closedAt ? formatDateTime(shift.closedAt) : '—'}
-              </TableCell>
-              <TableCell className="text-right font-mono text-foreground/80 text-sm">
-                {shift.totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽
-              </TableCell>
-              <TableCell className="text-right font-mono text-foreground/80 text-sm">
-                {shift.totalVolume.toFixed(0)} л
-              </TableCell>
-              <TableCell className="text-center">
-                <Badge className={`${getShiftStatusBadgeClass(status.tone)} inline-flex items-center gap-1 text-xs px-2.5 py-0.5`}>
-                  <StatusIcon className="w-3 h-3" />
-                  {status.label}
-                </Badge>
-              </TableCell>
-            </TableRow>
+                </TableCell>
+                <TableCell className="text-right font-mono text-foreground/80">
+                  {formatInteger(shift.totalRevenue)} ₽
+                </TableCell>
+                <TableCell className="text-right font-mono text-foreground/80">
+                  {formatInteger(shift.totalVolume)} л
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge className={`${getShiftStatusBadgeClass(status.tone)} inline-flex items-center gap-1 text-xs`}>
+                    <StatusIcon className="h-3 w-3" />
+                    {status.label}
+                  </Badge>
+                </TableCell>
+              </TableRow>
           )})}
         </TableBody>
       </Table>
-    </div>
   );
 };
 
