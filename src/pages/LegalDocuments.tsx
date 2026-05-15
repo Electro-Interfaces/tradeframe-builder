@@ -3,20 +3,29 @@
  * Главная страница управления правовыми документами
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
   FileText, 
   Edit3, 
   History, 
   Users, 
-  Calendar,
-  CheckCircle,
-  AlertCircle,
   Plus,
   Eye,
   Download
@@ -25,6 +34,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { HelpButton } from "@/components/help/HelpButton";
 import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { loadXlsx } from '@/utils/xlsxLoader';
+import {
+  FILTER_PANEL_CLASS,
+  FILTER_PANEL_CONTROL_CLASS,
+  FILTER_PANEL_FIELD_CLASS,
+  FILTER_PANEL_FIELDS_CLASS,
+  FILTER_PANEL_HEADER_CLASS,
+  FILTER_PANEL_TITLE_CLASS,
+} from '@/components/common/filterPanel';
 import { 
   DocumentTypeInfo, 
   DocumentStatistics,
@@ -32,169 +49,41 @@ import {
   DocumentType 
 } from '@/types/legal';
 
-interface DocumentCardProps {
-  docType: DocumentTypeInfo;
-  statistics?: DocumentStatistics;
-  onEdit: (docType: DocumentType) => void;
-  onHistory: (docType: DocumentType) => void;
-  onPublishDraft: (docType: DocumentType) => void;
-  onViewAcceptances: (docType: DocumentType) => void;
+type PublishStatus = 'all' | 'published' | 'unpublished';
+
+function formatDateTime(dateString?: string): string {
+  if (!dateString) {
+    return '—';
+  }
+
+  return new Date(dateString).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-const DocumentCard: React.FC<DocumentCardProps> = ({
-  docType,
-  statistics,
-  onEdit,
-  onHistory,
-  onPublishDraft,
-  onViewAcceptances
-}) => {
-  const isMobile = useIsMobile();
+function formatInteger(value: number): string {
+  return value.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+}
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Не опубликован';
-    return new Date(dateString).toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+function getStatusBadgeClass(docType: DocumentTypeInfo): string {
+  return docType.current_version
+    ? 'bg-secondary text-foreground border-border'
+    : 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300';
+}
 
-  const getStatusIcon = () => {
-    if (!docType.current_version) {
-      return <AlertCircle className="w-5 h-5 text-muted-foreground" />;
-    }
-    return <CheckCircle className="w-5 h-5 text-muted-foreground" />;
-  };
+function getStatusLabel(docType: DocumentTypeInfo): string {
+  return docType.current_version ? 'Опубликован' : 'Не опубликован';
+}
 
-  const getStatusBadge = () => {
-    if (!docType.current_version) {
-      return <Badge variant="secondary" className="bg-secondary text-foreground/80">Не опубликован</Badge>;
-    }
-    return <Badge className="bg-secondary text-foreground">v{docType.current_version.version}</Badge>;
-  };
-
-  return (
-    <Card className="bg-card border-border h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-              <FileText className="w-5 h-5 text-foreground" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <CardTitle className="text-foreground text-base leading-tight mb-1 h-10 flex items-center">
-                {docType.title}
-              </CardTitle>
-              <div className="flex items-center gap-2 flex-wrap">
-                {getStatusBadge()}
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
-        {/* Информация о текущей версии - компактно */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-            <span className="text-foreground/80 truncate">
-              {formatDate(docType.current_version?.published_at).split(',')[0]}
-            </span>
-          </div>
-
-          {docType.current_version?.editor_name && (
-            <div className="flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="text-foreground/80 truncate">{docType.current_version.editor_name}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Статистика согласий - компактно */}
-        {statistics && (
-          <div className="bg-secondary/50 rounded-lg p-2.5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div>
-                  <div className="text-xs text-muted-foreground">Подписали</div>
-                  <div className="text-sm text-foreground font-semibold">
-                    {statistics.accepted_users} / {statistics.total_users}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Процент</div>
-                  <div className="text-sm text-foreground font-semibold">
-                    {statistics.acceptance_percentage}%
-                  </div>
-                </div>
-              </div>
-
-              {statistics.pending_users > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                  <span className="text-xs text-foreground/80">
-                    {statistics.pending_users}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Действия - сетка 2x2 */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            onClick={() => onEdit(docType.code)}
-            variant="outline"
-            size="sm"
-            className="bg-secondary border-border text-foreground hover:bg-secondary h-8 text-xs"
-          >
-            <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-            Редактировать
-          </Button>
-
-          <Button
-            onClick={() => onHistory(docType.code)}
-            variant="outline"
-            size="sm"
-            className="bg-secondary border-border text-foreground hover:bg-secondary h-8 text-xs"
-          >
-            <History className="w-3.5 h-3.5 mr-1.5" />
-            История
-          </Button>
-
-          {docType.current_version && (
-            <>
-              <Button
-                onClick={() => onViewAcceptances(docType.code)}
-                variant="outline"
-                size="sm"
-                className="bg-secondary border-border text-foreground hover:bg-secondary h-8 text-xs"
-              >
-                <Users className="w-3.5 h-3.5 mr-1.5" />
-                Согласия
-              </Button>
-
-              <Button
-                onClick={() => onPublishDraft(docType.code)}
-                variant="outline"
-                size="sm"
-                className="bg-secondary border-border text-foreground hover:bg-secondary h-8 text-xs"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1.5" />
-                Новая версия
-              </Button>
-            </>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+function getAcceptanceBadgeClass(statistics?: DocumentStatistics): string {
+  return statistics && statistics.pending_users > 0
+    ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300'
+    : 'bg-secondary text-foreground border-border';
+}
 
 export default function LegalDocuments() {
   const navigate = useNavigate();
@@ -202,6 +91,8 @@ export default function LegalDocuments() {
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeInfo[]>([]);
   const [statistics, setStatistics] = useState<DocumentStatistics[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [publishStatus, setPublishStatus] = useState<PublishStatus>('all');
 
   // Загружаем данные при монтировании
   useEffect(() => {
@@ -246,6 +137,29 @@ export default function LegalDocuments() {
   const handleViewAuditLog = () => {
     navigate('/admin/audit');
   };
+
+  const filteredDocuments = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return documentTypes.filter((docType) => {
+      const matchesStatus = publishStatus === 'all'
+        || (publishStatus === 'published' && Boolean(docType.current_version))
+        || (publishStatus === 'unpublished' && !docType.current_version);
+
+      if (!matchesStatus) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return [docType.title, docType.code, DOCUMENT_TYPES[docType.code]]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch);
+    });
+  }, [documentTypes, publishStatus, searchTerm]);
 
   const handleExportAcceptances = async () => {
     try {
@@ -327,7 +241,7 @@ export default function LegalDocuments() {
       <div className="w-full h-full report-full-width">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold text-foreground">Правовые документы</h1>
               <p className="text-muted-foreground mt-2">
@@ -372,6 +286,64 @@ export default function LegalDocuments() {
           </div>
         </div>
 
+        <div className="mx-4 md:mx-6 lg:mx-8 mb-6">
+          <div className={FILTER_PANEL_CLASS}>
+            <div className={FILTER_PANEL_HEADER_CLASS}>
+              <div className={FILTER_PANEL_TITLE_CLASS}>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium text-foreground">Фильтры</span>
+                <span className="text-sm text-muted-foreground">
+                  Найдено: {formatInteger(filteredDocuments.length)}
+                </span>
+              </div>
+            </div>
+
+            <div className={FILTER_PANEL_FIELDS_CLASS}>
+              <div className={`${FILTER_PANEL_FIELD_CLASS} sm:min-w-[260px]`}>
+                <Label htmlFor="legal-documents-search" className="text-xs text-muted-foreground">
+                  Поиск
+                </Label>
+                <Input
+                  id="legal-documents-search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Название документа"
+                  className={FILTER_PANEL_CONTROL_CLASS}
+                />
+              </div>
+
+              <div className={FILTER_PANEL_FIELD_CLASS}>
+                <Label htmlFor="legal-documents-status" className="text-xs text-muted-foreground">
+                  Статус
+                </Label>
+                <Select value={publishStatus} onValueChange={(value) => setPublishStatus(value as PublishStatus)}>
+                  <SelectTrigger id="legal-documents-status" className={FILTER_PANEL_CONTROL_CLASS}>
+                    <SelectValue placeholder="Все документы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все документы</SelectItem>
+                    <SelectItem value="published">Опубликованные</SelectItem>
+                    <SelectItem value="unpublished">Не опубликованные</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className={`${FILTER_PANEL_FIELD_CLASS} sm:flex-none sm:min-w-[180px] sm:self-end`}>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setPublishStatus('all');
+                  }}
+                >
+                  Сбросить
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Сводка по всем документам */}
         <div className="mx-4 md:mx-6 lg:mx-8 mb-6">
           <Card className="bg-card border-border">
@@ -385,21 +357,21 @@ export default function LegalDocuments() {
               <div className={`grid ${isMobile ? 'grid-cols-2 gap-4' : 'grid-cols-3 gap-4'}`}>
                 <div className="text-center">
                   <div className="text-xl font-bold text-foreground">
-                    {documentTypes.length}
+                    {formatInteger(documentTypes.length)}
                   </div>
                   <div className="text-sm text-muted-foreground">Типов документов</div>
                 </div>
                 
                 <div className="text-center">
                   <div className="text-xl font-bold text-foreground">
-                    {documentTypes.filter(d => d.current_version).length}
+                    {formatInteger(documentTypes.filter(d => d.current_version).length)}
                   </div>
                   <div className="text-sm text-muted-foreground">Опубликовано</div>
                 </div>
                 
                 <div className="text-center">
                   <div className="text-xl font-bold text-foreground">
-                    {statistics.length > 0 ? statistics[0].total_users : 0}
+                    {formatInteger(statistics.length > 0 ? statistics[0].total_users : 0)}
                   </div>
                   <div className="text-sm text-muted-foreground">Всего пользователей</div>
                 </div>
@@ -444,36 +416,180 @@ export default function LegalDocuments() {
           </div>
         )}
 
-        {/* Карточки документов */}
+        {/* Список документов */}
         <div className="mx-4 md:mx-6 lg:mx-8 pb-6">
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
-            {documentTypes.map((docType) => {
-              const docStatistics = statistics.find(s => s.doc_type_code === docType.code);
-              
-              return (
-                <DocumentCard
-                  key={docType.code}
-                  docType={docType}
-                  statistics={docStatistics}
-                  onEdit={handleEdit}
-                  onHistory={handleHistory}
-                  onPublishDraft={handlePublishDraft}
-                  onViewAcceptances={handleViewAcceptances}
-                />
-              );
-            })}
-          </div>
-          
-          {documentTypes.length === 0 && (
+          {filteredDocuments.length === 0 ? (
             <Card className="bg-card border-border">
-              <CardContent className="p-8 text-center">
-                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-foreground mb-2">
-                  Документы не найдены
-                </h3>
-                <p className="text-muted-foreground">
-                  В системе пока нет правовых документов
-                </p>
+              <CardContent className="p-0">
+                <EmptyState
+                  className="py-16"
+                  title="Документы не найдены"
+                  description={documentTypes.length === 0
+                    ? 'В системе пока нет правовых документов.'
+                    : 'Нет документов, соответствующих выбранным фильтрам.'}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-card border-border">
+              <CardContent className="p-0">
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[280px]">Документ</TableHead>
+                        <TableHead className="w-[140px]">Статус</TableHead>
+                        <TableHead className="w-[120px]">Версия</TableHead>
+                        <TableHead className="w-[180px]">Публикация</TableHead>
+                        <TableHead className="w-[180px]">Редактор</TableHead>
+                        <TableHead className="w-[160px]">Согласия</TableHead>
+                        <TableHead className="w-[260px] text-right">Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDocuments.map((docType) => {
+                        const docStatistics = statistics.find((s) => s.doc_type_code === docType.code);
+
+                        return (
+                          <TableRow key={docType.code}>
+                            <TableCell>
+                              <div className="font-medium text-foreground">{docType.title}</div>
+                              <div className="text-xs text-muted-foreground font-mono">{docType.code}</div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getStatusBadgeClass(docType)}>
+                                {getStatusLabel(docType)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-foreground/80">
+                              {docType.current_version ? `v${docType.current_version.version}` : '—'}
+                            </TableCell>
+                            <TableCell className="text-foreground/80">
+                              {formatDateTime(docType.current_version?.published_at)}
+                            </TableCell>
+                            <TableCell className="text-foreground/80">
+                              {docType.current_version?.editor_name || '—'}
+                            </TableCell>
+                            <TableCell>
+                              {docStatistics ? (
+                                <div className="space-y-1">
+                                  <div className="font-mono text-foreground/80">
+                                    {formatInteger(docStatistics.accepted_users)} / {formatInteger(docStatistics.total_users)}
+                                  </div>
+                                  <Badge className={getAcceptanceBadgeClass(docStatistics)}>
+                                    {docStatistics.acceptance_percentage}%
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(docType.code)}>
+                                  <Edit3 className="mr-1.5 h-3.5 w-3.5" />
+                                  Редактировать
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleHistory(docType.code)}>
+                                  <History className="mr-1.5 h-3.5 w-3.5" />
+                                  История
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewAcceptances(docType.code)}
+                                  disabled={!docType.current_version}
+                                >
+                                  <Users className="mr-1.5 h-3.5 w-3.5" />
+                                  Согласия
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handlePublishDraft(docType.code)}>
+                                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                                  Новая версия
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="md:hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Документ</TableHead>
+                        <TableHead className="w-[88px] text-right">Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDocuments.map((docType) => {
+                        const docStatistics = statistics.find((s) => s.doc_type_code === docType.code);
+
+                        return (
+                          <TableRow key={docType.code} className="align-top">
+                            <TableCell className="align-top">
+                              <div className="space-y-2">
+                                <div>
+                                  <div className="font-medium text-foreground">{docType.title}</div>
+                                  <div className="text-xs font-mono text-muted-foreground">{docType.code}</div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-1.5">
+                                  <Badge className={getStatusBadgeClass(docType)}>
+                                    {getStatusLabel(docType)}
+                                  </Badge>
+                                  <Badge className="bg-secondary text-foreground border-border">
+                                    {docType.current_version ? `v${docType.current_version.version}` : 'Без версии'}
+                                  </Badge>
+                                  {docStatistics && (
+                                    <Badge className={getAcceptanceBadgeClass(docStatistics)}>
+                                      {docStatistics.acceptance_percentage}%
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                <div className="space-y-1 text-xs text-muted-foreground">
+                                  <div>Публикация: {formatDateTime(docType.current_version?.published_at)}</div>
+                                  <div>Редактор: {docType.current_version?.editor_name || '—'}</div>
+                                  <div>
+                                    Согласия: {docStatistics
+                                      ? `${formatInteger(docStatistics.accepted_users)} / ${formatInteger(docStatistics.total_users)} (${docStatistics.acceptance_percentage}%)`
+                                      : '—'}
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top text-right">
+                              <div className="flex flex-col items-end gap-2">
+                                <Button variant="ghost" size="sm" className="h-8" onClick={() => handleEdit(docType.code)}>
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-8" onClick={() => handleHistory(docType.code)}>
+                                  <History className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8"
+                                  onClick={() => handleViewAcceptances(docType.code)}
+                                  disabled={!docType.current_version}
+                                >
+                                  <Users className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-8" onClick={() => handlePublishDraft(docType.code)}>
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           )}

@@ -1,6 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Edit, Trash2, Shield } from "lucide-react";
 import type { Role } from "@/types/auth";
 import { formatRoleScope, getScopeBadgeColor, getStatusBadgeColor, formatRoleStatus } from "../utils/roleFormatters";
@@ -20,22 +28,21 @@ export function RolesTable({
 }: RolesTableProps) {
   if (isLoading) {
     return (
-      <div className="overflow-x-auto w-full rounded-lg border border-border">
-        <table className="w-full text-sm min-w-full table-fixed">
-          <thead className="bg-secondary">
-            <tr>
-              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[25%]">Название роли</th>
-              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Код</th>
-              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Область</th>
-              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Разрешения</th>
-              <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Статус</th>
-              <th className="px-4 py-3 text-right text-foreground font-medium text-xs uppercase w-[15%]">Действия</th>
-            </tr>
-          </thead>
-          <tbody className="bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[25%]">Название роли</TableHead>
+            <TableHead className="w-[15%]">Код</TableHead>
+            <TableHead className="w-[15%]">Область</TableHead>
+            <TableHead className="w-[15%]">Разрешения</TableHead>
+            <TableHead className="w-[15%]">Статус</TableHead>
+            <TableHead className="w-[15%] text-right">Действия</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
             {[...Array(5)].map((_, i) => (
-              <tr key={i} className="border-b border-border">
-                <td className="px-4 py-3">
+              <TableRow key={i}>
+                <TableCell>
                   <div className="flex items-center gap-2">
                     <Skeleton className="w-7 h-7 rounded-lg bg-secondary" />
                     <div className="space-y-1">
@@ -43,40 +50,37 @@ export function RolesTable({
                       <Skeleton className="h-3 w-48 bg-secondary" />
                     </div>
                   </div>
-                </td>
-                <td className="px-4 py-3"><Skeleton className="h-5 w-24 bg-secondary" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-5 w-20 bg-secondary" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-4 w-8 bg-secondary" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-5 w-16 bg-secondary" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-7 w-16 bg-secondary ml-auto" /></td>
-              </tr>
+                </TableCell>
+                <TableCell><Skeleton className="h-5 w-24 bg-secondary" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20 bg-secondary" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-8 bg-secondary" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-16 bg-secondary" /></TableCell>
+                <TableCell><Skeleton className="h-7 w-16 bg-secondary ml-auto" /></TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
+        </TableBody>
+      </Table>
     );
   }
 
   return (
-    <div className="overflow-x-auto w-full rounded-lg border border-border">
-      <table className="w-full text-sm min-w-full table-fixed">
-        <thead className="bg-secondary">
-          <tr>
-            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[25%]">Название роли</th>
-            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Код</th>
-            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Область</th>
-            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Разрешения</th>
-            <th className="px-4 py-3 text-left text-foreground font-medium text-xs uppercase w-[15%]">Статус</th>
-            <th className="px-4 py-3 text-right text-foreground font-medium text-xs uppercase w-[15%]">Действия</th>
-          </tr>
-        </thead>
-        <tbody className="bg-card">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[25%]">Название роли</TableHead>
+          <TableHead className="w-[15%]">Код</TableHead>
+          <TableHead className="w-[15%]">Область</TableHead>
+          <TableHead className="w-[15%]">Разрешения</TableHead>
+          <TableHead className="w-[15%]">Статус</TableHead>
+          <TableHead className="w-[15%] text-right">Действия</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
           {roles.map((role) => (
-            <tr
+            <TableRow
               key={role.id}
-              className="border-b border-border hover:bg-secondary transition-colors"
             >
-              <td className="px-4 py-3">
+              <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 bg-secondary rounded-lg flex items-center justify-center flex-shrink-0">
                     <Shield className="w-3.5 h-3.5 text-foreground/80" />
@@ -90,32 +94,32 @@ export function RolesTable({
                     </div>
                   </div>
                 </div>
-              </td>
-              <td className="px-4 py-3">
+              </TableCell>
+              <TableCell>
                 <code className="bg-secondary text-foreground px-2 py-0.5 rounded text-xs">
                   {role.code}
                 </code>
-              </td>
-              <td className="px-4 py-3">
+              </TableCell>
+              <TableCell>
                 <Badge
                   variant="outline"
                   className={`text-xs ${getScopeBadgeColor(role.scope)}`}
                 >
                   {formatRoleScope(role.scope)}
                 </Badge>
-              </td>
-              <td className="px-4 py-3">
-                <span className="text-foreground text-sm">{role.permissions.length}</span>
-              </td>
-              <td className="px-4 py-3">
+              </TableCell>
+              <TableCell className="font-mono text-foreground/80">
+                {role.permissions.length.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+              </TableCell>
+              <TableCell>
                 <Badge
                   variant="outline"
                   className={`text-xs ${getStatusBadgeColor(role.is_active)}`}
                 >
                   {formatRoleStatus(role.is_active)}
                 </Badge>
-              </td>
-              <td className="px-4 py-3 text-right">
+              </TableCell>
+              <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
                   <Button
                     variant="ghost"
@@ -136,11 +140,10 @@ export function RolesTable({
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+      </TableBody>
+    </Table>
   );
 }

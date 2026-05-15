@@ -4,8 +4,11 @@
 
 import React, { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Card, CardContent } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Users as UsersIcon, Search, Trash2 } from 'lucide-react'
 import { User as UserType, UserStatus } from '@/types/auth'
@@ -21,6 +24,18 @@ import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from '@/compon
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { UsersTable } from './Users/components/UsersTable';
 import { UsersCards } from './Users/components/UsersCards';
+import {
+  FILTER_PANEL_CLASS,
+  FILTER_PANEL_CONTROL_CLASS,
+  FILTER_PANEL_FIELD_CLASS,
+  FILTER_PANEL_FIELDS_CLASS,
+  FILTER_PANEL_HEADER_CLASS,
+  FILTER_PANEL_TITLE_CLASS,
+} from '@/components/common/filterPanel';
+
+function formatInteger(value: number): string {
+  return value.toLocaleString('ru-RU', { maximumFractionDigits: 0 })
+}
 
 export default function Users() {
   const { hasExternalDatabase } = useDataSourceInfo()
@@ -169,63 +184,66 @@ export default function Users() {
         </div>
 
         {/* Панель управления */}
-        <div className="bg-card mb-6 rounded-lg border border-border">
-          <div className="px-4 md:px-6 py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                  <UsersIcon className="w-4 h-4 text-foreground" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Пользователи</h2>
-                  <div className="text-sm text-muted-foreground">
-                    Всего: {filteredUsers.length} из {users.length}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={handleCreate}
-                  className="bg-primary hover:bg-primary/80 text-white flex-1 sm:flex-initial"
-                  size="sm"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Новый пользователь</span>
-                  <span className="sm:hidden">Новый</span>
-                </Button>
-                {/* Кнопка очистки удаленных пользователей - только для администраторов */}
-                {(user?.role === 'super_admin' || user?.role === 'system_admin' || user?.role === 'network_admin' || user?.email?.includes('admin')) && (
-                  <Button
-                    onClick={handleCleanupDeletedUsers}
-                    variant="outline"
-                    size="sm"
-                    className="bg-red-600/10 border-red-500 text-red-600 dark:text-red-400 hover:bg-red-600/20 hover:text-red-300 flex-1 sm:flex-initial"
-                    title="Физически удалить всех помеченных к удалению пользователей"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Очистить удаленных</span>
-                    <span className="sm:hidden">Очистить</span>
-                  </Button>
-                )}
-              </div>
+        <div className={`${FILTER_PANEL_CLASS} mb-6`}>
+          <div className={FILTER_PANEL_HEADER_CLASS}>
+            <div className={FILTER_PANEL_TITLE_CLASS}>
+              <UsersIcon className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">Фильтры</span>
+              <span className="text-sm text-muted-foreground">
+                Всего: {formatInteger(filteredUsers.length)} из {formatInteger(users.length)}
+              </span>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={handleCreate}
+                variant="outline"
+                size="sm"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Новый пользователь</span>
+                <span className="sm:hidden">Новый</span>
+              </Button>
+              {(user?.role === 'super_admin' || user?.role === 'system_admin' || user?.role === 'network_admin' || user?.email?.includes('admin')) && (
+                <Button
+                  onClick={handleCleanupDeletedUsers}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-initial text-red-700 border-red-200 bg-red-50 dark:text-red-300 dark:border-red-900/60 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-950/60"
+                  title="Физически удалить всех помеченных к удалению пользователей"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Очистить удаленных</span>
+                  <span className="sm:hidden">Очистить</span>
+                </Button>
+              )}
+            </div>
+          </div>
 
-            {/* Фильтры */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <div className={FILTER_PANEL_FIELDS_CLASS}>
+            <div className={`${FILTER_PANEL_FIELD_CLASS} sm:min-w-[260px]`}>
+              <Label htmlFor="users-search" className="text-xs text-muted-foreground">
+                Поиск
+              </Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Поиск пользователей..."
+                  id="users-search"
+                  placeholder="Имя или email"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-secondary border-border text-foreground placeholder-muted-foreground"
+                  className={`${FILTER_PANEL_CONTROL_CLASS} pl-10`}
                 />
               </div>
+            </div>
+            <div className={FILTER_PANEL_FIELD_CLASS}>
+              <Label htmlFor="users-status" className="text-xs text-muted-foreground">
+                Статус
+              </Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px] bg-secondary border-border text-foreground">
+                <SelectTrigger id="users-status" className={FILTER_PANEL_CONTROL_CLASS}>
                   <SelectValue placeholder="Статус" />
                 </SelectTrigger>
-                <SelectContent className="bg-secondary border-border">
+                <SelectContent>
                   <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="active">Активные</SelectItem>
                   <SelectItem value="inactive">Неактивные</SelectItem>
@@ -237,22 +255,20 @@ export default function Users() {
 
         {/* Список пользователей */}
         {filteredUsers.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-              <UsersIcon className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {searchTerm || statusFilter !== "all" ? 'Пользователи не найдены' : 'Нет пользователей'}
-            </h3>
-            <p className="text-muted-foreground">
-              {searchTerm || statusFilter !== "all"
-                ? 'Попробуйте изменить критерии поиска'
-                : 'Создайте первого пользователя системы'
-              }
-            </p>
-          </div>
+          <Card className="border-border bg-card">
+            <CardContent className="p-0">
+              <EmptyState
+                className="py-16"
+                title={searchTerm || statusFilter !== "all" ? 'Пользователи не найдены' : 'Нет пользователей'}
+                description={searchTerm || statusFilter !== "all"
+                  ? 'Попробуйте изменить критерии поиска'
+                  : 'Создайте первого пользователя системы'}
+              />
+            </CardContent>
+          </Card>
         ) : (
-          <>
+          <Card className="border-border bg-card">
+            <CardContent className="p-0">
             {/* Desktop таблица */}
             <div className="hidden md:block">
               <UsersTable
@@ -277,7 +293,8 @@ export default function Users() {
                 />
               )}
             </div>
-          </>
+            </CardContent>
+          </Card>
         )}
 
       <UserFormDialog

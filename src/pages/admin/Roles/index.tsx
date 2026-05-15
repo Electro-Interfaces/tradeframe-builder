@@ -5,7 +5,10 @@
 import { useState, useMemo } from 'react';
 import { Plus, Shield, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MainLayout } from '@/components/layout/MainLayout';
@@ -21,6 +24,18 @@ import { useRoles } from './hooks/useRoles';
 import { useRoleDialogs } from './hooks/useRoleDialogs';
 import { RolesTable } from './components/RolesTable';
 import { RolesCards } from './components/RolesCards';
+import {
+  FILTER_PANEL_CLASS,
+  FILTER_PANEL_CONTROL_CLASS,
+  FILTER_PANEL_FIELD_CLASS,
+  FILTER_PANEL_FIELDS_CLASS,
+  FILTER_PANEL_HEADER_CLASS,
+  FILTER_PANEL_TITLE_CLASS,
+} from '@/components/common/filterPanel';
+
+function formatInteger(value: number): string {
+  return value.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+}
 
 export default function RolesPage() {
   const isMobile = useIsMobile();
@@ -90,57 +105,61 @@ export default function RolesPage() {
         </div>
 
         {/* Панель управления */}
-        <div className="bg-card mb-6 rounded-lg border border-border">
-          <div className="px-4 md:px-6 py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-4 h-4 text-foreground" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Роли системы</h2>
-                  <div className="text-sm text-muted-foreground">
-                    Всего: {filteredRoles.length} из {rolesState.roles.length}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={dialogsState.openCreateDialog}
-                  className="bg-primary hover:bg-primary/80 text-white flex-1 sm:flex-initial"
-                  size="sm"
-                  disabled={rolesState.loading}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Создать роль</span>
-                  <span className="sm:hidden">Создать</span>
-                </Button>
-                <Button
-                  onClick={rolesState.createPredefinedRoles}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-initial"
-                  size="sm"
-                  disabled={rolesState.loading}
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Создать базовые роли</span>
-                  <span className="sm:hidden">Базовые</span>
-                </Button>
-              </div>
+        <div className={`${FILTER_PANEL_CLASS} mb-6`}>
+          <div className={FILTER_PANEL_HEADER_CLASS}>
+            <div className={FILTER_PANEL_TITLE_CLASS}>
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">Фильтры</span>
+              <span className="text-sm text-muted-foreground">
+                Всего: {formatInteger(filteredRoles.length)} из {formatInteger(rolesState.roles.length)}
+              </span>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={dialogsState.openCreateDialog}
+                variant="outline"
+                size="sm"
+                disabled={rolesState.loading}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Создать роль</span>
+                <span className="sm:hidden">Создать</span>
+              </Button>
+              <Button
+                onClick={rolesState.createPredefinedRoles}
+                variant="outline"
+                size="sm"
+                disabled={rolesState.loading}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Создать базовые роли</span>
+                <span className="sm:hidden">Базовые</span>
+              </Button>
+            </div>
+          </div>
 
-            {/* Фильтры */}
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
+          <div className={FILTER_PANEL_FIELDS_CLASS}>
+            <div className={`${FILTER_PANEL_FIELD_CLASS} sm:min-w-[260px]`}>
+              <Label htmlFor="roles-search" className="text-xs text-muted-foreground">
+                Поиск
+              </Label>
+              <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Поиск ролей по названию или описанию..."
+                  id="roles-search"
+                  placeholder="Название, описание или код"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-secondary border-border text-foreground placeholder-muted-foreground pl-10"
+                  className={`${FILTER_PANEL_CONTROL_CLASS} pl-10`}
                 />
               </div>
+            </div>
+            <div className={FILTER_PANEL_FIELD_CLASS}>
+              <Label htmlFor="roles-scope" className="text-xs text-muted-foreground">
+                Область
+              </Label>
               <Select value={scopeFilter} onValueChange={setScopeFilter}>
-                <SelectTrigger className="bg-secondary border-border text-foreground w-full md:w-48">
+                <SelectTrigger id="roles-scope" className={FILTER_PANEL_CONTROL_CLASS}>
                   <SelectValue placeholder="Все области" />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,54 +175,53 @@ export default function RolesPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="roles">Роли</TabsTrigger>
-            <TabsTrigger value="setup">Быстрая настройка</TabsTrigger>
-            <TabsTrigger value="permissions">Конструктор разрешений</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-card">
+            <TabsTrigger value="roles" className="data-[state=active]:bg-primary">Роли</TabsTrigger>
+            <TabsTrigger value="setup" className="data-[state=active]:bg-primary">Быстрая настройка</TabsTrigger>
+            <TabsTrigger value="permissions" className="data-[state=active]:bg-primary">Конструктор разрешений</TabsTrigger>
           </TabsList>
 
           {/* Список ролей */}
           <TabsContent value="roles" className="mt-6">
             {filteredRoles.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  {searchTerm || scopeFilter !== 'all' ? 'Роли не найдены' : 'Нет ролей'}
-                </h3>
-                <p className="text-muted-foreground">
-                  {searchTerm || scopeFilter !== 'all'
-                    ? 'Попробуйте изменить критерии поиска'
-                    : 'Создайте первую роль для управления доступом пользователей'
-                  }
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Desktop таблица */}
-                <div className="hidden md:block">
-                  <RolesTable
-                    roles={filteredRoles}
-                    isLoading={rolesState.loading}
-                    onEdit={dialogsState.openEditDialog}
-                    onDelete={dialogsState.openDeleteDialog}
+              <Card className="border-border bg-card">
+                <CardContent className="p-0">
+                  <EmptyState
+                    className="py-16"
+                    title={searchTerm || scopeFilter !== 'all' ? 'Роли не найдены' : 'Нет ролей'}
+                    description={searchTerm || scopeFilter !== 'all'
+                      ? 'Попробуйте изменить критерии поиска'
+                      : 'Создайте первую роль для управления доступом пользователей'}
                   />
-                </div>
-
-                {/* Mobile карточки */}
-                <div className="md:hidden">
-                  {rolesState.loading ? (
-                    <div className="text-center py-8 text-muted-foreground">Загрузка...</div>
-                  ) : (
-                    <RolesCards
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-border bg-card">
+                <CardContent className="p-0">
+                  {/* Desktop таблица */}
+                  <div className="hidden md:block">
+                    <RolesTable
                       roles={filteredRoles}
+                      isLoading={rolesState.loading}
                       onEdit={dialogsState.openEditDialog}
                       onDelete={dialogsState.openDeleteDialog}
                     />
-                  )}
-                </div>
-              </>
+                  </div>
+
+                  {/* Mobile карточки */}
+                  <div className="md:hidden">
+                    {rolesState.loading ? (
+                      <div className="py-8 text-center text-muted-foreground">Загрузка...</div>
+                    ) : (
+                      <RolesCards
+                        roles={filteredRoles}
+                        onEdit={dialogsState.openEditDialog}
+                        onDelete={dialogsState.openDeleteDialog}
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 

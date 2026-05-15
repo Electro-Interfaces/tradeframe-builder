@@ -27,14 +27,7 @@ export function formatRoleStatus(isActive: boolean): string {
  * Получение цвета для Badge области видимости
  */
 export function getScopeBadgeColor(scope: string): string {
-  const colorMap: Record<string, string> = {
-    'global': 'text-purple-400 border-purple-500 bg-purple-500/10',
-    'network': 'text-primary/70 border-primary bg-primary/10',
-    'trading_point': 'text-green-400 border-green-500 bg-emerald-500/10',
-    'assigned': 'text-orange-400 border-orange-500 bg-orange-500/10'
-  };
-
-  return colorMap[scope] || 'text-muted-foreground border-border bg-muted-foreground/10';
+  return 'text-foreground border-border bg-secondary';
 }
 
 /**
@@ -42,6 +35,6 @@ export function getScopeBadgeColor(scope: string): string {
  */
 export function getStatusBadgeColor(isActive: boolean): string {
   return isActive
-    ? 'text-green-400 border-green-500 bg-emerald-500/10'
-    : 'text-muted-foreground border-border bg-muted-foreground/10';
+    ? 'text-foreground border-border bg-secondary'
+    : 'text-red-700 border-red-200 bg-red-50 dark:text-red-300 dark:border-red-900/60 dark:bg-red-950/40';
 }
