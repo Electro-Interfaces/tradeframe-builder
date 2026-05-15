@@ -1,17 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Edit, Trash2 } from "lucide-react";
 import { TradingPoint, TradingPointExternalCode } from "@/types/tradingpoint";
 
-/**
- * Фильтрует значимые external codes (не дефолтные STS)
- */
 function getSignificantCodes(codes: TradingPointExternalCode[]): TradingPointExternalCode[] {
-  return codes.filter(c => 
-    c.isActive && 
-    !c.id.startsWith('default-') && 
-    c.system !== 'sts'
-  );
+  return codes.filter((code) => code.isActive && !code.id.startsWith('default-') && code.system !== 'sts');
 }
 
 interface TradingPointsCardsProps {
@@ -27,91 +28,90 @@ export function TradingPointsCards({
   loading,
   actionLoading,
   onEdit,
-  onDelete
+  onDelete,
 }: TradingPointsCardsProps) {
   if (loading) {
-    return (
-      <div className="text-center text-muted-foreground py-8">
-        Загрузка торговых точек...
-      </div>
-    );
+    return <div className="py-8 text-center text-muted-foreground">Загрузка торговых точек...</div>;
   }
 
   if (tradingPoints.length === 0) {
-    return (
-      <div className="text-center text-muted-foreground py-8">
-        Нет торговых точек в этой сети
-      </div>
-    );
+    return <div className="py-8 text-center text-muted-foreground">Нет торговых точек в этой сети</div>;
   }
 
   return (
-    <div className="space-y-3 px-4 pb-6">
-      {tradingPoints.map((point) => {
-        const significantCodes = getSignificantCodes(point.externalCodes || []);
-        return (
-          <div
-            key={point.id}
-            className="bg-secondary rounded-lg p-4 hover:bg-secondary transition-colors"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-foreground text-base mb-1">{point.name}</div>
-                <div className="text-sm text-muted-foreground mb-1">
-                  {point.geolocation?.address || point.geolocation?.city || '—'}
-                </div>
-                {point.phone && (
-                  <div className="text-sm text-muted-foreground mb-2">{point.phone}</div>
-                )}
-                <div className="flex items-center gap-3 text-xs mb-2">
-                  <Badge className={point.isBlocked ? "bg-red-600 text-white" : "bg-emerald-600 text-white"}>
-                    {point.isBlocked ? "Заблокирован" : "Активный"}
-                  </Badge>
-                  <span className="text-muted-foreground">
-                    {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') :
-                     point.createdAt ? new Date(point.createdAt).toLocaleDateString('ru-RU') : '—'}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  {point.external_id && (
-                    <span className="bg-primary/10 dark:bg-blue-900/50 text-primary dark:text-blue-300 px-2 py-0.5 rounded font-mono">
-                      API: {point.external_id}
-                    </span>
-                  )}
-                  {significantCodes.map(code => (
-                    <span 
-                      key={code.id}
-                      className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded font-mono"
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Торговая точка</TableHead>
+          <TableHead className="w-[88px] text-right">Действия</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {tradingPoints.map((point) => {
+          const significantCodes = getSignificantCodes(point.externalCodes || []);
+
+          return (
+            <TableRow key={point.id} className="align-top">
+              <TableCell className="align-top">
+                <div className="space-y-2">
+                  <div className="text-base font-medium text-foreground">{point.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {point.geolocation?.address || point.geolocation?.city || '—'}
+                  </div>
+                  {point.phone && <div className="text-sm text-muted-foreground">{point.phone}</div>}
+                  <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <Badge
+                      variant="outline"
+                      className={point.isBlocked
+                        ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300'
+                        : 'border-border bg-secondary text-foreground'}
                     >
-                      {code.system.toUpperCase()}: {code.code}
+                      {point.isBlocked ? 'Заблокирован' : 'Активный'}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') : point.createdAt ? new Date(point.createdAt).toLocaleDateString('ru-RU') : '—'}
                     </span>
-                  ))}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {point.external_id && (
+                      <span className="rounded bg-secondary px-2 py-0.5 font-mono text-foreground">
+                        API: {point.external_id}
+                      </span>
+                    )}
+                    {significantCodes.map((code) => (
+                      <Badge key={code.id} variant="outline" className="border-border bg-secondary text-foreground font-mono text-xs">
+                        {code.system.toUpperCase()}: {code.code}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                  onClick={() => onEdit(point)}
-                  disabled={actionLoading === `edit-${point.id}` || actionLoading === `delete-${point.id}`}
-                >
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
-                  onClick={() => onDelete(point)}
-                  disabled={actionLoading === `edit-${point.id}` || actionLoading === `delete-${point.id}`}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+              </TableCell>
+              <TableCell className="align-top text-right">
+                <div className="flex items-center gap-1 justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => onEdit(point)}
+                    disabled={actionLoading === `edit-${point.id}` || actionLoading === `delete-${point.id}`}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
+                    onClick={() => onDelete(point)}
+                    disabled={actionLoading === `edit-${point.id}` || actionLoading === `delete-${point.id}`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }

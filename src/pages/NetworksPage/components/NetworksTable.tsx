@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Edit, Trash2 } from "lucide-react";
 import { Network } from "@/types/network";
-import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface NetworksTableProps {
   networks: Network[];
@@ -19,140 +26,79 @@ export function NetworksTable({
   actionLoading,
   onSelect,
   onEdit,
-  onDelete
+  onDelete,
 }: NetworksTableProps) {
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return (
-      <div className="space-y-2">
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[8%]">API ID</TableHead>
+          <TableHead className="w-[35%]">Название</TableHead>
+          <TableHead className="w-[12%]">Тип</TableHead>
+          <TableHead className="w-[12%] text-right">Точек</TableHead>
+          <TableHead className="w-[18%] text-right">Обновлено</TableHead>
+          <TableHead className="w-[15%] text-right">Действия</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {networks.map((network) => (
-          <div
+          <TableRow
             key={network.id}
             onClick={() => onSelect(network.id)}
-            className={`rounded-lg border p-3 cursor-pointer transition-colors ${
-              selectedNetworkId === network.id
-                ? 'bg-primary/20 border-primary'
-                : 'bg-card border-border hover:bg-secondary'
-            }`}
+            data-state={selectedNetworkId === network.id ? 'selected' : undefined}
+            className="cursor-pointer"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-foreground">{network.name}</div>
-                {network.description && (
-                  <div className="text-xs text-muted-foreground mt-0.5 truncate">{network.description}</div>
-                )}
+            <TableCell>
+              <span className="rounded bg-secondary px-2 py-1 font-mono text-xs text-foreground">
+                {network.external_id || 'не задан'}
+              </span>
+            </TableCell>
+            <TableCell>
+              <div>
+                <div className="text-base font-medium text-foreground">{network.name}</div>
+                <div className="text-sm text-muted-foreground">{network.description}</div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                  onClick={(e) => { e.stopPropagation(); onEdit(network); }}
-                  disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
-                  onClick={(e) => { e.stopPropagation(); onDelete(network); }}
-                  disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {network.external_id && (
-                <span className="text-xs bg-primary/10 dark:bg-blue-900/50 text-primary dark:text-blue-300 px-1.5 py-0.5 rounded font-mono">
-                  {network.external_id}
-                </span>
-              )}
-              <Badge variant="secondary" className="bg-secondary text-foreground text-xs">
+            </TableCell>
+            <TableCell>
+              <Badge variant="outline" className="border-border bg-secondary text-foreground">
                 {network.type}
               </Badge>
-              <span className="text-xs text-muted-foreground">Точек: {network.pointsCount}</span>
-            </div>
-          </div>
+            </TableCell>
+            <TableCell className="text-right font-mono text-foreground/80">
+              {network.pointsCount.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+            </TableCell>
+            <TableCell className="text-right text-muted-foreground">Сегодня</TableCell>
+            <TableCell className="text-right">
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onEdit(network);
+                  }}
+                  disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:bg-secondary hover:text-red-400"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDelete(network);
+                  }}
+                  disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
         ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto w-full rounded-lg border border-border">
-      <table className="w-full text-sm min-w-full table-fixed">
-        <thead className="bg-secondary">
-          <tr>
-            <th className="px-6 py-4 text-left text-foreground font-medium w-[8%]">API ID</th>
-            <th className="px-6 py-4 text-left text-foreground font-medium w-[35%]">НАЗВАНИЕ</th>
-            <th className="px-6 py-4 text-left text-foreground font-medium w-[12%]">ТИП</th>
-            <th className="px-6 py-4 text-right text-foreground font-medium w-[12%]">ТОЧЕК</th>
-            <th className="px-6 py-4 text-right text-foreground font-medium w-[18%]">ОБНОВЛЕНО</th>
-            <th className="px-6 py-4 text-right text-foreground font-medium w-[15%]">ДЕЙСТВИЯ</th>
-          </tr>
-        </thead>
-        <tbody className="bg-card">
-          {networks.map((network) => (
-            <tr
-              key={network.id}
-              onClick={() => onSelect(network.id)}
-              className={`border-b border-border cursor-pointer hover:bg-secondary transition-colors ${
-                selectedNetworkId === network.id ? 'bg-primary/20 border-primary' : ''
-              }`}
-            >
-              <td className="px-4 md:px-6 py-4">
-                <span className="text-xs bg-primary/10 dark:bg-blue-900/50 text-primary dark:text-blue-300 px-2 py-1 rounded font-mono">
-                  {network.external_id || 'не задан'}
-                </span>
-              </td>
-              <td className="px-4 md:px-6 py-4">
-                <div>
-                  <div className="font-medium text-foreground text-base">{network.name}</div>
-                  <div className="text-sm text-muted-foreground">{network.description}</div>
-                </div>
-              </td>
-              <td className="px-4 md:px-6 py-4">
-                <Badge variant="secondary" className="bg-secondary text-foreground">
-                  {network.type}
-                </Badge>
-              </td>
-              <td className="px-6 py-4 text-right text-foreground font-medium">{network.pointsCount}</td>
-              <td className="px-6 py-4 text-right text-muted-foreground">Сегодня</td>
-              <td className="px-6 py-4 text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit(network);
-                    }}
-                    disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(network);
-                    }}
-                    disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      </TableBody>
+    </Table>
   );
 }

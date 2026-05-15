@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NetworksTable } from "./NetworksTable";
 import { NetworksCards } from "./NetworksCards";
@@ -29,28 +30,28 @@ export function NetworksSection({
 }: NetworksSectionProps) {
   if (loading) {
     return (
-      <div className="bg-card mb-6 w-full rounded-lg">
-        <div className="px-4 md:px-6 py-4">
+      <Card className="mb-6 w-full border-border bg-card">
+        <CardContent className="px-4 py-4 md:px-6">
           <div className="text-foreground">Загрузка...</div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-card mb-6 w-full rounded-lg">
-      <div className="px-4 md:px-6 py-4">
+    <Card className="mb-6 w-full border-border bg-card">
+      <CardContent className="p-0">
+      <div className="px-4 py-4 md:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-foreground text-sm">🏪</span>
-            </div>
+            <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0 text-foreground text-sm">🏪</div>
             <h2 className="text-lg font-semibold text-foreground">Торговые сети</h2>
           </div>
           <Button
             onClick={onCreateClick}
             disabled={actionLoading === 'create'}
-            className="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+            variant="outline"
+            className="flex-shrink-0"
           >
             {actionLoading === 'create' ? 'Создание...' : '+ Создать сеть'}
           </Button>
@@ -65,7 +66,7 @@ export function NetworksSection({
             cta={
               <Button
                 onClick={onCreateClick}
-                className="bg-primary hover:bg-primary/80 text-white"
+                variant="outline"
               >
                 + Создать сеть
               </Button>
@@ -100,6 +101,7 @@ export function NetworksSection({
           </div>
         </>
       )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
