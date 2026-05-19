@@ -286,6 +286,42 @@ export default function LegalDocuments() {
           </div>
         </div>
 
+        {/* Сводка по всем документам */}
+        <div className="mx-4 md:mx-6 lg:mx-8 mb-6">
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Общая статистика
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`grid ${isMobile ? 'grid-cols-2 gap-4' : 'grid-cols-3 gap-4'}`}>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-foreground">
+                    {formatInteger(documentTypes.length)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Типов документов</div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-xl font-bold text-foreground">
+                    {formatInteger(documentTypes.filter(d => d.current_version).length)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Опубликовано</div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-xl font-bold text-foreground">
+                    {formatInteger(statistics.length > 0 ? statistics[0].total_users : 0)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Всего пользователей</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="mx-4 md:mx-6 lg:mx-8 mb-6">
           <div className={FILTER_PANEL_CLASS}>
             <div className={FILTER_PANEL_HEADER_CLASS}>
@@ -342,42 +378,6 @@ export default function LegalDocuments() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Сводка по всем документам */}
-        <div className="mx-4 md:mx-6 lg:mx-8 mb-6">
-          <Card className="bg-card border-border">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Общая статистика
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`grid ${isMobile ? 'grid-cols-2 gap-4' : 'grid-cols-3 gap-4'}`}>
-                <div className="text-center">
-                  <div className="text-xl font-bold text-foreground">
-                    {formatInteger(documentTypes.length)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Типов документов</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-xl font-bold text-foreground">
-                    {formatInteger(documentTypes.filter(d => d.current_version).length)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Опубликовано</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-xl font-bold text-foreground">
-                    {formatInteger(statistics.length > 0 ? statistics[0].total_users : 0)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Всего пользователей</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Мобильные кнопки действий */}
