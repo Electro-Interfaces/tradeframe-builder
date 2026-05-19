@@ -732,18 +732,16 @@ export default function OnlineOrdersMonitor() {
                     <div className="text-sm space-y-0.5">
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Заказ: {order.orderVolume.toFixed(2)} л</span>
-                        <span className="font-medium text-amber-600 dark:text-amber-400">
+                        <span className={`font-medium ${getOrderAmountTextClass(order.orderVolume, order.volume)}`}>
                           {onlineOrdersService.formatCurrency(order.orderTotal)}
                         </span>
                       </div>
-                      {order.volume > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Факт: {order.volume.toFixed(2)} л</span>
-                          <span className="font-medium text-green-600 dark:text-green-400">
-                            {onlineOrdersService.formatCurrency(order.total)}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Факт: {order.volume > 0 ? `${order.volume.toFixed(2)} л` : '— л'}</span>
+                        <span className={`font-medium ${getOrderAmountTextClass(order.orderVolume, order.volume)}`}>
+                          {order.total > 0 ? onlineOrdersService.formatCurrency(order.total) : '—'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
