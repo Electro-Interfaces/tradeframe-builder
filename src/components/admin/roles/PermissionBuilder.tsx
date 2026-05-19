@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { adminRolesService } from '@/services/adminRolesService'
 import { PERMISSION_SECTIONS } from '@/config/permissions'
 import type { Role, PermissionAction, Permission } from '@/types/auth'
@@ -28,6 +29,7 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
 }
 
 export function PermissionBuilder() {
+  const isMobile = useIsMobile()
   const [roles, setRoles] = useState<Role[]>([])
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [editedPermissions, setEditedPermissions] = useState<Permission[]>([])
@@ -208,14 +210,14 @@ export function PermissionBuilder() {
           {/* Информация о роли */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between text-foreground">
-                <div className="flex items-center space-x-2">
+              <CardTitle className={`text-foreground ${isMobile ? 'space-y-3' : 'flex items-center justify-between'}`}>
+                <div className="flex min-w-0 items-center space-x-2">
                   <span>{selectedRole.name}</span>
                   <Badge variant="default">
                     Пользовательская
                   </Badge>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className={`flex ${isMobile ? 'flex-wrap gap-2' : 'items-center space-x-2'}`}>
                   <Badge variant="outline">
                     {getEditedPermissionCount()} разрешений
                   </Badge>
@@ -240,14 +242,15 @@ export function PermissionBuilder() {
           {/* Редактор разрешений */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-foreground flex items-center justify-between">
+              <CardTitle className={`text-foreground ${isMobile ? 'space-y-3' : 'flex items-center justify-between'}`}>
                 <span>Редактирование разрешений</span>
-                <div className="flex space-x-2">
+                <div className={`flex ${isMobile ? 'flex-col gap-2' : 'space-x-2'}`}>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={resetPermissions}
                     disabled={!hasChanges()}
+                    className={isMobile ? 'w-full' : ''}
                     
                   >
                     Сбросить
@@ -256,7 +259,7 @@ export function PermissionBuilder() {
                     size="sm"
                     onClick={savePermissions}
                     disabled={!hasChanges() || saving}
-                    className="bg-primary hover:bg-primary/80"
+                    className={isMobile ? 'w-full bg-primary hover:bg-primary/80' : 'bg-primary hover:bg-primary/80'}
                   >
                     {saving ? 'Сохранение...' : 'Сохранить'}
                   </Button>
@@ -269,9 +272,9 @@ export function PermissionBuilder() {
             <CardContent>
               <div className="space-y-4">
                 {Object.values(PERMISSION_SECTIONS).map(section => (
-                  <div key={section.code} className="border border-border rounded-lg p-4 bg-secondary">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
+                  <div key={section.code} className="overflow-hidden rounded-lg border border-border bg-secondary p-3 sm:p-4">
+                    <div className="mb-4">
+                      <div className="min-w-0">
                         <h3 className="font-medium text-foreground">{section.name}</h3>
                         <p className="text-sm text-muted-foreground">{section.description}</p>
                       </div>
@@ -279,14 +282,14 @@ export function PermissionBuilder() {
                     
                     <div className="space-y-3">
                       {Object.values(section.resources).map(resource => (
-                        <div key={resource.code} className="border border-border rounded p-3 bg-secondary">
-                          <div className="flex items-start justify-between mb-3">
+                        <div key={resource.code} className="rounded border border-border bg-secondary p-3 overflow-hidden">
+                          <div className="mb-3 min-w-0">
                             <div>
                               <h4 className="font-medium text-foreground">{resource.name}</h4>
                               <p className="text-sm text-muted-foreground">{resource.description}</p>
                             </div>
                           </div>
-                          <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-4'}`}>
+                          <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
                             {(section.code === 'menu_visibility' ?
                               ['view_menu'] as const :
                               ['read', 'write', 'delete', 'manage'] as const
@@ -305,7 +308,7 @@ export function PermissionBuilder() {
                                 <label
                                   key={action}
                                   className={`
-                                    flex items-center justify-center space-x-2 cursor-pointer p-2 rounded border-2 transition-all hover:shadow-sm
+                                    flex min-w-0 items-center justify-start space-x-2 cursor-pointer rounded border-2 p-2 transition-all hover:shadow-sm
                                     ${colorClasses[typedAction]}
                                   `}
                                   onClick={() => {
@@ -318,7 +321,7 @@ export function PermissionBuilder() {
                                     disabled={false}
                                     className="data-[state=checked]:bg-current data-[state=checked]:border-current border-2 border-current"
                                   />
-                                  <span className="text-sm font-medium">{ACTION_LABELS[typedAction]}</span>
+                                  <span className="min-w-0 text-sm font-medium break-words">{ACTION_LABELS[typedAction]}</span>
                                 </label>
                               )
                             })}

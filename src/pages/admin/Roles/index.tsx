@@ -98,7 +98,7 @@ export default function RolesPage() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <div className="flex items-center justify-between">
+          <div className={`flex gap-3 ${isMobile ? 'flex-col items-start' : 'items-center justify-between'}`}>
             <h1 className="text-2xl font-semibold text-foreground">Роли системы</h1>
             <HelpButton route="/admin/roles" variant="text" size="sm" className="flex-shrink-0" />
           </div>
@@ -106,20 +106,23 @@ export default function RolesPage() {
 
         {/* Панель управления */}
         <div className={`${FILTER_PANEL_CLASS} mb-6`}>
-          <div className={FILTER_PANEL_HEADER_CLASS}>
-            <div className={FILTER_PANEL_TITLE_CLASS}>
-              <Shield className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-foreground">Фильтры</span>
-              <span className="text-sm text-muted-foreground">
+          <div className={`${FILTER_PANEL_HEADER_CLASS} ${isMobile ? 'flex-col items-stretch' : ''}`}>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+              <div className={FILTER_PANEL_TITLE_CLASS}>
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium text-foreground">Фильтры</span>
+              </div>
+              <span className="text-sm text-muted-foreground sm:ml-1">
                 Всего: {formatInteger(filteredRoles.length)} из {formatInteger(rolesState.roles.length)}
               </span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className={`flex gap-2 ${isMobile ? 'flex-col' : 'flex-wrap'}`}>
               <Button
                 onClick={dialogsState.openCreateDialog}
                 variant="outline"
                 size="sm"
                 disabled={rolesState.loading}
+                className={isMobile ? 'w-full justify-center' : ''}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Создать роль</span>
@@ -130,6 +133,7 @@ export default function RolesPage() {
                 variant="outline"
                 size="sm"
                 disabled={rolesState.loading}
+                className={isMobile ? 'w-full justify-center' : ''}
               >
                 <Shield className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Создать базовые роли</span>
@@ -175,11 +179,21 @@ export default function RolesPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-card">
-            <TabsTrigger value="roles" className="data-[state=active]:bg-primary">Роли</TabsTrigger>
-            <TabsTrigger value="setup" className="data-[state=active]:bg-primary">Быстрая настройка</TabsTrigger>
-            <TabsTrigger value="permissions" className="data-[state=active]:bg-primary">Конструктор разрешений</TabsTrigger>
-          </TabsList>
+          {isMobile ? (
+            <div className="overflow-x-auto pb-1">
+              <TabsList className="inline-flex min-w-max gap-1 bg-card">
+                <TabsTrigger value="roles" className="shrink-0 whitespace-nowrap data-[state=active]:bg-primary">Роли</TabsTrigger>
+                <TabsTrigger value="setup" className="shrink-0 whitespace-nowrap data-[state=active]:bg-primary">Быстрая настройка</TabsTrigger>
+                <TabsTrigger value="permissions" className="shrink-0 whitespace-nowrap data-[state=active]:bg-primary">Конструктор разрешений</TabsTrigger>
+              </TabsList>
+            </div>
+          ) : (
+            <TabsList className="grid w-full grid-cols-3 bg-card">
+              <TabsTrigger value="roles" className="whitespace-nowrap data-[state=active]:bg-primary">Роли</TabsTrigger>
+              <TabsTrigger value="setup" className="whitespace-nowrap data-[state=active]:bg-primary">Быстрая настройка</TabsTrigger>
+              <TabsTrigger value="permissions" className="whitespace-nowrap data-[state=active]:bg-primary">Конструктор разрешений</TabsTrigger>
+            </TabsList>
+          )}
 
           {/* Список ролей */}
           <TabsContent value="roles" className="mt-6">
