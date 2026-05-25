@@ -367,7 +367,10 @@ async function proxyRequest(req, res) {
 
       // Если нужен fan-out — параллельно делаем дополнительные запросы по alias-точкам.
       if (aliasExpansions.length > 0) {
-        const primary = client.request(primaryRequestConfig);
+        const primary = client.request(primaryRequestConfig).catch((err) => {
+          console.warn(`[STS Proxy alias] primary request failed ${urlPath} system=${effectiveQuery.system}: ${err.message}`);
+          return { data: [], status: 200 };
+        });
         const aliasRequests = aliasExpansions.map(ax =>
           client.request({
             method,
@@ -375,7 +378,7 @@ async function proxyRequest(req, res) {
             params: { ...effectiveQuery, system: ax.physicalSystem, station: ax.stationCode },
           }).catch((err) => {
             console.warn(`[STS Proxy alias] fan-out failed ${urlPath} system=${ax.physicalSystem} station=${ax.stationCode}: ${err.message}`);
-            return { data: [] }; // не валим основной запрос
+            return { data: [] };
           })
         );
 
