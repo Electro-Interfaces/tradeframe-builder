@@ -313,23 +313,42 @@ router.get('/categories', (req, res) => proxyToTSupport(req, res, 'GET', '/api/v
 router.get('/tickets', (req, res) => proxyToTSupport(req, res, 'GET', '/api/v2/sdk/tickets'));
 router.get('/tickets/:id', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}`));
 router.post('/tickets', async (req, res) => {
-  // Убедимся что токен получен (чтобы company_id был в кэше)
+  // Стабильный идентификатор заявки на стороне TradeFrame — чтобы зеркало в Plane SUP
+  // работало даже когда TSupport недоступен (заявки не теряются ни при каком исходе).
+  const tfReqId = (typeof req.body?.external_id === 'string' && req.body.external_id) || crypto.randomUUID();
+
+  // Пробуем получить TSupport-токен/company_id; при недоступности TSupport не падаем —
+  // заявку всё равно зеркалим в SUP (Plane — независимая система контроля заданий).
+  let companyId = '';
   try {
     await getToken(req.tfUserInfo);
-  } catch (err) {
-    return res.status(401).json({ error: `Ошибка авторизации TSupport: ${err.message}` });
-  }
-  const companyId = getTSupportCompanyId(req.tfUserInfo.userId);
-  if (!companyId) {
-    return res.status(400).json({ error: 'company_id пользователя не найден в TSupport' });
-  }
-  const body = { ...req.body, company_id: companyId };
-  proxyToTSupport(req, res, 'POST', '/api/v2/sdk/tickets', body, (created) => {
+    companyId = getTSupportCompanyId(req.tfUserInfo.userId) || '';
+  } catch (_) { /* TSupport недоступен — зеркалим только в SUP */ }
+
+  const body = { ...req.body, ...(companyId ? { company_id: companyId } : {}) };
+
+  // Зеркало в SUP — при ЛЮБОМ исходе TSupport. dedup по стабильному id (нет дублей при ретраях).
+  const mirror = (created) => {
+    const id = (created && created.id) || tfReqId;
     emitIntake(
-      { action: 'ticket.created', ticket: { ...body, ...created } },
-      `tradeframe:created:${created?.id || ''}`,
+      { action: 'ticket.created', ticket: { ...body, ...(created || {}), id } },
+      `tradeframe:created:${id}`,
     );
-  });
+  };
+
+  try {
+    const token = await getToken(req.tfUserInfo);
+    const response = await makeRequest(token, 'POST', '/api/v2/sdk/tickets', req.query, body);
+    res.status(response.status).json(response.data);
+    mirror(response.status >= 200 && response.status < 300 ? response.data : null);
+  } catch (error) {
+    // TSupport недоступен/ошибка — заявка всё равно фиксируется в Plane SUP
+    mirror(null);
+    const status = error.response?.status || 500;
+    const errorData = error.response?.data || { error: error.message };
+    console.error('[Support Proxy] POST /tickets:', status, errorData);
+    res.status(status).json(errorData);
+  }
 });
 router.patch('/tickets/:id', (req, res) => proxyToTSupport(req, res, 'PATCH', `/api/v2/sdk/tickets/${req.params.id}`, req.body, () => {
   if (req.body && (req.body.status || req.body.priority)) {
