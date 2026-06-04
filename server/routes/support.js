@@ -59,13 +59,19 @@ router.all('*', async (req, res) => {
       params: req.method === 'GET' ? req.query : undefined,
       data: req.method !== 'GET' ? req.body : undefined,
       timeout: 30000,
+      // Пересылаем сырые байты ответа без повторного декодирования/парсинга axios —
+      // иначе UTF-8 (кириллица) ломается в mojibake. Тело отдаём как есть.
+      responseType: 'arraybuffer',
       validateStatus: () => true,
     });
-    res.status(r.status).json(r.data);
+    const ct = r.headers['content-type'] || 'application/json; charset=utf-8';
+    res.status(r.status);
+    res.set('Content-Type', /charset/i.test(ct) ? ct : `${ct}; charset=utf-8`);
+    res.send(Buffer.from(r.data));
   } catch (error) {
     const status = error.response?.status || 502;
     console.error(`[Support Proxy] ${req.method} ${req.path}:`, status, error.message);
-    res.status(status).json(error.response?.data || { error: 'Support API недоступен' });
+    res.status(status).json({ error: 'Support API недоступен' });
   }
 });
 
