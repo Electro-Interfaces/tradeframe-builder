@@ -115,6 +115,11 @@ jobs:
             TSUPPORT_SDK_API_KEY=${{ secrets.TSUPPORT_SDK_API_KEY }}
             TSUPPORT_SDK_SECRET=${{ secrets.TSUPPORT_SDK_SECRET }}
 
+            # Единый шлюз intake заявок -> Plane SUP (зеркалирование, fire-and-forget).
+            # Если SUPPORT_INTAKE_SECRET пуст — эмиссия отключена (канал не активен), TSupport не затронут.
+            SUPPORT_INTAKE_URL=https://events.dataworker.ru/api/intake/support
+            SUPPORT_INTAKE_SECRET=${{ secrets.SUPPORT_INTAKE_SECRET }}
+
             # PostgreSQL — primary data source
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             AUTH_DATA_SOURCE=pg

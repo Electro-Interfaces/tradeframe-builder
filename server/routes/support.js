@@ -47,6 +47,27 @@ const TSUPPORT_API_URL = process.env.TSUPPORT_API_URL || 'http://81.200.148.35:3
 const TSUPPORT_SDK_API_KEY = process.env.TSUPPORT_SDK_API_KEY;
 const TSUPPORT_SDK_SECRET = process.env.TSUPPORT_SDK_SECRET;
 
+// Единый шлюз intake (ai-orchestrator → Plane SUP). Зеркалируем заявки/сообщения
+// в систему контроля заданий Plane. Это ДОПОЛНЕНИЕ к проксированию в TSupport:
+// TSupport остаётся источником истины для UI, эмиссия — fire-and-forget и НИКОГДА
+// не влияет на ответ клиенту (все ошибки проглатываются и логируются).
+const SUPPORT_INTAKE_URL = process.env.SUPPORT_INTAKE_URL || '';
+const SUPPORT_INTAKE_SECRET = process.env.SUPPORT_INTAKE_SECRET || '';
+
+function emitIntake(payload, dedupKey) {
+  if (!SUPPORT_INTAKE_URL || !SUPPORT_INTAKE_SECRET) return; // шлюз не настроен — тихо пропускаем
+  axios.post(
+    SUPPORT_INTAKE_URL,
+    { type: 'tradeframe.event', payload, dedup_key: dedupKey || null },
+    {
+      headers: { 'Content-Type': 'application/json', 'X-Intake-Secret': SUPPORT_INTAKE_SECRET },
+      timeout: 8000,
+    },
+  ).catch((err) => {
+    console.error('[Support Intake] emit failed:', payload?.action, err.response?.status || err.code || err.message);
+  });
+}
+
 /**
  * Создать HMAC-подпись для SDK auth
  */
@@ -194,11 +215,20 @@ async function makeRequest(token, method, sdkPath, query, data) {
   return axios(config);
 }
 
-async function proxyToTSupport(req, res, method, sdkPath, data) {
+async function proxyToTSupport(req, res, method, sdkPath, data, afterSuccess) {
+  // Отдаём ответ TSupport клиенту и, при 2xx, запускаем fire-and-forget
+  // зеркалирование в Plane (ошибка зеркала не влияет на ответ).
+  const handleOk = (response) => {
+    res.status(response.status).json(response.data);
+    if (afterSuccess && response.status >= 200 && response.status < 300) {
+      try { afterSuccess(response.data); }
+      catch (e) { console.error('[Support Intake] afterSuccess error:', e.message); }
+    }
+  };
   try {
     const token = await getToken(req.tfUserInfo);
     const response = await makeRequest(token, method, sdkPath, req.query, data);
-    res.status(response.status).json(response.data);
+    return handleOk(response);
   } catch (error) {
     // Если 401 — сбросить кэш и повторить один раз
     if (error.response?.status === 401) {
@@ -206,7 +236,7 @@ async function proxyToTSupport(req, res, method, sdkPath, data) {
       try {
         const token = await getToken(req.tfUserInfo);
         const response = await makeRequest(token, method, sdkPath, req.query, data);
-        return res.status(response.status).json(response.data);
+        return handleOk(response);
       } catch (retryError) {
         console.error('[Support Proxy] Retry failed:', retryError.message);
         const retryStatus = retryError.response?.status || 500;
@@ -294,11 +324,29 @@ router.post('/tickets', async (req, res) => {
     return res.status(400).json({ error: 'company_id пользователя не найден в TSupport' });
   }
   const body = { ...req.body, company_id: companyId };
-  proxyToTSupport(req, res, 'POST', '/api/v2/sdk/tickets', body);
+  proxyToTSupport(req, res, 'POST', '/api/v2/sdk/tickets', body, (created) => {
+    emitIntake(
+      { action: 'ticket.created', ticket: { ...body, ...created } },
+      `tradeframe:created:${created?.id || ''}`,
+    );
+  });
 });
-router.patch('/tickets/:id', (req, res) => proxyToTSupport(req, res, 'PATCH', `/api/v2/sdk/tickets/${req.params.id}`, req.body));
+router.patch('/tickets/:id', (req, res) => proxyToTSupport(req, res, 'PATCH', `/api/v2/sdk/tickets/${req.params.id}`, req.body, () => {
+  if (req.body && (req.body.status || req.body.priority)) {
+    emitIntake({
+      action: 'ticket.updated',
+      ticket: { id: req.params.id },
+      changes: { status: req.body.status, priority: req.body.priority },
+    });
+  }
+}));
 router.get('/tickets/:id/messages', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}/messages`));
-router.post('/tickets/:id/messages', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/messages`, req.body));
+router.post('/tickets/:id/messages', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/messages`, req.body, (msg) => {
+  emitIntake(
+    { action: 'message.created', ticket: { id: req.params.id }, message: { ...req.body, ...msg } },
+    `tradeframe:msg:${req.params.id}:${msg?.id || ''}`,
+  );
+}));
 router.get('/tickets/:id/activity', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}/activity`));
 router.post('/tickets/:id/read', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/read`));
 
