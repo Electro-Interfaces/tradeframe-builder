@@ -49,6 +49,32 @@ router.use((req, res, next) => {
   next();
 });
 
+// Upload файлов — multipart: проксируем СЫРОЙ поток с оригинальным Content-Type
+// (generic-прокси ниже ставит application/json и потерял бы boundary).
+router.post('/upload/:ticketId', async (req, res) => {
+  try {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const r = await axios({
+      method: 'POST',
+      url: `${SUPPORT_API_BASE}/api/support/upload/${encodeURIComponent(req.params.ticketId)}`,
+      headers: { ...userHeaders(req), 'Content-Type': req.headers['content-type'] || 'application/octet-stream' },
+      data: Buffer.concat(chunks),
+      timeout: 60000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      responseType: 'arraybuffer',
+      validateStatus: () => true,
+    });
+    res.status(r.status);
+    res.set('Content-Type', r.headers['content-type'] || 'application/json; charset=utf-8');
+    res.send(Buffer.from(r.data));
+  } catch (error) {
+    console.error('[Support Proxy] upload:', error.message);
+    res.status(502).json({ error: 'Загрузка недоступна' });
+  }
+});
+
 // Generic-прокси: /api/support/* → ai-orchestrator /api/support/*
 router.all('*', async (req, res) => {
   try {
