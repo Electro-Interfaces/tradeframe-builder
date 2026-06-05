@@ -92,7 +92,10 @@ router.all('*', async (req, res) => {
     });
     const ct = r.headers['content-type'] || 'application/json; charset=utf-8';
     res.status(r.status);
-    res.set('Content-Type', /charset/i.test(ct) ? ct : `${ct}; charset=utf-8`);
+    // Для бинарных ответов (вложения) не навязываем charset; для текста/JSON — utf-8
+    const isText = /^(text\/|application\/(json|xml|javascript))/i.test(ct);
+    res.set('Content-Type', (isText && !/charset/i.test(ct)) ? `${ct}; charset=utf-8` : ct);
+    if (r.headers['content-disposition']) res.set('Content-Disposition', r.headers['content-disposition']);
     res.send(Buffer.from(r.data));
   } catch (error) {
     const status = error.response?.status || 502;
