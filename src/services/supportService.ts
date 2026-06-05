@@ -9,10 +9,21 @@ import type {
   TicketActivity,
   TicketCategory,
   CreateTicketInput,
+  TicketPriority,
+  TicketType,
   ChatRoom,
   ChatMessage,
   UnreadCounts,
 } from '@/types/support';
+
+export interface TicketDraft {
+  title: string;
+  description: string;
+  category: string;
+  priority: TicketPriority;
+  type: TicketType;
+  ai?: boolean;
+}
 
 /**
  * Базовый URL бэкенда (по аналогии с mstoProxyClient.ts)
@@ -156,6 +167,14 @@ export async function createTicket(input: CreateTicketInput): Promise<SupportTic
   return supportRequest<SupportTicket>('/tickets', {
     method: 'POST',
     body: { ...input, source_code: 'tradeframe' },
+  });
+}
+
+// AI-черновик: свободный текст клиента → структура заявки (тема/описание/категория/...)
+export async function createDraft(text: string, files?: string[]): Promise<TicketDraft> {
+  return supportRequest<TicketDraft>('/draft', {
+    method: 'POST',
+    body: { text, files: files || [] },
   });
 }
 

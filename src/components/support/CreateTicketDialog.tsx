@@ -1,6 +1,10 @@
 /**
- * CreateTicketDialog — модалка создания заявки в TSupport
- * Доступна с любой страницы через SupportContext
+ * CreateTicketDialog — «умное» создание заявки.
+ *
+ * Шаг 1 (ввод): клиент описывает проблему свободно — текстом, голосом (🎤) и/или
+ * прикрепляет файлы. Никаких обязательных полей тема/категория/приоритет.
+ * Шаг 2 (черновик): AI формирует заявку (тема/описание/категория/приоритет/тип),
+ * клиент при желании правит и отправляет.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -20,10 +24,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, Paperclip, X, Image, FileText } from 'lucide-react';
+import { Send, Loader2, Paperclip, X, Image, FileText, Sparkles, ChevronLeft, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupportContext } from '@/contexts/SupportContext';
-import { createTicket, getCategories, uploadFiles } from '@/services/supportService';
+import { createTicket, createDraft, getCategories, uploadFiles } from '@/services/supportService';
 import VoiceInputButton from './VoiceInputButton';
 import type { TicketCategory, TicketPriority, TicketType } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
@@ -35,77 +39,102 @@ const emptySelectValue = '__none__';
 export default function CreateTicketDialog() {
   const { isCreateDialogOpen, closeCreateDialog, buildAppContext } = useSupportContext();
 
+  const [step, setStep] = useState<'input' | 'draft'>('input');
+  const [rawText, setRawText] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [drafting, setDrafting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Поля черновика (после AI — редактируемые)
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TicketPriority>('medium');
   const [type, setType] = useState<TicketType>('incident');
-  const [parentCategory, setParentCategory] = useState('');
-  const [childCategory, setChildCategory] = useState('');
+  const [category, setCategory] = useState('');
   const [categories, setCategories] = useState<TicketCategory[]>([]);
-  const [files, setFiles] = useState<File[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Загрузить категории при каждом открытии (инвалидация кэша)
   useEffect(() => {
     if (isCreateDialogOpen) {
-      getCategories().then(setCategories).catch((err) => {
-        toast.error(`Категории: ${err.message}`);
-      });
-    }
-  }, [isCreateDialogOpen]);
-
-  // Reset при закрытии
-  useEffect(() => {
-    if (!isCreateDialogOpen) {
+      getCategories().then(setCategories).catch(() => setCategories([]));
+    } else {
+      setStep('input');
+      setRawText('');
+      setFiles([]);
       setTitle('');
       setDescription('');
       setPriority('medium');
       setType('incident');
-      setParentCategory('');
-      setChildCategory('');
-      setFiles([]);
+      setCategory('');
     }
   }, [isCreateDialogOpen]);
 
-  const selectedParent = categories.find(c => c.code === parentCategory);
-  const childCategories = selectedParent?.children || [];
+  // плоский список категорий (для select черновика)
+  const flatCategories: { code: string; name: string }[] = [];
+  for (const c of categories) {
+    flatCategories.push({ code: c.code, name: c.name });
+    for (const ch of c.children || []) flatCategories.push({ code: ch.code, name: `— ${ch.name}` });
+  }
 
-  // Обновить приоритет из категории
-  useEffect(() => {
-    if (childCategory) {
-      const child = childCategories.find(c => c.code === childCategory);
-      if (child?.default_priority) setPriority(child.default_priority);
-    } else if (parentCategory) {
-      const parent = categories.find(c => c.code === parentCategory);
-      if (parent?.default_priority) setPriority(parent.default_priority);
+  const handleVoice = (text: string) => setRawText(prev => (prev ? `${prev} ${text}` : text));
+
+  const addFiles = (list: FileList | null) => {
+    const newFiles = Array.from(list || []);
+    const oversized = newFiles.find(f => f.size > MAX_FILE_SIZE);
+    if (oversized) {
+      toast.error(`Файл "${oversized.name}" превышает ${MAX_FILE_SIZE / (1024 * 1024)} МБ`);
+      return;
     }
-  }, [parentCategory, childCategory, categories, childCategories]);
-
-  const handleVoiceResult = (text: string) => {
-    setDescription(prev => prev ? `${prev} ${text}` : text);
+    setFiles(prev => [...prev, ...newFiles].slice(0, MAX_FILES_TICKET));
   };
 
+  // Шаг 1 → AI формирует черновик
+  const handleFormDraft = async () => {
+    if (!rawText.trim() && files.length === 0) {
+      toast.error('Опишите проблему или прикрепите файл');
+      return;
+    }
+    setDrafting(true);
+    try {
+      const d = await createDraft(rawText.trim(), files.map(f => f.name));
+      setTitle(d.title || '');
+      setDescription(d.description || rawText.trim());
+      setCategory(d.category || '');
+      setPriority(d.priority || 'medium');
+      setType(d.type || 'request');
+      setStep('draft');
+      if (d.ai === false) toast.message('AI временно недоступен — проверьте поля вручную');
+    } catch (err: any) {
+      // фоллбэк: переходим к черновику с исходным текстом
+      setTitle(rawText.trim().slice(0, 60));
+      setDescription(rawText.trim());
+      setCategory('');
+      setPriority('medium');
+      setType('request');
+      setStep('draft');
+      toast.message('Не удалось оформить автоматически — заполните поля сами');
+    } finally {
+      setDrafting(false);
+    }
+  };
+
+  // Шаг 2 → отправка заявки
   const handleSubmit = async () => {
     if (!title.trim()) {
       toast.error('Укажите тему заявки');
       return;
     }
-
     setSubmitting(true);
     try {
-      const appContext = buildAppContext();
-
       const ticket = await createTicket({
         title: title.trim(),
         description: description.trim(),
         priority,
         type,
-        category: childCategory || parentCategory || undefined,
-        app_context: appContext,
+        category: category || undefined,
+        app_context: buildAppContext(),
       });
-
-      // Загружаем файлы после создания заявки
       if (files.length > 0 && ticket?.id) {
         try {
           await uploadFiles(ticket.id, files);
@@ -115,7 +144,6 @@ export default function CreateTicketDialog() {
           return;
         }
       }
-
       toast.success(files.length > 0 ? `Заявка создана (${files.length} файл(ов))` : 'Заявка создана');
       closeCreateDialog();
     } catch (err: any) {
@@ -125,171 +153,146 @@ export default function CreateTicketDialog() {
     }
   };
 
+  const filesBlock = (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-xs text-muted-foreground">Вложения</label>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-1 text-xs text-primary dark:text-primary/70 hover:text-blue-300 transition-colors"
+        >
+          <Paperclip className="h-3 w-3" />
+          Прикрепить
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.docx,.xlsx,.csv,.txt,.mp4,.webm"
+          className="hidden"
+          onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
+        />
+      </div>
+      {files.length > 0 && (
+        <div className="space-y-1">
+          {files.map((file, i) => (
+            <div key={i} className="flex items-center gap-2 bg-card rounded px-2 py-1.5 text-xs">
+              {file.type.startsWith('image/') ? (
+                <Image className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+              ) : (
+                <FileText className="h-3.5 w-3.5 text-primary dark:text-primary/70 flex-shrink-0" />
+              )}
+              <span className="truncate flex-1 text-foreground/80">{file.name}</span>
+              <span className="text-muted-foreground flex-shrink-0">{(file.size / 1024).toFixed(0)} KB</span>
+              <button
+                type="button"
+                onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
+                className="text-muted-foreground hover:text-red-400 flex-shrink-0"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <Dialog open={isCreateDialogOpen} onOpenChange={(open) => !open && closeCreateDialog()}>
       <DialogContent className="sm:max-w-lg bg-background border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">Новая заявка</DialogTitle>
+          <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+            {step === 'input' ? (
+              <><Sparkles className="h-4 w-4 text-primary" /> Опишите проблему</>
+            ) : (
+              <><Wand2 className="h-4 w-4 text-primary" /> Проверьте заявку</>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-2">
-          {/* Тема */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Тема *</label>
-            <Input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="Кратко опишите проблему"
-              className="bg-card border-border text-foreground placeholder:text-muted-foreground"
-              autoFocus
-            />
-          </div>
-
-          {/* Описание + голос */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-muted-foreground">Описание</label>
-              <VoiceInputButton onResult={handleVoiceResult} />
-            </div>
-            <Textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Подробное описание проблемы..."
-              rows={4}
-              className="bg-card border-border text-foreground placeholder:text-muted-foreground resize-none"
-            />
-          </div>
-
-          {/* Файлы */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-muted-foreground">Вложения</label>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1 text-xs text-primary dark:text-primary/70 hover:text-blue-300 transition-colors"
-              >
-                <Paperclip className="h-3 w-3" />
-                Прикрепить
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.docx,.xlsx,.csv,.txt,.mp4,.webm"
-                className="hidden"
-                onChange={e => {
-                  const newFiles = Array.from(e.target.files || []);
-                  const oversized = newFiles.filter(f => f.size > MAX_FILE_SIZE);
-                  if (oversized.length > 0) {
-                    toast.error(`Файл "${oversized[0].name}" превышает ${MAX_FILE_SIZE / (1024 * 1024)} МБ`);
-                    e.target.value = '';
-                    return;
-                  }
-                  setFiles(prev => [...prev, ...newFiles].slice(0, MAX_FILES_TICKET));
-                  e.target.value = '';
-                }}
+        {step === 'input' ? (
+          <div className="space-y-4 mt-2">
+            <p className="text-xs text-muted-foreground">
+              Расскажите своими словами, что случилось — можно надиктовать голосом 🎤 и приложить фото.
+              Заявку оформим за вас.
+            </p>
+            <div>
+              <div className="flex items-center justify-end mb-1">
+                <VoiceInputButton onResult={handleVoice} />
+              </div>
+              <Textarea
+                value={rawText}
+                onChange={e => setRawText(e.target.value)}
+                placeholder="Например: на Витебской колонка 3 не наливает 95-й, клиенты уезжают…"
+                rows={6}
+                className="bg-card border-border text-foreground placeholder:text-muted-foreground resize-none"
+                autoFocus
               />
             </div>
-            {files.length > 0 && (
-              <div className="space-y-1">
-                {files.map((file, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-card rounded px-2 py-1.5 text-xs">
-                    {file.type.startsWith('image/') ? (
-                      <Image className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                    ) : (
-                      <FileText className="h-3.5 w-3.5 text-primary dark:text-primary/70 flex-shrink-0" />
-                    )}
-                    <span className="truncate flex-1 text-foreground/80">{file.name}</span>
-                    <span className="text-muted-foreground flex-shrink-0">{(file.size / 1024).toFixed(0)} KB</span>
-                    <button
-                      type="button"
-                      onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
-                      className="text-muted-foreground hover:text-red-400 flex-shrink-0"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-                {files.length >= MAX_FILES_TICKET && (
-                  <div className="text-[10px] text-muted-foreground">Максимум {MAX_FILES_TICKET} файлов</div>
-                )}
+            {filesBlock}
+            <Button
+              onClick={handleFormDraft}
+              disabled={drafting || (!rawText.trim() && files.length === 0)}
+              className="w-full bg-primary hover:bg-primary/80 text-white"
+            >
+              {drafting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
+              {drafting ? 'Оформляем заявку…' : 'Оформить заявку'}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4 mt-2">
+            <p className="text-xs text-muted-foreground">
+              Заявка оформлена автоматически. Поправьте, если нужно, и отправьте.
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Тема *</label>
+              <Input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className="bg-card border-border text-foreground"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Описание</label>
+              <Textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={4}
+                className="bg-card border-border text-foreground resize-none"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Категория</label>
+                <Select value={category || emptySelectValue} onValueChange={v => setCategory(v === emptySelectValue ? '' : v)}>
+                  <SelectTrigger className={selectTriggerCls}><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent className={selectContentCls}>
+                    <SelectItem value={emptySelectValue}>—</SelectItem>
+                    {flatCategories.map(c => (
+                      <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </div>
-
-          {/* Категория + Подкатегория */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Категория</label>
-              <Select
-                value={parentCategory || emptySelectValue}
-                onValueChange={(value) => {
-                  setParentCategory(value === emptySelectValue ? '' : value);
-                  setChildCategory('');
-                }}
-              >
-                <SelectTrigger className={selectTriggerCls}>
-                  <SelectValue placeholder="Выберите" />
-                </SelectTrigger>
-                <SelectContent className={selectContentCls}>
-                  <SelectItem value={emptySelectValue}>Выберите</SelectItem>
-                  {categories.map(cat => (
-                    <SelectItem key={cat.code} value={cat.code}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Приоритет</label>
+                <Select value={priority} onValueChange={v => setPriority(v as TicketPriority)}>
+                  <SelectTrigger className={selectTriggerCls}><SelectValue /></SelectTrigger>
+                  <SelectContent className={selectContentCls}>
+                    <SelectItem value="low">Низкий</SelectItem>
+                    <SelectItem value="medium">Средний</SelectItem>
+                    <SelectItem value="high">Высокий</SelectItem>
+                    <SelectItem value="critical">Критический</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Подкатегория</label>
-              <Select
-                value={childCategory || emptySelectValue}
-                onValueChange={(value) => setChildCategory(value === emptySelectValue ? '' : value)}
-                disabled={childCategories.length === 0}
-              >
-                <SelectTrigger className={selectTriggerCls}>
-                  <SelectValue placeholder={childCategories.length ? 'Выберите' : '—'} />
-                </SelectTrigger>
-                <SelectContent className={selectContentCls}>
-                  <SelectItem value={emptySelectValue}>{childCategories.length ? 'Выберите' : '—'}</SelectItem>
-                  {childCategories.map(cat => (
-                    <SelectItem key={cat.code} value={cat.code}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Приоритет + Тип */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Приоритет</label>
-              <Select
-                value={priority}
-                onValueChange={value => setPriority(value as TicketPriority)}
-              >
-                <SelectTrigger className={selectTriggerCls}>
-                  <SelectValue placeholder="Выберите" />
-                </SelectTrigger>
-                <SelectContent className={selectContentCls}>
-                  <SelectItem value="low">Низкий</SelectItem>
-                  <SelectItem value="medium">Средний</SelectItem>
-                  <SelectItem value="high">Высокий</SelectItem>
-                  <SelectItem value="critical">Критический</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Тип</label>
-              <Select
-                value={type}
-                onValueChange={value => setType(value as TicketType)}
-              >
-                <SelectTrigger className={selectTriggerCls}>
-                  <SelectValue placeholder="Выберите" />
-                </SelectTrigger>
+              <Select value={type} onValueChange={v => setType(v as TicketType)}>
+                <SelectTrigger className={selectTriggerCls}><SelectValue /></SelectTrigger>
                 <SelectContent className={selectContentCls}>
                   <SelectItem value="incident">Инцидент</SelectItem>
                   <SelectItem value="request">Запрос</SelectItem>
@@ -298,22 +301,27 @@ export default function CreateTicketDialog() {
                 </SelectContent>
               </Select>
             </div>
+            {filesBlock}
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setStep('input')}
+                disabled={submitting}
+                className="text-muted-foreground"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Изменить
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting || !title.trim()}
+                className="flex-1 bg-primary hover:bg-primary/80 text-white"
+              >
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                Отправить заявку
+              </Button>
+            </div>
           </div>
-
-          {/* Кнопка отправки */}
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting || !title.trim()}
-            className="w-full bg-primary hover:bg-primary/80 text-white"
-          >
-            {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Send className="h-4 w-4 mr-2" />
-            )}
-            Создать заявку
-          </Button>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
