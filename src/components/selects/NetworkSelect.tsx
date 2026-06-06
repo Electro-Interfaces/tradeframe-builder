@@ -9,6 +9,7 @@ import type { Network } from "@/types/network";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { networksService } from "@/services/networksService";
+import { isOperationalNetwork } from "@/utils/networkVisibility";
 
 interface NetworkSelectProps {
   /** Основная выбранная сеть (backward compat) */
@@ -59,12 +60,16 @@ export function NetworkSelect({ value, onValueChange, values, onValuesChange, cl
       });
     }
 
-    if (!hasRestrictions) return allNetworks;
+    const scoped = !hasRestrictions
+      ? allNetworks
+      : allNetworks.filter(network => networkIds.has(network.id) || networkCodes.has(network.code));
 
-    return allNetworks.filter(network =>
-      networkIds.has(network.id) || networkCodes.has(network.code)
-    );
-  }, [allNetworks, user?.roles]);
+    // Скрываем из выбора пустые сети (0 точек) — например БТО после переезда всех
+    // станций в ГИГ. Сеть остаётся активной в бэке и управляется на странице
+    // «Сети и ТТ», но в рабочем селекторе не мешает. Текущую выбранную не прячем.
+    const selected = new Set(values || (value ? [value] : []));
+    return scoped.filter(network => isOperationalNetwork(network) || selected.has(network.id));
+  }, [allNetworks, user?.roles, value, values]);
 
   const selectedIds = values || (value ? [value] : []);
   const selectedNetworks = networks.filter(n => selectedIds.includes(n.id));

@@ -19,22 +19,23 @@ const SUPER_ADMIN_ROLES = ['super_admin', 'system_admin'];
  */
 function getUserScope(user) {
   if (!user || !user.roles) {
-    return { networkIds: new Set(), networkCodes: new Set(), hasRestrictions: true };
+    return { networkIds: new Set(), networkCodes: new Set(), pointIds: new Set(), hasRestrictions: true };
   }
 
   // Super admin — без ограничений
   if (SUPER_ADMIN_ROLES.includes(user.role)) {
-    return { networkIds: new Set(), networkCodes: new Set(), hasRestrictions: false };
+    return { networkIds: new Set(), networkCodes: new Set(), pointIds: new Set(), hasRestrictions: false };
   }
 
   // Проверяем scope='global' — без ограничений
   const hasGlobalScope = user.roles.some(r => r.scope === 'global');
   if (hasGlobalScope) {
-    return { networkIds: new Set(), networkCodes: new Set(), hasRestrictions: false };
+    return { networkIds: new Set(), networkCodes: new Set(), pointIds: new Set(), hasRestrictions: false };
   }
 
   const networkIds = new Set();
   const networkCodes = new Set();
+  const pointIds = new Set();
   let hasRestrictions = false;
 
   user.roles.forEach(role => {
@@ -44,6 +45,9 @@ function getUserScope(user) {
         role.scopeValues.forEach(id => networkIds.add(id));
       } else if (role.scope === 'trading_point' || role.scope === 'assigned') {
         role.scopeValues.forEach(scopeValue => {
+          // Полный id точки — для прямого доступа (устойчив к смене сети/external_id).
+          pointIds.add(String(scopeValue));
+          // Префикс кода сети — legacy-путь доступа «по сети».
           const parts = String(scopeValue).split('-azs-');
           if (parts.length === 2) {
             networkCodes.add(parts[0]);
@@ -56,10 +60,10 @@ function getUserScope(user) {
   // Если есть роли, но ни одна не имеет scopeValues — значит ограничений нет
   // (например, network_admin без scope_values = доступ ко всем сетям)
   if (!hasRestrictions) {
-    return { networkIds, networkCodes, hasRestrictions: false };
+    return { networkIds, networkCodes, pointIds, hasRestrictions: false };
   }
 
-  return { networkIds, networkCodes, hasRestrictions };
+  return { networkIds, networkCodes, pointIds, hasRestrictions };
 }
 
 /**
@@ -201,9 +205,21 @@ async function validateStsAccess(req, res, next) {
     return next();
   }
 
+  const stationParam = req.query.station || req.body?.station;
+
+  // Прямой доступ по id точки (scope=trading_point): резолвим точку по
+  // фактической сети + коду станции и сверяем с разрешёнными id. Устойчиво
+  // к смене external_id и переезду точки между сетями (id точки opaque),
+  // поэтому переживает миграцию ГИГ 65→15 и отказ от alias.
+  if (scope.pointIds && scope.pointIds.size > 0 && stationParam != null) {
+    const tpId = await orgDataSource.findTradingPointId(network.id, String(stationParam));
+    if (tpId && scope.pointIds.has(tpId)) {
+      return next();
+    }
+  }
+
   // Прямого доступа нет — проверяем alias-привязку: возможно, точка из этой
   // физической сети (network) одолжена в одну из разрешённых юзеру сетей.
-  const stationParam = req.query.station || req.body?.station;
   const aliasAllowed = await orgDataSource.findAliasAccess({
     sourceNetworkId: network.id,
     stationCode: stationParam ? String(stationParam) : null,

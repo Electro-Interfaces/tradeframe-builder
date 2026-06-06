@@ -3,6 +3,7 @@ import { networksService } from "@/services/networksService";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { Network } from "@/types/network";
 import { TradingPoint } from "@/types/tradingpoint";
+import { isOperationalNetwork } from "@/utils/networkVisibility";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { toast } from "sonner";
 
@@ -163,8 +164,13 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
           ? allNetworks.filter(n => hasNetworkAccess(n, networkIds, networkCodes, hasRestrictions))
           : allNetworks;
 
-        if (availableNetworks.length > 0) {
-          setSelectedNetworkId(availableNetworks[0].id);
+        // Дефолтом выбираем рабочую сеть (с точками), пропуская пустые вроде БТО
+        // после переезда. Если рабочих нет — fallback на первую доступную.
+        const operational = availableNetworks.filter(isOperationalNetwork);
+        const defaultNetwork = operational[0] || availableNetworks[0];
+
+        if (defaultNetwork) {
+          setSelectedNetworkId(defaultNetwork.id);
         } else {
           // Сетей нет совсем — отмечаем инициализацию чтобы не зависнуть
           setIsInitialized(true);
@@ -182,13 +188,16 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Если нет ограничений и сеть уже выбрана - ничего не делаем
-    if (!hasRestrictions) return;
-
-    // Проверяем, есть ли доступ к текущей сети
+    // Проверяем сохранённый выбор: нет доступа (для ограниченных ролей) ИЛИ сеть
+    // стала нерабочей (0 точек, напр. БТО после переезда) — переключаемся на рабочую.
     networksService.getById(selectedNetworkId).then(network => {
-      if (!network || !hasNetworkAccess(network, networkIds, networkCodes, hasRestrictions)) {
-        // Нет доступа - выбираем первую доступную сеть
+      const noAccess = hasRestrictions &&
+        (!network || !hasNetworkAccess(network, networkIds, networkCodes, hasRestrictions));
+      const notOperational = Boolean(network) && !isOperationalNetwork(network!);
+      if (noAccess || notOperational) {
+        // Сбрасываем сохранённый выбор и выбираем первую рабочую сеть.
+        // Если рабочих нет — selectFirstAvailableNetwork вернёт ту же сеть (no-op),
+        // поэтому цикла не возникает.
         localStorage.removeItem("tc:selectedNetwork");
         localStorage.removeItem("tc:selectedTradingPoint");
         setSelectedTradingPoint("");

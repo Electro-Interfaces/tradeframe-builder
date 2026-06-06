@@ -195,6 +195,30 @@ async function updateNetwork(networkId, input) {
 }
 
 async function deleteNetwork(networkId) {
+  // Guard: нельзя удалять сеть с живыми точками или с входящими alias-зависимостями
+  // (точки этой сети одолжены другим сетям). Иначе CASCADE/JOIN уронит станции —
+  // как в инциденте с БТО, когда удаление сети-родителя alias-точек обрушило все АЗС.
+  const blockers = await postgres.queryOne(
+    `SELECT
+       (SELECT COUNT(*) FROM trading_points tp
+         WHERE tp.network_id = $1 AND tp.deleted_at IS NULL) AS live_points,
+       (SELECT COUNT(*) FROM network_trading_point_aliases a
+          INNER JOIN trading_points tp ON tp.id = a.trading_point_id
+         WHERE tp.network_id = $1) AS incoming_aliases`,
+    [networkId]
+  );
+  const livePoints = Number(blockers?.live_points || 0);
+  const incomingAliases = Number(blockers?.incoming_aliases || 0);
+  if (livePoints > 0 || incomingAliases > 0) {
+    const err = new Error(
+      `Нельзя удалить сеть: к ней привязано живых точек — ${livePoints}, ` +
+      `внешних alias-зависимостей — ${incomingAliases}. ` +
+      'Сначала перенесите точки в другую сеть и снимите alias.'
+    );
+    err.status = 409;
+    throw err;
+  }
+
   await postgres.query(
     `UPDATE networks
         SET is_active = false,
@@ -921,8 +945,47 @@ async function findAliasAccess({
   return Boolean(row);
 }
 
+// Маппинг нод TradeLink на торговые точки сети: external_code с system='tradelink',
+// code = node-ID Hub. Принимает UUID сети или её external_id. Один SQL, без N+1.
+async function loadTradelinkCodesForNetwork(networkId) {
+  if (!networkId) return [];
+  const { rows } = await postgres.query(
+    `SELECT ec.code AS node_id,
+            ec.trading_point_id,
+            tp.code AS station_code,
+            tp.name AS station_name
+       FROM trading_point_external_codes ec
+       INNER JOIN trading_points tp ON tp.id = ec.trading_point_id AND tp.deleted_at IS NULL
+       INNER JOIN networks n ON n.id = tp.network_id AND n.deleted_at IS NULL
+      WHERE lower(ec.system) = 'tradelink'
+        AND ec.is_active
+        AND (n.id::text = $1 OR n.external_id = $1)`,
+    [String(networkId)]
+  );
+  return rows;
+}
+
+// Резолв id торговой точки по сети и коду станции. Для RBAC (validateStsAccess):
+// проверка прямого доступа scope=trading_point по фактической принадлежности
+// точки — устойчиво к смене external_id и переезду точки между сетями (id opaque).
+async function findTradingPointId(networkId, stationCode) {
+  if (!networkId || stationCode == null) return null;
+  const row = await postgres.queryOne(
+    `SELECT tp.id
+       FROM trading_points tp
+      WHERE tp.network_id = $1
+        AND tp.code = $2
+        AND tp.deleted_at IS NULL
+      LIMIT 1`,
+    [networkId, String(stationCode)]
+  );
+  return row ? row.id : null;
+}
+
 module.exports = {
   addExternalCode,
+  loadTradelinkCodesForNetwork,
+  findTradingPointId,
   createNetwork,
   createTradingPoint,
   deleteNetwork,

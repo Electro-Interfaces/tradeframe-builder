@@ -72,7 +72,7 @@ router.delete('/:id', requireAdminAccess, async (req, res) => {
     await orgDataSource.deleteNetwork(req.params.id);
     return res.status(204).send();
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Ошибка удаления сети' });
+    return res.status(error.status || 400).json({ error: error.message || 'Ошибка удаления сети' });
   }
 });
 
