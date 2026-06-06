@@ -902,8 +902,10 @@ class STSApiService {
         return mappedTransactions;
       }
 
-      // STS API падает на больших периодах — разбиваем на чанки по 2 дня
-      const MAX_CHUNK_DAYS = 2;
+      // STS медленнее на больших периодах — дробим на недельные чанки и грузим
+      // параллельно. 7 дней STS отдаёт быстро (~0.7с), а месяц = ~5 чанков вместо 15
+      // (раньше было по 2 дня) — влезают в один параллельный батч браузера.
+      const MAX_CHUNK_DAYS = 7;
 
       const parseRawTransactions = (data: any): any[] => {
         if (Array.isArray(data) && data.length > 0 && data[0].items) {

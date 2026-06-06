@@ -213,23 +213,29 @@ export function PointSelect({ values = [], onValuesChange, onPointClick, classNa
               <li
                 key="all"
                 className={cn(
-                  "flex items-center gap-3 rounded-xl cursor-pointer transition-all",
+                  "flex items-center gap-3 rounded-xl transition-all",
                   isMobile ? "px-3 py-2" : "px-3 py-1.5",
                   isAllSelected ? "bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20" : "hover:bg-secondary dark:hover:bg-di-surface-high border border-transparent"
                 )}
-                onClick={handleToggleAll}
               >
                 <Checkbox
                   checked={isAllSelected}
                   className={cn(
-                    "data-[state=checked]:bg-primary data-[state=checked]:border-primary border-di-outline-variant",
+                    "data-[state=checked]:bg-primary data-[state=checked]:border-primary border-di-outline-variant cursor-pointer shrink-0",
                     isMobile && "h-5 w-5"
                   )}
+                  onCheckedChange={handleToggleAll}
+                  onClick={(e) => e.stopPropagation()}
                 />
-                <span className={cn("rounded-[2px] bg-primary/70", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
-                <span className={cn("truncate font-medium text-foreground", isAllSelected && "text-primary dark:text-blue-200")}>
-                  {hasRestrictedAccess ? `Все доступные (${tradingPoints.length})` : "Все торговые точки"}
-                </span>
+                <div
+                  className="min-w-0 flex-1 flex items-center gap-2 cursor-pointer"
+                  onClick={() => { onValuesChange?.(allIds); setOpen(false); }}
+                >
+                  <span className={cn("rounded-[2px] bg-primary/70 shrink-0", isMobile ? "h-2.5 w-2.5" : "h-2 w-2")} aria-hidden />
+                  <span className={cn("truncate font-medium text-foreground", isAllSelected && "text-primary dark:text-blue-200")}>
+                    {hasRestrictedAccess ? `Все доступные (${tradingPoints.length})` : "Все торговые точки"}
+                  </span>
+                </div>
               </li>
             )}
             {tradingPoints.filter(p => {

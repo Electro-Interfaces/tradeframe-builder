@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/popover';
 import type { SupportTicket, TicketActivity, TicketStatus, AppContext } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
+import { canMarkResolved, canReopen } from '@/utils/ticketPermissions';
 import {
   TICKET_STATUS_LABELS,
   TICKET_STATUS_COLORS,
@@ -994,6 +995,30 @@ export default function TicketsPage() {
                   })}
                   <div ref={activityEndRef} />
                 </div>
+              )}
+            </div>
+
+            {/* Действия по статусу: клиент отмечает «выполнено» или переоткрывает; закрытие — за поддержкой */}
+            <div className="px-4 py-2 border-t border-border/50 flex flex-wrap gap-2">
+              {canMarkResolved(selectedTicket.status) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => changeStatus('resolved')}
+                  className="gap-1.5 border-green-500/40 text-green-600 dark:text-green-400 hover:bg-green-500/10 hover:text-green-600"
+                >
+                  <CheckCheck className="h-4 w-4" /> Отметить выполненной
+                </Button>
+              )}
+              {canReopen(selectedTicket.status) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => changeStatus('reopened')}
+                  className="gap-1.5"
+                >
+                  <RotateCcw className="h-4 w-4" /> Переоткрыть
+                </Button>
               )}
             </div>
 
