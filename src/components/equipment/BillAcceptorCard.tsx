@@ -159,11 +159,9 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
     );
   }
 
-  // ─── Desktop view — Asymmetric 8/4 layout ───
+  // ─── Desktop view — одиночная карта (половина строки рядом с «Сетью») ───
   return (
-    <div className="grid grid-cols-12 gap-8">
-      {/* ── Left: Capacity Panel (8 cols) ── */}
-      <div className={`col-span-8 ${EQUIPMENT_SURFACE_CARD_CLASS} ${EQUIPMENT_CARD_INNER_PADDING_CLASS} relative overflow-hidden`}>
+    <div className={`${EQUIPMENT_SURFACE_CARD_CLASS} ${EQUIPMENT_CARD_INNER_PADDING_CLASS} relative overflow-hidden h-full`}>
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5 border-b border-di-outline-variant/10 pb-3 relative z-10">
@@ -305,46 +303,5 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
           </div>
         )}
       </div>
-
-      {/* ── Right: Recent Activity (4 cols) ── */}
-      <div className={`col-span-4 ${EQUIPMENT_SURFACE_CARD_CLASS} ${EQUIPMENT_CARD_INNER_PADDING_CLASS} flex flex-col`}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-headline text-base font-bold text-di-on-surface">Последние события</h2>
-          <Suspense fallback={null}>
-            <CashoutHistoryDialog cashoutRecords={cashoutRecords} loading={cashoutLoading} isMobile={false} />
-          </Suspense>
-        </div>
-
-        <div className="flex-1 flex flex-col gap-4 relative">
-          {/* Timeline line */}
-          <div className="absolute left-3 top-2 bottom-2 w-[1px] bg-di-outline-variant/20" />
-
-          {cashoutRecords.length > 0 ? (
-            cashoutRecords.slice(-3).reverse().map((record, i) => (
-              <div key={i} className="relative pl-10">
-                <div className={`absolute left-1.5 top-1 w-3 h-3 rounded-full ${
-                  i === 0 ? 'bg-di-primary ring-4 ring-di-primary/20' : 'bg-green-500'
-                }`} />
-                <p className="text-xs font-bold text-di-on-surface">
-                  Инкассация #{record.cashoutno}
-                </p>
-                <p className="text-[10px] text-di-on-surface-variant mb-1">
-                  Смена {record.shift}, пост {record.pos} · {record.billsum.toLocaleString('ru-RU')} ₽
-                </p>
-                <span className="text-[10px] font-medium text-di-outline">
-                  {new Date(record.dt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            ))
-          ) : (
-            <div className="relative pl-10">
-              <div className="absolute left-1.5 top-1 w-3 h-3 rounded-full bg-di-outline-variant" />
-              <p className="text-xs text-di-on-surface-variant">Нет данных об инкассации</p>
-            </div>
-          )}
-
-        </div>
-      </div>
-    </div>
   );
 }

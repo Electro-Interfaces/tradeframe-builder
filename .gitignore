@@ -136,3 +136,6 @@ server/tmp/
 
 # Local trash/temp
 .trash/
+
+# Интеграционная спека TradeLink — содержит секретный ключ
+TRADELINK_STATUS_API.md

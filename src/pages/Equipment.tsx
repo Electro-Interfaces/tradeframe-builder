@@ -16,6 +16,8 @@ import { useThresholds } from "@/hooks/useThresholds";
 import { useCashoutHistory } from "@/hooks/useCashoutHistory";
 import { EquipmentCard } from "@/components/equipment/EquipmentCard";
 import { BillAcceptorCard } from "@/components/equipment/BillAcceptorCard";
+import { StationConnectivityCard } from "@/components/equipment/StationConnectivityCard";
+import { StationNetworkCard } from "@/components/equipment/StationNetworkCard";
 import { EquipmentHeader } from "@/components/equipment/EquipmentHeader";
 import { LoadingState, ErrorState } from "@/components/common/PageStates";
 import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
@@ -109,6 +111,21 @@ export default function Equipment() {
     );
   }
 
+  // Код станции для карточки «Связь» (external_id точки = номер станции = stationNumber ноды)
+  const stationCode = selectedStation?.external_id || selectedTradingPoint?.split('-azs-')[1];
+
+  // Когда станция последний раз реально передавала данные в облако (STS):
+  // самый свежий dt_info постов, fallback — lastHeartbeat терминала.
+  const lastDataAt = (() => {
+    const updates = (terminalInfo?.pos || [])
+      .map((p) => p?.lastUpdate)
+      .filter(Boolean) as string[];
+    if (updates.length) {
+      return updates.reduce((a, b) => (new Date(a) > new Date(b) ? a : b));
+    }
+    return terminalInfo?.terminal?.lastHeartbeat ?? null;
+  })();
+
   const isMultiPos = (terminalInfo?.pos?.length || 0) > 1;
   const billAcceptor = !isMultiPos ? equipment.find(eq => eq.name === 'Купюроприемник') : null;
   const otherEquipment = !isMultiPos ? equipment.filter(eq => eq.name !== 'Купюроприемник') : [];
@@ -164,6 +181,12 @@ export default function Equipment() {
           <div className={isMobile ? 'space-y-5 mt-3' : 'space-y-10 mt-6'}>
             {/* Общие элементы */}
             {commonEquipment.length > 0 && renderEquipmentGrid(commonEquipment)}
+
+            {/* Связь — IT-состояние станции (TradeLink) */}
+            <StationConnectivityCard networkExternalId={stationNetworkId} stationCode={stationCode} lastDataAt={lastDataAt} />
+
+            {/* Сеть — локальная сеть станции */}
+            <StationNetworkCard networkExternalId={stationNetworkId} stationCode={stationCode} />
 
             {/* Блоки по постам */}
             {posNumbers.map((posNum) => {
@@ -221,17 +244,25 @@ export default function Equipment() {
             {/* Status Grid — top row */}
             {renderEquipmentGrid(otherEquipment)}
 
-            {/* Banknote Acceptor — main display */}
-            {billAcceptor && (
-              <BillAcceptorCard
-                billAcceptor={billAcceptor}
-                isMobile={isMobile}
-                thresholds={billAcceptorThresholds}
-                onSaveThresholds={saveBillAcceptorThresholds}
-                cashoutRecords={cashoutRecords}
-                cashoutLoading={cashoutLoading}
-              />
+            {/* Купюроприемник | Связь — в одну строку (50/50 на десктопе) */}
+            {billAcceptor ? (
+              <div className={isMobile ? 'space-y-5' : 'grid grid-cols-2 gap-6 items-stretch'}>
+                <BillAcceptorCard
+                  billAcceptor={billAcceptor}
+                  isMobile={isMobile}
+                  thresholds={billAcceptorThresholds}
+                  onSaveThresholds={saveBillAcceptorThresholds}
+                  cashoutRecords={cashoutRecords}
+                  cashoutLoading={cashoutLoading}
+                />
+                <StationConnectivityCard networkExternalId={stationNetworkId} stationCode={stationCode} lastDataAt={lastDataAt} />
+              </div>
+            ) : (
+              <StationConnectivityCard networkExternalId={stationNetworkId} stationCode={stationCode} lastDataAt={lastDataAt} />
             )}
+
+            {/* Сеть — локальная сеть станции (на всю ширину) */}
+            <StationNetworkCard networkExternalId={stationNetworkId} stationCode={stationCode} />
 
             {/* Fuel Reservoirs — bottom table */}
             {tanks.length > 0 && (

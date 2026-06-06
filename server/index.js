@@ -20,6 +20,7 @@ const telegramRoutes = require('./routes/telegramRuntime');
 const messagesRoutes = require('./routes/messagesRuntime');
 const tankCalibrationRoutes = require('./routes/tankCalibration');
 const mstoRoutes = require('./routes/msto');
+const tradelinkRoutes = require('./routes/tradelink');
 const supportRoutes = require('./routes/support');
 const receiptCostsRoutes = require('./routes/receiptCosts');
 const receiptConfirmationsRoutes = require('./routes/receiptConfirmations');
@@ -161,6 +162,7 @@ app.use('/api/tank-calibration', tankCalibrationRoutes);
 
 // Подключаем роуты для MSTO IntegratorService API
 app.use('/api/msto', mstoRoutes);
+app.use('/api/tradelink', tradelinkRoutes);
 
 // Подключаем роуты для TSupport SDK (заявки + чат)
 app.use('/api/support', supportRoutes);
@@ -263,6 +265,13 @@ const server = app.listen(PORT, () => {
   if (mstoRoutes.warmupCache) {
     mstoRoutes.warmupCache().catch(err => {
       console.error('[Server] MSTO cache warmup failed:', err.message);
+    });
+  }
+
+  // Прогрев кэша TradeLink Hub (асинхронно, не блокирует запуск)
+  if (tradelinkRoutes.warmupCache) {
+    tradelinkRoutes.warmupCache().catch(err => {
+      console.error('[Server] TradeLink cache warmup failed:', err.message);
     });
   }
 });
