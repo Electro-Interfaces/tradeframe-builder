@@ -17,7 +17,6 @@ import { useCashoutHistory } from "@/hooks/useCashoutHistory";
 import { EquipmentCard } from "@/components/equipment/EquipmentCard";
 import { BillAcceptorCard } from "@/components/equipment/BillAcceptorCard";
 import { StationConnectivityCard } from "@/components/equipment/StationConnectivityCard";
-import { StationNetworkCard } from "@/components/equipment/StationNetworkCard";
 import { EquipmentHeader } from "@/components/equipment/EquipmentHeader";
 import { LoadingState, ErrorState } from "@/components/common/PageStates";
 import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
@@ -185,9 +184,6 @@ export default function Equipment() {
             {/* Связь — IT-состояние станции (TradeLink) */}
             <StationConnectivityCard networkExternalId={stationNetworkId} stationCode={stationCode} lastDataAt={lastDataAt} />
 
-            {/* Сеть — локальная сеть станции */}
-            <StationNetworkCard networkExternalId={stationNetworkId} stationCode={stationCode} />
-
             {/* Блоки по постам */}
             {posNumbers.map((posNum) => {
               const posOther = getPosOtherEquipment(posNum);
@@ -260,9 +256,6 @@ export default function Equipment() {
             ) : (
               <StationConnectivityCard networkExternalId={stationNetworkId} stationCode={stationCode} lastDataAt={lastDataAt} />
             )}
-
-            {/* Сеть — локальная сеть станции (на всю ширину) */}
-            <StationNetworkCard networkExternalId={stationNetworkId} stationCode={stationCode} />
 
             {/* Fuel Reservoirs — bottom table */}
             {tanks.length > 0 && (

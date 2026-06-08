@@ -336,7 +336,7 @@ export function FuelLevelThresholdsCard({
     >
       {/* Header bar */}
       <div
-        className={`py-4 ${isMobile ? "space-y-3" : "flex items-center justify-between"}`}
+        className={`px-5 py-4 ${isMobile ? "space-y-3" : "flex items-center justify-between"}`}
       >
         <div className="flex items-center gap-3">
           <Fuel className="w-5 h-5 text-di-primary-light" />
