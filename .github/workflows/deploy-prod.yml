@@ -130,6 +130,11 @@ jobs:
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
             SMTP_FROM=${{ secrets.SMTP_FROM }}
+
+            # TradeLink Integration API — карточка «Связь» (состояние связи станций, read-only)
+            TRADELINK_API_URL=https://link.dataworker.ru/api/v1
+            TRADELINK_CLIENT_ID=${{ secrets.TRADELINK_CLIENT_ID }}
+            TRADELINK_KEY=${{ secrets.TRADELINK_KEY }}
             ENV_EOF
 
             # Каталог для PDF-приказов корректировки
