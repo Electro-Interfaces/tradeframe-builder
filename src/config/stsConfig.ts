@@ -13,7 +13,11 @@ export function getSystemId(network?: { settings?: { external_id?: string }; ext
     return null;
   }
 
-  const externalId = network.settings?.external_id || network.external_id;
+  // Колонка external_id — источник истины (её меняют миграции при смене system).
+  // settings.external_id — legacy-дубль, оставлен только как fallback, чтобы не
+  // перебивать колонку (иначе при смене external_id в колонке, но не в settings,
+  // в STS уходит устаревший system — см. инцидент переезда ГИГ 65→15).
+  const externalId = network.external_id || network.settings?.external_id;
 
   if (externalId && !isNaN(parseInt(externalId))) {
     return parseInt(externalId);

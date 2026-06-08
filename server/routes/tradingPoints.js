@@ -18,6 +18,17 @@ router.get('/', filterTradingPointsByScope, async (req, res) => {
   }
 });
 
+// Все точки (с фильтрацией по scope). Объявлен ДО '/:id', иначе 'all' уйдёт в :id
+// и getTradingPointById('all') вернёт 404 (старый кэшированный фронт так и делал).
+router.get('/all', filterTradingPointsByScope, async (req, res) => {
+  try {
+    const points = await orgDataSource.getTradingPoints(null);
+    res.json(points);
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Ошибка загрузки торговых точек' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const point = await orgDataSource.getTradingPointById(req.params.id);
