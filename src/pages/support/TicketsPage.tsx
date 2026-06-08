@@ -22,7 +22,7 @@ import {
   Calendar, ChevronRight, ChevronLeft, Inbox, FileText, Globe,
   Monitor, MapPin, Route, ChevronDown, UserCircle,
   Shield, Paperclip, X, Image as ImageIcon, File, SlidersHorizontal,
-  Pencil, Trash2, AlarmClock,
+  Pencil, Trash2, AlarmClock, CheckCheck, RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
