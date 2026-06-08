@@ -24,8 +24,8 @@ import { toast } from 'sonner';
 import { useSupportContext } from '@/contexts/SupportContext';
 import {
   getChatRooms, getChatMessages, sendChatMessage, markChatRead, createChatRoom, getChatRoom, uploadChatFiles, getTSupportMe,
-  editChatMessage, deleteChatMessage,
-} from '@/services/supportService';
+  editChatMessage, deleteChatMessage, subscribeChat,
+} from '@/services/chatBackend';
 import type { ChatRoom, ChatMessage, ChatParticipant } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_CHAT } from '@/types/support';
 import { useNewAuth } from '@/contexts/NewAuthContext';
@@ -977,6 +977,18 @@ export default function ChatPage() {
       if (pollingMsgsRef.current) clearInterval(pollingMsgsRef.current);
     };
   }, [selectedRoomId, refreshUnreadCounts, loadRooms]);
+
+  // Realtime: живые события поверх polling (Matrix). Для TSupport-источника — noop.
+  useEffect(() => {
+    const unsub = subscribeChat((roomId) => {
+      loadRooms();
+      if (roomId === selectedRoomId) {
+        getChatMessages(selectedRoomId).then(setMessages).catch(() => {});
+        markChatRead(selectedRoomId).then(() => refreshUnreadCounts()).catch(() => {});
+      }
+    });
+    return unsub;
+  }, [selectedRoomId, loadRooms, refreshUnreadCounts]);
 
   // Send message (with optional file attachments)
   const handleSend = async () => {

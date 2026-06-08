@@ -22,6 +22,7 @@ const tankCalibrationRoutes = require('./routes/tankCalibration');
 const mstoRoutes = require('./routes/msto');
 const tradelinkRoutes = require('./routes/tradelink');
 const supportRoutes = require('./routes/support');
+const chatMatrixRoutes = require('./routes/chat-matrix');
 const receiptCostsRoutes = require('./routes/receiptCosts');
 const receiptConfirmationsRoutes = require('./routes/receiptConfirmations');
 const equipmentTemplatesRoutes = require('./routes/equipmentTemplates');
@@ -166,6 +167,7 @@ app.use('/api/tradelink', tradelinkRoutes);
 
 // Подключаем роуты для TSupport SDK (заявки + чат)
 app.use('/api/support', supportRoutes);
+app.use('/api/chat/matrix', chatMatrixRoutes);
 
 // Себестоимость поступлений
 app.use('/api/receipt-costs', receiptCostsRoutes);

@@ -9,6 +9,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { getUnreadCounts } from '@/services/supportService';
+import { getChatUnread } from '@/services/chatBackend';
 import type { AppContext, UnreadCounts } from '@/types/support';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useSelection } from '@/contexts/SelectionContext';
@@ -231,6 +232,12 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
     if (!user || !getToken()) return;
     try {
       const counts = await getUnreadCounts();
+      // Если активен Matrix-чат — его непрочитанные приоритетнее TSupport (chat ушёл в Matrix).
+      const mxChat = getChatUnread();
+      if (mxChat !== null) {
+        counts.chat = mxChat;
+        counts.total = counts.tickets + mxChat;
+      }
       setUnreadCounts(counts);
     } catch {
       // Silently fail — не ломаем UI из-за недоступности TSupport
