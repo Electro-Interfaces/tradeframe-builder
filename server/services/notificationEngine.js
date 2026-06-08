@@ -247,7 +247,7 @@ class NotificationEngine {
 
     // Для каждой сети получаем актуальные данные из STS API
     for (const tenant of tenants || []) {
-      const networkId = tenant.settings?.external_id;
+      const networkId = tenant.external_id || tenant.settings?.external_id;
       if (!networkId) {
         continue;
       }
@@ -549,7 +549,7 @@ class NotificationEngine {
 
     // Для каждой сети получаем актуальные данные из STS API
     for (const tenant of tenants || []) {
-      const networkId = tenant.settings?.external_id;
+      const networkId = tenant.external_id || tenant.settings?.external_id;
       if (!networkId) {
         continue;
       }
@@ -823,7 +823,7 @@ class NotificationEngine {
         return { success: false, error: 'Tenant not found' };
       }
 
-      const networkId = tenant.settings?.external_id || tenant.external_id;
+      const networkId = tenant.external_id || tenant.settings?.external_id;
       const stations = tenant.settings?.stations || [];
 
       if (!stations || stations.length === 0) {
@@ -957,7 +957,7 @@ class NotificationEngine {
         return { success: false, error: 'Tenant not found' };
       }
 
-      const networkId = tenant.settings?.external_id || tenant.external_id;
+      const networkId = tenant.external_id || tenant.settings?.external_id;
       const networkName = tenant.name || `Сеть ${networkId}`;
       const stations = tenant.settings?.stations || [];
 
@@ -1053,7 +1053,7 @@ class NotificationEngine {
         status: 'pending',
         channels: ['telegram'],
         context: {
-          networkId: tenant.settings?.external_id || tenant.external_id,
+          networkId: tenant.external_id || tenant.settings?.external_id,
           networkName,
           totalCash,
           totalBank,
