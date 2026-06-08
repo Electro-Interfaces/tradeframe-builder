@@ -142,6 +142,17 @@ export function Header({
             <RefreshCw className="h-3.5 w-3.5" />
             Связь
           </Button>
+
+          {/* Mobile Create Ticket */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={openCreateDialog}
+            className="shrink-0 h-9 w-9 p-0 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-all"
+            title="Создать заявку"
+          >
+            <LifeBuoy className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Desktop Left Section: Logo + Brand + Sidebar toggle */}
@@ -191,6 +202,17 @@ export function Header({
           >
             <Wifi className="h-4 w-4" />
             Связь
+          </Button>
+          {/* Desktop Create Ticket Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openCreateDialog}
+            className="h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
+            title="Создать заявку"
+          >
+            <LifeBuoy className="h-4 w-4" />
+            Заявка
           </Button>
         </div>
 
