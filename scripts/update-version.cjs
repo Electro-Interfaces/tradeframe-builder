@@ -56,8 +56,8 @@ function updateIndexHtml(version) {
     // Список замен
     const replacements = [
       {
-        pattern: /<title>TradeFrame - Управление торговыми сетями v[\d.]+<\/title>/,
-        replacement: `<title>TradeFrame - Управление торговыми сетями v${version}</title>`
+        pattern: /<title>TradePoint - Управление торговыми сетями v[\d.]+<\/title>/,
+        replacement: `<title>TradePoint - Управление торговыми сетями v${version}</title>`
       },
       {
         pattern: /<meta name="cache-buster" content="v[\d.]+-\d+" \/>/,
