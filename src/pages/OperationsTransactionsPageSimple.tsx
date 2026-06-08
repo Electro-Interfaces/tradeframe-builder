@@ -501,7 +501,13 @@ export default function OperationsTransactionsPageSimple() {
         filtered = filtered.filter(record => {
           for (const { field, value } of fieldFilters) {
             const recordValue = record[field]?.toString() || '';
-            if (recordValue !== value && !recordValue.includes(value)) return false;
+            // Карта — частичный поиск (подстрока), числовые поля (смена/чек/
+            // станция/pos) — строго точное совпадение, чтобы «смена 3249» не
+            // ловила смену 32490 и т.п.
+            const ok = field === 'cardNumber'
+              ? recordValue.toLowerCase().includes(value.toLowerCase())
+              : recordValue === value;
+            if (!ok) return false;
           }
           // Оставшиеся токены ищем как подстроку по всем полям
           for (const token of remainingTokens) {
@@ -514,16 +520,25 @@ export default function OperationsTransactionsPageSimple() {
           }
           return true;
         });
+      } else if (/^\d+$/.test(query)) {
+        // Чистое число — ТОЧНОЕ совпадение по числовым полям. Иначе короткое
+        // число (напр. смена 3249) ловится подстрокой внутри длинного ID
+        // операции (593249) и в выборку попадают чужие смены.
+        filtered = filtered.filter(record => (
+          record.id?.toString() === query ||
+          (record.shiftNumber != null && record.shiftNumber.toString() === query) ||
+          (record.receiptNumber != null && record.receiptNumber.toString() === query) ||
+          (record.stationNumber != null && record.stationNumber.toString() === query) ||
+          (record.posNumber != null && record.posNumber.toString() === query)
+        ));
       } else {
-        // Обычный поиск подстрокой по всем полям
+        // Текстовый запрос — поиск подстрокой по текстовым полям
         filtered = filtered.filter(record => (
           record.id?.toLowerCase().includes(query) ||
           (record.details && record.details.toLowerCase().includes(query)) ||
           (record.tradingPointName && record.tradingPointName.toLowerCase().includes(query)) ||
-          (record.shiftNumber && record.shiftNumber.toString().includes(query)) ||
           (record.cardNumber && record.cardNumber.toLowerCase().includes(query)) ||
-          (record.receiptNumber && record.receiptNumber.toString().includes(query)) ||
-          (record.stationNumber && record.stationNumber.toString().includes(query))
+          (record.fuelType && record.fuelType.toLowerCase().includes(query))
         ));
       }
     }
