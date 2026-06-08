@@ -75,6 +75,32 @@ router.post('/upload/:ticketId', async (req, res) => {
   }
 });
 
+// STT: аудио (multipart) → текст. Сырой поток с оригинальным Content-Type
+// (как /upload). Ответ оркестратора { text } отдаём как есть.
+router.post('/transcribe', async (req, res) => {
+  try {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const r = await axios({
+      method: 'POST',
+      url: `${SUPPORT_API_BASE}/api/support/transcribe`,
+      headers: { ...userHeaders(req), 'Content-Type': req.headers['content-type'] || 'application/octet-stream' },
+      data: Buffer.concat(chunks),
+      timeout: 60000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      responseType: 'arraybuffer',
+      validateStatus: () => true,
+    });
+    res.status(r.status);
+    res.set('Content-Type', r.headers['content-type'] || 'application/json; charset=utf-8');
+    res.send(Buffer.from(r.data));
+  } catch (error) {
+    console.error('[Support Proxy] transcribe:', error.message);
+    res.status(502).json({ error: 'Распознавание речи недоступно' });
+  }
+});
+
 // Generic-прокси: /api/support/* → ai-orchestrator /api/support/*
 router.all('*', async (req, res) => {
   try {

@@ -16,27 +16,25 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Search, Plus, Clock, Send, Loader2, RefreshCw,
+  Search, Clock, Send, Loader2, RefreshCw,
   AlertCircle, CheckCircle2, Timer, ArrowUpCircle,
   MessageSquare, History, Tag, Building2, User,
   Calendar, ChevronRight, ChevronLeft, Inbox, FileText, Globe,
   Monitor, MapPin, Route, ChevronDown, UserCircle,
   Shield, Paperclip, X, Image as ImageIcon, File, SlidersHorizontal,
-  Pencil, Trash2, AlarmClock,
+  AlarmClock, CheckCheck, RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSupportContext } from '@/contexts/SupportContext';
 import {
   getTickets, getTicket, getTicketActivity, sendTicketMessage, uploadFiles, updateTicket,
-  markTicketRead, getTSupportMe, editTicketMessage, deleteTicketMessage, searchUsers,
+  markTicketRead, getTSupportMe,
   type TicketListResponse,
 } from '@/services/supportService';
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from '@/components/ui/popover';
 import type { SupportTicket, TicketActivity, TicketStatus, AppContext } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
+import { canMarkResolved, canReopen } from '@/utils/ticketPermissions';
 import {
   TICKET_STATUS_LABELS,
   TICKET_STATUS_COLORS,
@@ -60,13 +58,26 @@ const PRIORITY_DOT: Record<string, string> = {
   low: 'bg-muted-foreground', medium: 'bg-primary/70', high: 'bg-amber-400', critical: 'bg-red-400',
 };
 
+// Единый минутный тик на все SLA-индикаторы: один таймер вместо setInterval на каждый тикет.
+const _slaTickListeners = new Set<() => void>();
+let _slaTickTimer: ReturnType<typeof setInterval> | null = null;
+function useMinuteTick(): number {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const cb = () => force(n => n + 1);
+    _slaTickListeners.add(cb);
+    if (!_slaTickTimer) _slaTickTimer = setInterval(() => _slaTickListeners.forEach(f => f()), 60_000);
+    return () => {
+      _slaTickListeners.delete(cb);
+      if (_slaTickListeners.size === 0 && _slaTickTimer) { clearInterval(_slaTickTimer); _slaTickTimer = null; }
+    };
+  }, []);
+  return Date.now();
+}
+
 // ========== SLA Indicator ==========
 function SlaIndicator({ deadline, breached }: { deadline?: string; breached?: boolean }) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useMinuteTick();
 
   if (!deadline) return null;
 
@@ -96,73 +107,9 @@ function SlaIndicator({ deadline, breached }: { deadline?: string; breached?: bo
 }
 
 // ========== Assignee Selector ==========
-function AssigneeSelector({ ticket, onAssign }: { ticket: SupportTicket; onAssign: (userId: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
-  const [searching, setSearching] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const doSearch = useCallback(async (q: string) => {
-    setSearching(true);
-    try {
-      const data = await searchUsers(q, 10);
-      setResults(data);
-    } catch { setResults([]); }
-    finally { setSearching(false); }
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    doSearch('');
-  }, [open, doSearch]);
-
-  const handleInput = (v: string) => {
-    setQuery(v);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => doSearch(v), 300);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className="text-left text-foreground font-medium hover:text-primary/70 transition-colors">
-          {ticket.assignee_name || 'Не назначен'}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 bg-card border-border" align="start">
-        <Input
-          value={query}
-          onChange={e => handleInput(e.target.value)}
-          placeholder="Поиск..."
-          className="h-8 text-xs mb-2 bg-background border-border text-foreground"
-          autoFocus
-        />
-        <div className="max-h-48 overflow-y-auto space-y-0.5">
-          {searching ? (
-            <div className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
-          ) : results.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-2">Никого не найдено</p>
-          ) : results.map(u => (
-            <button
-              key={u.id}
-              onClick={() => { onAssign(u.id); setOpen(false); }}
-              className="w-full text-left px-2 py-1.5 rounded text-xs text-foreground/80 hover:bg-secondary transition-colors flex items-center gap-2"
-            >
-              <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span className="truncate">{u.name}</span>
-              <span className="text-muted-foreground ml-auto text-[10px]">{u.role}</span>
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 export default function TicketsPage() {
   const isMobile = useIsMobile();
-  const { openCreateDialog, refreshUnreadCounts, clearTicketsBadge } = useSupportContext();
+  const { refreshUnreadCounts, clearTicketsBadge, ticketsVersion, notifyTicketsChanged } = useSupportContext();
 
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [total, setTotal] = useState(0);
@@ -261,7 +208,15 @@ export default function TicketsPage() {
     }
   }, [statusFilter, priorityFilter, typeFilter, debouncedSearch, page]);
 
-  useEffect(() => { loadTickets(); }, [loadTickets]);
+  // Перезагрузка списка при изменении фильтров/страницы и при создании новой заявки (ticketsVersion).
+  useEffect(() => { loadTickets(); }, [loadTickets, ticketsVersion]);
+
+  // Новая заявка создаётся со статусом «new» и попадает наверх — возвращаемся на первую страницу,
+  // чтобы она была видна сразу (если открыт фильтр, скрывающий «new», это ожидаемо).
+  useEffect(() => {
+    if (ticketsVersion > 0 && page !== 0) setPage(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketsVersion]);
 
   // Получить TSupport userId для определения своих сообщений
   useEffect(() => {
@@ -293,14 +248,14 @@ export default function TicketsPage() {
       .catch(() => toast.error('Не удалось загрузить заявку'))
       .finally(() => setLoadingDetail(false));
 
-    // Polling активности каждые 15 сек (пропускаем при отправке или если вкладка неактивна)
+    // Polling активности каждые 30 сек (пропускаем при отправке или если вкладка неактивна)
     pollingRef.current = setInterval(async () => {
       if (sendingRef.current || document.visibilityState === 'hidden') return;
       try {
         const acts = await getTicketActivity(selectedId);
         setActivity(acts);
       } catch {/* silent */}
-    }, 15_000);
+    }, 30_000);
 
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -315,6 +270,21 @@ export default function TicketsPage() {
       prevSelectedId.current = selectedId;
     }
   }, [selectedId, activity]);
+
+  // Смена статуса доступная клиенту: «выполнено» (resolved) и «переоткрыть» (reopened).
+  // Закрытие/отмена и назначение исполнителя — на стороне поддержки.
+  const changeStatus = async (status: TicketStatus) => {
+    if (!selectedId) return;
+    try {
+      const updated = await updateTicket(selectedId, { status } as Partial<SupportTicket>);
+      setSelectedTicket(updated);
+      notifyTicketsChanged();
+      refreshUnreadCounts();
+      toast.success(status === 'resolved' ? 'Заявка отмечена выполненной' : 'Заявка переоткрыта');
+    } catch {
+      toast.error('Не удалось изменить статус');
+    }
+  };
 
   const handleSendReply = async () => {
     if (!selectedId || (!replyText.trim() && attachedFiles.length === 0)) return;
@@ -430,14 +400,6 @@ export default function TicketsPage() {
               className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button
-              size="sm"
-              onClick={openCreateDialog}
-              className="h-9 bg-primary hover:bg-primary/80 text-sm px-3"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Создать
             </Button>
           </div>
           <div className="flex gap-2 items-center">
@@ -725,16 +687,7 @@ export default function TicketsPage() {
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span className="text-muted-foreground">Исполнитель:</span>
-                      <AssigneeSelector
-                        ticket={selectedTicket}
-                        onAssign={async (userId) => {
-                          try {
-                            const updated = await updateTicket(selectedTicket.id, { current_assignee_id: userId } as Partial<SupportTicket>);
-                            setSelectedTicket(updated);
-                            toast.success('Исполнитель назначен');
-                          } catch { toast.error('Не удалось назначить'); }
-                        }}
-                      />
+                      <span className="text-foreground font-medium">{selectedTicket.assignee_name || 'Назначается'}</span>
                     </div>
                     {getCategoryDisplay(selectedTicket) && (
                       <div className="flex items-center gap-2">
@@ -868,53 +821,13 @@ export default function TicketsPage() {
                               <span className="text-xs font-medium text-muted-foreground">
                                 {act.user_name || 'Система'}
                               </span>
-                              {act.user_role && act.user_role !== 'customer' && (
-                                <span className={`text-xs px-1.5 py-px rounded ${
-                                  isAi ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400'
-                                    : 'bg-secondary text-muted-foreground'
-                                }`}>
-                                  {isAi ? 'AI' : act.user_role}
+                              {((act.user_role && act.user_role !== 'customer') || isAi) && (
+                                <span className="text-xs px-1.5 py-px rounded bg-secondary text-muted-foreground">
+                                  {isAi ? 'Поддержка' : act.user_role}
                                 </span>
                               )}
                               {act.is_edited && <span className="text-[10px] text-muted-foreground">ред.</span>}
                               <span className="text-xs text-muted-foreground">{formatDate(act.created_at)}</span>
-                              {/* Edit/Delete buttons for own messages */}
-                              {isCustomer && act.event_type === 'message' && (
-                                <span className="opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-0.5 ml-1">
-                                  <button
-                                    onClick={async () => {
-                                      const newContent = prompt('Редактировать сообщение:', act.content || '');
-                                      if (newContent !== null && newContent.trim() && newContent !== act.content) {
-                                        try {
-                                          await editTicketMessage(selectedId!, act.id, newContent.trim());
-                                          const acts = await getTicketActivity(selectedId!);
-                                          setActivity(acts);
-                                          toast.success('Сообщение отредактировано');
-                                        } catch { toast.error('Не удалось отредактировать'); }
-                                      }
-                                    }}
-                                    className="p-0.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                                    title="Редактировать"
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    onClick={async () => {
-                                      if (!confirm('Удалить сообщение?')) return;
-                                      try {
-                                        await deleteTicketMessage(selectedId!, act.id);
-                                        const acts = await getTicketActivity(selectedId!);
-                                        setActivity(acts);
-                                        toast.success('Сообщение удалено');
-                                      } catch { toast.error('Не удалось удалить'); }
-                                    }}
-                                    className="p-0.5 rounded hover:bg-red-600/50 text-muted-foreground hover:text-red-400 transition-colors"
-                                    title="Удалить"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </span>
-                              )}
                             </div>
                             <div className={`rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
                               isCustomer
@@ -994,6 +907,30 @@ export default function TicketsPage() {
                   })}
                   <div ref={activityEndRef} />
                 </div>
+              )}
+            </div>
+
+            {/* Действия по статусу: клиент отмечает «выполнено» или переоткрывает; закрытие — за поддержкой */}
+            <div className="px-4 py-2 border-t border-border/50 flex flex-wrap gap-2">
+              {canMarkResolved(selectedTicket.status) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => changeStatus('resolved')}
+                  className="gap-1.5 border-green-500/40 text-green-600 dark:text-green-400 hover:bg-green-500/10 hover:text-green-600"
+                >
+                  <CheckCheck className="h-4 w-4" /> Отметить выполненной
+                </Button>
+              )}
+              {canReopen(selectedTicket.status) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => changeStatus('reopened')}
+                  className="gap-1.5"
+                >
+                  <RotateCcw className="h-4 w-4" /> Переоткрыть
+                </Button>
               )}
             </div>
 

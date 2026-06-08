@@ -34,6 +34,10 @@ interface SupportContextValue {
   refreshUnreadCounts: () => void;
   clearTicketsBadge: () => void;
   clearChatBadge: () => void;
+
+  // Сигнал «список заявок изменился» (создана новая заявка) — для авто-обновления списка
+  ticketsVersion: number;
+  notifyTicketsChanged: () => void;
 }
 
 const SupportContext = createContext<SupportContextValue | undefined>(undefined);
@@ -89,8 +93,11 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({ tickets: 0, chat: 0, total: 0 });
   const pollingRef = useRef<ReturnType<typeof setInterval>>();
 
+  const [ticketsVersion, setTicketsVersion] = useState(0);
+
   const openCreateDialog = useCallback(() => setIsCreateDialogOpen(true), []);
   const closeCreateDialog = useCallback(() => setIsCreateDialogOpen(false), []);
+  const notifyTicketsChanged = useCallback(() => setTicketsVersion(v => v + 1), []);
 
   const registerPageContext = useCallback((data: PageContextData) => {
     setPageContext(data);
@@ -280,6 +287,8 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
         refreshUnreadCounts,
         clearTicketsBadge,
         clearChatBadge,
+        ticketsVersion,
+        notifyTicketsChanged,
       }}
     >
       {children}

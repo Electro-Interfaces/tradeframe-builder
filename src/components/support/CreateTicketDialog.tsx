@@ -1,10 +1,11 @@
 /**
  * CreateTicketDialog — «умное» создание заявки.
  *
- * Шаг 1 (ввод): клиент описывает проблему свободно — текстом, голосом (🎤) и/или
- * прикрепляет файлы. Никаких обязательных полей тема/категория/приоритет.
- * Шаг 2 (черновик): AI формирует заявку (тема/описание/категория/приоритет/тип),
- * клиент при желании правит и отправляет.
+ * Два режима (переключатель в шапке):
+ *  - «Опишу словами» — свободный текст → автоформирование полей → проверка/правка;
+ *  - «Заполню поля» — ручное заполнение тема/описание/категория/приоритет/тип.
+ * Голосом — системным вводом устройства (🎤 на клавиатуре телефона / Win+H на ПК),
+ * без встроенного распознавания. В интерфейсе механику не называем.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -24,11 +25,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, Paperclip, X, Image, FileText, Sparkles, ChevronLeft, Wand2 } from 'lucide-react';
+import { Send, Loader2, Paperclip, X, Image, FileText, Sparkles, ChevronLeft, Wand2, Mic } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupportContext } from '@/contexts/SupportContext';
 import { createTicket, createDraft, getCategories, uploadFiles } from '@/services/supportService';
-import VoiceInputButton from './VoiceInputButton';
 import type { TicketCategory, TicketPriority, TicketType } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
 
@@ -37,15 +37,18 @@ const selectContentCls = 'bg-card border-border text-foreground';
 const emptySelectValue = '__none__';
 
 export default function CreateTicketDialog() {
-  const { isCreateDialogOpen, closeCreateDialog, buildAppContext } = useSupportContext();
+  const { isCreateDialogOpen, closeCreateDialog, buildAppContext, notifyTicketsChanged } = useSupportContext();
 
+  const [mode, setMode] = useState<'smart' | 'manual'>('smart');
   const [step, setStep] = useState<'input' | 'draft'>('input');
   const [rawText, setRawText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [drafting, setDrafting] = useState(false);
+  const [draftProgress, setDraftProgress] = useState(0);
+  const [draftStage, setDraftStage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Поля черновика (после AI — редактируемые)
+  // Поля заявки (предзаполняются в режиме «опишу словами», редактируемые)
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TicketPriority>('medium');
@@ -59,6 +62,7 @@ export default function CreateTicketDialog() {
     if (isCreateDialogOpen) {
       getCategories().then(setCategories).catch(() => setCategories([]));
     } else {
+      setMode('smart');
       setStep('input');
       setRawText('');
       setFiles([]);
@@ -70,14 +74,35 @@ export default function CreateTicketDialog() {
     }
   }, [isCreateDialogOpen]);
 
+  // Псевдо-прогресс ожидания автоформирования (~15-20с): даём ощущение работы,
+  // а не зависания. Асимптота к 92%; финальный «рывок» к 100% — при готовности.
+  useEffect(() => {
+    if (!drafting) {
+      setDraftProgress(0);
+      setDraftStage('');
+      return;
+    }
+    setDraftProgress(8);
+    setDraftStage('Обрабатываем описание…');
+    const started = Date.now();
+    const id = setInterval(() => {
+      const elapsed = (Date.now() - started) / 1000;
+      setDraftProgress(p => Math.min(92, p + (92 - p) * 0.06 + 0.5));
+      setDraftStage(
+        elapsed < 5 ? 'Обрабатываем описание…'
+          : elapsed < 11 ? 'Подбираем категорию и приоритет…'
+            : 'Формируем заявку…'
+      );
+    }, 400);
+    return () => clearInterval(id);
+  }, [drafting]);
+
   // плоский список категорий (для select черновика)
   const flatCategories: { code: string; name: string }[] = [];
   for (const c of categories) {
     flatCategories.push({ code: c.code, name: c.name });
     for (const ch of c.children || []) flatCategories.push({ code: ch.code, name: `— ${ch.name}` });
   }
-
-  const handleVoice = (text: string) => setRawText(prev => (prev ? `${prev} ${text}` : text));
 
   const addFiles = (list: FileList | null) => {
     const newFiles = Array.from(list || []);
@@ -89,7 +114,7 @@ export default function CreateTicketDialog() {
     setFiles(prev => [...prev, ...newFiles].slice(0, MAX_FILES_TICKET));
   };
 
-  // Шаг 1 → AI формирует черновик
+  // Режим «опишу словами»: текст → автоформирование полей заявки
   const handleFormDraft = async () => {
     if (!rawText.trim() && files.length === 0) {
       toast.error('Опишите проблему или прикрепите файл');
@@ -104,7 +129,7 @@ export default function CreateTicketDialog() {
       setPriority(d.priority || 'medium');
       setType(d.type || 'request');
       setStep('draft');
-      if (d.ai === false) toast.message('AI временно недоступен — проверьте поля вручную');
+      if (d.ai === false) toast.message('Не удалось оформить автоматически — проверьте поля');
     } catch (err: any) {
       // фоллбэк: переходим к черновику с исходным текстом
       setTitle(rawText.trim().slice(0, 60));
@@ -135,6 +160,7 @@ export default function CreateTicketDialog() {
         category: category || undefined,
         app_context: buildAppContext(),
       });
+      notifyTicketsChanged(); // заявка создана — список заявок обновится без ручного «Обновить»
       if (files.length > 0 && ticket?.id) {
         try {
           await uploadFiles(ticket.id, files);
@@ -206,22 +232,45 @@ export default function CreateTicketDialog() {
           <DialogTitle className="text-lg font-semibold flex items-center gap-2">
             {step === 'input' ? (
               <><Sparkles className="h-4 w-4 text-primary" /> Опишите проблему</>
+            ) : mode === 'manual' ? (
+              <><FileText className="h-4 w-4 text-primary" /> Новая заявка</>
             ) : (
-              <><Wand2 className="h-4 w-4 text-primary" /> Проверьте заявку</>
+              <><Sparkles className="h-4 w-4 text-primary" /> Проверьте заявку</>
             )}
           </DialogTitle>
         </DialogHeader>
 
+        {/* Переключатель: описать словами или заполнить поля вручную */}
+        {!drafting && (
+          <div className="flex gap-1 p-1 rounded-lg bg-muted/60 dark:bg-di-surface-low mt-1 text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => { setMode('smart'); setStep('input'); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-colors ${mode === 'smart' ? 'bg-background dark:bg-di-surface-high text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Опишу словами
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('manual');
+                if (!description && rawText.trim()) setDescription(rawText.trim());
+                setStep('draft');
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-colors ${mode === 'manual' ? 'bg-background dark:bg-di-surface-high text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <FileText className="h-3.5 w-3.5" /> Заполню поля
+            </button>
+          </div>
+        )}
+
         {step === 'input' ? (
           <div className="space-y-4 mt-2">
             <p className="text-xs text-muted-foreground">
-              Расскажите своими словами, что случилось — можно надиктовать голосом 🎤 и приложить фото.
+              Расскажите своими словами, что случилось — можно приложить фото.
               Заявку оформим за вас.
             </p>
             <div>
-              <div className="flex items-center justify-end mb-1">
-                <VoiceInputButton onResult={handleVoice} />
-              </div>
               <Textarea
                 value={rawText}
                 onChange={e => setRawText(e.target.value)}
@@ -230,21 +279,50 @@ export default function CreateTicketDialog() {
                 className="bg-card border-border text-foreground placeholder:text-muted-foreground resize-none"
                 autoFocus
               />
+              <p className="mt-2 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                <Mic className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-primary/70" />
+                <span>
+                  Не хотите печатать — надиктуйте голосом: на телефоне нажмите значок микрофона
+                  на экранной клавиатуре, на компьютере (Windows) — клавиши{' '}
+                  <kbd className="px-1 py-0.5 rounded bg-muted text-foreground text-[10px] font-mono">Win</kbd> +{' '}
+                  <kbd className="px-1 py-0.5 rounded bg-muted text-foreground text-[10px] font-mono">H</kbd>.
+                </span>
+              </p>
             </div>
             {filesBlock}
-            <Button
-              onClick={handleFormDraft}
-              disabled={drafting || (!rawText.trim() && files.length === 0)}
-              className="w-full bg-primary hover:bg-primary/80 text-white"
-            >
-              {drafting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
-              {drafting ? 'Оформляем заявку…' : 'Оформить заявку'}
-            </Button>
+            {drafting ? (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 dark:bg-primary/10 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary dark:text-primary/80">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Оформляем заявку…
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-primary/15 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+                    style={{ width: `${draftProgress}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {draftStage} Обычно занимает 10–20 секунд — не закрывайте окно.
+                </p>
+              </div>
+            ) : (
+              <Button
+                onClick={handleFormDraft}
+                disabled={!rawText.trim() && files.length === 0}
+                className="w-full bg-primary hover:bg-primary/80 text-white"
+              >
+                <Wand2 className="h-4 w-4 mr-2" />
+                Оформить заявку
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4 mt-2">
             <p className="text-xs text-muted-foreground">
-              Заявка оформлена автоматически. Поправьте, если нужно, и отправьте.
+              {mode === 'manual'
+                ? 'Заполните поля заявки и отправьте.'
+                : 'Проверьте поля и при необходимости поправьте, затем отправьте.'}
             </p>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Тема *</label>
@@ -303,14 +381,16 @@ export default function CreateTicketDialog() {
             </div>
             {filesBlock}
             <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => setStep('input')}
-                disabled={submitting}
-                className="text-muted-foreground"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Изменить
-              </Button>
+              {mode === 'smart' && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setStep('input')}
+                  disabled={submitting}
+                  className="text-muted-foreground"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Изменить
+                </Button>
+              )}
               <Button
                 onClick={handleSubmit}
                 disabled={submitting || !title.trim()}

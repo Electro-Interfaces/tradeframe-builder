@@ -16,12 +16,14 @@ import type {
   UnreadCounts,
 } from '@/types/support';
 
+/** Черновик заявки, сформированный AI из свободного описания клиента. */
 export interface TicketDraft {
   title: string;
   description: string;
   category: string;
   priority: TicketPriority;
   type: TicketType;
+  /** false — AI был недоступен, поля нужно проверить вручную. */
   ai?: boolean;
 }
 
@@ -260,8 +262,15 @@ export async function uploadFiles(ticketId: string, files: File[]): Promise<Uplo
 
 // === Категории ===
 
-export async function getCategories(): Promise<TicketCategory[]> {
-  return supportRequest<TicketCategory[]>('/categories');
+// Категории статичны в рамках сессии — кэшируем, чтобы не дёргать backend
+// при каждом открытии формы заявки.
+let _categoriesCache: TicketCategory[] | null = null;
+
+export async function getCategories(force = false): Promise<TicketCategory[]> {
+  if (_categoriesCache && !force) return _categoriesCache;
+  const cats = await supportRequest<TicketCategory[]>('/categories');
+  _categoriesCache = cats;
+  return cats;
 }
 
 // === Текущий пользователь TSupport ===
