@@ -7,6 +7,7 @@ const express = require('express');
 const { requireAuth, tryAuth } = require('../middleware/auth');
 const { validateStsAccess } = require('../middleware/scopeFilter');
 const stsProxy = require('../services/stsProxyService');
+const orgDataSource = require('../services/org/orgDataSource');
 
 const router = express.Router();
 
@@ -218,6 +219,54 @@ async function aggregateStationInventory(system, station, periodStart, periodEnd
   });
   return result;
 }
+
+// ─── Прогрев кэша «Остатки» при старте ─────────────────
+// Холодный заход агрегирует сотни shift_report (STS отдаёт ~последовательно) —
+// 15-20с. Отчёты закрытых смен неизменны (TTL 24ч), поэтому прогреваем кэш при
+// старте backend: первый пользователь после рестарта не ждёт.
+async function warmupCache() {
+  try {
+    const networks = await orgDataSource.getNetworks();
+    const active = (networks || []).filter((n) => n && n.external_id);
+    if (!active.length) return;
+
+    const fmt = (d, eod) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${eod ? '23:59:59' : '00:00:00'}`;
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 31); // месяц закрывает и недельные, и месячные запросы
+    const dt_beg = fmt(start, false);
+    const dt_end = fmt(end, true);
+    const periodStart = new Date(dt_beg);
+    const periodEnd = new Date(dt_end);
+
+    let warmed = 0;
+    for (const net of active) {
+      let points;
+      try {
+        points = await orgDataSource.getTradingPoints(net.id);
+      } catch {
+        continue;
+      }
+      const stations = (points || [])
+        .filter((p) => p && p.external_id)
+        .map((p) => ({ id: p.external_id, name: p.name }));
+      // Последовательно: STS отдаёт shift_report почти последовательно, параллелить
+      // незачем и можно перегрузить внешний API.
+      for (const station of stations) {
+        try {
+          await aggregateStationInventory(net.external_id, station, periodStart, periodEnd, dt_beg, dt_end, {});
+          warmed++;
+        } catch { /* станция пропущена — прогрев best-effort */ }
+      }
+    }
+    console.log(`[STS] Прогрев кэша «Остатки»: ${warmed} станций за 31 день`);
+  } catch (e) {
+    console.error('[STS] Прогрев кэша «Остатки» не удался:', e.message);
+  }
+}
+
+router.warmupCache = warmupCache;
 
 // ─── Fallback ──────────────────────────────────────────
 

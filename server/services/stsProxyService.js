@@ -66,7 +66,9 @@ const CACHE_TTL = {
   '/v1/coupons': 0,
   '/v1/coupons_manual': 0,
   '/v1/shifts': 300,
-  '/v1/report/shift_report': 7200,
+  // Отчёт закрытой смены неизменен — держим в кэше сутки, чтобы «Остатки»/сменные
+  // отчёты после первого (холодного) захода весь день открывались мгновенно.
+  '/v1/report/shift_report': 86400,
   '/v1/report/receipts': 300,
   '/v1/tank_history': 300,
   'default': 60,

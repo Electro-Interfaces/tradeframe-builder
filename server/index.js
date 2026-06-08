@@ -274,6 +274,13 @@ const server = app.listen(PORT, () => {
       console.error('[Server] TradeLink cache warmup failed:', err.message);
     });
   }
+
+  // Прогрев кэша «Остатки» (fuel-inventory) — отчёты закрытых смен, асинхронно
+  if (stsRoutes.warmupCache) {
+    stsRoutes.warmupCache().catch(err => {
+      console.error('[Server] STS fuel-inventory warmup failed:', err.message);
+    });
+  }
 });
 
 let isShuttingDown = false;
