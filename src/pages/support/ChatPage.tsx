@@ -390,8 +390,8 @@ function MessageBubble({
       <div
         className={`max-w-[75%] px-3 py-1.5 ${radius} ${
           isOwn
-            ? 'bg-[#2B5278]'
-            : 'bg-card'
+            ? 'bg-[#dbeafe] dark:bg-[#2B5278]'
+            : 'bg-card border border-border/60 dark:border-transparent'
         }`}
       >
         {/* Author name (only for others, first in group) */}
@@ -403,8 +403,8 @@ function MessageBubble({
 
         {/* Reply-to quote */}
         {message.reply_to && (
-          <div className={`border-l-2 pl-2 mb-1.5 ${isOwn ? 'border-primary/40/50' : 'border-border/50'}`}>
-            <p className="text-[11px] font-medium text-primary dark:text-primary/70/80">{message.reply_to_user_name || ''}</p>
+          <div className={`border-l-2 pl-2 mb-1.5 ${isOwn ? 'border-primary/50' : 'border-border/50'}`}>
+            <p className="text-[11px] font-medium text-primary dark:text-primary/80">{message.reply_to_user_name || ''}</p>
             <p className="text-xs text-muted-foreground truncate">
               {message.reply_to_deleted ? 'Сообщение удалено' : (message.reply_to_content || '')}
             </p>
@@ -427,7 +427,7 @@ function MessageBubble({
             target="_blank"
             rel="noopener noreferrer"
             className={`flex items-center gap-2 p-2 rounded mb-1 transition-colors ${
-              isOwn ? 'bg-[#1e3f5e] hover:bg-[#244a6e]' : 'bg-secondary/50 hover:bg-secondary'
+              isOwn ? 'bg-[#bcd9fb] hover:bg-[#a8ccf7] dark:bg-[#1e3f5e] dark:hover:bg-[#244a6e]' : 'bg-secondary/50 hover:bg-secondary'
             }`}
           >
             <FileText className="h-8 w-8 text-primary dark:text-primary/70 shrink-0" />
@@ -1080,22 +1080,24 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
           const file = uploaded[i];
           const isImg = file.type.startsWith('image/');
           // Текст и reply прикрепляем только к первому файлу
-          const msg = await sendChatMessage(selectedRoomId, i === 0 ? text : '', {
+          await sendChatMessage(selectedRoomId, i === 0 ? text : '', {
             type: isImg ? 'image' : 'file',
             file_url: file.url,
             file_name: file.name,
             file_size: file.size,
           }, i === 0 ? replyId : undefined);
-          setMessages(prev => [...prev, msg]);
         }
         setMessageText('');
         setPendingFiles([]);
       } else {
-        const msg = await sendChatMessage(selectedRoomId, messageText.trim(), undefined, replyId);
-        setMessages(prev => [...prev, msg]);
+        await sendChatMessage(selectedRoomId, messageText.trim(), undefined, replyId);
         setMessageText('');
       }
       setReplyingTo(null);
+      // Канонично перечитываем таймлайн вместо оптимистичного добавления:
+      // matrix-js-sdk уже кладёт local-echo в timeline, а ручной append давал
+      // дубль (две одинаковые картинки/сообщения до схлопывания local-echo с remote-эхом).
+      getChatMessages(selectedRoomId).then(setMessages).catch(() => {});
       refreshUnreadCounts();
       loadRooms();
     } catch {

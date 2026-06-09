@@ -6,6 +6,7 @@
  * Связь — отдельный диалог (StationsConnectionDialog), остальные — общий Dialog.
  */
 import { lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useSupportContext } from '@/contexts/SupportContext';
 import StationsConnectionDialog from '@/components/operations/StationsConnectionDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -23,6 +24,16 @@ export default function InteractionHost() {
 
   return (
     <>
+      {/* Приглушающая подложка под любой открытой панелью. modal={false} не рендерит
+          overlay (чтобы кнопки-тогглы в шапке оставались кликабельными), поэтому рисуем
+          свою: pointer-events-none — клики проходят сквозь, но фон-экран темнеет и
+          модалка перестаёт сливаться с ним в обеих темах. */}
+      {section &&
+        createPortal(
+          <div className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px] pointer-events-none" aria-hidden />,
+          document.body,
+        )}
+
       <StationsConnectionDialog
         open={section === 'connection'}
         onOpenChange={(o) => { if (!o) closeInteraction(); }}
@@ -32,7 +43,7 @@ export default function InteractionHost() {
       <Dialog open={isPanel} onOpenChange={(o) => { if (!o) closeInteraction(); }} modal={false}>
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
-          className="p-0 gap-0 bg-background border-border text-foreground w-[96vw] max-w-5xl h-[85vh] max-h-[85vh] overflow-hidden flex flex-col"
+          className="p-0 gap-0 bg-card border-border text-foreground shadow-2xl ring-1 ring-black/5 dark:ring-white/10 w-[96vw] max-w-5xl h-[85vh] max-h-[85vh] overflow-hidden flex flex-col"
         >
           <DialogHeader className="px-4 py-2.5 border-b border-border/50 shrink-0 text-left">
             <DialogTitle className="text-foreground text-base">{section ? TITLES[section] : ''}</DialogTitle>
