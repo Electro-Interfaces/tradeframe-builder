@@ -25,6 +25,11 @@ interface SupportContextValue {
   openCreateDialog: () => void;
   closeCreateDialog: () => void;
 
+  // Dialog «Связь со станциями» (глобальный — открывается из шапки и нижнего меню)
+  isConnectionDialogOpen: boolean;
+  openConnectionDialog: () => void;
+  closeConnectionDialog: () => void;
+
   // Контекст страницы
   pageContext: PageContextData;
   registerPageContext: (data: PageContextData) => void;
@@ -90,6 +95,7 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
   const { selectedNetwork, selectedTradingPoint, selectedStation } = useSelection();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isConnectionDialogOpen, setIsConnectionDialogOpen] = useState(false);
   const [pageContext, setPageContext] = useState<PageContextData>({});
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({ tickets: 0, chat: 0, total: 0 });
   const pollingRef = useRef<ReturnType<typeof setInterval>>();
@@ -98,6 +104,8 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
 
   const openCreateDialog = useCallback(() => setIsCreateDialogOpen(true), []);
   const closeCreateDialog = useCallback(() => setIsCreateDialogOpen(false), []);
+  const openConnectionDialog = useCallback(() => setIsConnectionDialogOpen(true), []);
+  const closeConnectionDialog = useCallback(() => setIsConnectionDialogOpen(false), []);
   const notifyTicketsChanged = useCallback(() => setTicketsVersion(v => v + 1), []);
 
   const registerPageContext = useCallback((data: PageContextData) => {
@@ -287,6 +295,9 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
         isCreateDialogOpen,
         openCreateDialog,
         closeCreateDialog,
+        isConnectionDialogOpen,
+        openConnectionDialog,
+        closeConnectionDialog,
         pageContext,
         registerPageContext,
         buildAppContext,

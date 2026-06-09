@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Menu, Bell, Wifi, LifeBuoy, Sun, Moon, RefreshCw, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { LogOut, User, Bell, Wifi, LifeBuoy, Sun, Moon, ChevronsLeft, ChevronsRight, MessageCircle } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
@@ -18,7 +18,6 @@ import { APP_VERSION } from "@/config/version";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useMobile, mobileUtils } from "@/hooks/useMobile";
-import StationsConnectionDialog from "@/components/operations/StationsConnectionDialog";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useSupportContext } from "@/contexts/SupportContext";
 
@@ -47,7 +46,7 @@ export function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useNewAuth();
-  const { openCreateDialog } = useSupportContext();
+  const { openCreateDialog, openConnectionDialog, unreadCounts } = useSupportContext();
   const mobileInfo = useMobile();
   const { theme, toggleTheme } = useTheme();
   let sidebarState: 'expanded' | 'collapsed' = 'expanded';
@@ -72,7 +71,6 @@ export function Header({
     swScope: string;
     lastCheck: string;
   } | null>(null);
-  const [isConnectionDialogOpen, setIsConnectionDialogOpen] = useState(false);
 
   const handleShowUpdateInfo = (details: {
     version: string;
@@ -132,27 +130,7 @@ export function Header({
             className="!h-9 !py-0 text-sm min-w-0 flex-1 bg-white dark:bg-di-surface-high border border-border/20 dark:border-di-outline-variant/15 text-foreground dark:text-di-on-surface font-headline font-bold rounded-xl"
           />
 
-          {/* Support button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsConnectionDialogOpen(true)}
-            className="shrink-0 h-9 px-3 gap-2 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Связь
-          </Button>
-
-          {/* Mobile Create Ticket */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={openCreateDialog}
-            className="shrink-0 h-9 w-9 p-0 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-all"
-            title="Создать заявку"
-          >
-            <LifeBuoy className="h-4 w-4" />
-          </Button>
+          {/* Связь / Чат / Заявка перенесены в нижнее меню (BottomNav) на мобильных */}
         </div>
 
         {/* Desktop Left Section: Logo + Brand + Sidebar toggle */}
@@ -196,7 +174,7 @@ export function Header({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsConnectionDialogOpen(true)}
+            onClick={openConnectionDialog}
             className="h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
             title="Связь со станциями"
           >
@@ -213,6 +191,22 @@ export function Header({
           >
             <LifeBuoy className="h-4 w-4" />
             Заявка
+          </Button>
+          {/* Desktop Chat Button — справа от «Заявка» */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/support/chat')}
+            className="relative h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
+            title="Чат"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Чат
+            {unreadCounts.chat > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">
+                {unreadCounts.chat}
+              </span>
+            )}
           </Button>
         </div>
 
@@ -339,11 +333,6 @@ export function Header({
         open={showUpdateDialog}
         onOpenChange={setShowUpdateDialog}
         details={updateDetails}
-      />
-
-      <StationsConnectionDialog
-        open={isConnectionDialogOpen}
-        onOpenChange={setIsConnectionDialogOpen}
       />
 
     </header>
