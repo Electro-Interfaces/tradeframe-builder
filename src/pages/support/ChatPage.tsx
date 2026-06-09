@@ -46,7 +46,6 @@ function RoomListPanel({
   onSelectRoom,
   onRefresh,
   onNewChat,
-  isMobile,
 }: {
   rooms: ChatRoom[];
   loading: boolean;
@@ -56,7 +55,6 @@ function RoomListPanel({
   onSelectRoom: (id: string) => void;
   onRefresh: () => void;
   onNewChat: () => void;
-  isMobile: boolean;
 }) {
   const [filter, setFilter] = useState<'all' | 'direct' | 'company'>('all');
 
@@ -187,7 +185,7 @@ function RoomListPanel({
       {/* FAB — Новый чат */}
       <button
         onClick={onNewChat}
-        className={`${isMobile ? 'fixed' : 'absolute'} bottom-6 right-4 h-14 w-14 rounded-full bg-primary hover:bg-primary/80 active:bg-primary/90 text-white shadow-xl shadow-primary/40 flex items-center justify-center touch-manipulation transition-colors`}
+        className={`absolute bottom-5 right-4 h-14 w-14 rounded-full bg-primary hover:bg-primary/80 active:bg-primary/90 text-white shadow-xl shadow-primary/40 flex items-center justify-center touch-manipulation transition-colors`}
         style={{ zIndex: 50 }}
         aria-label="Новый чат"
       >
@@ -1242,7 +1240,6 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
       onSelectRoom={handleSelectRoom}
       onRefresh={loadRooms}
       onNewChat={() => setNewChatOpen(true)}
-      isMobile={isMobile}
     />
   );
 

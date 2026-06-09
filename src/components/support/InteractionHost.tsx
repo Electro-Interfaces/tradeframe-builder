@@ -43,7 +43,7 @@ export default function InteractionHost() {
       <Dialog open={isPanel} onOpenChange={(o) => { if (!o) closeInteraction(); }} modal={false}>
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
-          className="p-0 gap-0 bg-card border-border text-foreground shadow-2xl ring-1 ring-black/5 dark:ring-white/10 w-[96vw] max-w-5xl h-[85vh] max-h-[85vh] overflow-hidden flex flex-col"
+          className="p-0 gap-0 bg-card border-border text-foreground shadow-2xl ring-1 ring-black/5 dark:ring-white/10 w-screen h-[100dvh] max-w-none max-h-none rounded-none sm:w-[96vw] sm:max-w-5xl sm:h-[85vh] sm:max-h-[85vh] sm:rounded-lg overflow-hidden flex flex-col"
         >
           <DialogHeader className="px-4 py-2.5 border-b border-border/50 shrink-0 text-left">
             <DialogTitle className="text-foreground text-base">{section ? TITLES[section] : ''}</DialogTitle>
