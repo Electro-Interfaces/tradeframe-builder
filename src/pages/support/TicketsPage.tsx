@@ -381,6 +381,15 @@ export default function TicketsPage({ embedded = false }: { embedded?: boolean }
             </h2>
             <Button
               size="sm"
+              onClick={openCreateDialog}
+              className="h-9 gap-1.5 bg-primary hover:bg-primary/80 text-white text-xs font-medium px-3"
+              title="Создать заявку"
+            >
+              <Plus className="h-4 w-4" />
+              Создать
+            </Button>
+            <Button
+              size="sm"
               variant="ghost"
               onClick={() => setShowFilters(!showFilters)}
               className={`h-9 w-9 p-0 transition-colors relative ${showFilters ? 'text-primary dark:text-primary/70' : 'text-muted-foreground hover:text-foreground'}`}
@@ -1016,15 +1025,6 @@ export default function TicketsPage({ embedded = false }: { embedded?: boolean }
         ) : null}
       </div>
     </div>
-    {isMobile && (
-      <button
-        onClick={openCreateDialog}
-        className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-primary hover:bg-primary/80 active:bg-primary/90 text-white shadow-xl shadow-primary/40 flex items-center justify-center touch-manipulation z-50"
-        aria-label="Новая заявка"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
-    )}
     </PageShell>
   );
 }
