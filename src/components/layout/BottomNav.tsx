@@ -1,5 +1,4 @@
 import { memo, useCallback } from "react";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Menu, RefreshCw, MessageCircle, LifeBuoy, HelpCircle } from "lucide-react";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useSupportContext } from "@/contexts/SupportContext";
@@ -19,10 +18,7 @@ interface BottomNavProps {
 }
 
 const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, onRefresh: onRefreshProp, refreshing: refreshingProp }: BottomNavProps) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [sp] = useSearchParams();
-  const { unreadCounts } = useSupportContext();
+  const { toggleInteraction, interactionSection, unreadCounts } = useSupportContext();
   const refreshing = refreshingProp ?? false;
 
   const onRefresh = useCallback(() => {
@@ -33,7 +29,6 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
     }
   }, [onRefreshProp]);
 
-  const curTab = location.pathname.startsWith('/support/interaction') ? (sp.get('tab') || 'chat') : null;
   const navBtn = (active: boolean) =>
     `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors duration-200 touch-manipulation active:translate-y-0.5 ${active ? 'text-primary dark:text-[#2563eb]' : 'text-slate-500 dark:text-slate-400'}`;
 
@@ -63,7 +58,7 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
         </div>
       )}
       <div className="flex items-center justify-around h-16 px-1 pb-1">
-        <button onClick={() => navigate('/support/interaction?tab=chat')} type="button" className={`relative ${navBtn(curTab === 'chat')}`}>
+        <button onClick={() => toggleInteraction('chat')} type="button" className={`relative ${navBtn(interactionSection === 'chat')}`}>
           <MessageCircle className="w-5 h-5" />
           <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">Чат</span>
           {unreadCounts.chat > 0 && (
@@ -72,7 +67,7 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
             </span>
           )}
         </button>
-        <button onClick={() => navigate('/support/interaction?tab=tickets')} type="button" className={`relative ${navBtn(curTab === 'tickets')}`}>
+        <button onClick={() => toggleInteraction('tickets')} type="button" className={`relative ${navBtn(interactionSection === 'tickets')}`}>
           <LifeBuoy className="w-5 h-5" />
           <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">Заявки</span>
           {unreadCounts.tickets > 0 && (
@@ -81,9 +76,9 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
             </span>
           )}
         </button>
-        <button onClick={() => navigate('/support/interaction?tab=help')} type="button" className={navBtn(curTab === 'help')}>
+        <button onClick={() => toggleInteraction('help')} type="button" className={navBtn(interactionSection === 'help')}>
           <HelpCircle className="w-5 h-5" />
-          <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">Помощь</span>
+          <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">Инфо</span>
         </button>
         <button onClick={onMenuToggle} type="button" className={navBtn(false)}>
           <Menu className="w-5 h-5" />

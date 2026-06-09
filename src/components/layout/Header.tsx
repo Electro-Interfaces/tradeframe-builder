@@ -46,7 +46,9 @@ export function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useNewAuth();
-  const { openConnectionDialog, unreadCounts } = useSupportContext();
+  const { toggleInteraction, interactionSection, unreadCounts } = useSupportContext();
+  const btnCls = (active: boolean) =>
+    `relative h-11 px-3 gap-2 rounded-xl transition-all duration-200 font-medium border ${active ? 'bg-primary text-white border-primary' : 'bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border-primary/30 dark:border-primary/50 hover:border-primary'}`;
   const mobileInfo = useMobile();
   const { theme, toggleTheme } = useTheme();
   let sidebarState: 'expanded' | 'collapsed' = 'expanded';
@@ -130,11 +132,11 @@ export function Header({
             className="!h-9 !py-0 text-sm min-w-0 flex-1 bg-white dark:bg-di-surface-high border border-border/20 dark:border-di-outline-variant/15 text-foreground dark:text-di-on-surface font-headline font-bold rounded-xl"
           />
 
-          {/* Связь — наверху (Чат/Заявки/Помощь — в нижнем меню) */}
+          {/* Связь — наверху, открывается модалкой (Чат/Заявки/Инфо — в нижнем меню) */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={openConnectionDialog}
+            onClick={() => toggleInteraction('connection')}
             className="shrink-0 h-9 px-3 gap-2 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
           >
             <Wifi className="h-3.5 w-3.5" />
@@ -180,24 +182,12 @@ export function Header({
             className="inline-flex !h-11 !py-0 rounded-xl"
           />
           {/* Связь */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openConnectionDialog}
-            className="h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
-            title="Связь со станциями"
-          >
+          <Button variant="outline" size="sm" onClick={() => toggleInteraction('connection')} className={btnCls(interactionSection === 'connection')} title="Связь со станциями">
             <Wifi className="h-4 w-4" />
             Связь
           </Button>
           {/* Чат */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/support/interaction?tab=chat')}
-            className="relative h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
-            title="Чат"
-          >
+          <Button variant="outline" size="sm" onClick={() => toggleInteraction('chat')} className={btnCls(interactionSection === 'chat')} title="Чат">
             <MessageCircle className="h-4 w-4" />
             Чат
             {unreadCounts.chat > 0 && (
@@ -207,13 +197,7 @@ export function Header({
             )}
           </Button>
           {/* Заявки */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/support/interaction?tab=tickets')}
-            className="relative h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
-            title="Заявки"
-          >
+          <Button variant="outline" size="sm" onClick={() => toggleInteraction('tickets')} className={btnCls(interactionSection === 'tickets')} title="Заявки">
             <LifeBuoy className="h-4 w-4" />
             Заявка
             {unreadCounts.tickets > 0 && (
@@ -222,16 +206,10 @@ export function Header({
               </span>
             )}
           </Button>
-          {/* Помощь */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/support/interaction?tab=help')}
-            className="h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
-            title="Помощь"
-          >
+          {/* Инфо */}
+          <Button variant="outline" size="sm" onClick={() => toggleInteraction('help')} className={btnCls(interactionSection === 'help')} title="Инфо">
             <HelpCircle className="h-4 w-4" />
-            Помощь
+            Инфо
           </Button>
         </div>
 

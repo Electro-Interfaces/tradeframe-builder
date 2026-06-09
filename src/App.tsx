@@ -12,7 +12,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { SupportProvider } from "./contexts/SupportContext";
 import { getToken } from "./utils/authStorage";
 import CreateTicketDialog from "./components/support/CreateTicketDialog";
-import GlobalConnectionDialog from "./components/support/GlobalConnectionDialog";
+import InteractionHost from "./components/support/InteractionHost";
 import { lazy, useEffect, useState } from "react";
 import LazyLoader from "./components/LazyLoader";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -212,7 +212,7 @@ const App = () => {
                 <OfflineIndicator />
                 <SupportProvider>
                 <CreateTicketDialog />
-                <GlobalConnectionDialog />
+                <InteractionHost />
                 <Routes>
                   {/* Критически важные страницы - без lazy loading */}
                   <Route path="/login" element={<LoginPageWithLegal />} />
