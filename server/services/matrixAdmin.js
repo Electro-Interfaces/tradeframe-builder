@@ -198,7 +198,11 @@ async function ensureSupportRoom(mxid, tfUser, company) {
 async function ensureCompanyRooms(mxid, networkId) {
   const company = await getCompany(networkId);
   if (!company?.direction_rooms) return [];
-  const target = Object.values(company.direction_rooms);
+  // Один общий канал поддержки на компанию («Поддержка Общий» — для всех проектов).
+  // Направления (Учёт/АЗС/Процессинг) убраны: наши сотрудники только в личном + общем.
+  const general = company.direction_rooms['Общий'] || company.direction_rooms.general;
+  if (!general) return [];
+  const target = [general];
 
   let joined = new Set();
   try {
