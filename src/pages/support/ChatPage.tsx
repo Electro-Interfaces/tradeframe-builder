@@ -18,7 +18,7 @@ import {
 import {
   Search, Send, Loader2, RefreshCw, MessageCircle, Users, Plus,
   User, Building2, X, Calendar, Shield, Eye, Crown,
-  Paperclip, FileText, Download, Reply, Pencil, Trash2, Check,
+  Paperclip, FileText, Download, Reply, Pencil, Trash2, Check, Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupportContext } from '@/contexts/SupportContext';
@@ -800,6 +800,7 @@ function MessagePanel({
             )}
           </p>
         </div>
+        <Info className="h-4 w-4 text-muted-foreground shrink-0" />
       </button>
 
       {/* Messages */}
