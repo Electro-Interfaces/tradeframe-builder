@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Bell, Wifi, LifeBuoy, Sun, Moon, ChevronsLeft, ChevronsRight, MessageCircle } from "lucide-react";
+import { LogOut, User, Bell, Wifi, LifeBuoy, Sun, Moon, ChevronsLeft, ChevronsRight, MessageCircle, HelpCircle } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
@@ -46,7 +46,7 @@ export function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useNewAuth();
-  const { openCreateDialog, openConnectionDialog, unreadCounts } = useSupportContext();
+  const { openConnectionDialog, unreadCounts } = useSupportContext();
   const mobileInfo = useMobile();
   const { theme, toggleTheme } = useTheme();
   let sidebarState: 'expanded' | 'collapsed' = 'expanded';
@@ -130,7 +130,16 @@ export function Header({
             className="!h-9 !py-0 text-sm min-w-0 flex-1 bg-white dark:bg-di-surface-high border border-border/20 dark:border-di-outline-variant/15 text-foreground dark:text-di-on-surface font-headline font-bold rounded-xl"
           />
 
-          {/* Связь / Чат / Заявка перенесены в нижнее меню (BottomNav) на мобильных */}
+          {/* Связь — наверху (Чат/Заявки/Помощь — в нижнем меню) */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={openConnectionDialog}
+            className="shrink-0 h-9 px-3 gap-2 bg-primary hover:bg-primary/90 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
+          >
+            <Wifi className="h-3.5 w-3.5" />
+            Связь
+          </Button>
         </div>
 
         {/* Desktop Left Section: Logo + Brand + Sidebar toggle */}
@@ -170,7 +179,7 @@ export function Header({
             networkIds={selectedNetworkIds}
             className="inline-flex !h-11 !py-0 rounded-xl"
           />
-          {/* Desktop Support Button */}
+          {/* Связь */}
           <Button
             variant="outline"
             size="sm"
@@ -181,18 +190,7 @@ export function Header({
             <Wifi className="h-4 w-4" />
             Связь
           </Button>
-          {/* Desktop Create Ticket Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openCreateDialog}
-            className="h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
-            title="Создать заявку"
-          >
-            <LifeBuoy className="h-4 w-4" />
-            Заявка
-          </Button>
-          {/* Desktop Chat Button — справа от «Заявка» */}
+          {/* Чат */}
           <Button
             variant="outline"
             size="sm"
@@ -207,6 +205,33 @@ export function Header({
                 {unreadCounts.chat}
               </span>
             )}
+          </Button>
+          {/* Заявки */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/support/interaction?tab=tickets')}
+            className="relative h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
+            title="Заявки"
+          >
+            <LifeBuoy className="h-4 w-4" />
+            Заявка
+            {unreadCounts.tickets > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">
+                {unreadCounts.tickets}
+              </span>
+            )}
+          </Button>
+          {/* Помощь */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/support/interaction?tab=help')}
+            className="h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
+            title="Помощь"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Помощь
           </Button>
         </div>
 
