@@ -33,3 +33,16 @@ export const subscribeChat: (handler: (roomId: string) => void) => () => void = 
   ? matrix.subscribeChat
   : () => () => {};
 export const getChatUnread: () => number | null = M ? matrix.getChatUnread : () => null;
+
+// Клиентские чаты (только Matrix). Для TSupport — безопасные заглушки.
+export const getCompanyMembers: () => Promise<{ mxid: string; name: string; email: string }[]> = M
+  ? matrix.getCompanyMembers
+  : async () => [];
+export const addRoomMember: (roomId: string, mxid: string) => Promise<void> = M
+  ? matrix.addRoomMember
+  : async () => {};
+export const removeRoomMember: (roomId: string, mxid: string) => Promise<void> = M
+  ? matrix.removeRoomMember
+  : async () => {};
+export const deleteRoom: (roomId: string) => Promise<void> = M ? matrix.deleteRoom : async () => {};
+export const canManageRoom: (roomId: string) => boolean = M ? matrix.canManageRoom : () => false;

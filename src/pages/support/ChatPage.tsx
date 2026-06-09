@@ -25,6 +25,7 @@ import { useSupportContext } from '@/contexts/SupportContext';
 import {
   getChatRooms, getChatMessages, sendChatMessage, markChatRead, createChatRoom, getChatRoom, uploadChatFiles, getTSupportMe,
   editChatMessage, deleteChatMessage, subscribeChat,
+  getCompanyMembers, addRoomMember, removeRoomMember, deleteRoom, canManageRoom,
 } from '@/services/chatBackend';
 import type { ChatRoom, ChatMessage, ChatParticipant } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_CHAT } from '@/types/support';
@@ -189,6 +190,7 @@ function RoomListPanel({
 
 // ========== New Chat Dialog ==========
 
+// Новый клиентский чат: название + выбор своих сотрудников (без нашей поддержки).
 function NewChatDialog({
   open,
   onOpenChange,
@@ -196,18 +198,34 @@ function NewChatDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onCreate: (type: 'direct' | 'company', name?: string, participant_ids?: string[]) => void;
+  onCreate: (name: string, memberMxids: string[]) => Promise<void> | void;
 }) {
-  const [type, setType] = useState<'direct' | 'company'>('direct');
   const [name, setName] = useState('');
+  const [members, setMembers] = useState<{ mxid: string; name: string; email: string }[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loadingMembers, setLoadingMembers] = useState(false);
   const [creating, setCreating] = useState(false);
 
+  useEffect(() => {
+    if (!open) { setName(''); setSelected(new Set()); return; }
+    setLoadingMembers(true);
+    getCompanyMembers()
+      .then(setMembers)
+      .catch(() => setMembers([]))
+      .finally(() => setLoadingMembers(false));
+  }, [open]);
+
+  const toggle = (mxid: string) => setSelected(prev => {
+    const next = new Set(prev);
+    if (next.has(mxid)) next.delete(mxid); else next.add(mxid);
+    return next;
+  });
+
   const handleCreate = async () => {
+    if (!name.trim()) return;
     setCreating(true);
     try {
-      await onCreate(type, name.trim() || undefined);
-      setName('');
-      setType('direct');
+      await onCreate(name.trim(), [...selected]);
       onOpenChange(false);
     } finally {
       setCreating(false);
@@ -216,53 +234,49 @@ function NewChatDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] bg-background border-border text-foreground">
+      <DialogContent className="sm:max-w-[420px] bg-background border-border text-foreground">
         <DialogHeader>
           <DialogTitle className="text-foreground">Новый чат</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
-          {/* Type selection */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setType('direct')}
-              className={`p-4 rounded-lg border transition-colors text-center ${
-                type === 'direct'
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-border'
-              }`}
-            >
-              <User className={`h-6 w-6 mx-auto mb-2 ${type === 'direct' ? 'text-primary dark:text-primary/70' : 'text-muted-foreground'}`} />
-              <p className="text-sm font-medium">Личный</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Чат с Elsy</p>
-            </button>
-            <button
-              onClick={() => setType('company')}
-              className={`p-4 rounded-lg border transition-colors text-center ${
-                type === 'company'
-                  ? 'border-emerald-500 bg-emerald-500/10'
-                  : 'border-border hover:border-border'
-              }`}
-            >
-              <Building2 className={`h-6 w-6 mx-auto mb-2 ${type === 'company' ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`} />
-              <p className="text-sm font-medium">Компания</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Групповой чат</p>
-            </button>
-          </div>
-
-          {/* Name */}
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Тема (необязательно)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Название</label>
             <Input
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Например: Вопрос по оплате"
+              placeholder="Например: Смена №2"
               className="bg-card border-border text-foreground text-sm"
             />
           </div>
 
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Сотрудники компании</label>
+            {loadingMembers ? (
+              <div className="flex items-center justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+            ) : members.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">Нет других сотрудников компании</p>
+            ) : (
+              <div className="max-h-48 overflow-auto space-y-1 border border-border rounded-lg p-1">
+                {members.map(m => {
+                  const sel = selected.has(m.mxid);
+                  return (
+                    <button
+                      key={m.mxid}
+                      onClick={() => toggle(m.mxid)}
+                      className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-md text-left text-sm transition-colors ${sel ? 'bg-primary/15 text-foreground' : 'hover:bg-card text-foreground/80'}`}
+                    >
+                      <span className="truncate">{m.name}</span>
+                      {sel && <Check className="h-4 w-4 text-primary dark:text-primary/70 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <Button
             onClick={handleCreate}
-            disabled={creating}
+            disabled={creating || !name.trim()}
             className="w-full bg-primary hover:bg-primary/80"
           >
             {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -475,12 +489,25 @@ function ChatInfoPanel({
   participants,
   loadingInfo,
   onClose,
+  canManage,
+  currentUserId,
+  availableMembers,
+  onAddMember,
+  onRemoveMember,
+  onDeleteRoom,
 }: {
   room: ChatRoom;
   participants: ChatParticipant[];
   loadingInfo: boolean;
   onClose: () => void;
+  canManage?: boolean;
+  currentUserId?: string;
+  availableMembers?: { mxid: string; name: string; email: string }[];
+  onAddMember?: (mxid: string) => void;
+  onRemoveMember?: (mxid: string) => void;
+  onDeleteRoom?: () => void;
 }) {
+  const [adding, setAdding] = useState(false);
   const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
   const typeLabel = isCompany ? 'Чат компании' : 'Личный чат';
 
@@ -587,12 +614,56 @@ function ChatInfoPanel({
                           )}
                         </div>
                       </div>
+                      {canManage && p.user_id !== currentUserId && (
+                        <button
+                          onClick={() => onRemoveMember?.(p.user_id)}
+                          className="p-1 text-muted-foreground hover:text-red-500 shrink-0"
+                          title="Удалить из чата"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
+
+          {/* Управление — только для своих (клиентских) чатов */}
+          {canManage && (
+            <div className="mt-5 space-y-2 border-t border-border/50 pt-4">
+              {!adding ? (
+                <Button size="sm" variant="outline" onClick={() => setAdding(true)} className="w-full text-xs">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Добавить участника
+                </Button>
+              ) : (
+                <div className="space-y-1 border border-border rounded-lg p-1 max-h-40 overflow-auto">
+                  {(availableMembers || []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-2">Все сотрудники уже в чате</p>
+                  ) : (
+                    (availableMembers || []).map(m => (
+                      <button
+                        key={m.mxid}
+                        onClick={() => { onAddMember?.(m.mxid); setAdding(false); }}
+                        className="w-full text-left text-sm px-2.5 py-2 rounded-md hover:bg-card text-foreground/80 truncate"
+                      >
+                        {m.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onDeleteRoom}
+                className="w-full text-xs text-red-500 hover:text-red-400 hover:bg-red-500/10"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Удалить чат
+              </Button>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>
@@ -893,6 +964,7 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
   // Chat info panel state
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [roomDetail, setRoomDetail] = useState<ChatRoom | null>(null);
+  const [companyMembers, setCompanyMembers] = useState<{ mxid: string; name: string; email: string }[]>([]);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
   const pollingRoomsRef = useRef<ReturnType<typeof setInterval>>();
@@ -1064,9 +1136,9 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
   };
 
   // Create chat room
-  const handleCreateRoom = async (type: 'direct' | 'company', name?: string, participant_ids?: string[]) => {
+  const handleCreateRoom = async (name: string, memberMxids: string[]) => {
     try {
-      const room = await createChatRoom({ type, name, participant_ids });
+      const room = await createChatRoom({ type: 'company', name, participant_ids: memberMxids });
       await loadRooms();
       setSelectedRoomId(room.id);
       toast.success('Чат создан');
@@ -1096,11 +1168,39 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
     try {
       const detail = await getChatRoom(selectedRoomId);
       setRoomDetail(detail);
+      if (canManageRoom(selectedRoomId)) {
+        getCompanyMembers().then(setCompanyMembers).catch(() => setCompanyMembers([]));
+      }
     } catch {
       toast.error('Не удалось загрузить информацию о чате');
     } finally {
       setLoadingInfo(false);
     }
+  };
+
+  const reloadRoomDetail = async () => {
+    if (!selectedRoomId) return;
+    try { setRoomDetail(await getChatRoom(selectedRoomId)); } catch { /* ignore */ }
+  };
+  const handleAddMember = async (mxid: string) => {
+    if (!selectedRoomId) return;
+    try { await addRoomMember(selectedRoomId, mxid); await reloadRoomDetail(); }
+    catch { toast.error('Не удалось добавить участника'); }
+  };
+  const handleRemoveMember = async (mxid: string) => {
+    if (!selectedRoomId) return;
+    try { await removeRoomMember(selectedRoomId, mxid); await reloadRoomDetail(); }
+    catch { toast.error('Не удалось удалить участника'); }
+  };
+  const handleDeleteRoom = async () => {
+    if (!selectedRoomId || !confirm('Удалить этот чат?')) return;
+    try {
+      await deleteRoom(selectedRoomId);
+      setInfoPanelOpen(false);
+      setSelectedRoomId(null);
+      await loadRooms();
+      toast.success('Чат удалён');
+    } catch { toast.error('Не удалось удалить чат'); }
   };
 
   const roomListPanel = (
@@ -1206,6 +1306,12 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
             participants={roomDetail?.participants || []}
             loadingInfo={loadingInfo}
             onClose={() => setInfoPanelOpen(false)}
+            canManage={!!selectedRoomId && canManageRoom(selectedRoomId)}
+            currentUserId={tsupportUserId}
+            availableMembers={companyMembers.filter(m => !(roomDetail?.participants || []).some(p => p.user_id === m.mxid))}
+            onAddMember={handleAddMember}
+            onRemoveMember={handleRemoveMember}
+            onDeleteRoom={handleDeleteRoom}
           />
         )}
       </div>
@@ -1220,6 +1326,12 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
                 participants={roomDetail?.participants || []}
                 loadingInfo={loadingInfo}
                 onClose={() => setInfoPanelOpen(false)}
+                canManage={!!selectedRoomId && canManageRoom(selectedRoomId)}
+                currentUserId={tsupportUserId}
+                availableMembers={companyMembers.filter(m => !(roomDetail?.participants || []).some(p => p.user_id === m.mxid))}
+                onAddMember={handleAddMember}
+                onRemoveMember={handleRemoveMember}
+                onDeleteRoom={handleDeleteRoom}
               />
             </div>
           </DialogContent>

@@ -223,6 +223,91 @@ async function ensureCompanyRooms(mxid, networkId) {
   return target;
 }
 
+// ── клиентские чаты (без поддержки): клиент создаёт и управляет сам ─────────
+
+async function getMyMxid(tfUserId) {
+  const row = await postgres.queryOne(
+    'SELECT matrix_user_id FROM chat_matrix_accounts WHERE tradeframe_user_id = $1',
+    [tfUserId]
+  );
+  return row ? row.matrix_user_id : null;
+}
+
+async function setUserPower(roomId, mxid, power) {
+  const enc = encodeURIComponent(roomId);
+  const pl = await mreq('get', `/_matrix/client/v3/rooms/${enc}/state/m.room.power_levels`);
+  pl.users = pl.users || {};
+  pl.users[mxid] = power;
+  await mreq('put', `/_matrix/client/v3/rooms/${enc}/state/m.room.power_levels`, pl);
+}
+
+// Сотрудники компании клиента (по slug в mxid). Исключаем самого юзера. Изоляция: только своя компания.
+async function listCompanyMembers(networkId, excludeMxid) {
+  const company = await getCompany(networkId);
+  if (!company) return [];
+  const slug = companySlug(company);
+  const { rows } = await postgres.query(
+    `SELECT a.matrix_user_id, u.name, u.email
+       FROM chat_matrix_accounts a JOIN users u ON u.id = a.tradeframe_user_id
+      WHERE a.matrix_user_id LIKE $1
+      ORDER BY u.name`,
+    [`@${slug}.%`]
+  );
+  return rows
+    .filter((r) => r.matrix_user_id !== excludeMxid)
+    .map((r) => ({ mxid: r.matrix_user_id, name: r.name || r.matrix_user_id, email: r.email || '' }));
+}
+
+// Создать клиентский чат: создатель (power 100) + выбранные сотрудники. БЕЗ нашей поддержки.
+async function createClientRoom(tfUser, networkId, name, memberMxids, ownerMxid) {
+  const roomId = await createRoom({ name: name || 'Чат' });
+  await forceJoin(roomId, ownerMxid);
+  await setUserPower(roomId, ownerMxid, 100);
+  for (const m of memberMxids || []) {
+    if (!m || m === ownerMxid) continue;
+    try {
+      await forceJoin(roomId, m);
+    } catch (e) {
+      console.warn('[matrix] client room join skipped', m, e.message);
+    }
+  }
+  await postgres.query(
+    `INSERT INTO chat_matrix_client_rooms (room_id, owner_tf_user_id, network_id)
+       VALUES ($1, $2, $3) ON CONFLICT (room_id) DO NOTHING`,
+    [roomId, tfUser.id, networkId || null]
+  );
+  return roomId;
+}
+
+async function isClientRoomOwner(roomId, tfUserId) {
+  const row = await postgres.queryOne(
+    'SELECT 1 FROM chat_matrix_client_rooms WHERE room_id = $1 AND owner_tf_user_id = $2',
+    [roomId, tfUserId]
+  );
+  return !!row;
+}
+
+async function listOwnedRoomIds(tfUserId) {
+  const { rows } = await postgres.query(
+    'SELECT room_id FROM chat_matrix_client_rooms WHERE owner_tf_user_id = $1',
+    [tfUserId]
+  );
+  return rows.map((r) => r.room_id);
+}
+
+async function addClientRoomMember(roomId, mxid) {
+  await forceJoin(roomId, mxid);
+}
+
+async function removeClientRoomMember(roomId, mxid) {
+  await mreq('post', `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/kick`, { user_id: mxid });
+}
+
+async function deleteClientRoom(roomId) {
+  await mreq('delete', `/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}`, { block: false, purge: true });
+  await postgres.query('DELETE FROM chat_matrix_client_rooms WHERE room_id = $1', [roomId]);
+}
+
 module.exports = {
   getCompany,
   companySlug,
@@ -234,4 +319,12 @@ module.exports = {
   forceJoin,
   createRoom,
   linkToSpace,
+  getMyMxid,
+  listCompanyMembers,
+  createClientRoom,
+  isClientRoomOwner,
+  listOwnedRoomIds,
+  addClientRoomMember,
+  removeClientRoomMember,
+  deleteClientRoom,
 };

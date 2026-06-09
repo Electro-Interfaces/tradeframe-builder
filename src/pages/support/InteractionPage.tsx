@@ -20,9 +20,9 @@ export default function InteractionPage() {
       <Tabs value={tab} onValueChange={setTab} className="flex flex-col h-full min-h-0">
         <div className="px-3 pt-3 pb-2 border-b border-border/50 shrink-0">
           <TabsList className="bg-card">
-            <TabsTrigger value="chat" className="gap-1.5"><MessageCircle className="h-4 w-4" />Чат</TabsTrigger>
-            <TabsTrigger value="tickets" className="gap-1.5"><LifeBuoy className="h-4 w-4" />Заявки</TabsTrigger>
-            <TabsTrigger value="help" className="gap-1.5"><HelpCircle className="h-4 w-4" />Помощь</TabsTrigger>
+            <TabsTrigger value="chat" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-white"><MessageCircle className="h-4 w-4" />Чат</TabsTrigger>
+            <TabsTrigger value="tickets" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-white"><LifeBuoy className="h-4 w-4" />Заявки</TabsTrigger>
+            <TabsTrigger value="help" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-white"><HelpCircle className="h-4 w-4" />Помощь</TabsTrigger>
           </TabsList>
         </div>
 

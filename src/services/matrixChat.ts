@@ -19,24 +19,26 @@ let initPromise: Promise<void> | null = null;
 let myUserId = '';
 let supportRoomId = '';
 let accessToken = '';
+let ownedRoomIds = new Set<string>();
 
 // Кэш authenticated-media: mxc → objectURL (Synapse 1.154 требует токен на скачивание;
 // <img> его не шлёт, поэтому скачиваем blob с Bearer и отдаём objectURL в file_url).
 const mediaCache = new Map<string, string>();
 
+function getSelectedNetwork(): string | null {
+  try {
+    const v = localStorage.getItem('tc:selectedNetwork');
+    return v && v !== 'all' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchSession() {
-  const networkId = (() => {
-    try {
-      const v = localStorage.getItem('tc:selectedNetwork');
-      return v && v !== 'all' ? v : null;
-    } catch {
-      return null;
-    }
-  })();
   return apiRequest('/chat/matrix/session', {
     method: 'POST',
-    body: JSON.stringify({ networkId }),
-  }) as Promise<{ homeserver: string; userId: string; accessToken: string; supportRoomId: string }>;
+    body: JSON.stringify({ networkId: getSelectedNetwork() }),
+  }) as Promise<{ homeserver: string; userId: string; accessToken: string; supportRoomId: string; ownedRoomIds?: string[] }>;
 }
 
 async function doInit() {
@@ -44,6 +46,7 @@ async function doInit() {
   myUserId = s.userId;
   supportRoomId = s.supportRoomId;
   accessToken = s.accessToken;
+  ownedRoomIds = new Set(s.ownedRoomIds || []);
   client = createClient({ baseUrl: s.homeserver, accessToken: s.accessToken, userId: s.userId });
   await client.startClient({ initialSyncLimit: 50 });
   await new Promise<void>((resolve, reject) => {
@@ -177,10 +180,12 @@ function memberToParticipant(m: any): ChatParticipant {
 // ── публичный API (сигнатуры supportService) ───────────
 export async function getChatRooms(): Promise<ChatRoom[]> {
   const c = await ensureClient();
+  // Наши каналы поддержки всегда вверху (личный → общий), клиентские чаты — ниже по времени.
+  const prio = (r: ChatRoom) => (r.id === supportRoomId ? 0 : ownedRoomIds.has(r.id) ? 2 : 1);
   return c
     .getRooms()
     .map(roomToChatRoom)
-    .sort((a, b) => (b.last_message_at || '').localeCompare(a.last_message_at || ''));
+    .sort((a, b) => prio(a) - prio(b) || (b.last_message_at || '').localeCompare(a.last_message_at || ''));
 }
 
 export async function getChatMessages(roomId: string): Promise<ChatMessage[]> {
@@ -297,8 +302,49 @@ export function getChatUnread(): number | null {
 }
 
 // ── недоступно клиенту в Matrix-модели (R4) ────────────
-export async function createChatRoom(): Promise<ChatRoom> {
-  throw new Error('Чаты создаёт поддержка — напишите в личный чат поддержки');
+// Клиентские чаты (свои сотрудники, без поддержки): создаёт и управляет клиент.
+export async function getCompanyMembers(): Promise<{ mxid: string; name: string; email: string }[]> {
+  const net = getSelectedNetwork();
+  const q = net ? `?networkId=${encodeURIComponent(net)}` : '';
+  return apiRequest('/chat/matrix/company-members' + q) as Promise<{ mxid: string; name: string; email: string }[]>;
+}
+
+export async function createChatRoom(input: { type?: string; name?: string; participant_ids?: string[] }): Promise<ChatRoom> {
+  const r = await apiRequest('/chat/matrix/rooms', {
+    method: 'POST',
+    body: JSON.stringify({ name: input.name, members: input.participant_ids || [], networkId: getSelectedNetwork() }),
+  });
+  ownedRoomIds.add(r.roomId);
+  return {
+    id: r.roomId,
+    type: 'group',
+    name: input.name,
+    unread_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export async function addRoomMember(roomId: string, mxid: string): Promise<void> {
+  await apiRequest(`/chat/matrix/rooms/${encodeURIComponent(roomId)}/members`, {
+    method: 'POST', body: JSON.stringify({ action: 'add', mxid }),
+  });
+}
+
+export async function removeRoomMember(roomId: string, mxid: string): Promise<void> {
+  await apiRequest(`/chat/matrix/rooms/${encodeURIComponent(roomId)}/members`, {
+    method: 'POST', body: JSON.stringify({ action: 'remove', mxid }),
+  });
+}
+
+export async function deleteRoom(roomId: string): Promise<void> {
+  await apiRequest(`/chat/matrix/rooms/${encodeURIComponent(roomId)}`, { method: 'DELETE' });
+  ownedRoomIds.delete(roomId);
+}
+
+/** Может ли текущий пользователь управлять комнатой (это его клиентский чат). */
+export function canManageRoom(roomId: string): boolean {
+  return ownedRoomIds.has(roomId);
 }
 
 // Загрузка файлов в Matrix media → mxc:// (фаза 4).
