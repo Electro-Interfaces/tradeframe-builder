@@ -127,7 +127,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Поступления", url: "/network/receipts", icon: PackagePlus },
     { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
     { title: "Купоны", url: "/network/coupons", icon: Component },
-    { title: "Взаимодействие", url: "/support/interaction", icon: MessageCircleMore },
   ];
 
   const tradingPointMenuItems = [
@@ -227,10 +226,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             <SectionHeader groupId="networks" icon={Network} label="ТОРГОВЫЕ СЕТИ" />
             {(collapsed || openGroups.includes("networks")) && (
               <div className={collapsed ? 'space-y-0.5' : 'space-y-1'}>
-                {networkMenuItems.filter((item) => !(isMobile && item.url === '/support/interaction')).map((item) => {
-                  const badge = item.url === '/support/interaction' ? unreadCounts.tickets + unreadCounts.chat : 0;
-                  return <MenuLink key={item.title} item={item} badge={badge} onClick={handleMobileClose} />;
-                })}
+                {networkMenuItems.map((item) => (
+                  <MenuLink key={item.title} item={item} onClick={handleMobileClose} />
+                ))}
               </div>
             )}
           </div>
