@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   Search, Send, Loader2, RefreshCw, MessageCircle, Users, Plus,
-  User, Building2, X, Calendar, Shield, Eye, Crown,
+  User, Building2, X, Calendar, Shield, Eye, Crown, Megaphone, Lock,
   Paperclip, FileText, Download, Reply, Pencil, Trash2, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -121,21 +121,36 @@ function RoomListPanel({
           </div>
         ) : (
           <div>
-            {filteredRooms.map(room => {
+            {(() => {
+              // Индекс первого клиентского чата — перед ним рисуем разделитель,
+              // отделяющий наши закреплённые каналы (Новости/Общая/Индивидуальная).
+              const firstClientIdx = filteredRooms.findIndex(r => (r.kind ?? 'client') === 'client');
+              return filteredRooms.map((room, i) => {
               const isSelected = selectedRoomId === room.id;
+              const isNews = room.kind === 'news';
               const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
               const hasUnread = (room.unread_count ?? 0) > 0;
+              const showDivider = firstClientIdx > 0 && i === firstClientIdx;
               return (
+                <div key={room.id}>
+                {showDivider && (
+                  <div className="px-4 pt-3 pb-1.5 flex items-center gap-2">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Чаты компании</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                )}
                 <button
-                  key={room.id}
                   onClick={() => onSelectRoom(room.id)}
                   className={`w-full text-left px-3 py-3 transition-colors touch-manipulation border-b border-border/20 ${
                     isSelected ? 'bg-card' : 'hover:bg-card/40 active:bg-card/60'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
-                      {isCompany ? (
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isNews ? 'bg-amber-100 dark:bg-amber-500/20' : isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
+                      {isNews ? (
+                        <Megaphone className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      ) : isCompany ? (
                         <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
                         <User className="h-5 w-5 text-primary dark:text-primary/70" />
@@ -169,8 +184,10 @@ function RoomListPanel({
                     </div>
                   </div>
                 </button>
+                </div>
               );
-            })}
+            });
+            })()}
           </div>
         )}
       </ScrollArea>
@@ -310,6 +327,7 @@ function MessageBubble({
   onReply,
   onEdit,
   onDelete,
+  readOnly = false,
 }: {
   message: ChatMessage;
   isOwn: boolean;
@@ -318,6 +336,7 @@ function MessageBubble({
   onReply?: (msg: ChatMessage) => void;
   onEdit?: (msg: ChatMessage) => void;
   onDelete?: (msg: ChatMessage) => void;
+  readOnly?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -368,8 +387,8 @@ function MessageBubble({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Action buttons (hover) */}
-      {hovered && (
+      {/* Action buttons (hover) — скрыты в read-only каналах */}
+      {hovered && !readOnly && (
         <div className={`absolute top-0 ${isOwn ? 'left-0 -translate-x-full pr-1' : 'right-0 translate-x-full pl-1'} flex items-center gap-0.5 z-10`}>
           <button onClick={() => onReply?.(message)} className="p-1 rounded bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" title="Ответить">
             <Reply className="h-3.5 w-3.5" />
@@ -773,7 +792,9 @@ function MessagePanel({
     );
   }
 
+  const isNews = room.kind === 'news';
   const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
+  const subtitle = isNews ? 'Канал новостей' : isCompany ? 'Чат компании' : 'Личный чат';
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -782,8 +803,10 @@ function MessagePanel({
         onClick={onHeaderClick}
         className="p-3 border-b border-border/50 flex items-center gap-2.5 shrink-0 hover:bg-card/30 transition-colors text-left w-full"
       >
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
-          {isCompany ? (
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isNews ? 'bg-amber-100 dark:bg-amber-500/20' : isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
+          {isNews ? (
+            <Megaphone className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          ) : isCompany ? (
             <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
             <User className="h-4 w-4 text-primary dark:text-primary/70" />
@@ -791,10 +814,10 @@ function MessagePanel({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground truncate">
-            {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
+            {room.name || subtitle}
           </p>
           <p className="text-xs text-muted-foreground">
-            {isCompany ? 'Чат компании' : 'Личный чат'}
+            {subtitle}
             {participantCount != null && participantCount > 0 && (
               <span className="ml-1">· {participantCount} участн.</span>
             )}
@@ -832,6 +855,7 @@ function MessagePanel({
                     onReply={onSetReplyingTo}
                     onEdit={onSetEditingMessage}
                     onDelete={onDeleteMessage}
+                    readOnly={!!room.readonly}
                   />
                 </div>
               );
@@ -899,7 +923,13 @@ function MessagePanel({
         </div>
       )}
 
-      {/* Input */}
+      {/* Input — для read-only каналов (например «Новости») композер скрыт */}
+      {room.readonly ? (
+        <div className="p-3.5 border-t border-border/50 shrink-0 flex items-center justify-center gap-2 text-muted-foreground">
+          <Lock className="h-4 w-4 shrink-0" />
+          <span className="text-xs">Только чтение — публикуют сотрудники поддержки</span>
+        </div>
+      ) : (
       <div className={`p-3 ${pendingFiles.length === 0 ? 'border-t border-border/50' : ''} shrink-0`}>
         <div className="flex gap-2 items-end">
           {/* Attach button */}
@@ -937,6 +967,7 @@ function MessagePanel({
           </Button>
         </div>
       </div>
+      )}
     </div>
   );
 }

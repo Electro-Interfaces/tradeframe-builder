@@ -34,7 +34,14 @@ router.post('/session', requireAuth, sessionLimiter, async (req, res) => {
     const slug = mx.companySlug(company);
     const mxid = await mx.ensureMatrixAccount(tfUser, slug);
     const supportRoomId = await mx.ensureSupportRoom(mxid, tfUser, company);
-    if (company) await mx.ensureCompanyRooms(mxid, networkId); // фаза 3: направления компании
+    let newsRoomId = null;
+    let generalRoomId = null;
+    if (company) {
+      await mx.ensureCompanyRooms(mxid, networkId); // «Поддержка — Общий» + «Новости» (read-only)
+      const fresh = await mx.getCompany(networkId); // news_room_id уже проставлен ensureNewsRoom
+      newsRoomId = fresh?.news_room_id || null;
+      generalRoomId = fresh?.direction_rooms?.['Общий'] || fresh?.direction_rooms?.general || null;
+    }
     const accessToken = await mx.getUserLoginToken(mxid);
     const ownedRoomIds = await mx.listOwnedRoomIds(tfUser.id);
 
@@ -46,7 +53,9 @@ router.post('/session', requireAuth, sessionLimiter, async (req, res) => {
       userId: mxid,
       accessToken, // scoped к аккаунту клиента; только владельцу сессии
       supportRoomId,
-      ownedRoomIds, // клиентские чаты этого юзера (можно управлять составом и удалять)
+      newsRoomId,    // обязательный канал «Новости» (read-only для клиента)
+      generalRoomId, // «Поддержка — Общий»
+      ownedRoomIds,  // клиентские чаты этого юзера (можно управлять составом и удалять)
     });
   } catch (e) {
     console.error('[matrix] session error:', e.response?.status, e.response?.data?.errcode || e.message);

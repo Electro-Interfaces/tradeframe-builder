@@ -182,6 +182,10 @@ export interface ChatRoom {
   created_at: string;
   updated_at: string;
   participants?: ChatParticipant[];
+  /** Наши закреплённые каналы (для сортировки и разделителя в списке). client/undefined — обычный чат. */
+  kind?: 'news' | 'support-general' | 'support-personal' | 'client';
+  /** Канал только для чтения для текущего юзера (нет прав на отправку — напр. «Новости»). */
+  readonly?: boolean;
 }
 
 export interface ChatParticipant {

@@ -18,6 +18,9 @@ const SERVER_NAME = () => process.env.MATRIX_SERVER_NAME;
 const ADMIN_TOKEN = () => process.env.MATRIX_ADMIN_TOKEN;
 const SUPPORT_MXIDS = () =>
   (process.env.MATRIX_SUPPORT_MXIDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+// Модератор канала «Новости» (по умолчанию Дмитрий Королёв @d.korolev).
+const NEWS_MODERATOR_MXID = () =>
+  (process.env.MATRIX_NEWS_MODERATOR_MXID || `@d.korolev:${SERVER_NAME()}`).trim();
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -72,7 +75,7 @@ const randomPassword = () => crypto.randomBytes(18).toString('base64url');
 async function getCompany(networkId) {
   if (!networkId) return null;
   return postgres.queryOne(
-    `SELECT c.network_id, c.space_id, c.direction_rooms, c.member_network_ids, n.name, n.code
+    `SELECT c.network_id, c.space_id, c.direction_rooms, c.member_network_ids, c.news_room_id, n.name, n.code
        FROM chat_matrix_companies c
        JOIN networks n ON n.id = c.network_id
       WHERE c.network_id::text = $1 OR n.external_id = $1`,
@@ -197,12 +200,19 @@ async function ensureSupportRoom(mxid, tfUser, company) {
 // (на повторных /session — 0 join, без лишних задержек/429).
 async function ensureCompanyRooms(mxid, networkId) {
   const company = await getCompany(networkId);
-  if (!company?.direction_rooms) return [];
+  if (!company) return [];
   // Один общий канал поддержки на компанию («Поддержка Общий» — для всех проектов).
   // Направления (Учёт/АЗС/Процессинг) убраны: наши сотрудники только в личном + общем.
-  const general = company.direction_rooms['Общий'] || company.direction_rooms.general;
-  if (!general) return [];
-  const target = [general];
+  const general = company.direction_rooms?.['Общий'] || company.direction_rooms?.general;
+  // Обязательный канал «Новости» (read-only): провижится лениво, клиент джойнится с PL 0.
+  let newsRoomId = null;
+  try {
+    newsRoomId = await ensureNewsRoom(company);
+  } catch (e) {
+    console.warn('[matrix] ensureNewsRoom skipped:', e.response?.status, e.message);
+  }
+  const target = [general, newsRoomId].filter(Boolean);
+  if (!target.length) return [];
 
   let joined = new Set();
   try {
@@ -215,12 +225,63 @@ async function ensureCompanyRooms(mxid, networkId) {
   for (const roomId of target) {
     if (joined.has(roomId)) continue;
     try {
-      await forceJoin(roomId, mxid);
+      await forceJoin(roomId, mxid); // клиент входит с PL 0 → в «Новостях» только чтение
     } catch (e) {
-      console.warn('[matrix] direction join skipped', roomId, e.message);
+      console.warn('[matrix] company room join skipped', roomId, e.message);
     }
   }
   return target;
+}
+
+// ── обязательный канал «Новости» (read-only) ───────────
+// Один на компанию, провижится лениво при первой /session. Пишут только наши сотрудники
+// (SUPPORT_MXIDS, PL 50), модератор @d.korolev (PL 100); клиенты (PL 0 < events_default 50) — читают.
+async function setNewsPowerLevels(roomId) {
+  const enc = encodeURIComponent(roomId);
+  const pl = await mreq('get', `/_matrix/client/v3/rooms/${enc}/state/m.room.power_levels`);
+  pl.users = pl.users || {};
+  // создатель (@tf-chat-svc) уже 100 в pl.users — сохраняем; добавляем сотрудников и модератора
+  for (const s of SUPPORT_MXIDS()) pl.users[s] = 50;
+  pl.users[NEWS_MODERATOR_MXID()] = 100;
+  pl.users_default = 0;
+  pl.events_default = 50; // ключевое: отправка m.room.message требует PL ≥ 50 → клиенты не пишут
+  pl.invite = Math.max(Number(pl.invite) || 0, 50);
+  pl.events = pl.events || {};
+  pl.events['m.room.name'] = 100;
+  pl.events['m.room.power_levels'] = 100;
+  pl.events['m.room.history_visibility'] = 100;
+  await mreq('put', `/_matrix/client/v3/rooms/${enc}/state/m.room.power_levels`, pl);
+}
+
+async function ensureNewsRoom(company) {
+  if (!company) return null;
+  if (company.news_room_id) return company.news_room_id;
+  return postgres.withTransaction(async (client) => {
+    // advisory-lock по network_id — параллельные /session не создадут дубль комнаты
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1)::bigint)', [`news:${company.network_id}`]);
+    const row = (
+      await client.query('SELECT news_room_id FROM chat_matrix_companies WHERE network_id = $1', [company.network_id])
+    ).rows[0];
+    if (row?.news_room_id) return row.news_room_id;
+
+    const roomId = await createRoom({
+      name: '📰 Новости',
+      topic: 'Новости и анонсы. Публикуют только сотрудники поддержки.',
+    });
+    // Писатели (наши сотрудники) + модератор
+    for (const s of SUPPORT_MXIDS()) {
+      try { await forceJoin(roomId, s); } catch (e) { console.warn('[matrix] news staff join skipped', s, e.message); }
+    }
+    try { await forceJoin(roomId, NEWS_MODERATOR_MXID()); } catch (e) { console.warn('[matrix] news moderator join skipped', e.message); }
+    try { await setNewsPowerLevels(roomId); } catch (e) { console.warn('[matrix] news power_levels failed:', e.response?.status, e.message); }
+    if (company.space_id) await linkToSpace(company.space_id, roomId);
+
+    await client.query(
+      'UPDATE chat_matrix_companies SET news_room_id = $2 WHERE network_id = $1',
+      [company.network_id, roomId]
+    );
+    return roomId;
+  });
 }
 
 // ── клиентские чаты (без поддержки): клиент создаёт и управляет сам ─────────
@@ -342,6 +403,7 @@ module.exports = {
   getUserLoginToken,
   ensureSupportRoom,
   ensureCompanyRooms,
+  ensureNewsRoom,
   forceJoin,
   createRoom,
   linkToSpace,

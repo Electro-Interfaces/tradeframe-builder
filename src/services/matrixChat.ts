@@ -18,6 +18,8 @@ let ready = false;
 let initPromise: Promise<void> | null = null;
 let myUserId = '';
 let supportRoomId = '';
+let newsRoomId = '';
+let generalRoomId = '';
 let accessToken = '';
 let ownedRoomIds = new Set<string>();
 
@@ -38,13 +40,15 @@ async function fetchSession() {
   return apiRequest('/chat/matrix/session', {
     method: 'POST',
     body: JSON.stringify({ networkId: getSelectedNetwork() }),
-  }) as Promise<{ homeserver: string; userId: string; accessToken: string; supportRoomId: string; ownedRoomIds?: string[] }>;
+  }) as Promise<{ homeserver: string; userId: string; accessToken: string; supportRoomId: string; newsRoomId?: string; generalRoomId?: string; ownedRoomIds?: string[] }>;
 }
 
 async function doInit() {
   const s = await fetchSession();
   myUserId = s.userId;
   supportRoomId = s.supportRoomId;
+  newsRoomId = s.newsRoomId || '';
+  generalRoomId = s.generalRoomId || '';
   accessToken = s.accessToken;
   ownedRoomIds = new Set(s.ownedRoomIds || []);
   client = createClient({ baseUrl: s.homeserver, accessToken: s.accessToken, userId: s.userId });
@@ -97,9 +101,31 @@ function unreadCount(room: any): number {
   }
 }
 
+// Может ли текущий юзер отправлять m.room.message (по m.room.power_levels комнаты).
+// Для «Новостей» events_default=50, клиент с PL 0 → false (только чтение). Обычные комнаты → true.
+function canSendMessage(room: any): boolean {
+  try {
+    const ev = room.currentState?.getStateEvents?.('m.room.power_levels', '');
+    const pl = ev?.getContent?.() || {};
+    const myPower = room.getMember?.(myUserId)?.powerLevel ?? (pl.users?.[myUserId] ?? pl.users_default ?? 0);
+    const needed = pl.events?.['m.room.message'] ?? pl.events_default ?? 0;
+    return myPower >= needed;
+  } catch {
+    return true;
+  }
+}
+
+function roomKind(roomId: string): ChatRoom['kind'] {
+  if (roomId === newsRoomId) return 'news';
+  if (roomId === generalRoomId) return 'support-general';
+  if (roomId === supportRoomId) return 'support-personal';
+  return 'client';
+}
+
 function roomToChatRoom(room: any): ChatRoom {
   const last = lastMessageEvent(room);
   const lastSender = last ? room.getMember?.(last.getSender())?.name || last.getSender() : undefined;
+  const kind = roomKind(room.roomId);
   return {
     id: room.roomId,
     type: room.roomId === supportRoomId ? 'direct' : 'group',
@@ -110,6 +136,8 @@ function roomToChatRoom(room: any): ChatRoom {
     last_message_by: lastSender,
     created_at: new Date(room.getLiveTimeline().getEvents()[0]?.getTs() || Date.now()).toISOString(),
     updated_at: last ? new Date(last.getTs()).toISOString() : new Date().toISOString(),
+    kind,
+    readonly: !canSendMessage(room),
   };
 }
 
@@ -180,8 +208,10 @@ function memberToParticipant(m: any): ChatParticipant {
 // ── публичный API (сигнатуры supportService) ───────────
 export async function getChatRooms(): Promise<ChatRoom[]> {
   const c = await ensureClient();
-  // Наши каналы поддержки всегда вверху (личный → общий), клиентские чаты — ниже по времени.
-  const prio = (r: ChatRoom) => (r.id === supportRoomId ? 0 : ownedRoomIds.has(r.id) ? 2 : 1);
+  // Наши закреплённые каналы всегда вверху в порядке: Новости → Общая поддержка → Индивидуальная,
+  // затем клиентские чаты по времени последнего сообщения.
+  const prio = (r: ChatRoom) =>
+    r.kind === 'news' ? 0 : r.kind === 'support-general' ? 1 : r.kind === 'support-personal' ? 2 : 3;
   return c
     .getRooms()
     .map(roomToChatRoom)
