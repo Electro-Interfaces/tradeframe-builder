@@ -127,7 +127,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Поступления", url: "/network/receipts", icon: PackagePlus },
     { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
     { title: "Купоны", url: "/network/coupons", icon: Component },
-    { title: "Заявки", url: "/support/tickets", icon: Ticket },
+    { title: "Взаимодействие", url: "/support/interaction", icon: MessageCircleMore },
   ];
 
   const tradingPointMenuItems = [
@@ -146,7 +146,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
     { title: "Рассылка инвентаризации", url: "/admin/inventory-recipients", icon: Mail },
     { title: "Журнал аудита", url: "/admin/audit", icon: History },
-    { title: "Чат", url: "/support/chat", icon: MessageCircleMore },
   ];
 
   const settingsMenuItems = [
@@ -229,7 +228,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             {(collapsed || openGroups.includes("networks")) && (
               <div className={collapsed ? 'space-y-0.5' : 'space-y-1'}>
                 {networkMenuItems.map((item) => {
-                  const badge = item.url === '/support/tickets' ? unreadCounts.tickets : 0;
+                  const badge = item.url === '/support/interaction' ? unreadCounts.tickets + unreadCounts.chat : 0;
                   return <MenuLink key={item.title} item={item} badge={badge} onClick={handleMobileClose} />;
                 })}
               </div>
@@ -258,8 +257,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             {(collapsed || openGroups.includes("admin")) && (
               <div className={collapsed ? 'space-y-0.5' : 'space-y-1'}>
                 {adminMenuItems.map((item) => {
-                  const badge = item.url === '/support/chat' ? unreadCounts.chat : 0;
-                  return <MenuLink key={item.title} item={item} badge={badge} onClick={handleMobileClose} />;
+                  return <MenuLink key={item.title} item={item} onClick={handleMobileClose} />;
                 })}
               </div>
             )}

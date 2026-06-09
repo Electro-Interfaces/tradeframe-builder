@@ -82,6 +82,7 @@ const LogoVariants = lazy(() => import("./pages/LogoVariants"));
 // Support страницы
 const TicketsPage = lazy(() => import("./pages/support/TicketsPage"));
 const ChatPage = lazy(() => import("./pages/support/ChatPage"));
+const InteractionPage = lazy(() => import("./pages/support/InteractionPage"));
 
 // Используем предварительно настроенный queryClient из lib/queryClient
 
@@ -275,6 +276,7 @@ const App = () => {
                   <Route path="/logos" element={<LazyLoader><LogoVariants /></LazyLoader>} />
 
                   {/* Support страницы */}
+                  <Route path="/support/interaction" element={<ProtectedRoute><LazyLoader><InteractionPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/support/tickets" element={<ProtectedRoute><LazyLoader><TicketsPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/support/chat" element={<ProtectedRoute><LazyLoader><ChatPage /></LazyLoader></ProtectedRoute>} />
 

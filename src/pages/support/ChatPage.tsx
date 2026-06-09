@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import PageShell from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -868,7 +868,7 @@ function MessagePanel({
 
 // ========== Main ChatPage ==========
 
-export default function ChatPage() {
+export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useNewAuth();
   const { refreshUnreadCounts, clearChatBadge } = useSupportContext();
   const isMobile = useIsMobile();
@@ -1154,7 +1154,7 @@ export default function ChatPage() {
   };
 
   return (
-    <MainLayout fullWidth>
+    <PageShell embedded={embedded}>
       <div className="flex h-full overflow-hidden">
         {/* Desktop: fixed left panel */}
         {!isMobile && (
@@ -1232,6 +1232,6 @@ export default function ChatPage() {
         onOpenChange={setNewChatOpen}
         onCreate={handleCreateRoom}
       />
-    </MainLayout>
+    </PageShell>
   );
 }

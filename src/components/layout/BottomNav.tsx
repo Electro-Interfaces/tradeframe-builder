@@ -63,7 +63,7 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
           <Wifi className="w-5 h-5" />
           <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">Связь</span>
         </button>
-        <button onClick={() => navigate('/support/chat')} type="button" className={`relative ${actionBtn}`}>
+        <button onClick={() => navigate('/support/interaction?tab=chat')} type="button" className={`relative ${actionBtn}`}>
           <MessageCircle className="w-5 h-5" />
           <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">Чат</span>
           {unreadCounts.chat > 0 && (

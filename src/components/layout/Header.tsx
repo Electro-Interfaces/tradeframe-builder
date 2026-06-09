@@ -196,7 +196,7 @@ export function Header({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/support/chat')}
+            onClick={() => navigate('/support/interaction?tab=chat')}
             className="relative h-11 px-3 gap-2 bg-primary/10 dark:bg-primary/20 hover:bg-primary text-primary dark:text-primary/70 hover:text-white border border-primary/30 dark:border-primary/50 hover:border-primary rounded-xl transition-all duration-200 font-medium"
             title="Чат"
           >

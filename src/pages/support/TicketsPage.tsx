@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import PageShell from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -107,7 +107,7 @@ function SlaIndicator({ deadline, breached }: { deadline?: string; breached?: bo
 }
 
 // ========== Assignee Selector ==========
-export default function TicketsPage() {
+export default function TicketsPage({ embedded = false }: { embedded?: boolean }) {
   const isMobile = useIsMobile();
   const { refreshUnreadCounts, clearTicketsBadge, ticketsVersion, notifyTicketsChanged } = useSupportContext();
 
@@ -368,7 +368,7 @@ export default function TicketsPage() {
   const activeFilterCount = [statusFilter, priorityFilter, typeFilter].filter(f => f !== 'all').length;
 
   return (
-    <MainLayout fullWidth>
+    <PageShell embedded={embedded}>
     <div ref={containerRef} className="flex h-full overflow-hidden">
       {/* === Левая панель: список === */}
       <div className={`flex flex-col bg-background shrink-0 overflow-hidden ${isMobile && selectedId ? 'hidden' : ''}`} style={isMobile ? { width: '100%' } : { width: `${listWidth}px` }}>
@@ -1016,6 +1016,6 @@ export default function TicketsPage() {
         ) : null}
       </div>
     </div>
-    </MainLayout>
+    </PageShell>
   );
 }
