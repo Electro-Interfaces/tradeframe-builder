@@ -303,10 +303,10 @@ export function getChatUnread(): number | null {
 
 // ── недоступно клиенту в Matrix-модели (R4) ────────────
 // Клиентские чаты (свои сотрудники, без поддержки): создаёт и управляет клиент.
-export async function getCompanyMembers(): Promise<{ mxid: string; name: string; email: string }[]> {
+export async function getCompanyMembers(): Promise<{ id: string; name: string; email: string; mxid: string | null }[]> {
   const net = getSelectedNetwork();
   const q = net ? `?networkId=${encodeURIComponent(net)}` : '';
-  return apiRequest('/chat/matrix/company-members' + q) as Promise<{ mxid: string; name: string; email: string }[]>;
+  return apiRequest('/chat/matrix/company-members' + q) as Promise<{ id: string; name: string; email: string; mxid: string | null }[]>;
 }
 
 export async function createChatRoom(input: { type?: string; name?: string; participant_ids?: string[] }): Promise<ChatRoom> {
@@ -325,9 +325,9 @@ export async function createChatRoom(input: { type?: string; name?: string; part
   };
 }
 
-export async function addRoomMember(roomId: string, mxid: string): Promise<void> {
+export async function addRoomMember(roomId: string, tfUserId: string): Promise<void> {
   await apiRequest(`/chat/matrix/rooms/${encodeURIComponent(roomId)}/members`, {
-    method: 'POST', body: JSON.stringify({ action: 'add', mxid }),
+    method: 'POST', body: JSON.stringify({ action: 'add', tfUserId }),
   });
 }
 

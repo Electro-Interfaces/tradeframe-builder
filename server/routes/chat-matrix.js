@@ -66,8 +66,7 @@ const roomLimiter = rateLimit({
 router.get('/company-members', requireAuth, async (req, res) => {
   try {
     const networkId = req.query.networkId || null;
-    const myMxid = await mx.getMyMxid(req.user.id);
-    const members = await mx.listCompanyMembers(networkId, myMxid);
+    const members = await mx.listCompanyMembers(networkId, req.user.id);
     res.json(members);
   } catch (e) {
     console.error('[matrix] company-members error:', e.message);
@@ -94,11 +93,11 @@ router.post('/rooms', requireAuth, roomLimiter, async (req, res) => {
 // Добавить/удалить участника клиентского чата — только владелец.
 router.post('/rooms/:roomId/members', requireAuth, roomLimiter, async (req, res) => {
   try {
-    const { action, mxid } = req.body || {};
+    const { action, mxid, tfUserId } = req.body || {};
     if (!(await mx.isClientRoomOwner(req.params.roomId, req.user.id))) {
       return res.status(403).json({ error: 'Это не ваш чат' });
     }
-    if (action === 'add') await mx.addClientRoomMember(req.params.roomId, mxid);
+    if (action === 'add') await mx.addClientRoomMember(req.params.roomId, tfUserId);
     else if (action === 'remove') await mx.removeClientRoomMember(req.params.roomId, mxid);
     else return res.status(400).json({ error: 'Неизвестное действие' });
     res.json({ ok: true });

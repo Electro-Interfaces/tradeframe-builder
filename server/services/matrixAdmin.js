@@ -72,7 +72,7 @@ const randomPassword = () => crypto.randomBytes(18).toString('base64url');
 async function getCompany(networkId) {
   if (!networkId) return null;
   return postgres.queryOne(
-    `SELECT c.network_id, c.space_id, c.direction_rooms, n.name, n.code
+    `SELECT c.network_id, c.space_id, c.direction_rooms, c.member_network_ids, n.name, n.code
        FROM chat_matrix_companies c
        JOIN networks n ON n.id = c.network_id
       WHERE c.network_id::text = $1 OR n.external_id = $1`,
@@ -241,34 +241,55 @@ async function setUserPower(roomId, mxid, power) {
   await mreq('put', `/_matrix/client/v3/rooms/${enc}/state/m.room.power_levels`, pl);
 }
 
-// Сотрудники компании клиента (по slug в mxid). Исключаем самого юзера. Изоляция: только своя компания.
-async function listCompanyMembers(networkId, excludeMxid) {
+async function getTfUser(tfUserId) {
+  return postgres.queryOne('SELECT id::text AS id, email, name FROM users WHERE id = $1', [tfUserId]);
+}
+
+// Сотрудники компании клиента: берём из TradeFrame по доступу к сетям компании
+// (ГИГ+БТО — одни лица), а не по тем, кто уже зашёл в чат. mxid — если уже есть (иначе создаётся
+// при добавлении в чат). Исключаем самого юзера.
+async function listCompanyMembers(networkId, excludeTfUserId) {
   const company = await getCompany(networkId);
   if (!company) return [];
-  const slug = companySlug(company);
+  const netIds = Array.isArray(company.member_network_ids) && company.member_network_ids.length
+    ? company.member_network_ids
+    : [company.network_id];
+  const { rows: codeRows } = await postgres.query('SELECT code FROM networks WHERE id = ANY($1)', [netIds]);
+  const codes = codeRows.map((r) => r.code).filter(Boolean);
+  // network-scope роли хранят UUID сети; trading_point-scope — id точек вида "<code>-azs-...".
+  const patterns = [...netIds.map((id) => `%${id}%`), ...codes.map((code) => `%${code}-azs%`)];
   const { rows } = await postgres.query(
-    `SELECT a.matrix_user_id, u.name, u.email
-       FROM chat_matrix_accounts a JOIN users u ON u.id = a.tradeframe_user_id
-      WHERE a.matrix_user_id LIKE $1
+    `SELECT DISTINCT u.id::text AS id, u.name, u.email,
+            (SELECT a.matrix_user_id FROM chat_matrix_accounts a WHERE a.tradeframe_user_id = u.id) AS mxid
+       FROM users u
+       JOIN user_roles ur ON ur.user_id = u.id
+       JOIN roles r ON r.id = ur.role_id
+      WHERE u.status = 'active'
+        AND (ur.scope_value::text LIKE ANY($1) OR r.scope_values::text LIKE ANY($1))
       ORDER BY u.name`,
-    [`@${slug}.%`]
+    [patterns]
   );
   return rows
-    .filter((r) => r.matrix_user_id !== excludeMxid)
-    .map((r) => ({ mxid: r.matrix_user_id, name: r.name || r.matrix_user_id, email: r.email || '' }));
+    .filter((r) => r.id !== excludeTfUserId)
+    .map((r) => ({ id: r.id, name: r.name || r.email, email: r.email || '', mxid: r.mxid || null }));
 }
 
 // Создать клиентский чат: создатель (power 100) + выбранные сотрудники. БЕЗ нашей поддержки.
-async function createClientRoom(tfUser, networkId, name, memberMxids, ownerMxid) {
+async function createClientRoom(tfUser, networkId, name, memberTfUserIds, ownerMxid) {
+  const company = await getCompany(networkId);
+  const slug = companySlug(company);
   const roomId = await createRoom({ name: name || 'Чат' });
   await forceJoin(roomId, ownerMxid);
   await setUserPower(roomId, ownerMxid, 100);
-  for (const m of memberMxids || []) {
-    if (!m || m === ownerMxid) continue;
+  for (const tid of memberTfUserIds || []) {
+    if (!tid || tid === tfUser.id) continue;
     try {
-      await forceJoin(roomId, m);
+      const u = await getTfUser(tid);
+      if (!u) continue;
+      const mxid = await ensureMatrixAccount(u, slug);
+      await forceJoin(roomId, mxid);
     } catch (e) {
-      console.warn('[matrix] client room join skipped', m, e.message);
+      console.warn('[matrix] client room add skipped', tid, e.message);
     }
   }
   await postgres.query(
@@ -295,7 +316,12 @@ async function listOwnedRoomIds(tfUserId) {
   return rows.map((r) => r.room_id);
 }
 
-async function addClientRoomMember(roomId, mxid) {
+async function addClientRoomMember(roomId, tfUserId) {
+  const row = await postgres.queryOne('SELECT network_id FROM chat_matrix_client_rooms WHERE room_id = $1', [roomId]);
+  const company = await getCompany(row && row.network_id ? row.network_id : null);
+  const u = await getTfUser(tfUserId);
+  if (!u) throw new Error('Сотрудник не найден');
+  const mxid = await ensureMatrixAccount(u, companySlug(company));
   await forceJoin(roomId, mxid);
 }
 
@@ -320,6 +346,7 @@ module.exports = {
   createRoom,
   linkToSpace,
   getMyMxid,
+  getTfUser,
   listCompanyMembers,
   createClientRoom,
   isClientRoomOwner,

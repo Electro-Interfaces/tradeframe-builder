@@ -201,7 +201,7 @@ function NewChatDialog({
   onCreate: (name: string, memberMxids: string[]) => Promise<void> | void;
 }) {
   const [name, setName] = useState('');
-  const [members, setMembers] = useState<{ mxid: string; name: string; email: string }[]>([]);
+  const [members, setMembers] = useState<{ id: string; name: string; email: string; mxid: string | null }[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -258,11 +258,11 @@ function NewChatDialog({
             ) : (
               <div className="max-h-48 overflow-auto space-y-1 border border-border rounded-lg p-1">
                 {members.map(m => {
-                  const sel = selected.has(m.mxid);
+                  const sel = selected.has(m.id);
                   return (
                     <button
-                      key={m.mxid}
-                      onClick={() => toggle(m.mxid)}
+                      key={m.id}
+                      onClick={() => toggle(m.id)}
                       className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-md text-left text-sm transition-colors ${sel ? 'bg-primary/15 text-foreground' : 'hover:bg-card text-foreground/80'}`}
                     >
                       <span className="truncate">{m.name}</span>
@@ -502,8 +502,8 @@ function ChatInfoPanel({
   onClose: () => void;
   canManage?: boolean;
   currentUserId?: string;
-  availableMembers?: { mxid: string; name: string; email: string }[];
-  onAddMember?: (mxid: string) => void;
+  availableMembers?: { id: string; name: string; email: string; mxid: string | null }[];
+  onAddMember?: (tfUserId: string) => void;
   onRemoveMember?: (mxid: string) => void;
   onDeleteRoom?: () => void;
 }) {
@@ -644,8 +644,8 @@ function ChatInfoPanel({
                   ) : (
                     (availableMembers || []).map(m => (
                       <button
-                        key={m.mxid}
-                        onClick={() => { onAddMember?.(m.mxid); setAdding(false); }}
+                        key={m.id}
+                        onClick={() => { onAddMember?.(m.id); setAdding(false); }}
                         className="w-full text-left text-sm px-2.5 py-2 rounded-md hover:bg-card text-foreground/80 truncate"
                       >
                         {m.name}
@@ -968,7 +968,7 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
   // Chat info panel state
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [roomDetail, setRoomDetail] = useState<ChatRoom | null>(null);
-  const [companyMembers, setCompanyMembers] = useState<{ mxid: string; name: string; email: string }[]>([]);
+  const [companyMembers, setCompanyMembers] = useState<{ id: string; name: string; email: string; mxid: string | null }[]>([]);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
   const pollingRoomsRef = useRef<ReturnType<typeof setInterval>>();
@@ -1312,7 +1312,7 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
             onClose={() => setInfoPanelOpen(false)}
             canManage={!!selectedRoomId && canManageRoom(selectedRoomId)}
             currentUserId={tsupportUserId}
-            availableMembers={companyMembers.filter(m => !(roomDetail?.participants || []).some(p => p.user_id === m.mxid))}
+            availableMembers={companyMembers.filter(m => !m.mxid || !(roomDetail?.participants || []).some(p => p.user_id === m.mxid))}
             onAddMember={handleAddMember}
             onRemoveMember={handleRemoveMember}
             onDeleteRoom={handleDeleteRoom}
@@ -1332,7 +1332,7 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
                 onClose={() => setInfoPanelOpen(false)}
                 canManage={!!selectedRoomId && canManageRoom(selectedRoomId)}
                 currentUserId={tsupportUserId}
-                availableMembers={companyMembers.filter(m => !(roomDetail?.participants || []).some(p => p.user_id === m.mxid))}
+                availableMembers={companyMembers.filter(m => !m.mxid || !(roomDetail?.participants || []).some(p => p.user_id === m.mxid))}
                 onAddMember={handleAddMember}
                 onRemoveMember={handleRemoveMember}
                 onDeleteRoom={handleDeleteRoom}
