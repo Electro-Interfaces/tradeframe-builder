@@ -24,9 +24,11 @@ interface StationConnectionInfo {
 interface StationsConnectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** false — не блокировать фон (toggle-кнопкой поверх экрана). По умолчанию true. */
+  modal?: boolean;
 }
 
-export function StationsConnectionDialog({ open, onOpenChange }: StationsConnectionDialogProps) {
+export function StationsConnectionDialog({ open, onOpenChange, modal = true }: StationsConnectionDialogProps) {
   const { selectedNetwork, selectedNetworkIds } = useSelection();
   const { selectedNetworks } = useSelectedNetworks();
   const [stations, setStations] = useState<StationConnectionInfo[]>([]);
@@ -227,8 +229,11 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
   const offlineCount = stations.filter(s => s.status === 'offline').length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] sm:max-h-[80vh] bg-card border-border text-foreground overflow-hidden flex flex-col p-3 sm:p-6">
+    <Dialog open={open} onOpenChange={onOpenChange} modal={modal}>
+      <DialogContent
+        onInteractOutside={(e) => { if (!modal) e.preventDefault(); }}
+        className="w-[95vw] max-w-2xl max-h-[90vh] sm:max-h-[80vh] bg-card border-border text-foreground overflow-hidden flex flex-col p-3 sm:p-6"
+      >
         <DialogHeader className="pb-2 sm:pb-4">
           <DialogTitle className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
             <Wifi className="w-4 h-4 sm:w-5 sm:h-5" />

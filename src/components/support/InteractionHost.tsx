@@ -26,10 +26,14 @@ export default function InteractionHost() {
       <StationsConnectionDialog
         open={section === 'connection'}
         onOpenChange={(o) => { if (!o) closeInteraction(); }}
+        modal={false}
       />
 
       <Dialog open={isPanel} onOpenChange={(o) => { if (!o) closeInteraction(); }} modal={false}>
-        <DialogContent className="p-0 gap-0 bg-background border-border text-foreground w-[96vw] max-w-5xl h-[85vh] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent
+          onInteractOutside={(e) => e.preventDefault()}
+          className="p-0 gap-0 bg-background border-border text-foreground w-[96vw] max-w-5xl h-[85vh] max-h-[85vh] overflow-hidden flex flex-col"
+        >
           <DialogHeader className="px-4 py-2.5 border-b border-border/50 shrink-0 text-left">
             <DialogTitle className="text-foreground text-base">{section ? TITLES[section] : ''}</DialogTitle>
           </DialogHeader>
