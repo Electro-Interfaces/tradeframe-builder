@@ -20,7 +20,7 @@ interface BottomNavProps {
 
 const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, onRefresh: onRefreshProp, refreshing: refreshingProp }: BottomNavProps) => {
   const navigate = useNavigate();
-  const { openConnectionDialog, openCreateDialog, unreadCounts } = useSupportContext();
+  const { openConnectionDialog, unreadCounts } = useSupportContext();
   const refreshing = refreshingProp ?? false;
 
   const onRefresh = useCallback(() => {
@@ -72,7 +72,7 @@ const BottomNavComponent = ({ onMenuToggle, showPointSelect, pointSelectProps, o
             </span>
           )}
         </button>
-        <button onClick={openCreateDialog} type="button" className={actionBtn}>
+        <button onClick={() => navigate('/support/interaction?tab=tickets')} type="button" className={actionBtn}>
           <LifeBuoy className="w-5 h-5" />
           <span className="text-[10px] font-semibold uppercase tracking-tighter leading-tight">Заявка</span>
         </button>

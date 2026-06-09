@@ -22,7 +22,7 @@ import {
   Calendar, ChevronRight, ChevronLeft, Inbox, FileText, Globe,
   Monitor, MapPin, Route, ChevronDown, UserCircle,
   Shield, Paperclip, X, Image as ImageIcon, File, SlidersHorizontal,
-  AlarmClock, CheckCheck, RotateCcw,
+  AlarmClock, CheckCheck, RotateCcw, Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -109,7 +109,7 @@ function SlaIndicator({ deadline, breached }: { deadline?: string; breached?: bo
 // ========== Assignee Selector ==========
 export default function TicketsPage({ embedded = false }: { embedded?: boolean }) {
   const isMobile = useIsMobile();
-  const { refreshUnreadCounts, clearTicketsBadge, ticketsVersion, notifyTicketsChanged } = useSupportContext();
+  const { refreshUnreadCounts, clearTicketsBadge, ticketsVersion, notifyTicketsChanged, openCreateDialog } = useSupportContext();
 
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [total, setTotal] = useState(0);
@@ -1016,6 +1016,15 @@ export default function TicketsPage({ embedded = false }: { embedded?: boolean }
         ) : null}
       </div>
     </div>
+    {isMobile && (
+      <button
+        onClick={openCreateDialog}
+        className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-primary hover:bg-primary/80 active:bg-primary/90 text-white shadow-xl shadow-primary/40 flex items-center justify-center touch-manipulation z-50"
+        aria-label="Новая заявка"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+    )}
     </PageShell>
   );
 }
