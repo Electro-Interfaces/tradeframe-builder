@@ -142,18 +142,18 @@ function RoomListPanel({
                 )}
                 <button
                   onClick={() => onSelectRoom(room.id)}
-                  className={`w-full text-left px-3 py-3 transition-colors touch-manipulation border-b border-border/20 ${
+                  className={`w-full text-left px-3 py-2 transition-colors touch-manipulation border-b border-border/20 ${
                     isSelected ? 'bg-card' : 'hover:bg-card/40 active:bg-card/60'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isNews ? 'bg-amber-100 dark:bg-amber-500/20' : isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isNews ? 'bg-amber-100 dark:bg-amber-500/20' : isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
                       {isNews ? (
-                        <Megaphone className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        <Megaphone className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                       ) : isCompany ? (
-                        <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       ) : (
-                        <User className="h-5 w-5 text-primary dark:text-primary/70" />
+                        <User className="h-4 w-4 text-primary dark:text-primary/70" />
                       )}
                     </div>
                     {/* Однострочно: бейдж непрочитанных заменяет вторую строку с превью */}
