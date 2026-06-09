@@ -9,7 +9,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { getUnreadCounts } from '@/services/supportService';
-import { getChatUnread } from '@/services/chatBackend';
+import { getChatUnread, subscribeChat, warmupChat } from '@/services/chatBackend';
 import type { AppContext, UnreadCounts } from '@/types/support';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useSelection } from '@/contexts/SelectionContext';
@@ -257,6 +257,15 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  // Лёгкий пересчёт ТОЛЬКО чата из живого Matrix-клиента (без HTTP к TSupport) —
+  // для realtime-обновления бейджа на каждое входящее событие.
+  const refreshChatUnread = useCallback(() => {
+    const mxChat = getChatUnread();
+    if (mxChat !== null) {
+      setUnreadCounts(prev => ({ ...prev, chat: mxChat, total: prev.tickets + mxChat }));
+    }
+  }, []);
+
   const clearTicketsBadge = useCallback(() => {
     setUnreadCounts(prev => ({ ...prev, tickets: 0, total: prev.chat }));
   }, []);
@@ -268,6 +277,16 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
   // Polling непрочитанных (с visibility check — не опрашиваем на неактивной вкладке)
   useEffect(() => {
     if (!user || !getToken()) return;
+
+    let unsub = () => {};
+    let alive = true;
+    // Прогрев Matrix-клиента → бейдж чата живой ещё до первого открытия чата,
+    // плюс realtime-пересчёт чата на каждое входящее событие (без лишних HTTP).
+    warmupChat().then(() => {
+      if (!alive) return;
+      refreshChatUnread();
+      unsub = subscribeChat(() => refreshChatUnread());
+    });
 
     refreshUnreadCounts();
 
@@ -284,10 +303,12 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
+      alive = false;
+      unsub();
       if (pollingRef.current) clearInterval(pollingRef.current);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [user, refreshUnreadCounts]);
+  }, [user, refreshUnreadCounts, refreshChatUnread]);
 
   // Сбрасываем pageContext при смене роута
   useEffect(() => {

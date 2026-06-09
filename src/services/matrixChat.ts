@@ -93,9 +93,29 @@ function lastMessageEvent(room: any): MatrixEvent | null {
   return null;
 }
 
+// Запасной счётчик непрочитанных: сообщения от ДРУГИХ после последнего прочитанного
+// (по read-receipt текущего юзера). Нужен, когда серверный unread_notifications недоступен
+// или push-rules не настроены и getUnreadNotificationCount() врёт 0.
+function receiptUnread(room: any): number {
+  try {
+    const events = room.getLiveTimeline().getEvents();
+    const readUpTo = room.getEventReadUpTo?.(myUserId, false);
+    let count = 0;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
+      if (readUpTo && ev.getId() === readUpTo) break;
+      if (ev.getType() === 'm.room.message' && ev.getSender() !== myUserId && !ev.isRedacted()) count++;
+    }
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
 function unreadCount(room: any): number {
   try {
-    return room.getUnreadNotificationCount?.() ?? 0;
+    const n = room.getUnreadNotificationCount?.() ?? 0;
+    return n > 0 ? n : receiptUnread(room);
   } catch {
     return 0;
   }
@@ -329,6 +349,17 @@ export function subscribeChat(handler: (roomId: string) => void): () => void {
 export function getChatUnread(): number | null {
   if (!client || !ready) return null;
   return client.getRooms().reduce((sum, r) => sum + unreadCount(r), 0);
+}
+
+// Прогрев Matrix-клиента при старте приложения: бейдж непрочитанных и realtime-подписка
+// работают ещё до первого открытия чата. Без прогрева getChatUnread() возвращает null до тех пор,
+// пока пользователь не зайдёт в чат. Тихо игнорируем ошибки (Matrix может быть недоступен).
+export async function warmupChat(): Promise<void> {
+  try {
+    await ensureClient();
+  } catch {
+    /* бейдж останется от TSupport */
+  }
 }
 
 // ── недоступно клиенту в Matrix-модели (R4) ────────────

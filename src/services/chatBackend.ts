@@ -33,6 +33,8 @@ export const subscribeChat: (handler: (roomId: string) => void) => () => void = 
   ? matrix.subscribeChat
   : () => () => {};
 export const getChatUnread: () => number | null = M ? matrix.getChatUnread : () => null;
+// Прогрев Matrix-клиента при старте (живой бейдж до открытия чата). Для TSupport — noop.
+export const warmupChat: () => Promise<void> = M ? matrix.warmupChat : async () => {};
 
 // Клиентские чаты (только Matrix). Для TSupport — безопасные заглушки.
 export const getCompanyMembers: () => Promise<{ id: string; name: string; email: string; mxid: string | null }[]> = M

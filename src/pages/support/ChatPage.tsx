@@ -156,27 +156,19 @@ function RoomListPanel({
                         <User className="h-5 w-5 text-primary dark:text-primary/70" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`text-sm truncate ${hasUnread ? 'text-foreground font-semibold' : 'text-foreground font-medium'}`}>
-                          {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
-                        </span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {room.last_message_at && (
-                            <span className={`text-[11px] ${hasUnread ? 'text-primary dark:text-primary/70' : 'text-muted-foreground'}`}>
-                              {formatTime(room.last_message_at)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <p className={`text-xs truncate ${hasUnread ? 'text-foreground/80' : 'text-muted-foreground'}`}>
-                          {room.last_message
-                            ? `${room.last_message_by ? `${room.last_message_by}: ` : ''}${room.last_message}`
-                            : 'Нет сообщений'}
-                        </p>
+                    {/* Однострочно: бейдж непрочитанных заменяет вторую строку с превью */}
+                    <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                      <span className={`text-sm truncate ${hasUnread ? 'text-foreground font-semibold' : 'text-foreground font-medium'}`}>
+                        {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
+                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {room.last_message_at && (
+                          <span className={`text-[11px] ${hasUnread ? 'text-primary dark:text-primary/70' : 'text-muted-foreground'}`}>
+                            {formatTime(room.last_message_at)}
+                          </span>
+                        )}
                         {hasUnread && (
-                          <span className="inline-flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full min-w-[20px] h-[20px] px-1.5 shrink-0">
+                          <span className="inline-flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full min-w-[20px] h-[20px] px-1.5">
                             {room.unread_count}
                           </span>
                         )}
