@@ -22,6 +22,9 @@ let newsRoomId = '';
 let generalRoomId = '';
 let accessToken = '';
 let ownedRoomIds = new Set<string>();
+// Комнаты, удалённые в этой сессии. matrix-js-sdk держит покинутые комнаты в getRooms()
+// до прихода leave-события через sync, поэтому скрываем их оптимистично сразу.
+let deletedRoomIds = new Set<string>();
 
 // Кэш authenticated-media: mxc → objectURL (Synapse 1.154 требует токен на скачивание;
 // <img> его не шлёт, поэтому скачиваем blob с Bearer и отдаём objectURL в file_url).
@@ -51,6 +54,7 @@ async function doInit() {
   generalRoomId = s.generalRoomId || '';
   accessToken = s.accessToken;
   ownedRoomIds = new Set(s.ownedRoomIds || []);
+  deletedRoomIds = new Set();
   client = createClient({ baseUrl: s.homeserver, accessToken: s.accessToken, userId: s.userId });
   // Невалидный токен после init (рестарт Synapse, ротация): SDK кидает SessionLoggedOut на
   // M_UNKNOWN_TOKEN → сбрасываем клиента; следующий вызов переинициализируется через /session.
@@ -114,6 +118,7 @@ export function teardownChat(): void {
   generalRoomId = '';
   accessToken = '';
   ownedRoomIds = new Set();
+  deletedRoomIds = new Set();
   for (const url of mediaCache.values()) {
     try {
       URL.revokeObjectURL(url);
@@ -275,6 +280,10 @@ export async function getChatRooms(): Promise<ChatRoom[]> {
     r.kind === 'news' ? 0 : r.kind === 'support-general' ? 1 : r.kind === 'support-personal' ? 2 : 3;
   return c
     .getRooms()
+    // Только комнаты, где пользователь состоит. SDK держит покинутые/удалённые (membership
+    // 'leave') в getRooms() — без фильтра удалённый чат остаётся в списке. deletedRoomIds
+    // скрывает удалённое сразу, не дожидаясь прихода leave-события через sync.
+    .filter((r) => r.getMyMembership() === 'join' && !deletedRoomIds.has(r.roomId))
     .map(roomToChatRoom)
     .sort((a, b) => prio(a) - prio(b) || (b.last_message_at || '').localeCompare(a.last_message_at || ''));
 }
@@ -442,6 +451,13 @@ export async function removeRoomMember(roomId: string, mxid: string): Promise<vo
 export async function deleteRoom(roomId: string): Promise<void> {
   await apiRequest(`/chat/matrix/rooms/${encodeURIComponent(roomId)}`, { method: 'DELETE' });
   ownedRoomIds.delete(roomId);
+  // Скрыть сразу: Synapse-purge кикает участника асинхронно, leave-событие придёт с задержкой.
+  deletedRoomIds.add(roomId);
+  try {
+    await client?.forget(roomId);
+  } catch {
+    /* комната уже очищена на сервере или leave ещё не дошёл — фильтр membership/deletedRoomIds скроет */
+  }
 }
 
 /** Может ли текущий пользователь управлять комнатой (это его клиентский чат). */
