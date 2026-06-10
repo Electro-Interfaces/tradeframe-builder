@@ -9,14 +9,27 @@
  *
  * Безопасность: MATRIX_ADMIN_TOKEN на фронт НЕ уходит; токен выдаётся строго для аккаунта,
  * привязанного к req.user (без id из тела/query — защита от IDOR). Токен НЕ логируется.
+ * networkId из запроса проверяется по scope ролей (hasNetworkAccess) — cross-tenant закрыт.
  */
 
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { requireAuth } = require('../middleware/auth');
 const mx = require('../services/matrixAdmin');
+const { effectiveNetworkIds } = require('../services/kbService');
 
 const router = express.Router();
+
+// networkId приходит с фронта (SelectionContext) и НЕ доверяется: проверяем по scope ролей
+// пользователя (тот же механизм, что в kbService) — иначе cross-tenant доступ к чужим комнатам.
+async function hasNetworkAccess(user, networkId) {
+  if (!networkId) return true; // без компании — только личные сущности
+  const { denied } = await effectiveNetworkIds(user, networkId);
+  return !denied;
+}
+
+// Максимум участников при создании клиентского чата (каждый — отдельный join в Synapse).
+const MAX_ROOM_MEMBERS = 50;
 
 const sessionLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -30,6 +43,9 @@ router.post('/session', requireAuth, sessionLimiter, async (req, res) => {
   const tfUser = req.user;
   const networkId = req.body?.networkId || null; // из SelectionContext (tc:selectedNetwork)
   try {
+    if (!(await hasNetworkAccess(tfUser, networkId))) {
+      return res.status(403).json({ error: 'Нет доступа к этой компании' });
+    }
     const company = await mx.getCompany(networkId);
     const slug = mx.companySlug(company);
     const mxid = await mx.ensureMatrixAccount(tfUser, slug);
@@ -75,6 +91,9 @@ const roomLimiter = rateLimit({
 router.get('/company-members', requireAuth, async (req, res) => {
   try {
     const networkId = req.query.networkId || null;
+    if (!(await hasNetworkAccess(req.user, networkId))) {
+      return res.status(403).json({ error: 'Нет доступа к этой компании' });
+    }
     const members = await mx.listCompanyMembers(networkId, req.user.id);
     res.json(members);
   } catch (e) {
@@ -87,11 +106,21 @@ router.get('/company-members', requireAuth, async (req, res) => {
 router.post('/rooms', requireAuth, roomLimiter, async (req, res) => {
   try {
     const { name, members, networkId } = req.body || {};
+    if (!(await hasNetworkAccess(req.user, networkId || null))) {
+      return res.status(403).json({ error: 'Нет доступа к этой компании' });
+    }
+    // В чат можно добавить только сотрудников СВОЕЙ компании — фильтруем на сервере,
+    // UI-пикер не доверяется (иначе force-join произвольных пользователей по UUID).
+    const requested = (Array.isArray(members) ? members : []).map(String).slice(0, MAX_ROOM_MEMBERS);
+    let allowedMembers = [];
+    if (requested.length) {
+      const colleagues = await mx.listCompanyMembers(networkId || null, req.user.id);
+      const ids = new Set(colleagues.map((m) => m.id));
+      allowedMembers = requested.filter((id) => ids.has(id));
+    }
     const company = await mx.getCompany(networkId || null);
     const mxid = await mx.ensureMatrixAccount(req.user, mx.companySlug(company));
-    const roomId = await mx.createClientRoom(
-      req.user, networkId || null, name, Array.isArray(members) ? members : [], mxid
-    );
+    const roomId = await mx.createClientRoom(req.user, networkId || null, name, allowedMembers, mxid);
     res.json({ roomId });
   } catch (e) {
     console.error('[matrix] create room error:', e.response?.status, e.message);
@@ -106,8 +135,15 @@ router.post('/rooms/:roomId/members', requireAuth, roomLimiter, async (req, res)
     if (!(await mx.isClientRoomOwner(req.params.roomId, req.user.id))) {
       return res.status(403).json({ error: 'Это не ваш чат' });
     }
-    if (action === 'add') await mx.addClientRoomMember(req.params.roomId, tfUserId);
-    else if (action === 'remove') await mx.removeClientRoomMember(req.params.roomId, mxid);
+    if (action === 'add') {
+      // Добавлять можно только сотрудников компании этого чата (не произвольный UUID).
+      const roomNetworkId = await mx.getClientRoomNetworkId(req.params.roomId);
+      const colleagues = await mx.listCompanyMembers(roomNetworkId, req.user.id);
+      if (!colleagues.some((m) => m.id === String(tfUserId))) {
+        return res.status(403).json({ error: 'Можно добавлять только сотрудников своей компании' });
+      }
+      await mx.addClientRoomMember(req.params.roomId, tfUserId);
+    } else if (action === 'remove') await mx.removeClientRoomMember(req.params.roomId, mxid);
     else return res.status(400).json({ error: 'Неизвестное действие' });
     res.json({ ok: true });
   } catch (e) {

@@ -361,6 +361,14 @@ async function createClientRoom(tfUser, networkId, name, memberTfUserIds, ownerM
   return roomId;
 }
 
+async function getClientRoomNetworkId(roomId) {
+  const row = await postgres.queryOne(
+    'SELECT network_id FROM chat_matrix_client_rooms WHERE room_id = $1',
+    [roomId]
+  );
+  return row ? row.network_id : null;
+}
+
 async function isClientRoomOwner(roomId, tfUserId) {
   const row = await postgres.queryOne(
     'SELECT 1 FROM chat_matrix_client_rooms WHERE room_id = $1 AND owner_tf_user_id = $2',
@@ -411,6 +419,7 @@ module.exports = {
   getTfUser,
   listCompanyMembers,
   createClientRoom,
+  getClientRoomNetworkId,
   isClientRoomOwner,
   listOwnedRoomIds,
   addClientRoomMember,
