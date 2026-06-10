@@ -16,6 +16,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { requireAuth } = require('../middleware/auth');
 const mx = require('../services/matrixAdmin');
+const { signJitsiJwt } = require('../services/jitsiJwt');
 const { effectiveNetworkIds } = require('../services/kbService');
 
 const router = express.Router();
@@ -135,8 +136,13 @@ router.post('/call', requireAuth, callLimiter, async (req, res) => {
       );
     }
 
-    console.log(`[matrix] call started tf_user=${req.user.id} room=${roomId} conf=${conferenceId}`);
-    res.json({ domain, conferenceId, displayName: req.user.name || req.user.email || 'Клиент' });
+    const displayName = req.user.name || req.user.email || 'Клиент';
+    // Jitsi на meet.dataworker.ru закрыт JWT-авторизацией: токен делает инициатора
+    // «организатором» (комната стартует сразу, без «ожидания организатора»).
+    const jwt = signJitsiJwt({ room: conferenceId, displayName });
+
+    console.log(`[matrix] call started tf_user=${req.user.id} room=${roomId} conf=${conferenceId} jwt=${jwt ? 'yes' : 'no'}`);
+    res.json({ domain, conferenceId, displayName, ...(jwt ? { jwt } : {}) });
   } catch (e) {
     console.error('[matrix] call error:', e.response?.status, e.response?.data?.errcode || e.message);
     res.status(503).json({ error: 'Звонок временно недоступен' });

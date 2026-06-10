@@ -14,6 +14,7 @@ export interface CallSession {
   domain: string;        // например meet.dataworker.ru
   conferenceId: string;  // tf-<hex> — неугадываемое имя комнаты Jitsi
   displayName: string;   // имя текущего пользователя для конференции
+  jwt?: string;          // Jitsi-JWT: инициатор = организатор (без него — гость, ждёт организатора)
 }
 
 /** Запросить звонок в комнате: backend вернёт конференцию и уведомит участников. */
@@ -72,6 +73,7 @@ export async function startConference({ session, parentNode, audioOnly, onClose 
   if (!window.JitsiMeetExternalAPI) throw new Error('Jitsi API недоступен');
   const api = new window.JitsiMeetExternalAPI(session.domain, {
     roomName: session.conferenceId,
+    ...(session.jwt ? { jwt: session.jwt } : {}),
     parentNode,
     width: '100%',
     height: '100%',

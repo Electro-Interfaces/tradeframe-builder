@@ -142,6 +142,10 @@ jobs:
             MATRIX_ADMIN_TOKEN=${{ secrets.MATRIX_ADMIN_TOKEN }}
             MATRIX_SUPPORT_MXIDS=@mag:matrix.dataworker.ru,@e.orlova:matrix.dataworker.ru,@d.korolev:matrix.dataworker.ru,@v.krol:matrix.dataworker.ru,@v.ginko:matrix.dataworker.ru,@gavrilov:matrix.dataworker.ru
             MATRIX_NEWS_MODERATOR_MXID=@d.korolev:matrix.dataworker.ru
+
+            # Jitsi - JWT для звонков из чата (Фаза 6): инициатор становится организатором
+            JITSI_JWT_SECRET=${{ secrets.JITSI_JWT_SECRET }}
+            JITSI_JWT_ISSUER=tradeframe
             ENV_EOF
 
             # Каталог для PDF-приказов корректировки
