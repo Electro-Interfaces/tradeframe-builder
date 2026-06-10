@@ -259,6 +259,15 @@ async function getMediaBlobUrl(mxc: string): Promise<string | undefined> {
   }
 }
 
+// Служебные Matrix-аккаунты (боты инфраструктуры чата): создатель/админ комнат @tf-chat-svc
+// и AI-ops @aiops. Людям их не показываем и НЕ считаем участниками при выборе типа звонка
+// (иначе чат двух человек выглядит как 3 участника → 1:1-звонок никогда не активируется).
+const SERVICE_LOCALPARTS = new Set(['tf-chat-svc', 'aiops']);
+function isServiceAccount(mxid: string): boolean {
+  const localpart = String(mxid || '').replace(/^@/, '').split(':')[0];
+  return SERVICE_LOCALPARTS.has(localpart);
+}
+
 function memberToParticipant(m: any): ChatParticipant {
   return {
     id: m.userId,
@@ -358,7 +367,9 @@ export async function getChatRoom(roomId: string): Promise<ChatRoom> {
   const room = c.getRoom(roomId);
   if (!room) throw new Error('Комната не найдена');
   const base = roomToChatRoom(room);
-  base.participants = (room.getJoinedMembers() || []).map(memberToParticipant);
+  base.participants = (room.getJoinedMembers() || [])
+    .filter((m: any) => !isServiceAccount(m.userId))
+    .map(memberToParticipant);
   return base;
 }
 
