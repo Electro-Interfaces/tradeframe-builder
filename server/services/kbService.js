@@ -9,8 +9,15 @@
  * Поиск: to_tsvector('russian') (морфология) + ILIKE-фолбэк (подстрока/нет морфологии). pg_trgm —
  * отдельная фаза; здесь его нет, поэтому деградация на ILIKE, а не падение.
  */
+const crypto = require('crypto');
 const postgres = require('../db/pool');
 const { getUserScope } = require('../middleware/scopeFilter');
+
+// Запись базы знаний — строго поставщик (super_admin/system_admin), НЕ network_admin клиента (§13.3).
+const SUPER_ROLES = ['super_admin', 'system_admin'];
+const isSuperAdmin = (user) => !!user && SUPER_ROLES.includes(user.role);
+const sha256 = (s) => crypto.createHash('sha256').update(String(s || ''), 'utf8').digest('hex');
+const IMMUTABLE_KINDS = ['law', 'regulation', 'lnd']; // правка опубликованной → новая редакция
 
 // ── markdown → plain (для индекса/сниппетов) ───────────────────────────
 function markdownToPlain(md) {
@@ -285,6 +292,115 @@ async function resolveAttachmentForUser(user, attachmentId) {
   return row;
 }
 
+// ── Запись (только super_admin/system_admin) ───────────────────────────
+async function createCategory(user, d) {
+  if (!isSuperAdmin(user)) return { forbidden: true };
+  const net = await resolveNetworkUuid(d.networkId);
+  if (!net) return { error: 'Сеть не найдена' };
+  const row = await postgres.queryOne(
+    `INSERT INTO kb_categories (network_id, parent_id, title, icon, sort_order)
+       VALUES ($1,$2,$3,$4,$5) RETURNING id::text AS id`,
+    [net, d.parentId || null, d.title, d.icon || null, d.sortOrder || 0],
+  );
+  return { id: row.id };
+}
+
+async function createArticle(user, d) {
+  if (!isSuperAdmin(user)) return { forbidden: true };
+  const net = await resolveNetworkUuid(d.networkId);
+  if (!net) return { error: 'Сеть не найдена' };
+  const status = d.status === 'published' ? 'published' : 'draft';
+  const row = await postgres.queryOne(
+    `INSERT INTO kb_articles
+       (network_id, category_id, title, body_md, body_plain, status, doc_kind, doc_number,
+        effective_date, effective_until, tags, changelog, checksum, sort_order, published_at, created_by, updated_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+        CASE WHEN $6='published' THEN now() ELSE NULL END, $15, $15)
+     RETURNING id::text AS id`,
+    [net, d.categoryId || null, d.title, d.bodyMd || '', markdownToPlain(d.bodyMd), status,
+      d.docKind || 'guide', d.docNumber || null, d.effectiveDate || null, d.effectiveUntil || null,
+      Array.isArray(d.tags) ? d.tags : [], d.changelog || '', sha256(d.bodyMd), d.sortOrder || 0, user.id || null],
+  );
+  return { id: row.id };
+}
+
+async function updateArticle(user, id, d) {
+  if (!isSuperAdmin(user)) return { forbidden: true };
+  const existing = await postgres.queryOne(
+    `SELECT id::text AS id, network_id::text AS network_id, category_id::text AS category_id,
+            title, doc_kind, doc_number, version, status, sort_order
+       FROM kb_articles WHERE id = $1`,
+    [id],
+  );
+  if (!existing) return { notFound: true };
+  const bodyMd = d.bodyMd != null ? d.bodyMd : null;
+
+  // Иммутабельная редакция: правка опубликованной нормативки → новая версия.
+  if (IMMUTABLE_KINDS.includes(existing.doc_kind) && existing.status === 'published') {
+    return postgres.withTransaction(async (client) => {
+      await client.query(
+        `UPDATE kb_articles SET is_current=false, status='archived', archived_at=now(),
+           effective_until = COALESCE($2::date, CURRENT_DATE) WHERE id=$1`,
+        [id, d.effectiveDate || null],
+      );
+      const ins = await client.query(
+        `INSERT INTO kb_articles
+           (network_id, category_id, title, body_md, body_plain, status, doc_kind, doc_number,
+            version, is_current, supersedes_id, effective_date, tags, changelog, checksum, sort_order,
+            published_at, created_by, updated_by)
+         VALUES ($1,$2,$3,$4,$5,'published',$6,$7,$8,true,$9,$10,$11,$12,$13,$14, now(), $15,$15)
+         RETURNING id::text AS id`,
+        [existing.network_id, d.categoryId ?? existing.category_id, d.title ?? existing.title,
+          bodyMd ?? '', markdownToPlain(bodyMd ?? ''), existing.doc_kind, d.docNumber ?? existing.doc_number,
+          existing.version + 1, existing.id, d.effectiveDate || null, Array.isArray(d.tags) ? d.tags : [],
+          d.changelog || '', sha256(bodyMd ?? ''), d.sortOrder ?? existing.sort_order, user.id || null],
+      );
+      return { id: ins.rows[0].id, newRevision: true };
+    });
+  }
+
+  // In-place (guide/other или черновик).
+  const sets = [];
+  const params = [];
+  let i = 1;
+  const set = (col, val) => { sets.push(`${col} = $${i++}`); params.push(val); };
+  if (d.title != null) set('title', d.title);
+  if (d.categoryId !== undefined) set('category_id', d.categoryId || null);
+  if (bodyMd != null) { set('body_md', bodyMd); set('body_plain', markdownToPlain(bodyMd)); set('checksum', sha256(bodyMd)); }
+  if (d.docNumber !== undefined) set('doc_number', d.docNumber || null);
+  if (d.status != null) { set('status', d.status); if (d.status === 'published') set('published_at', new Date()); }
+  if (d.effectiveDate !== undefined) set('effective_date', d.effectiveDate || null);
+  if (Array.isArray(d.tags)) set('tags', d.tags);
+  if (d.sortOrder != null) set('sort_order', d.sortOrder);
+  set('updated_by', user.id || null);
+  params.push(id);
+  await postgres.query(`UPDATE kb_articles SET ${sets.join(', ')} WHERE id = $${i}`, params);
+  return { id };
+}
+
+async function deleteArticle(user, id) {
+  if (!isSuperAdmin(user)) return { forbidden: true };
+  // Мягкое удаление: архивируем (нормативку физически не сносим — операции над сетями часты).
+  const res = await postgres.query(
+    `UPDATE kb_articles SET status='archived', is_current=false, archived_at=now() WHERE id=$1`,
+    [id],
+  );
+  return { ok: res.rowCount > 0 };
+}
+
+async function createContact(user, d) {
+  if (!isSuperAdmin(user)) return { forbidden: true };
+  const net = await resolveNetworkUuid(d.networkId);
+  if (!net) return { error: 'Сеть не найдена' };
+  const row = await postgres.queryOne(
+    `INSERT INTO kb_contacts (network_id, category_id, full_name, position, responsibility, phone, email, note, role, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id::text AS id`,
+    [net, d.categoryId || null, d.fullName, d.position || null, d.responsibility || null,
+      d.phone || null, d.email || null, d.note || null, d.role || null, d.sortOrder || 0],
+  );
+  return { id: row.id };
+}
+
 module.exports = {
   markdownToPlain,
   resolveAllowedNetworkIds,
@@ -296,4 +412,10 @@ module.exports = {
   search,
   listContacts,
   resolveAttachmentForUser,
+  isSuperAdmin,
+  createCategory,
+  createArticle,
+  updateArticle,
+  deleteArticle,
+  createContact,
 };

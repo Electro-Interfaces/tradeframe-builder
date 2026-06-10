@@ -37,7 +37,7 @@ async function main() {
 
   const userGig = { id: 'u1', role: 'manager', roles: [{ scope: 'network', scopeValues: [g1] }] };
   const userAcme = { id: 'u2', role: 'manager', roles: [{ scope: 'network', scopeValues: [a1] }] };
-  const superUser = { id: 'u3', role: 'super_admin', roles: [{ scope: 'global', scopeValues: [] }] };
+  const superUser = { role: 'super_admin', roles: [{ scope: 'global', scopeValues: [] }] }; // без id → created_by NULL
 
   console.log('\n[Дерево]');
   const t = await kb.getTree(userGig, g1);
@@ -68,6 +68,22 @@ async function main() {
 
   console.log('\n[Super-admin]');
   check('Super видит статью Acme', (await kb.getTree(superUser, a1)).articles.map((a) => a.id).includes(artAcme));
+
+  console.log('\n[Запись (super-only)]');
+  check('Запись не-super (ГИГ): forbidden', (await kb.createArticle(userGig, { networkId: g1, title: 'Хак', bodyMd: 'x', status: 'published' })).forbidden === true);
+  const created = await kb.createArticle(superUser, { networkId: a1, title: 'Новая Acme', bodyMd: '# Заголовок\nтекст про ракету', status: 'published', docKind: 'guide' });
+  check('Запись super: статья создана', !!created.id);
+  check('Созданное видно super в дереве Acme', (await kb.getTree(superUser, a1)).articles.map((a) => a.id).includes(created.id));
+  check('Созданное в Acme НЕ видно ГИГ (изоляция)', !(await kb.getTree(userGig, g1)).articles.map((a) => a.id).includes(created.id));
+  check('Поиск ГИГ не находит созданное в Acme', !(await kb.search(userGig, 'ракета', g1)).articles.map((a) => a.id).includes(created.id));
+
+  console.log('\n[Иммутабельные редакции ЛНД]');
+  const lnd = await kb.createArticle(superUser, { networkId: g1, title: 'Инструкция ПБ', bodyMd: 'редакция один', status: 'published', docKind: 'lnd', docNumber: '12-ПБ' });
+  const upd = await kb.updateArticle(superUser, lnd.id, { bodyMd: 'редакция два обновлено' });
+  check('Правка опубликованного ЛНД → новая редакция', upd.newRevision === true && upd.id !== lnd.id);
+  const gigIds = (await kb.getTree(userGig, g1)).articles.map((a) => a.id);
+  check('Старая редакция ЛНД скрыта (archived)', !gigIds.includes(lnd.id));
+  check('Новая редакция ЛНД видна (is_current)', gigIds.includes(upd.id));
 
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   await pool.closePool();

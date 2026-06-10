@@ -92,4 +92,40 @@ router.get('/attachments/:id', requireAuth, async (req, res) => {
   }
 });
 
+// ── Запись (требует super_admin/system_admin — проверка в kbService) ───
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Слишком много запросов. Подождите.' },
+});
+
+function mapWrite(res, r, okStatus = 200) {
+  if (r.forbidden) return res.status(403).json({ error: 'Недостаточно прав' });
+  if (r.notFound) return res.status(404).json({ error: 'Не найдено' });
+  if (r.error) return res.status(400).json({ error: r.error });
+  return res.status(okStatus).json(r);
+}
+
+router.post('/categories', requireAuth, writeLimiter, async (req, res) => {
+  try { mapWrite(res, await kb.createCategory(req.user, req.body || {}), 201); }
+  catch (e) { console.error('[kb] createCategory:', e.message); res.status(503).json({ error: 'Недоступно' }); }
+});
+
+router.post('/articles', requireAuth, writeLimiter, async (req, res) => {
+  try { mapWrite(res, await kb.createArticle(req.user, req.body || {}), 201); }
+  catch (e) { console.error('[kb] createArticle:', e.message); res.status(503).json({ error: 'Недоступно' }); }
+});
+router.put('/articles/:id', requireAuth, writeLimiter, async (req, res) => {
+  try { mapWrite(res, await kb.updateArticle(req.user, req.params.id, req.body || {})); }
+  catch (e) { console.error('[kb] updateArticle:', e.message); res.status(503).json({ error: 'Недоступно' }); }
+});
+router.delete('/articles/:id', requireAuth, writeLimiter, async (req, res) => {
+  try { mapWrite(res, await kb.deleteArticle(req.user, req.params.id)); }
+  catch (e) { console.error('[kb] deleteArticle:', e.message); res.status(503).json({ error: 'Недоступно' }); }
+});
+
+router.post('/contacts', requireAuth, writeLimiter, async (req, res) => {
+  try { mapWrite(res, await kb.createContact(req.user, req.body || {}), 201); }
+  catch (e) { console.error('[kb] createContact:', e.message); res.status(503).json({ error: 'Недоступно' }); }
+});
+
 module.exports = router;
