@@ -116,9 +116,9 @@ export default function KnowledgeBaseAdmin() {
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 flex">
-            {/* Список */}
-            <div className="w-72 border-r border-border/50 overflow-y-auto shrink-0">
+        <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+            {/* Список — на мобильном сверху ограниченной высоты, на десктопе слева колонкой */}
+            <div className="w-full md:w-72 max-h-56 md:max-h-none border-b md:border-b-0 md:border-r border-border/50 overflow-y-auto shrink-0">
               {loading ? (
                 <div className="flex items-center justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
               ) : articles.length === 0 ? (
@@ -143,7 +143,7 @@ export default function KnowledgeBaseAdmin() {
             </div>
 
             {/* Редактор */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4">
+            <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-4">
               <div className="max-w-3xl mx-auto space-y-3">
                 <input value={form.title} onChange={(e) => upd({ title: e.target.value })} placeholder="Заголовок статьи"
                   className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-foreground text-base font-medium focus:outline-none focus:ring-1 focus:ring-primary" />

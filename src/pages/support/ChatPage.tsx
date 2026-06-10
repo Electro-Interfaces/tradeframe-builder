@@ -791,7 +791,7 @@ function MessagePanel({
   const subtitle = isNews ? 'Канал новостей' : isCompany ? 'Чат компании' : 'Личный чат';
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col min-h-0 min-w-0">
       {/* Chat Header — clickable to open info panel */}
       <button
         onClick={onHeaderClick}
@@ -1296,13 +1296,13 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
         {isMobile && (
           <>
             {!selectedRoomId && (
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col min-w-0">
                 {roomListPanel}
               </div>
             )}
 
             {selectedRoomId && (
-              <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 flex flex-col min-h-0 min-w-0">
                 {/* Mobile chat header with back button */}
                 <div className="px-2 py-1.5 border-b border-border/50 flex items-center shrink-0">
                   <Button
@@ -1323,7 +1323,7 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
 
         {/* Desktop: message panel */}
         {!isMobile && (
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0">
             <MessagePanel {...messagePanelProps} />
           </div>
         )}
