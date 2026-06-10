@@ -1,0 +1,53 @@
+/**
+ * Рантайм-тест InfoCenter (фаза 0): рендер списка инструкций, загрузка тела статьи из
+ * markdown (?raw), переключение статьи, фильтрация поиском. Контекст поддержки замокан —
+ * проверяем именно компонент «Инфо».
+ */
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+
+vi.mock('@/contexts/SupportContext', () => ({
+  useSupportContext: () => ({ infoTarget: null, openInfo: vi.fn() }),
+}));
+
+import InfoCenter from '../InfoCenter';
+
+function renderAt(path = '/') {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <InfoCenter />
+    </MemoryRouter>,
+  );
+}
+
+describe('InfoCenter (фаза 0)', () => {
+  it('рендерит список всех инструкций', () => {
+    renderAt('/');
+    const nav = screen.getByRole('navigation', { name: 'Инструкции' });
+    expect(within(nav).getByText('С чего начать')).toBeInTheDocument();
+    expect(within(nav).getByText('Оборудование и связь')).toBeInTheDocument();
+    expect(within(nav).getByText('Ценообразование сети')).toBeInTheDocument();
+  });
+
+  it('по роуту /network/pricing открывает привязанную статью (тело из markdown)', async () => {
+    renderAt('/network/pricing');
+    // h2 «Основной сценарий» есть только в теле network-pricing.md
+    expect(await screen.findByText('Основной сценарий')).toBeInTheDocument();
+  });
+
+  it('переключает статью по клику в списке', async () => {
+    renderAt('/');
+    const nav = screen.getByRole('navigation', { name: 'Инструкции' });
+    fireEvent.click(within(nav).getByText('Ценообразование сети'));
+    expect(await screen.findByText('Основной сценарий')).toBeInTheDocument();
+  });
+
+  it('фильтрует список поиском', () => {
+    renderAt('/');
+    fireEvent.change(screen.getByLabelText('Поиск по инструкциям'), { target: { value: 'цен' } });
+    const nav = screen.getByRole('navigation', { name: 'Инструкции' });
+    expect(within(nav).getByText('Ценообразование сети')).toBeInTheDocument();
+    expect(within(nav).queryByText('Оборудование и связь')).not.toBeInTheDocument();
+  });
+});

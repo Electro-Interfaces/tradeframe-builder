@@ -233,6 +233,18 @@ export default defineConfig(({ mode }) => {
             return 'xlsx-vendor';
           }
 
+          // Markdown-рендер раздела «Инфо» (react-markdown + граф remark/micromark/unified)
+          if (
+            id.includes('react-markdown') || id.includes('remark') || id.includes('micromark') ||
+            id.includes('mdast') || id.includes('hast') || id.includes('unist') ||
+            id.includes('unified') || id.includes('vfile') || id.includes('property-information') ||
+            id.includes('decode-named-character-reference') || id.includes('character-entities') ||
+            id.includes('-separated-tokens') || id.includes('trough') || id.includes('bail') ||
+            id.includes('zwitch') || id.includes('html-url-attributes')
+          ) {
+            return 'info-vendor';
+          }
+
           // date-fns
           if (id.includes('date-fns')) {
             return 'date-vendor';

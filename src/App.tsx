@@ -84,6 +84,9 @@ const TicketsPage = lazy(() => import("./pages/support/TicketsPage"));
 const ChatPage = lazy(() => import("./pages/support/ChatPage"));
 const InteractionPage = lazy(() => import("./pages/support/InteractionPage"));
 
+// Инфо — база знаний и инструкции (deep-link)
+const InfoPage = lazy(() => import("./pages/InfoPage"));
+
 // Используем предварительно настроенный queryClient из lib/queryClient
 
 function isChunkLoadError(message: string): boolean {
@@ -279,6 +282,10 @@ const App = () => {
                   <Route path="/support/interaction" element={<ProtectedRoute><LazyLoader><InteractionPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/support/tickets" element={<ProtectedRoute><LazyLoader><TicketsPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/support/chat" element={<ProtectedRoute><LazyLoader><ChatPage /></LazyLoader></ProtectedRoute>} />
+
+                  {/* Инфо — база знаний и инструкции (deep-link, постоянные ссылки на статьи) */}
+                  <Route path="/info" element={<ProtectedRoute><LazyLoader><InfoPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/info/:articleId" element={<ProtectedRoute><LazyLoader><InfoPage /></LazyLoader></ProtectedRoute>} />
 
                   {/* Fallback routes */}
                   <Route path="*" element={<NotFound />} />

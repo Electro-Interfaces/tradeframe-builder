@@ -31,6 +31,10 @@ interface SupportContextValue {
   toggleInteraction: (section: 'connection' | 'chat' | 'tickets' | 'help') => void;
   closeInteraction: () => void;
 
+  // Открыть «Инфо» на конкретной статье (контекстная «?», deep-link, переходы между статьями)
+  infoTarget: { articleId?: string; anchor?: string } | null;
+  openInfo: (articleId?: string, anchor?: string) => void;
+
   // Контекст страницы
   pageContext: PageContextData;
   registerPageContext: (data: PageContextData) => void;
@@ -97,6 +101,7 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [interactionSection, setInteractionSection] = useState<'connection' | 'chat' | 'tickets' | 'help' | null>(null);
+  const [infoTarget, setInfoTarget] = useState<{ articleId?: string; anchor?: string } | null>(null);
   const [pageContext, setPageContext] = useState<PageContextData>({});
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({ tickets: 0, chat: 0, total: 0 });
   const pollingRef = useRef<ReturnType<typeof setInterval>>();
@@ -111,6 +116,10 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
     []
   );
   const closeInteraction = useCallback(() => setInteractionSection(null), []);
+  const openInfo = useCallback((articleId?: string, anchor?: string) => {
+    setInfoTarget({ articleId, anchor });
+    setInteractionSection('help');
+  }, []);
   const notifyTicketsChanged = useCallback(() => setTicketsVersion(v => v + 1), []);
 
   const registerPageContext = useCallback((data: PageContextData) => {
@@ -324,6 +333,8 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
         interactionSection,
         toggleInteraction,
         closeInteraction,
+        infoTarget,
+        openInfo,
         pageContext,
         registerPageContext,
         buildAppContext,

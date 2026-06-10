@@ -322,6 +322,12 @@
     font-size: 15px;
   }
 
+  /* Режим чтения раздела «Инфо»: размер шрифта задаётся инлайн (регулятор A−/A/A+),
+     отступ для якорей под sticky-шапкой (постоянные ссылки на пункт — фаза 3). */
+  .info-reading :is(h1, h2, h3) {
+    scroll-margin-top: 72px;
+  }
+
   .instruction-content h1 {
     @apply text-2xl font-bold text-foreground mb-6 mt-8 first:mt-0;
   }

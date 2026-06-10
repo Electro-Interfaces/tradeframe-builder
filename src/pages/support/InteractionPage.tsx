@@ -1,15 +1,18 @@
 /**
- * «Взаимодействие» — единая страница общения с поддержкой: Чат / Заявки / Помощь.
+ * «Взаимодействие» — единая страница общения с поддержкой: Чат / Заявки / Инфо.
  * Верхних табов НЕТ — переключение идёт кнопками (мобайл: нижнее меню; десктоп: шапка),
- * активный раздел задаётся ?tab (chat по умолчанию). Чат и Заявки переиспользуют
- * существующие страницы во встроенном режиме (PageShell без MainLayout).
+ * активный раздел задаётся ?tab (chat по умолчанию). Чат/Заявки/Инфо переиспользуют
+ * существующие компоненты во встроенном режиме.
  */
+import { lazy, Suspense } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useSearchParams } from 'react-router-dom';
-import { HelpCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import ChatPage from './ChatPage';
 import TicketsPage from './TicketsPage';
+
+const InfoCenter = lazy(() => import('@/components/info/InfoCenter'));
 
 export default function InteractionPage() {
   const [params] = useSearchParams();
@@ -25,13 +28,11 @@ export default function InteractionPage() {
           <TicketsPage embedded />
         </TabsContent>
         <TabsContent value="help" className="flex-1 min-h-0 mt-0 outline-none">
-          <div className="flex h-full items-center justify-center text-center p-8">
-            <div>
-              <HelpCircle className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-sm font-medium text-foreground">Помощь</p>
-              <p className="text-xs text-muted-foreground mt-1">Раздел в разработке</p>
-            </div>
-          </div>
+          <Suspense
+            fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
+          >
+            <InfoCenter />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </MainLayout>
