@@ -47,6 +47,11 @@ import { executeMstoReconciliation } from "@/services/mstoReconciliation";
 import type { ReconciliationParams, ReconciliationResult } from "@/types/reconciliation";
 import type { MSTOReconciliationParams, MSTOReconciliationResult } from "@/types/mstoReconciliation";
 
+// Миграция «Сверок» в ClearLedger (ledger.dataworker.ru): вход в TradeFrame скрыт
+// (Фаза 2 — обратимо). Код сверки пока сохранён; для возврата входа — true.
+// Полное удаление файлов сверки из TF — после приёмки ClearLedger (Фаза 3).
+const RECONCILIATION_ENABLED = false;
+
 export default function ShiftReportsV2() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -256,15 +261,17 @@ export default function ShiftReportsV2() {
               <Receipt className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Чеки</span>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsReconciliationModalOpen(true)}
-              title="Сверки"
-            >
-              <FileCheck className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Сверки</span>
-            </Button>
+            {RECONCILIATION_ENABLED && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsReconciliationModalOpen(true)}
+                title="Сверки"
+              >
+                <FileCheck className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Сверки</span>
+              </Button>
+            )}
           </div>
         </div>
 
