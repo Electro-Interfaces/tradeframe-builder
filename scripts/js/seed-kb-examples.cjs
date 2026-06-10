@@ -10,8 +10,21 @@
  *          (KB_SEED_NETWORK по умолчанию '15' — ГИГ.)
  * Откат:   DATABASE_URL=<...> node scripts/js/seed-kb-examples.cjs --purge
  */
-const pool = require('../../server/db/pool');
-const { markdownToPlain } = require('../../server/services/kbService');
+const path = require('path');
+// Загрузка .env (на сервере backend лежит в app-root/, локально DATABASE_URL передаётся через env;
+// dotenv НЕ переопределяет уже заданные переменные).
+for (const p of [path.join(__dirname, '.env'), path.join(__dirname, '..', '.env'), path.join(__dirname, '..', '..', 'server', '.env')]) {
+  try { require('dotenv').config({ path: p }); } catch { /* нет dotenv/файла — ок */ }
+}
+// Резолв серверных модулей: repo-layout (scripts/js → ../../server) ИЛИ серверный app-root (.) / app-root/scripts (..).
+function reqServer(rel) {
+  for (const base of ['../../server', '.', '..']) {
+    try { return require(`${base}/${rel}`); } catch { /* пробуем следующий */ }
+  }
+  throw new Error(`Не найден серверный модуль: ${rel}`);
+}
+const pool = reqServer('db/pool');
+const { markdownToPlain } = reqServer('services/kbService');
 
 const NETWORK_REF = process.env.KB_SEED_NETWORK || '15';
 const PURGE_ONLY = process.argv.includes('--purge');
