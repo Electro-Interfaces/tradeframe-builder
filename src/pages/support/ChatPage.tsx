@@ -36,6 +36,10 @@ import {
   getUserColor, getDateLabel, formatTime, computeGrouping, bubbleRadius,
 } from '@/components/support/telegram-helpers';
 import JitsiCallModal from '@/components/support/JitsiCallModal';
+import MatrixCallOverlay from '@/components/support/MatrixCallOverlay';
+
+// type-only: стирается при компиляции, matrix-js-sdk остаётся в lazy-чанке (R5)
+type NativeCall = import('@/services/matrixCall').MatrixCall;
 
 // ========== Room List Panel ==========
 
@@ -703,6 +707,8 @@ function MessagePanel({
   onSetEditingMessage,
   onEditConfirm,
   onDeleteMessage,
+  nativeCallEligible,
+  onNativeCall,
 }: {
   room: ChatRoom | undefined;
   messages: ChatMessage[];
@@ -723,6 +729,8 @@ function MessagePanel({
   onSetEditingMessage: (msg: ChatMessage | null) => void;
   onEditConfirm: (msgId: string, content: string) => void;
   onDeleteMessage: (msg: ChatMessage) => void;
+  nativeCallEligible?: boolean;
+  onNativeCall?: (audioOnly: boolean) => void;
 }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -796,6 +804,11 @@ function MessagePanel({
   const subtitle = isNews ? 'Канал новостей' : isCompany ? 'Чат компании' : 'Личный чат';
   // Звонки — только на Matrix-бэкенде и не в read-only «Новостях» (Фаза 6, §6a ТЗ)
   const callsEnabled = import.meta.env.VITE_CHAT_BACKEND === 'matrix' && !isNews;
+  // Комната ровно из 2 человек → нативный Matrix-звонок (рингтон в Element); иначе Jitsi (Фаза 6b)
+  const startCall = (audioOnly: boolean) => {
+    if (nativeCallEligible && onNativeCall) onNativeCall(audioOnly);
+    else setActiveCall({ audioOnly });
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0">
@@ -832,10 +845,10 @@ function MessagePanel({
         </button>
         {callsEnabled && (
           <div className="flex items-center gap-1 pr-3 shrink-0">
-            <Button variant="ghost" size="icon" title="Аудиозвонок" onClick={() => setActiveCall({ audioOnly: true })}>
+            <Button variant="ghost" size="icon" title="Аудиозвонок" onClick={() => startCall(true)}>
               <Phone className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" title="Видеозвонок" onClick={() => setActiveCall({ audioOnly: false })}>
+            <Button variant="ghost" size="icon" title="Видеозвонок" onClick={() => startCall(false)}>
               <Video className="h-4 w-4" />
             </Button>
           </div>
@@ -1009,6 +1022,10 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
   const [search, setSearch] = useState('');
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  // Нативный 1:1 звонок Matrix (Фаза 6b): исходящий или входящий
+  const [nativeCall, setNativeCall] = useState<{
+    call: NativeCall; direction: 'in' | 'out'; video: boolean; peerName: string;
+  } | null>(null);
   // sheetOpen removed — mobile uses back button
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [tsupportUserId, setTsupportUserId] = useState('');
@@ -1105,6 +1122,42 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
       if (pollingMsgsRef.current) clearInterval(pollingMsgsRef.current);
     };
   }, [selectedRoomId, refreshUnreadCounts, loadRooms]);
+
+  // Входящие нативные звонки (Фаза 6b): подписка только на Matrix-бэкенде.
+  // matrixCall грузится динамически — SDK не попадает в чанк для TSupport-источника.
+  useEffect(() => {
+    if (import.meta.env.VITE_CHAT_BACKEND !== 'matrix') return;
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+    import('@/services/matrixCall').then((m) => {
+      if (cancelled) return;
+      unsub = m.onIncomingCall((call) => {
+        setNativeCall((cur) => {
+          if (cur) {
+            try { call.reject(); } catch { /* уже завершён */ }
+            return cur; // уже в звонке — второму занято
+          }
+          return { call, direction: 'in', video: call.type === 'video', peerName: m.getCallPeerName(call) };
+        });
+      });
+    });
+    return () => { cancelled = true; unsub?.(); };
+  }, []);
+
+  // Исходящий нативный звонок из кнопок шапки (комната ровно из 2 участников)
+  const handleNativeCall = async (audioOnly: boolean) => {
+    if (!selectedRoomId) return;
+    try {
+      const m = await import('@/services/matrixCall');
+      const call = await m.placeCall(selectedRoomId, !audioOnly);
+      setNativeCall({
+        call, direction: 'out', video: !audioOnly,
+        peerName: selectedRoom?.name || 'Собеседник',
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось начать звонок');
+    }
+  };
 
   // Realtime: живые события поверх polling (Matrix). Для TSupport-источника — noop.
   useEffect(() => {
@@ -1292,6 +1345,9 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
     sending,
     onHeaderClick: handleToggleInfo,
     participantCount: roomDetail?.participants?.length,
+    // Фаза 6b: ровно 2 участника → нативный Matrix-звонок вместо Jitsi
+    nativeCallEligible: import.meta.env.VITE_CHAT_BACKEND === 'matrix' && roomDetail?.participants?.length === 2,
+    onNativeCall: handleNativeCall,
     replyingTo,
     onSetReplyingTo: setReplyingTo,
     editingMessage,
@@ -1408,6 +1464,15 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
         onOpenChange={setNewChatOpen}
         onCreate={handleCreateRoom}
       />
+      {nativeCall && (
+        <MatrixCallOverlay
+          call={nativeCall.call}
+          direction={nativeCall.direction}
+          video={nativeCall.video}
+          peerName={nativeCall.peerName}
+          onClose={() => setNativeCall(null)}
+        />
+      )}
       <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}

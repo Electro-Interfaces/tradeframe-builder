@@ -478,3 +478,11 @@ export async function uploadChatFiles(
   }
   return out;
 }
+
+/**
+ * Доступ к MatrixClient для нативных 1:1 звонков (Фаза 6b, matrixCall.ts).
+ * Инициализирует чат, если он ещё не поднят (тот же ensureClient, что у остальных функций).
+ */
+export async function getMatrixClientForCalls(): Promise<MatrixClient> {
+  return ensureClient();
+}
