@@ -412,7 +412,7 @@ function MessageBubble({
         {/* Author name (only for others, first in group) */}
         {!isOwn && isFirstInGroup && (
           <p className={`text-xs font-semibold mb-0.5 ${colorClass}`}>
-            {message.user_name}
+            {displaySenderName(message)}
           </p>
         )}
 
@@ -497,6 +497,14 @@ function ParticipantRoleIcon({ role }: { role: string }) {
   if (role === 'admin') return <Crown className="h-3 w-3 text-amber-600 dark:text-amber-400" />;
   if (role === 'observer') return <Eye className="h-3 w-3 text-muted-foreground" />;
   return <Shield className="h-3 w-3 text-muted-foreground" />;
+}
+
+// Отображаемое имя автора: служебные боты (@tf-chat-svc/@aiops) — отправители системных
+// уведомлений (например «начал звонок»). Показываем их как «Системное», а не технический mxid.
+const SERVICE_SENDER_LOCALPARTS = new Set(['tf-chat-svc', 'aiops']);
+function displaySenderName(msg: ChatMessage): string {
+  const localpart = String(msg.user_id || '').replace(/^@/, '').split(':')[0];
+  return SERVICE_SENDER_LOCALPARTS.has(localpart) ? 'Системное' : (msg.user_name || msg.user_id || '');
 }
 
 function ChatInfoPanel({
