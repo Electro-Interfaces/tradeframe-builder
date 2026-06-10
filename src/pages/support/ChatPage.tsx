@@ -15,10 +15,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Search, Send, Loader2, RefreshCw, MessageCircle, Users, Plus,
   User, Building2, X, Calendar, Shield, Eye, Crown, Megaphone, Lock,
   Paperclip, FileText, Download, Reply, Pencil, Trash2, Check,
+  Phone, Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupportContext } from '@/contexts/SupportContext';
@@ -33,6 +35,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import {
   getUserColor, getDateLabel, formatTime, computeGrouping, bubbleRadius,
 } from '@/components/support/telegram-helpers';
+import JitsiCallModal from '@/components/support/JitsiCallModal';
 
 // ========== Room List Panel ==========
 
@@ -723,6 +726,8 @@ function MessagePanel({
 }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Активный звонок (Фаза 6): модалка Jitsi-конференции поверх чата
+  const [activeCall, setActiveCall] = useState<{ audioOnly: boolean } | null>(null);
   // Scroll to bottom on new messages (only within ScrollArea, not the whole page)
   useEffect(() => {
     const viewport = messagesEndRef.current?.closest('[data-radix-scroll-area-viewport]');
@@ -789,39 +794,61 @@ function MessagePanel({
   const isNews = room.kind === 'news';
   const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
   const subtitle = isNews ? 'Канал новостей' : isCompany ? 'Чат компании' : 'Личный чат';
+  // Звонки — только на Matrix-бэкенде и не в read-only «Новостях» (Фаза 6, §6a ТЗ)
+  const callsEnabled = import.meta.env.VITE_CHAT_BACKEND === 'matrix' && !isNews;
 
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0">
-      {/* Chat Header — clickable to open info panel */}
-      <button
-        onClick={onHeaderClick}
-        className="p-3 border-b border-border/50 flex items-center gap-2.5 shrink-0 hover:bg-card/30 transition-colors text-left w-full"
-      >
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isNews ? 'bg-amber-100 dark:bg-amber-500/20' : isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
-          {isNews ? (
-            <Megaphone className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          ) : isCompany ? (
-            <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          ) : (
-            <User className="h-4 w-4 text-primary dark:text-primary/70" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground truncate">
-            {room.name || subtitle}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {subtitle}
-            {participantCount != null && participantCount > 0 && (
-              <span className="ml-1">· {participantCount} участн.</span>
+      {/* Chat Header — clickable to open info panel; кнопки звонка справа, вне <button> */}
+      <div className="border-b border-border/50 flex items-center shrink-0">
+        <button
+          onClick={onHeaderClick}
+          className="p-3 flex items-center gap-2.5 hover:bg-card/30 transition-colors text-left flex-1 min-w-0"
+        >
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isNews ? 'bg-amber-100 dark:bg-amber-500/20' : isCompany ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-primary/10 dark:bg-primary/20'}`}>
+            {isNews ? (
+              <Megaphone className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            ) : isCompany ? (
+              <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <User className="h-4 w-4 text-primary dark:text-primary/70" />
             )}
-          </p>
-        </div>
-        <span className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary dark:text-primary/80 text-xs font-semibold border border-primary/30">
-          <Users className="h-4 w-4" />
-          Участники
-        </span>
-      </button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-foreground truncate">
+              {room.name || subtitle}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {subtitle}
+              {participantCount != null && participantCount > 0 && (
+                <span className="ml-1">· {participantCount} участн.</span>
+              )}
+            </p>
+          </div>
+          <span className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary dark:text-primary/80 text-xs font-semibold border border-primary/30">
+            <Users className="h-4 w-4" />
+            Участники
+          </span>
+        </button>
+        {callsEnabled && (
+          <div className="flex items-center gap-1 pr-3 shrink-0">
+            <Button variant="ghost" size="icon" title="Аудиозвонок" onClick={() => setActiveCall({ audioOnly: true })}>
+              <Phone className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" title="Видеозвонок" onClick={() => setActiveCall({ audioOnly: false })}>
+              <Video className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+      {activeCall && (
+        <JitsiCallModal
+          roomId={room.id}
+          roomName={room.name}
+          audioOnly={activeCall.audioOnly}
+          onClose={() => setActiveCall(null)}
+        />
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-3 py-2">
@@ -981,6 +1008,7 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState('');
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   // sheetOpen removed — mobile uses back button
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [tsupportUserId, setTsupportUserId] = useState('');
@@ -1222,8 +1250,15 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
     try { await removeRoomMember(selectedRoomId, mxid); await reloadRoomDetail(); }
     catch { toast.error('Не удалось удалить участника'); }
   };
-  const handleDeleteRoom = async () => {
-    if (!selectedRoomId || !confirm('Удалить этот чат?')) return;
+  // Открыть осознанное подтверждение (кнопка «Удалить чат» в инфо-панели).
+  const handleDeleteRoom = () => {
+    if (!selectedRoomId) return;
+    setDeleteConfirmOpen(true);
+  };
+  // Фактическое удаление — только после явного подтверждения в модалке.
+  const confirmDeleteRoom = async () => {
+    if (!selectedRoomId) return;
+    setDeleteConfirmOpen(false);
     try {
       await deleteRoom(selectedRoomId);
       setInfoPanelOpen(false);
@@ -1372,6 +1407,16 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
         open={newChatOpen}
         onOpenChange={setNewChatOpen}
         onCreate={handleCreateRoom}
+      />
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Удалить чат?"
+        description={`Чат${selectedRoom?.name ? ` «${selectedRoom.name}»` : ''} и вся переписка будут удалены безвозвратно для всех участников. Восстановить нельзя.`}
+        confirmText="Да, удалить чат"
+        cancelText="Отмена"
+        variant="destructive"
+        onConfirm={confirmDeleteRoom}
       />
     </PageShell>
   );
