@@ -120,6 +120,22 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
     setInfoTarget({ articleId, anchor });
     setInteractionSection('help');
   }, []);
+
+  // Глобальный Cmd/Ctrl+K — открыть/закрыть «Инфо» (поиск по справке и базе знаний) с любого
+  // экрана. e.code='KeyK' не зависит от раскладки. В полях ввода не перехватываем.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyK' || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) return;
+      e.preventDefault();
+      setInfoTarget(null);
+      setInteractionSection((prev) => (prev === 'help' ? null : 'help'));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const notifyTicketsChanged = useCallback(() => setTicketsVersion(v => v + 1), []);
 
   const registerPageContext = useCallback((data: PageContextData) => {
