@@ -216,7 +216,7 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
         ))
       : groups.map(([cat, items]) => (
           <div key={cat} className="space-y-0.5">
-            <div className="px-2 pt-1 text-[11px] font-medium text-muted-foreground/80">{cat}</div>
+            <div className="px-2 pt-3 pb-1 text-xs font-semibold text-foreground/70 tracking-wide">{cat}</div>
             {items.map((a) => (
               <button key={a.id} type="button" onClick={() => setSelected({ kind: 'b', id: a.id })}
                 className={itemBtn(selected?.kind === 'b' && selected.id === a.id)}>
@@ -251,7 +251,7 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
               <>
                 {aGroups.map(([cat, items]) => (
                   <div key={cat} className="space-y-0.5">
-                    <div className="px-2 pt-1 text-[11px] font-medium text-muted-foreground/80">{cat}</div>
+                    <div className="px-2 pt-3 pb-1 text-xs font-semibold text-foreground/70 tracking-wide">{cat}</div>
                     {items.map((a) => (
                       <button key={a.id} type="button" onClick={() => setSelected({ kind: 'a', id: a.id })}
                         className={itemBtn(selected?.kind === 'a' && selected.id === a.id)}>{a.title}</button>
