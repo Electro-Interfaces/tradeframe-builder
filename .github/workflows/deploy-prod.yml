@@ -43,6 +43,7 @@ jobs:
           VITE_AUDIT_API_MODE: backend
           VITE_LEGAL_API_MODE: backend
           VITE_NOMENCLATURE_API_MODE: backend
+          VITE_CHAT_BACKEND: matrix
 
       - name: Create deployment archive
         run: |
@@ -108,6 +109,17 @@ jobs:
             TSUPPORT_API_URL=${{ secrets.TSUPPORT_API_URL }}
             TSUPPORT_SDK_API_KEY=${{ secrets.TSUPPORT_SDK_API_KEY }}
             TSUPPORT_SDK_SECRET=${{ secrets.TSUPPORT_SDK_SECRET }}
+
+            # Шлюз «Заявки» -> Plane SUP. БЕЗ SUPPORT_INTAKE_SECRET весь раздел отвечает 503!
+            SUPPORT_INTAKE_URL=https://events.dataworker.ru/api/intake/support
+            SUPPORT_INTAKE_SECRET=${{ secrets.SUPPORT_INTAKE_SECRET }}
+
+            # Matrix/Synapse — раздел «Чат» (родной UI). MATRIX_ADMIN_TOKEN — секрет (@tf-chat-svc).
+            MATRIX_HOMESERVER=https://matrix.dataworker.ru
+            MATRIX_SERVER_NAME=matrix.dataworker.ru
+            MATRIX_ADMIN_TOKEN=${{ secrets.MATRIX_ADMIN_TOKEN }}
+            MATRIX_SUPPORT_MXIDS=@mag:matrix.dataworker.ru,@e.orlova:matrix.dataworker.ru,@d.korolev:matrix.dataworker.ru,@v.krol:matrix.dataworker.ru,@v.ginko:matrix.dataworker.ru,@gavrilov:matrix.dataworker.ru
+            MATRIX_NEWS_MODERATOR_MXID=@d.korolev:matrix.dataworker.ru
 
             # PostgreSQL — primary data source
             DATABASE_URL=${{ secrets.DATABASE_URL }}
