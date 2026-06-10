@@ -29,7 +29,6 @@ import {
 } from '@/services/chatBackend';
 import type { ChatRoom, ChatMessage, ChatParticipant } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_CHAT } from '@/types/support';
-import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   getUserColor, getDateLabel, formatTime, computeGrouping, bubbleRadius,
@@ -736,7 +735,12 @@ function MessagePanel({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      // В режиме редактирования Enter сохраняет правку (как кнопка), а не шлёт новое сообщение
+      if (editingMessage) {
+        onEditConfirm(editingMessage.id, messageText.trim());
+      } else {
+        onSend();
+      }
     }
   };
 
@@ -965,7 +969,6 @@ function MessagePanel({
 // ========== Main ChatPage ==========
 
 export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
-  const { user } = useNewAuth();
   const { refreshUnreadCounts, clearChatBadge } = useSupportContext();
   const isMobile = useIsMobile();
 

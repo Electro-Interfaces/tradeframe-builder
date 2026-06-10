@@ -208,11 +208,21 @@ export default defineConfig(({ mode }) => {
     rollupOptions: {
       output: {
         manualChunks: (id) => {
+          // Хелпер __vitePreload — в отдельный микро-чанк: иначе rollup кладёт его внутрь
+          // вендорного чанка (matrix-vendor), и entry начинает статически тянуть весь этот чанк
+          if (id.includes('vite/preload-helper')) return 'preload-helper';
+
           if (!id.includes('node_modules')) return;
 
           // React core
           if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
             return 'react-vendor';
+          }
+
+          // Matrix SDK (чат) — грузится только динамическим import() из chatBackend;
+          // отдельный чанк страхует от попадания в entry при случайном статическом импорте
+          if (id.includes('matrix-js-sdk') || id.includes('matrix-widget-api') || id.includes('matrix-events-sdk')) {
+            return 'matrix-vendor';
           }
 
           // Recharts — самая тяжёлая библиотека графиков (~400KB)

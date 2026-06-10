@@ -9,7 +9,7 @@
  * realtime — через polling ChatPage поверх живого /sync (R3); Room.timeline-подписка — фаза 4.
  */
 
-import { createClient, ClientEvent, RoomEvent, type MatrixClient, type MatrixEvent } from 'matrix-js-sdk';
+import { createClient, ClientEvent, HttpApiEvent, RoomEvent, type MatrixClient, type MatrixEvent } from 'matrix-js-sdk';
 import { apiRequest } from './apiClient';
 import type { ChatRoom, ChatMessage, ChatParticipant } from '@/types/support';
 
@@ -52,6 +52,11 @@ async function doInit() {
   accessToken = s.accessToken;
   ownedRoomIds = new Set(s.ownedRoomIds || []);
   client = createClient({ baseUrl: s.homeserver, accessToken: s.accessToken, userId: s.userId });
+  // Невалидный токен после init (рестарт Synapse, ротация): SDK кидает SessionLoggedOut на
+  // M_UNKNOWN_TOKEN → сбрасываем клиента; следующий вызов переинициализируется через /session.
+  client.on(HttpApiEvent.SessionLoggedOut, () => {
+    teardownChat();
+  });
   await client.startClient({ initialSyncLimit: 50 });
   await new Promise<void>((resolve, reject) => {
     const to = setTimeout(() => reject(new Error('Matrix sync timeout')), 30000);
@@ -72,7 +77,13 @@ async function ensureClient(): Promise<MatrixClient> {
   if (client && ready) return client;
   if (!initPromise) {
     initPromise = doInit().catch((e) => {
-      // сбрасываем, чтобы следующий вызов попробовал заново (R1: refresh токена)
+      // сбрасываем, чтобы следующий вызов попробовал заново (R1: refresh токена).
+      // stopClient обязателен: иначе осиротевший клиент продолжит крутить /sync-ретраи.
+      try {
+        client?.stopClient();
+      } catch {
+        /* уже остановлен */
+      }
       initPromise = null;
       client = null;
       ready = false;
@@ -81,6 +92,36 @@ async function ensureClient(): Promise<MatrixClient> {
   }
   await initPromise;
   return client!;
+}
+
+/**
+ * Полный сброс состояния чата (вызывается при logout): останавливаем /sync, забываем токен,
+ * комнаты и кэш медиа (revoke objectURL). Следующий пользователь на этом же устройстве
+ * получит свежий /session со СВОИМ аккаунтом, а не клиента предыдущего.
+ */
+export function teardownChat(): void {
+  try {
+    client?.stopClient();
+  } catch {
+    /* уже остановлен */
+  }
+  client = null;
+  ready = false;
+  initPromise = null;
+  myUserId = '';
+  supportRoomId = '';
+  newsRoomId = '';
+  generalRoomId = '';
+  accessToken = '';
+  ownedRoomIds = new Set();
+  for (const url of mediaCache.values()) {
+    try {
+      URL.revokeObjectURL(url);
+    } catch {
+      /* ignore */
+    }
+  }
+  mediaCache.clear();
 }
 
 // ── helpers маппинга ───────────────────────────────────

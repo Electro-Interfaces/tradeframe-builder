@@ -8,6 +8,7 @@ import { authService, type AppUser, type UserRole } from '../services/auth/authS
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
 import { auditLogService } from '../services/auditLogService';
 import { queryClient } from '../lib/query/queryClient';
+import { teardownChat } from '../services/chatBackend';
 import {
   saveRememberedCredentials,
   getRememberedCredentials,
@@ -196,6 +197,9 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     authStorage.clearAll();
     await clearRememberedCredentials();
     queryClient.clear();
+    // Чат: остановить Matrix-клиента и забыть токен/кэш — иначе на общем терминале
+    // следующий пользователь увидит переписку предыдущего.
+    teardownChat();
   }, [user]);
 
   // ─── Update user / Change password ────────────────────
