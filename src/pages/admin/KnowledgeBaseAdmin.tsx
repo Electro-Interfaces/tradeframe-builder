@@ -24,7 +24,7 @@ const DOC_KINDS: { value: string; label: string }[] = [
 ];
 
 const EMPTY: KbArticleInput = {
-  title: '', bodyMd: '', status: 'draft', docKind: 'guide', docNumber: '', effectiveDate: '', tags: [],
+  title: '', bodyMd: '', status: 'draft', docKind: 'guide', docNumber: '', effectiveDate: '', tags: [], universal: false,
 };
 
 export default function KnowledgeBaseAdmin() {
@@ -41,7 +41,6 @@ export default function KnowledgeBaseAdmin() {
   const [preview, setPreview] = useState(false);
 
   const reload = useCallback(() => {
-    if (!networkId) { setArticles([]); return; }
     setLoading(true);
     adminListKbArticles(networkId)
       .then((r) => setArticles(r.articles || []))
@@ -60,7 +59,7 @@ export default function KnowledgeBaseAdmin() {
         setForm({
           title: a.title, bodyMd: a.body_md, status: a.status, docKind: a.doc_kind,
           docNumber: a.doc_number || '', effectiveDate: a.effective_date || '',
-          categoryId: a.category_id, tags: [],
+          categoryId: a.category_id, tags: [], universal: a.network_id === null,
         });
         setTagsText('');
       })
@@ -69,8 +68,9 @@ export default function KnowledgeBaseAdmin() {
 
   const save = async () => {
     if (!form.title.trim()) { toast.error('Укажите заголовок'); return; }
+    if (!form.universal && !networkId) { toast.error('Выберите сеть в шапке или отметьте «универсальная»'); return; }
     const tags = tagsText.split(',').map((t) => t.trim()).filter(Boolean);
-    const payload: KbArticleInput = { ...form, tags, networkId: networkId || undefined, effectiveDate: form.effectiveDate || null, docNumber: form.docNumber || null };
+    const payload: KbArticleInput = { ...form, tags, networkId: form.universal ? undefined : (networkId || undefined), effectiveDate: form.effectiveDate || null, docNumber: form.docNumber || null };
     setSaving(true);
     try {
       if (editingId) {
@@ -116,12 +116,7 @@ export default function KnowledgeBaseAdmin() {
           </button>
         </div>
 
-        {!networkId ? (
-          <div className="flex-1 flex items-center justify-center text-center p-8 text-muted-foreground">
-            Выберите сеть (компанию) в шапке, чтобы вести её базу знаний.
-          </div>
-        ) : (
-          <div className="flex-1 min-h-0 flex">
+        <div className="flex-1 min-h-0 flex">
             {/* Список */}
             <div className="w-72 border-r border-border/50 overflow-y-auto shrink-0">
               {loading ? (
@@ -138,7 +133,7 @@ export default function KnowledgeBaseAdmin() {
                         }`}>
                         <span className="block truncate">{a.title}</span>
                         <span className={`text-xs ${editingId === a.id ? 'text-white/80' : 'text-muted-foreground'}`}>
-                          {DOC_KINDS.find((k) => k.value === a.doc_kind)?.label} · {a.status}{a.is_current ? '' : ' · архив'} · v{a.version}
+                          {DOC_KINDS.find((k) => k.value === a.doc_kind)?.label} · {a.status}{a.is_current ? '' : ' · архив'} · v{a.version}{a.is_universal ? ' · 🌐' : ''}
                         </span>
                       </button>
                     </li>
@@ -180,6 +175,11 @@ export default function KnowledgeBaseAdmin() {
                 <input value={tagsText} onChange={(e) => setTagsText(e.target.value)} placeholder="Теги через запятую"
                   className="w-full bg-secondary border border-border rounded-md px-3 py-1.5 text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
 
+                <label className="flex items-center gap-2 text-sm text-foreground/80 select-none cursor-pointer">
+                  <input type="checkbox" checked={!!form.universal} onChange={(e) => upd({ universal: e.target.checked })} className="accent-primary h-4 w-4" />
+                  🌐 Универсальная (общая нормативка для всех компаний)
+                </label>
+
                 <div className="flex items-center gap-2 text-sm">
                   <button type="button" onClick={() => setPreview(false)}
                     className={`inline-flex items-center gap-1 px-2 py-1 rounded ${!preview ? 'bg-secondary text-foreground' : 'text-muted-foreground'}`}>
@@ -220,7 +220,6 @@ export default function KnowledgeBaseAdmin() {
               </div>
             </div>
           </div>
-        )}
       </div>
     </MainLayout>
   );

@@ -42,6 +42,9 @@ const CATEGORIES = [
   { key: 'lnd', title: 'Локальные нормативные документы (ЛНД)', icon: 'FileText', sort: 50 },
   { key: 'labor', title: 'Охрана труда', icon: 'HardHat', sort: 60 },
 ];
+// Универсальные разделы — видны всем компаниям (network_id IS NULL): общая нормативка.
+// Остальные (lnd, labor) — локальные документы конкретной компании.
+const UNIVERSAL_CATS = new Set(['law', 'fuel', 'accounting', 'safety']);
 
 // ── Статьи ─────────────────────────────────────────────────────────────
 const ARTICLES = [
@@ -276,9 +279,10 @@ async function resolveNetwork(ref) {
 }
 
 async function purge(netId) {
-  await pool.query(`DELETE FROM kb_articles  WHERE network_id = $1 AND $2 = ANY(tags)`, [netId, TAG]);
+  // Примеры: и универсальные (network_id IS NULL), и локальные этой компании.
+  await pool.query(`DELETE FROM kb_articles  WHERE $2 = ANY(tags) AND (network_id IS NULL OR network_id = $1)`, [netId, TAG]);
   await pool.query(`DELETE FROM kb_contacts  WHERE network_id = $1 AND coalesce(note,'') LIKE $2`, [netId, `%${CONTACT_MARK}%`]);
-  await pool.query(`DELETE FROM kb_categories WHERE network_id = $1 AND title = ANY($2)`, [netId, CATEGORIES.map((c) => c.title)]);
+  await pool.query(`DELETE FROM kb_categories WHERE title = ANY($2) AND (network_id IS NULL OR network_id = $1)`, [netId, CATEGORIES.map((c) => c.title)]);
 }
 
 async function main() {
@@ -296,26 +300,30 @@ async function main() {
     return;
   }
 
-  // Категории
+  // Категории: универсальные → network_id NULL; локальные → ГИГ.
   const catId = {};
   for (const c of CATEGORIES) {
+    const cNet = UNIVERSAL_CATS.has(c.key) ? null : net.id;
     const r = await pool.queryOne(
       `INSERT INTO kb_categories (network_id, title, icon, sort_order) VALUES ($1,$2,$3,$4) RETURNING id::text AS id`,
-      [net.id, c.title, c.icon, c.sort],
+      [cNet, c.title, c.icon, c.sort],
     );
     catId[c.key] = r.id;
   }
 
-  // Статьи
+  // Статьи: универсальные (по разделу) → network_id NULL; локальные → ГИГ.
   let n = 0;
+  let uniN = 0;
   for (const a of ARTICLES) {
     const bodyMd = BANNER + a.body;
+    const aNet = UNIVERSAL_CATS.has(a.cat) ? null : net.id;
+    if (aNet === null) uniN += 1;
     await pool.query(
       `INSERT INTO kb_articles
          (network_id, category_id, title, body_md, body_plain, status, is_current, doc_kind, doc_number,
           effective_date, tags, sort_order, published_at)
        VALUES ($1,$2,$3,$4,$5,'published',true,$6,$7,$8,$9,$10, now())`,
-      [net.id, catId[a.cat] || null, a.title, bodyMd, markdownToPlain(bodyMd), a.kind, a.number,
+      [aNet, catId[a.cat] || null, a.title, bodyMd, markdownToPlain(bodyMd), a.kind, a.number,
         a.effective, [...(a.tags || []), TAG], n],
     );
     n += 1;
@@ -333,7 +341,7 @@ async function main() {
     m += 1;
   }
 
-  console.log(`Заведено: категорий ${CATEGORIES.length}, статей ${ARTICLES.length}, контактов ${CONTACTS.length}.`);
+  console.log(`Заведено: категорий ${CATEGORIES.length}, статей ${ARTICLES.length} (универсальных ${uniN}, локальных ${ARTICLES.length - uniN}), контактов ${CONTACTS.length}.`);
   console.log('Все материалы помечены как демонстрационные (тег «пример»). Откат: node scripts/js/seed-kb-examples.cjs --purge');
   await pool.closePool();
 }

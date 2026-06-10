@@ -133,37 +133,46 @@ async function effectiveNetworkIds(user, requestedNetworkId) {
   return { networkIds: inter.length ? inter : [reqUuid], denied: false };
 }
 
-// SQL-фрагмент фильтра по сети + параметр. idx — номер $-параметра.
-function scopeWhere(networkIds, idx) {
-  if (networkIds === null) return { sql: 'TRUE', param: null };
-  return { sql: `a.network_id::text = ANY($${idx})`, param: networkIds };
-}
+const ART_FIELDS = `a.id::text AS id, a.category_id::text AS category_id, a.title, a.doc_kind, a.doc_number,
+            a.effective_date, a.version, a.sort_order, a.updated_at`;
+const ART_PUBLISHED = `a.status='published' AND a.is_current=true
+        AND (a.effective_date IS NULL OR a.effective_date <= CURRENT_DATE)
+        AND (a.effective_until IS NULL OR a.effective_until >= CURRENT_DATE)`;
 
-// ── Дерево: категории + опубликованные действующие статьи ──────────────
+// ── Дерево: универсальная база (для всех) + локальные документы компании ─
 async function getTree(user, requestedNetworkId) {
   const { networkIds, denied } = await effectiveNetworkIds(user, requestedNetworkId);
-  if (denied) return { denied: true, categories: [], articles: [] };
 
-  const netFilterCat = networkIds === null ? 'TRUE' : 'c.network_id::text = ANY($1)';
-  const netFilterArt = networkIds === null ? 'TRUE' : 'a.network_id::text = ANY($1)';
-  const params = networkIds === null ? [] : [networkIds];
-
-  const { rows: categories } = await postgres.query(
+  // Универсальная база знаний (network_id IS NULL) — видна всем авторизованным.
+  const { rows: uCats } = await postgres.query(
     `SELECT id::text AS id, parent_id::text AS parent_id, title, icon, sort_order
-       FROM kb_categories c WHERE ${netFilterCat} ORDER BY sort_order, title`,
-    params,
+       FROM kb_categories WHERE network_id IS NULL ORDER BY sort_order, title`,
   );
-  const { rows: articles } = await postgres.query(
-    `SELECT a.id::text AS id, a.category_id::text AS category_id, a.title, a.doc_kind, a.doc_number,
-            a.effective_date, a.version, a.sort_order, a.updated_at
-       FROM kb_articles a
-      WHERE ${netFilterArt} AND a.status = 'published' AND a.is_current = true
-        AND (a.effective_date IS NULL OR a.effective_date <= CURRENT_DATE)
-        AND (a.effective_until IS NULL OR a.effective_until >= CURRENT_DATE)
+  const { rows: uArts } = await postgres.query(
+    `SELECT ${ART_FIELDS} FROM kb_articles a WHERE a.network_id IS NULL AND ${ART_PUBLISHED}
       ORDER BY a.sort_order, a.title`,
-    params,
   );
-  return { denied: false, categories, articles };
+
+  // Локальные документы компании (network_id привязан) — только по доступу.
+  let cCats = [];
+  let cArts = [];
+  if (!denied) {
+    const whereC = networkIds === null ? 'c.network_id IS NOT NULL' : 'c.network_id::text = ANY($1)';
+    const whereA = networkIds === null ? 'a.network_id IS NOT NULL' : 'a.network_id::text = ANY($1)';
+    const params = networkIds === null ? [] : [networkIds];
+    cCats = (await postgres.query(
+      `SELECT id::text AS id, parent_id::text AS parent_id, title, icon, sort_order
+         FROM kb_categories c WHERE ${whereC} ORDER BY sort_order, title`, params)).rows;
+    cArts = (await postgres.query(
+      `SELECT ${ART_FIELDS} FROM kb_articles a WHERE ${whereA} AND ${ART_PUBLISHED}
+        ORDER BY a.sort_order, a.title`, params)).rows;
+  }
+
+  return {
+    denied,
+    universal: { categories: uCats, articles: uArts },
+    company: { categories: cCats, articles: cArts },
+  };
 }
 
 // ── Одна статья (с проверкой доступа) ──────────────────────────────────
@@ -178,9 +187,12 @@ async function getArticle(user, id) {
   if (!row) return { notFound: true };
   // Черновики/архив — только поставщику (super/system); клиенту их не видно.
   if (row.status !== 'published' && !isSuperAdmin(user)) return { notFound: true };
-  const allowed = await resolveAllowedNetworkIds(user);
-  if (allowed !== null && !allowed.includes(row.network_id)) {
-    return { notFound: true }; // 404, чтобы не подтверждать существование
+  // Универсальные статьи (network_id IS NULL) — доступны всем; компанийные — по доступу.
+  if (row.network_id !== null) {
+    const allowed = await resolveAllowedNetworkIds(user);
+    if (allowed !== null && !allowed.includes(row.network_id)) {
+      return { notFound: true }; // 404, чтобы не подтверждать существование
+    }
   }
   const { rows: attachments } = await postgres.query(
     `SELECT id::text AS id, filename, mime, size_bytes FROM kb_attachments WHERE article_id = $1 ORDER BY filename`,
@@ -195,69 +207,61 @@ async function search(user, q, requestedNetworkId) {
   if (query.length < 2) return { articles: [], contacts: [] };
 
   const { networkIds, denied } = await effectiveNetworkIds(user, requestedNetworkId);
-  if (denied) return { articles: [], contacts: [] };
-  // Безопасный инвариант: ограниченный пользователь без доступных сетей → пустая выдача.
-  if (networkIds !== null && networkIds.length === 0) return { articles: [], contacts: [] };
+  const companyNets = denied ? [] : networkIds; // [] = только универсальное; null = super (всё)
 
-  const net = networkIds; // null = все (super)
-  const useScope = net !== null;
-
-  // ── статьи ──
-  const artParams = [query];
-  let artNet = 'TRUE';
-  if (useScope) { artParams.push(net); artNet = `a.network_id::text = ANY($2)`; }
+  // ── статьи: универсальные (видны всем) + локальные доступных компаний ──
+  const artScope = companyNets === null ? 'TRUE'
+    : companyNets.length === 0 ? 'a.network_id IS NULL'
+    : '(a.network_id IS NULL OR a.network_id::text = ANY($2))';
+  const artParams = companyNets && companyNets.length ? [query, companyNets] : [query];
   let articles = [];
   try {
     const { rows } = await postgres.query(
       `SELECT a.id::text AS id, a.title, a.doc_kind, a.doc_number, a.effective_date,
+              (a.network_id IS NULL) AS is_universal,
               ts_rank(a.search_tsv, websearch_to_tsquery('russian', $1)) AS rank,
               ts_headline('russian', a.body_plain, websearch_to_tsquery('russian', $1),
                 'StartSel=<<,StopSel=>>,MaxFragments=1,MaxWords=20,MinWords=5') AS snippet
          FROM kb_articles a
-        WHERE ${artNet} AND a.status='published' AND a.is_current=true
+        WHERE ${artScope} AND a.status='published' AND a.is_current=true
           AND a.search_tsv @@ websearch_to_tsquery('russian', $1)
-        ORDER BY rank DESC LIMIT 10`,
+        ORDER BY rank DESC LIMIT 12`,
       artParams,
     );
     articles = rows;
-  } catch {
-    articles = [];
-  }
+  } catch { articles = []; }
   // ILIKE-фолбэк, если морфология ничего не дала (или недоступна)
   if (articles.length === 0) {
-    const likeParams = [`%${query}%`];
-    let likeNet = 'TRUE';
-    if (useScope) { likeParams.push(net); likeNet = `a.network_id::text = ANY($2)`; }
+    const likeParams = companyNets && companyNets.length ? [`%${query}%`, companyNets] : [`%${query}%`];
     const { rows } = await postgres.query(
       `SELECT a.id::text AS id, a.title, a.doc_kind, a.doc_number, a.effective_date,
-              0::float AS rank, left(a.body_plain, 160) AS snippet
+              (a.network_id IS NULL) AS is_universal, 0::float AS rank, left(a.body_plain, 160) AS snippet
          FROM kb_articles a
-        WHERE ${likeNet} AND a.status='published' AND a.is_current=true
+        WHERE ${artScope} AND a.status='published' AND a.is_current=true
           AND (a.title ILIKE $1 OR a.body_plain ILIKE $1)
-        ORDER BY a.title LIMIT 10`,
+        ORDER BY a.title LIMIT 12`,
       likeParams,
     );
     articles = rows;
   }
 
-  // ── контакты (tsvector по описанию + ILIKE по ФИО/телефону) ──
-  const cParams = [query, `%${query}%`];
-  let cNet = 'TRUE';
-  if (useScope) { cParams.push(net); cNet = `c.network_id::text = ANY($3)`; }
+  // ── контакты: ТОЛЬКО компании (универсальных контактов нет) ──
   let contacts = [];
-  try {
-    const { rows } = await postgres.query(
-      `SELECT c.id::text AS id, c.full_name, c.position, c.responsibility, c.phone, c.email, c.role
-         FROM kb_contacts c
-        WHERE ${cNet} AND (
-                c.search_tsv @@ websearch_to_tsquery('russian', $1)
-                OR c.full_name ILIKE $2 OR c.phone ILIKE $2)
-        ORDER BY c.full_name LIMIT 10`,
-      cParams,
-    );
-    contacts = rows;
-  } catch {
-    contacts = [];
+  if (companyNets === null || companyNets.length > 0) {
+    const cScope = companyNets === null ? 'TRUE' : 'c.network_id::text = ANY($3)';
+    const cParams = companyNets === null ? [query, `%${query}%`] : [query, `%${query}%`, companyNets];
+    try {
+      const { rows } = await postgres.query(
+        `SELECT c.id::text AS id, c.full_name, c.position, c.responsibility, c.phone, c.email, c.role
+           FROM kb_contacts c
+          WHERE ${cScope} AND (
+                  c.search_tsv @@ websearch_to_tsquery('russian', $1)
+                  OR c.full_name ILIKE $2 OR c.phone ILIKE $2)
+          ORDER BY c.full_name LIMIT 10`,
+        cParams,
+      );
+      contacts = rows;
+    } catch { contacts = []; }
   }
 
   return { articles, contacts };
@@ -294,8 +298,11 @@ async function resolveAttachmentForUser(user, attachmentId) {
 // ── Запись (только super_admin/system_admin) ───────────────────────────
 async function createCategory(user, d) {
   if (!isSuperAdmin(user)) return { forbidden: true };
-  const net = await resolveNetworkUuid(d.networkId);
-  if (!net) return { error: 'Сеть не найдена' };
+  let net = null; // universal → network_id NULL (видно всем)
+  if (!d.universal) {
+    net = d.networkId ? await resolveNetworkUuid(d.networkId) : null;
+    if (d.networkId && !net) return { error: 'Сеть не найдена' };
+  }
   const row = await postgres.queryOne(
     `INSERT INTO kb_categories (network_id, parent_id, title, icon, sort_order)
        VALUES ($1,$2,$3,$4,$5) RETURNING id::text AS id`,
@@ -306,8 +313,11 @@ async function createCategory(user, d) {
 
 async function createArticle(user, d) {
   if (!isSuperAdmin(user)) return { forbidden: true };
-  const net = await resolveNetworkUuid(d.networkId);
-  if (!net) return { error: 'Сеть не найдена' };
+  let net = null; // universal → network_id NULL (видно всем компаниям)
+  if (!d.universal) {
+    net = d.networkId ? await resolveNetworkUuid(d.networkId) : null;
+    if (d.networkId && !net) return { error: 'Сеть не найдена' };
+  }
   const status = d.status === 'published' ? 'published' : 'draft';
   const row = await postgres.queryOne(
     `INSERT INTO kb_articles
@@ -404,12 +414,14 @@ async function createContact(user, d) {
 async function adminListArticles(user, requestedNetworkId) {
   if (!isSuperAdmin(user)) return { forbidden: true };
   const net = await resolveNetworkUuid(requestedNetworkId);
-  if (!net) return { articles: [] };
-  const members = await companyMemberNetworkIds(net);
+  const members = net ? await companyMemberNetworkIds(net) : [];
   const { rows } = await postgres.query(
     `SELECT a.id::text AS id, a.network_id::text AS network_id, a.category_id::text AS category_id,
-            a.title, a.doc_kind, a.doc_number, a.status, a.version, a.is_current, a.effective_date, a.updated_at
-       FROM kb_articles a WHERE a.network_id::text = ANY($1) ORDER BY a.is_current DESC, a.updated_at DESC`,
+            a.title, a.doc_kind, a.doc_number, a.status, a.version, a.is_current, a.effective_date, a.updated_at,
+            (a.network_id IS NULL) AS is_universal
+       FROM kb_articles a
+      WHERE a.network_id IS NULL OR a.network_id::text = ANY($1)
+      ORDER BY (a.network_id IS NOT NULL), a.is_current DESC, a.updated_at DESC`,
     [members],
   );
   return { articles: rows };
@@ -418,11 +430,11 @@ async function adminListArticles(user, requestedNetworkId) {
 async function adminListCategories(user, requestedNetworkId) {
   if (!isSuperAdmin(user)) return { forbidden: true };
   const net = await resolveNetworkUuid(requestedNetworkId);
-  if (!net) return { categories: [] };
-  const members = await companyMemberNetworkIds(net);
+  const members = net ? await companyMemberNetworkIds(net) : [];
   const { rows } = await postgres.query(
-    `SELECT id::text AS id, network_id::text AS network_id, parent_id::text AS parent_id, title, icon, sort_order
-       FROM kb_categories WHERE network_id::text = ANY($1) ORDER BY sort_order, title`,
+    `SELECT id::text AS id, network_id::text AS network_id, parent_id::text AS parent_id, title, icon, sort_order,
+            (network_id IS NULL) AS is_universal
+       FROM kb_categories WHERE network_id IS NULL OR network_id::text = ANY($1) ORDER BY sort_order, title`,
     [members],
   );
   return { categories: rows };

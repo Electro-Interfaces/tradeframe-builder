@@ -52,6 +52,11 @@ export interface KbSearchArticle {
   doc_number: string | null;
   effective_date: string | null;
   snippet: string | null;
+  is_universal: boolean;
+}
+export interface KbTreePart {
+  categories: KbCategory[];
+  articles: KbArticleListItem[];
 }
 export interface KbSearchResult {
   articles: KbSearchArticle[];
@@ -82,7 +87,7 @@ const netQs = (networkId?: string | null) =>
   networkId ? `?networkId=${encodeURIComponent(networkId)}` : '';
 
 export function fetchKbTree(networkId?: string | null) {
-  return getJson<{ categories: KbCategory[]; articles: KbArticleListItem[] }>(`/api/kb/tree${netQs(networkId)}`);
+  return getJson<{ universal: KbTreePart; company: KbTreePart }>(`/api/kb/tree${netQs(networkId)}`);
 }
 export function fetchKbArticle(id: string) {
   return getJson<KbArticle>(`/api/kb/articles/${encodeURIComponent(id)}`);
@@ -102,7 +107,7 @@ export function kbAttachmentUrl(id: string) {
 // ── Админ (super-admin): листинг всех статусов + запись ─────────────────
 export interface KbAdminArticle {
   id: string;
-  network_id: string;
+  network_id: string | null;
   category_id: string | null;
   title: string;
   doc_kind: string;
@@ -110,11 +115,13 @@ export interface KbAdminArticle {
   status: string;
   version: number;
   is_current: boolean;
+  is_universal: boolean;
   effective_date: string | null;
   updated_at: string;
 }
 export interface KbArticleInput {
-  networkId?: string;
+  networkId?: string | null;
+  universal?: boolean;
   categoryId?: string | null;
   title: string;
   bodyMd: string;

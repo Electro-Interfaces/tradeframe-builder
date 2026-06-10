@@ -1,27 +1,29 @@
 /**
- * InfoCenter — раздел «Инфо».
- *  - Часть A: инструкции по приложению (markdown в репо, manifest) — всегда, офлайн в бандле.
- *  - Часть B: база знаний компании (PostgreSQL, /api/kb) — по выбранной сети, изоляция на backend.
- *  - Контакты компании + федеративный поиск (A локально + B/контакты с сервера).
+ * InfoCenter — раздел «Инфо». Левая панель — 4 сворачиваемые секции (по умолчанию свёрнуты;
+ * при поиске авто-раскрываются):
+ *   📘 Работа с приложением — инструкции по приложению (markdown в репо, офлайн).
+ *   📚 База знаний — УНИВЕРСАЛЬНАЯ нормативка (законы/ГОСТы/нормы), одна на все компании.
+ *   📋 Локальные документы {компания} — ЛНД компании (уникальны для неё).
+ *   👤 Контакты {компания} — справочник контактов компании.
  *
- * Раскладка адаптивна через CSS (md), без JS-ветвления → нет вспышки на мобайле. B/контакты/поиск
- * деградируют мягко: при отсутствии сети/связи показываются только инструкции A.
- * Версионирование/редактор/PDF/TOC — дальнейшие фазы (docs/info-knowledge-base-AGENT-TASK.md §13).
+ * Изоляция — на backend (universal видно всем; локальные/контакты — по сети). Раскладка адаптивна
+ * через CSS (md), без JS-ветвления. Детали — docs/info-knowledge-base-AGENT-TASK.md §13.
  */
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Loader2, ChevronLeft, ChevronRight, Search, BookOpen, Type, Library, Phone, Mail, Users } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Search, BookOpen, Type, Library, FileText, Phone, Mail, Users } from 'lucide-react';
 import { useSupportContext } from '@/contexts/SupportContext';
 import { useSelection } from '@/contexts/SelectionContext';
 import { HELP_ARTICLES, findArticleByRoute, findArticleById, type HelpArticleMeta } from '@/content/help/manifest';
 import {
   fetchKbTree, fetchKbArticle, fetchKbContacts, searchKb,
-  type KbArticleListItem, type KbArticle, type KbContact, type KbSearchResult,
+  type KbArticleListItem, type KbCategory, type KbArticle, type KbContact, type KbSearchResult, type KbTreePart,
 } from '@/services/knowledgeBase';
 import MarkdownRenderer from './MarkdownRenderer';
 
 const FONT_STEPS = [16, 18, 20];
 const FONT_KEY = 'kb:fontStep';
+const EMPTY_PART: KbTreePart = { categories: [], articles: [] };
 
 type Selected =
   | { kind: 'a'; id: string }
@@ -43,6 +45,22 @@ function Snippet({ text }: { text: string }) {
   );
 }
 
+// Группировка статей по категориям (для режима просмотра).
+function groupByCategory(articles: KbArticleListItem[], categories: KbCategory[]): [string, KbArticleListItem[]][] {
+  const titleById = new Map(categories.map((c) => [c.id, c.title]));
+  const order = categories.map((c) => c.title);
+  const byCat = new Map<string, KbArticleListItem[]>();
+  for (const a of articles) {
+    const key = (a.category_id && titleById.get(a.category_id)) || 'Без категории';
+    if (!byCat.has(key)) byCat.set(key, []);
+    byCat.get(key)!.push(a);
+  }
+  return Array.from(byCat.entries()).sort((x, y) => {
+    const ix = order.indexOf(x[0]); const iy = order.indexOf(y[0]);
+    return (ix === -1 ? 999 : ix) - (iy === -1 ? 999 : iy);
+  });
+}
+
 export default function InfoCenter({ initialArticleId }: { initialArticleId?: string }) {
   const { pathname } = useLocation();
   const { infoTarget } = useSupportContext();
@@ -52,9 +70,8 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
     const sel = useSelection();
     networkId = sel.selectedNetwork?.id ?? null;
     networkName = sel.selectedNetwork?.name ?? '';
-  } catch { /* вне SelectionProvider (тесты) — работаем только с частью A */ }
+  } catch { /* вне SelectionProvider (тесты) */ }
 
-  // Стартовая статья A: явная цель → проп → по роуту → первая.
   const startId = useMemo(
     () =>
       findArticleById(infoTarget?.articleId)?.id ||
@@ -74,13 +91,18 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
     return Number.isFinite(v) && v >= 0 && v <= 2 ? v : 0;
   });
 
-  // Часть B + контакты (по сети)
-  const [bArticles, setBArticles] = useState<KbArticleListItem[]>([]);
+  // Секции свёрнуты по умолчанию.
+  const [aOpen, setAOpen] = useState(false);
+  const [uniOpen, setUniOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const [contactsOpen, setContactsOpen] = useState(false);
+
+  // Данные B (по сети)
+  const [universal, setUniversal] = useState<KbTreePart>(EMPTY_PART);
+  const [local, setLocal] = useState<KbTreePart>(EMPTY_PART);
   const [contacts, setContacts] = useState<KbContact[]>([]);
   const [serverSearch, setServerSearch] = useState<KbSearchResult | null>(null);
-  const [aExpanded, setAExpanded] = useState(false); // «Работа с приложением» — свёрнута по умолчанию
 
-  // Внешняя цель (повторный openInfo).
   useEffect(() => {
     if (infoTarget?.articleId) {
       const id = findArticleById(infoTarget.articleId)?.id;
@@ -90,27 +112,28 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
 
   useEffect(() => { localStorage.setItem(FONT_KEY, String(fontStep)); }, [fontStep]);
 
-  // Загрузка дерева B + контактов при выбранной сети (мягко: ошибки → пусто).
+  // Дерево (универсальное + локальное) и контакты. Универсальное доступно и без выбранной сети.
   useEffect(() => {
     let alive = true;
-    if (!networkId) { setBArticles([]); setContacts([]); return; }
-    fetchKbTree(networkId).then((r) => { if (alive) setBArticles(r.articles || []); }).catch(() => { if (alive) setBArticles([]); });
-    fetchKbContacts(networkId).then((r) => { if (alive) setContacts(r.contacts || []); }).catch(() => { if (alive) setContacts([]); });
+    fetchKbTree(networkId)
+      .then((r) => { if (alive) { setUniversal(r.universal || EMPTY_PART); setLocal(r.company || EMPTY_PART); } })
+      .catch(() => { if (alive) { setUniversal(EMPTY_PART); setLocal(EMPTY_PART); } });
+    fetchKbContacts(networkId)
+      .then((r) => { if (alive) setContacts(r.contacts || []); })
+      .catch(() => { if (alive) setContacts([]); });
     return () => { alive = false; };
   }, [networkId]);
 
-  // Серверный поиск B (debounce + отмена in-flight).
+  // Серверный поиск (debounce + отмена in-flight).
   const searchAbort = useRef<AbortController | null>(null);
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2 || !networkId) { setServerSearch(null); return; }
+    if (q.length < 2) { setServerSearch(null); return; }
     const t = setTimeout(() => {
       searchAbort.current?.abort();
       const ac = new AbortController();
       searchAbort.current = ac;
-      searchKb(q, networkId, ac.signal)
-        .then((r) => setServerSearch(r))
-        .catch(() => { /* отменён или ошибка — оставляем как есть */ });
+      searchKb(q, networkId, ac.signal).then((r) => setServerSearch(r)).catch(() => { /* отменён/ошибка */ });
     }, 300);
     return () => clearTimeout(t);
   }, [query, networkId]);
@@ -124,19 +147,19 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
       const meta = findArticleById(selected.id);
       if (!meta) { setAContent(''); return; }
       setReading(true);
-      meta.load()
-        .then((md) => { if (alive) { setAContent(md); setReading(false); } })
+      meta.load().then((md) => { if (alive) { setAContent(md); setReading(false); } })
         .catch(() => { if (alive) { setAContent('# Не удалось загрузить статью'); setReading(false); } });
     } else if (selected.kind === 'b') {
       setReading(true);
-      fetchKbArticle(selected.id)
-        .then((a) => { if (alive) { setBArticle(a); setReading(false); } })
+      fetchKbArticle(selected.id).then((a) => { if (alive) { setBArticle(a); setReading(false); } })
         .catch(() => { if (alive) { setBArticle(null); setReading(false); } });
     }
     return () => { alive = false; };
   }, [selected]);
 
-  // Список A (группировка + клиентский фильтр).
+  const queryActive = query.trim().length >= 2;
+
+  // A — инструкции (группы + клиентский фильтр).
   const aGroups = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = HELP_ARTICLES.filter(
@@ -150,61 +173,88 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
     return Array.from(byCat.entries());
   }, [query]);
 
-  const queryActive = query.trim().length >= 2;
-  // B-список: при поиске — серверная выдача; иначе всё дерево.
-  const bList = queryActive ? (serverSearch?.articles ?? []) : bArticles;
-  const contactList = queryActive ? (serverSearch?.contacts ?? []) : contacts;
+  const uniGroups = useMemo(() => groupByCategory(universal.articles, universal.categories), [universal]);
+  const localGroups = useMemo(() => groupByCategory(local.articles, local.categories), [local]);
+
+  // Поисковые совпадения, разделённые на универсальные/локальные.
+  const uniMatches = useMemo(() => (serverSearch?.articles ?? []).filter((a) => a.is_universal), [serverSearch]);
+  const localMatches = useMemo(() => (serverSearch?.articles ?? []).filter((a) => !a.is_universal), [serverSearch]);
+  const contactMatches = serverSearch?.contacts ?? [];
 
   const selectedTitle = useMemo(() => {
-    if (!selected) return 'Инструкции';
+    if (!selected) return '';
     if (selected.kind === 'a') return findArticleById(selected.id)?.title ?? '';
     if (selected.kind === 'b') return bArticle?.title ?? '…';
-    return contacts.concat(serverSearch?.contacts ?? []).find((c) => c.id === selected.id)?.full_name ?? '';
-  }, [selected, bArticle, contacts, serverSearch]);
+    return contacts.concat(contactMatches).find((c) => c.id === selected.id)?.full_name ?? '';
+  }, [selected, bArticle, contacts, contactMatches]);
 
   const itemBtn = (active: boolean) =>
     `w-full text-left px-2 py-1.5 rounded-md text-sm transition-colors ${
       active ? 'bg-primary text-white' : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
     }`;
 
+  // Заголовок сворачиваемой секции.
+  const SectionHead = ({ icon: Icon, title, count, open, toggle }: { icon: typeof BookOpen; title: string; count: number; open: boolean; toggle: () => void }) => (
+    <button type="button" onClick={toggle} aria-expanded={open}
+      className="w-full flex items-center gap-2 px-1 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+      <ChevronRight className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
+      <Icon className="h-3.5 w-3.5" />
+      <span className="flex-1 text-left truncate">{title}</span>
+      <span className="text-[10px] font-normal text-muted-foreground/70">{count}</span>
+    </button>
+  );
+
+  // Рендер сгруппированных статей B (просмотр) или плоских совпадений (поиск).
+  const renderB = (groups: [string, KbArticleListItem[]][], matches: KbSearchResult['articles']) =>
+    queryActive
+      ? matches.map((a) => (
+          <button key={a.id} type="button" onClick={() => setSelected({ kind: 'b', id: a.id })}
+            className={itemBtn(selected?.kind === 'b' && selected.id === a.id)}>
+            <span className="block truncate">{a.title}</span>
+            {a.snippet ? <span className="block text-xs text-muted-foreground truncate"><Snippet text={a.snippet} /></span> : null}
+          </button>
+        ))
+      : groups.map(([cat, items]) => (
+          <div key={cat} className="space-y-0.5">
+            <div className="px-2 pt-1 text-[11px] font-medium text-muted-foreground/80">{cat}</div>
+            {items.map((a) => (
+              <button key={a.id} type="button" onClick={() => setSelected({ kind: 'b', id: a.id })}
+                className={itemBtn(selected?.kind === 'b' && selected.id === a.id)}>
+                {a.title}
+              </button>
+            ))}
+          </div>
+        ));
+
+  const uniOpenEff = uniOpen || queryActive;
+  const localOpenEff = localOpen || queryActive;
+  const contactsOpenEff = contactsOpen || queryActive;
+  const aOpenEff = aOpen || queryActive;
+
   return (
     <div className="flex h-full min-h-0 bg-background text-foreground">
-      {/* Список */}
       <div className={`${selected ? 'hidden' : 'flex'} md:flex w-full md:w-72 md:border-r border-border/50 flex-col min-h-0`}>
         <div className="p-2.5 border-b border-border/50">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Поиск по справке и базе знаний…"
-              aria-label="Поиск"
-              className="w-full bg-secondary border border-border rounded-md pl-8 pr-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по справке и базе знаний…" aria-label="Поиск"
+              className="w-full bg-secondary border border-border rounded-md pl-8 pr-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
           </div>
         </div>
 
-        <nav aria-label="Инструкции" className="flex-1 min-h-0 overflow-y-auto p-2 space-y-4">
-          {/* A — работа с приложением (свёрнута по умолчанию; при поиске авто-раскрывается) */}
+        <nav aria-label="Разделы" className="flex-1 min-h-0 overflow-y-auto p-2 space-y-4">
+          {/* 📘 Работа с приложением */}
           <div className="space-y-0.5">
-            <button type="button" onClick={() => setAExpanded((v) => !v)} aria-expanded={aExpanded || queryActive}
-              className="w-full flex items-center gap-2 px-1 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors">
-              <ChevronRight className={`h-3.5 w-3.5 transition-transform ${aExpanded || queryActive ? 'rotate-90' : ''}`} />
-              <BookOpen className="h-3.5 w-3.5" />
-              <span className="flex-1 text-left">Работа с приложением</span>
-              <span className="text-[10px] font-normal text-muted-foreground/70">{HELP_ARTICLES.length}</span>
-            </button>
-            {(aExpanded || queryActive) && (
+            <SectionHead icon={BookOpen} title="Работа с приложением" count={HELP_ARTICLES.length} open={aOpenEff} toggle={() => setAOpen((v) => !v)} />
+            {aOpenEff && (
               <>
                 {aGroups.map(([cat, items]) => (
                   <div key={cat} className="space-y-0.5">
                     <div className="px-2 pt-1 text-[11px] font-medium text-muted-foreground/80">{cat}</div>
                     {items.map((a) => (
                       <button key={a.id} type="button" onClick={() => setSelected({ kind: 'a', id: a.id })}
-                        className={itemBtn(selected?.kind === 'a' && selected.id === a.id)}>
-                        {a.title}
-                      </button>
+                        className={itemBtn(selected?.kind === 'a' && selected.id === a.id)}>{a.title}</button>
                     ))}
                   </div>
                 ))}
@@ -213,32 +263,27 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
             )}
           </div>
 
-          {/* B — база знаний компании */}
-          {(bList.length > 0 || (queryActive && networkId)) && (
+          {/* 📚 База знаний (универсальная) */}
+          {(universal.articles.length > 0 || (queryActive && uniMatches.length > 0)) && (
             <div className="space-y-0.5">
-              <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <Library className="h-3.5 w-3.5" /> База знаний{networkName ? ` · ${networkName}` : ''}
-              </div>
-              {bList.map((a) => (
-                <button key={a.id} type="button" onClick={() => setSelected({ kind: 'b', id: a.id })}
-                  className={itemBtn(selected?.kind === 'b' && selected.id === a.id)}>
-                  <span className="block truncate">{a.title}</span>
-                  {'snippet' in a && a.snippet
-                    ? <span className="block text-xs text-muted-foreground truncate"><Snippet text={a.snippet} /></span>
-                    : null}
-                </button>
-              ))}
-              {bList.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">Ничего не найдено</div>}
+              <SectionHead icon={Library} title="База знаний" count={queryActive ? uniMatches.length : universal.articles.length} open={uniOpenEff} toggle={() => setUniOpen((v) => !v)} />
+              {uniOpenEff && renderB(uniGroups, uniMatches)}
             </div>
           )}
 
-          {/* Контакты */}
-          {contactList.length > 0 && (
+          {/* 📋 Локальные документы компании */}
+          {(local.articles.length > 0 || (queryActive && localMatches.length > 0)) && (
             <div className="space-y-0.5">
-              <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <Users className="h-3.5 w-3.5" /> Контакты
-              </div>
-              {contactList.map((c) => (
+              <SectionHead icon={FileText} title={`Локальные документы${networkName ? ` · ${networkName}` : ''}`} count={queryActive ? localMatches.length : local.articles.length} open={localOpenEff} toggle={() => setLocalOpen((v) => !v)} />
+              {localOpenEff && renderB(localGroups, localMatches)}
+            </div>
+          )}
+
+          {/* 👤 Контакты компании */}
+          {(contacts.length > 0 || (queryActive && contactMatches.length > 0)) && (
+            <div className="space-y-0.5">
+              <SectionHead icon={Users} title={`Контакты${networkName ? ` · ${networkName}` : ''}`} count={queryActive ? contactMatches.length : contacts.length} open={contactsOpenEff} toggle={() => setContactsOpen((v) => !v)} />
+              {contactsOpenEff && (queryActive ? contactMatches : contacts).map((c) => (
                 <button key={c.id} type="button" onClick={() => setSelected({ kind: 'contact', id: c.id })}
                   className={itemBtn(selected?.kind === 'contact' && selected.id === c.id)}>
                   <span className="block truncate">{c.full_name}</span>
@@ -257,7 +302,7 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
             className="md:hidden p-1.5 -ml-1 rounded-md text-foreground/80 hover:bg-secondary">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <div className="flex-1 min-w-0 truncate text-sm font-medium text-foreground">{selectedTitle}</div>
+          <div className="flex-1 min-w-0 truncate text-sm font-medium text-foreground">{selectedTitle || 'Инфо'}</div>
           {selected?.kind !== 'contact' && (
             <div className="flex items-center gap-0.5 text-muted-foreground" role="group" aria-label="Размер шрифта">
               <Type className="h-3.5 w-3.5 mr-0.5" />
@@ -273,7 +318,7 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
           {reading ? (
             <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : selected?.kind === 'contact' ? (
-            <ContactCard contact={contacts.concat(serverSearch?.contacts ?? []).find((c) => c.id === selected.id)} />
+            <ContactCard contact={contacts.concat(contactMatches).find((c) => c.id === selected.id)} />
           ) : selected?.kind === 'b' && bArticle ? (
             <article className="instruction-content info-reading mx-auto max-w-[68ch] px-4 sm:px-6 py-5" style={{ fontSize: FONT_STEPS[fontStep] }}>
               <KbStatusCard article={bArticle} />

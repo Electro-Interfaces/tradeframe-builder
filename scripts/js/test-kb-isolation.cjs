@@ -30,6 +30,8 @@ async function main() {
   const artGig = (await q(`INSERT INTO kb_articles (network_id,title,body_plain,status,doc_kind) VALUES ($1,'Пожарная безопасность ГИГ','Запрещено курить при пожаре на территории','published','lnd') RETURNING id`, [g1])).rows[0].id;
   const artBto = (await q(`INSERT INTO kb_articles (network_id,title,body_plain,status,doc_kind) VALUES ($1,'Регламент БТО','Регламент эвакуации сотрудников','published','regulation') RETURNING id`, [b1])).rows[0].id;
   const artAcme = (await q(`INSERT INTO kb_articles (network_id,title,body_plain,status,doc_kind) VALUES ($1,'Секрет Acme','Секретный пожарный регламент Acme','published','lnd') RETURNING id`, [a1])).rows[0].id;
+  // универсальная статья (network_id IS NULL) — видна всем компаниям
+  const artUni = (await q(`INSERT INTO kb_articles (title,body_plain,status,doc_kind) VALUES ('Универсальный закон об АЗС','Универсальная норма действует для всех АЗС','published','law') RETURNING id`)).rows[0].id;
 
   // ── контакты ──
   await q(`INSERT INTO kb_contacts (network_id,full_name,position,phone) VALUES ($1,'Иванов Иван','инженер ПБ','+79210000001')`, [g1]);
@@ -41,7 +43,7 @@ async function main() {
 
   console.log('\n[Дерево]');
   const t = await kb.getTree(userGig, g1);
-  const ids = t.articles.map((a) => a.id);
+  const ids = t.company.articles.map((a) => a.id);
   check('ГИГ видит свою статью', ids.includes(artGig));
   check('ГИГ видит статью БТО (одна компания)', ids.includes(artBto));
   check('ГИГ НЕ видит статью Acme', !ids.includes(artAcme));
@@ -67,31 +69,39 @@ async function main() {
   check('Контакты ГИГ: чужого (Acme) нет', !cGig.includes('Петров Acme'));
 
   console.log('\n[Super-admin]');
-  check('Super видит статью Acme', (await kb.getTree(superUser, a1)).articles.map((a) => a.id).includes(artAcme));
+  check('Super видит статью Acme', (await kb.getTree(superUser, a1)).company.articles.map((a) => a.id).includes(artAcme));
 
   console.log('\n[Запись (super-only)]');
   check('Запись не-super (ГИГ): forbidden', (await kb.createArticle(userGig, { networkId: g1, title: 'Хак', bodyMd: 'x', status: 'published' })).forbidden === true);
   const created = await kb.createArticle(superUser, { networkId: a1, title: 'Новая Acme', bodyMd: '# Заголовок\nтекст про ракету', status: 'published', docKind: 'guide' });
   check('Запись super: статья создана', !!created.id);
-  check('Созданное видно super в дереве Acme', (await kb.getTree(superUser, a1)).articles.map((a) => a.id).includes(created.id));
-  check('Созданное в Acme НЕ видно ГИГ (изоляция)', !(await kb.getTree(userGig, g1)).articles.map((a) => a.id).includes(created.id));
+  check('Созданное видно super в дереве Acme', (await kb.getTree(superUser, a1)).company.articles.map((a) => a.id).includes(created.id));
+  check('Созданное в Acme НЕ видно ГИГ (изоляция)', !(await kb.getTree(userGig, g1)).company.articles.map((a) => a.id).includes(created.id));
   check('Поиск ГИГ не находит созданное в Acme', !(await kb.search(userGig, 'ракета', g1)).articles.map((a) => a.id).includes(created.id));
 
   console.log('\n[Иммутабельные редакции ЛНД]');
   const lnd = await kb.createArticle(superUser, { networkId: g1, title: 'Инструкция ПБ', bodyMd: 'редакция один', status: 'published', docKind: 'lnd', docNumber: '12-ПБ' });
   const upd = await kb.updateArticle(superUser, lnd.id, { bodyMd: 'редакция два обновлено' });
   check('Правка опубликованного ЛНД → новая редакция', upd.newRevision === true && upd.id !== lnd.id);
-  const gigIds = (await kb.getTree(userGig, g1)).articles.map((a) => a.id);
+  const gigIds = (await kb.getTree(userGig, g1)).company.articles.map((a) => a.id);
   check('Старая редакция ЛНД скрыта (archived)', !gigIds.includes(lnd.id));
   check('Новая редакция ЛНД видна (is_current)', gigIds.includes(upd.id));
 
   console.log('\n[Черновики и admin-листинг]');
   const draft = await kb.createArticle(superUser, { networkId: g1, title: 'Черновик ГИГ', bodyMd: 'не готово', status: 'draft', docKind: 'guide' });
-  check('Черновик НЕ виден в дереве клиента', !(await kb.getTree(userGig, g1)).articles.map((a) => a.id).includes(draft.id));
+  check('Черновик НЕ виден в дереве клиента', !(await kb.getTree(userGig, g1)).company.articles.map((a) => a.id).includes(draft.id));
   check('Черновик: getArticle клиента → 404', (await kb.getArticle(userGig, draft.id)).notFound === true);
   check('Черновик: getArticle super → открыт', !!(await kb.getArticle(superUser, draft.id)).article);
   check('adminList super: включает черновик', (await kb.adminListArticles(superUser, g1)).articles.map((a) => a.id).includes(draft.id));
   check('adminList не-super: forbidden', (await kb.adminListArticles(userGig, g1)).forbidden === true);
+
+  console.log('\n[Универсальная база (видна всем компаниям)]');
+  check('Универсальная статья видна ГИГ', (await kb.getTree(userGig, g1)).universal.articles.map((a) => a.id).includes(artUni));
+  check('Универсальная статья видна Acme (другая компания)', (await kb.getTree(userAcme, a1)).universal.articles.map((a) => a.id).includes(artUni));
+  check('Универсальная статья: getArticle для Acme открыт', !!(await kb.getArticle(userAcme, artUni)).article);
+  check('Поиск Acme «универсальн» находит универсальную', (await kb.search(userAcme, 'универсальн', a1)).articles.map((a) => a.id).includes(artUni));
+  check('Универсальная статья НЕ в company-секции ГИГ', !(await kb.getTree(userGig, g1)).company.articles.map((a) => a.id).includes(artUni));
+  check('Локальная ГИГ НЕ в universal-секции', !(await kb.getTree(userGig, g1)).universal.articles.map((a) => a.id).includes(artGig));
 
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   await pool.closePool();
