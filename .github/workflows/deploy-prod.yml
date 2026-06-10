@@ -104,12 +104,6 @@ jobs:
             TELEGRAM_BOT_NAME=TradeFrame Notifications
             TELEGRAM_BOT_USERNAME=TradeFrameDW_Bot
 
-            # TradeCorp API Configuration
-            TRADECORP_API_URL=${{ secrets.TRADECORP_API_URL }}
-            TRADECORP_LOGIN=${{ secrets.TRADECORP_LOGIN }}
-            TRADECORP_PASSWORD=${{ secrets.TRADECORP_PASSWORD }}
-            TRADECORP_EMITENT_ID=${{ secrets.TRADECORP_EMITENT_ID }}
-
             # TSupport SDK Configuration
             TSUPPORT_API_URL=${{ secrets.TSUPPORT_API_URL }}
             TSUPPORT_SDK_API_KEY=${{ secrets.TSUPPORT_SDK_API_KEY }}

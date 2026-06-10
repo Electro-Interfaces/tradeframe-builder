@@ -20,7 +20,6 @@ const ROUTES = [
   { path: '/network/coupons', name: '07-coupons' },
   { path: '/network/fuel-inventory', name: '08-fuel-inventory' },
   { path: '/network/receipts', name: '09-receipts' },
-  { path: '/network/reconciliation', name: '10-reconciliation' },
   { path: '/network/online-orders', name: '11-online-orders' },
   { path: '/network/notifications', name: '12-notifications' },
   { path: '/network/messages', name: '13-messages' },

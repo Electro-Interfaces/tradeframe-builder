@@ -57,7 +57,6 @@ const Messages = lazy(() => import("./pages/Messages"));
 const BroadcastMessages = lazy(() => import("./pages/BroadcastMessages"));
 const Receipts = lazy(() => import("./pages/network/Receipts"));
 const NetworkPricing = lazy(() => import("./pages/NetworkPricing"));
-const ReconciliationPage = lazy(() => import("./pages/ReconciliationPage"));
 const MarginAnalytics = lazy(() => import("./pages/analytics/MarginAnalytics"));
 const OnlineOrdersMonitor = lazy(() => import("./pages/OnlineOrdersMonitor"));
 
@@ -248,7 +247,6 @@ const App = () => {
                   <Route path="/network/messages" element={<ProtectedRoute><LazyLoader><Messages /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/broadcast-messages" element={<ProtectedRoute><LazyLoader><BroadcastMessages /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/receipts" element={<ProtectedRoute><LazyLoader><Receipts /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/network/reconciliation" element={<ProtectedRoute><LazyLoader><ReconciliationPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/analytics/margins" element={<ProtectedRoute><LazyLoader><MarginAnalytics /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/online-orders" element={<ProtectedRoute><LazyLoader><OnlineOrdersMonitor /></LazyLoader></ProtectedRoute>} />
 

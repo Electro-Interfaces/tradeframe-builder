@@ -7,7 +7,6 @@ const helmet = require('helmet');
 const path = require('path');
 const notificationScheduler = require('./services/notificationScheduler');
 const stsRoutes = require('./routes/sts');
-const tradecorpRoutes = require('./routes/tradecorp');
 const authRoutes = require('./routes/auth');
 const networksRoutes = require('./routes/networks');
 const tradingPointsRoutes = require('./routes/tradingPoints');
@@ -134,9 +133,6 @@ app.use('/api', apiLimiter);
 
 // Подключаем роуты для STS API
 app.use('/api/sts', stsRoutes);
-
-// Подключаем роуты для TradeCorp API (корпоративный процессинг)
-app.use('/api/tradecorp', tradecorpRoutes);
 
 // Подключаем совместимый auth-слой (Supabase/PG переключается через env)
 // authLimiter только на login (brute-force защита), остальные auth-роуты — через общий apiLimiter

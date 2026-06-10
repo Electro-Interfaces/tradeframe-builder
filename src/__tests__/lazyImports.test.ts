@@ -38,7 +38,6 @@ describe('Lazy imports — все страницы App.tsx резолвятся'
     ['BroadcastMessages', () => import('@/pages/BroadcastMessages')],
     ['Receipts', () => import('@/pages/network/Receipts')],
     ['NetworkPricing', () => import('@/pages/NetworkPricing')],
-    ['ReconciliationPage', () => import('@/pages/ReconciliationPage')],
     ['OnlineOrdersMonitor', () => import('@/pages/OnlineOrdersMonitor')],
 
     // Приоритет 4

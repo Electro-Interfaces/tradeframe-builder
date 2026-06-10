@@ -9,7 +9,7 @@ import type {
   MSTOTransaction,
   MSTOServicePoint,
   MSTOTariff
-} from '@/types/mstoReconciliation';
+} from '@/types/msto';
 
 interface ProxyError extends Error {
   status?: number;

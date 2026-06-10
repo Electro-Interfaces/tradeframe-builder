@@ -8,7 +8,7 @@
  */
 
 import { mstoProxyClient, getMstoTransactions, type GetMstoTransactionsParams } from './mstoProxyClient';
-import type { MSTOTransaction } from '@/types/mstoReconciliation';
+import type { MSTOTransaction } from '@/types/msto';
 
 // Типы данных онлайн-заказа
 export interface OnlineOrder {
