@@ -343,12 +343,12 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
           ) : selected?.kind === 'contact' ? (
             <ContactCard contact={contacts.concat(contactMatches).find((c) => c.id === selected.id)} />
           ) : selected?.kind === 'b' && bArticle ? (
-            <article className="instruction-content info-reading mx-auto max-w-[68ch] px-4 sm:px-6 py-5" style={{ fontSize: FONT_STEPS[fontStep] }}>
+            <article className="instruction-content info-reading mx-auto max-w-[860px] px-4 sm:px-6 py-5" style={{ fontSize: FONT_STEPS[fontStep] }}>
               <KbStatusCard article={bArticle} />
               <MarkdownRenderer content={bArticle.body_md} />
             </article>
           ) : selected?.kind === 'a' ? (
-            <article className="instruction-content info-reading mx-auto max-w-[68ch] px-4 sm:px-6 py-5" style={{ fontSize: FONT_STEPS[fontStep] }}>
+            <article className="instruction-content info-reading mx-auto max-w-[860px] px-4 sm:px-6 py-5" style={{ fontSize: FONT_STEPS[fontStep] }}>
               <MarkdownRenderer content={aContent} />
             </article>
           ) : (

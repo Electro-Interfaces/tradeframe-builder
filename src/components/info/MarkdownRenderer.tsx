@@ -21,7 +21,13 @@ const components: Components = {
     </div>
   ),
   img: (props) => (
-    <img src={props.src} alt={props.alt ?? ''} className="max-w-full h-auto" referrerPolicy="no-referrer" />
+    <img
+      src={props.src}
+      alt={props.alt ?? ''}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      className="my-5 w-full h-auto rounded-lg border border-border/60 shadow-sm"
+    />
   ),
 };
 
