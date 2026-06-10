@@ -527,7 +527,7 @@ function ChatInfoPanel({
   const typeLabel = isCompany ? 'Чат компании' : 'Личный чат';
 
   return (
-    <div className="w-[280px] border-l border-border/50 flex flex-col shrink-0 bg-background/50">
+    <div className="w-[300px] h-full border-l border-border/50 flex flex-col shrink-0 bg-background">
       {/* Header */}
       <div className="p-3 border-b border-border/50 flex items-center justify-between shrink-0">
         <h3 className="text-sm font-semibold text-foreground">Информация</h3>
@@ -831,7 +831,7 @@ function MessagePanel({
             <p className="text-sm font-medium text-foreground truncate">
               {room.name || subtitle}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground truncate">
               {subtitle}
               {participantCount != null && participantCount > 0 && (
                 <span className="ml-1">· {participantCount} участн.</span>
@@ -1088,6 +1088,11 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
 
     // Оптимистично обнуляем unread у выбранной комнаты
     setRooms(prev => prev.map(r => r.id === selectedRoomId ? { ...r, unread_count: 0 } : r));
+
+    // Подгружаем участников комнаты сразу при выборе (не дожидаясь открытия инфо-панели) —
+    // иначе тип звонка (нативный 1:1 при 2 участниках vs Jitsi) определить нельзя и звонок
+    // всегда уходит в конференцию.
+    getChatRoom(selectedRoomId).then(setRoomDetail).catch(() => {});
 
     setLoadingMessages(true);
     getChatMessages(selectedRoomId)
@@ -1375,7 +1380,7 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <PageShell embedded={embedded}>
-      <div className="flex h-full overflow-hidden">
+      <div className="flex h-full overflow-hidden relative">
         {/* Desktop: fixed left panel */}
         {!isMobile && (
           <div className="w-[340px] xl:w-[380px] border-r border-border/50 flex flex-col shrink-0">
@@ -1419,20 +1424,22 @@ export default function ChatPage({ embedded = false }: { embedded?: boolean }) {
           </div>
         )}
 
-        {/* Desktop: info panel (right side) */}
+        {/* Desktop: info panel — overlay поверх области сообщений (не сжимает центр, иначе шапка ломается) */}
         {!isMobile && infoPanelOpen && selectedRoom && (
-          <ChatInfoPanel
-            room={selectedRoom}
-            participants={roomDetail?.participants || []}
-            loadingInfo={loadingInfo}
-            onClose={() => setInfoPanelOpen(false)}
-            canManage={!!selectedRoomId && canManageRoom(selectedRoomId)}
-            currentUserId={tsupportUserId}
-            availableMembers={companyMembers.filter(m => !m.mxid || !(roomDetail?.participants || []).some(p => p.user_id === m.mxid))}
-            onAddMember={handleAddMember}
-            onRemoveMember={handleRemoveMember}
-            onDeleteRoom={handleDeleteRoom}
-          />
+          <div className="absolute right-0 top-0 bottom-0 z-30 shadow-2xl shadow-black/40">
+            <ChatInfoPanel
+              room={selectedRoom}
+              participants={roomDetail?.participants || []}
+              loadingInfo={loadingInfo}
+              onClose={() => setInfoPanelOpen(false)}
+              canManage={!!selectedRoomId && canManageRoom(selectedRoomId)}
+              currentUserId={tsupportUserId}
+              availableMembers={companyMembers.filter(m => !m.mxid || !(roomDetail?.participants || []).some(p => p.user_id === m.mxid))}
+              onAddMember={handleAddMember}
+              onRemoveMember={handleRemoveMember}
+              onDeleteRoom={handleDeleteRoom}
+            />
+          </div>
         )}
       </div>
 

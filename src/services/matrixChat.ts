@@ -46,6 +46,24 @@ async function fetchSession() {
   }) as Promise<{ homeserver: string; userId: string; accessToken: string; supportRoomId: string; newsRoomId?: string; generalRoomId?: string; ownedRoomIds?: string[] }>;
 }
 
+// Стабильный deviceId для этого браузера. matrix-js-sdk требует непустой device ID, чтобы
+// инициировать звонок (createNewMatrixCall иначе бросает «Client must have a device ID»).
+// Synapse admin-login токен device не создаёт, поэтому задаём свой — для сигналинга m.call.*
+// в незашифрованной комнате этого достаточно (медиа идёт через TURN).
+function getOrCreateDeviceId(): string {
+  const gen = () => 'TFCHAT' + Math.random().toString(36).slice(2, 12).toUpperCase();
+  try {
+    let d = localStorage.getItem('tc:chatDeviceId');
+    if (!d) {
+      d = gen();
+      localStorage.setItem('tc:chatDeviceId', d);
+    }
+    return d;
+  } catch {
+    return gen();
+  }
+}
+
 async function doInit() {
   const s = await fetchSession();
   myUserId = s.userId;
@@ -55,7 +73,7 @@ async function doInit() {
   accessToken = s.accessToken;
   ownedRoomIds = new Set(s.ownedRoomIds || []);
   deletedRoomIds = new Set();
-  client = createClient({ baseUrl: s.homeserver, accessToken: s.accessToken, userId: s.userId });
+  client = createClient({ baseUrl: s.homeserver, accessToken: s.accessToken, userId: s.userId, deviceId: getOrCreateDeviceId() });
   // Невалидный токен после init (рестарт Synapse, ротация): SDK кидает SessionLoggedOut на
   // M_UNKNOWN_TOKEN → сбрасываем клиента; следующий вызов переинициализируется через /session.
   client.on(HttpApiEvent.SessionLoggedOut, () => {
