@@ -10,6 +10,10 @@ import { MemoryRouter } from 'react-router-dom';
 vi.mock('@/contexts/SupportContext', () => ({
   useSupportContext: () => ({ infoTarget: null, openInfo: vi.fn() }),
 }));
+// Без выбранной сети — часть B/контакты/серверный поиск не запрашиваются (проверяем часть A).
+vi.mock('@/contexts/SelectionContext', () => ({
+  useSelection: () => ({ selectedNetwork: null, selectedTradingPoint: null, selectedStation: null }),
+}));
 
 import InfoCenter from '../InfoCenter';
 
@@ -45,7 +49,7 @@ describe('InfoCenter (фаза 0)', () => {
 
   it('фильтрует список поиском', () => {
     renderAt('/');
-    fireEvent.change(screen.getByLabelText('Поиск по инструкциям'), { target: { value: 'цен' } });
+    fireEvent.change(screen.getByLabelText('Поиск'), { target: { value: 'цен' } });
     const nav = screen.getByRole('navigation', { name: 'Инструкции' });
     expect(within(nav).getByText('Ценообразование сети')).toBeInTheDocument();
     expect(within(nav).queryByText('Оборудование и связь')).not.toBeInTheDocument();
