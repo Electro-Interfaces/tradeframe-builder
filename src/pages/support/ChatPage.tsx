@@ -619,7 +619,7 @@ function ChatInfoPanel({
 
                       {/* Name + role */}
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${colorClass}`}>
+                        <p className="text-sm font-medium truncate text-foreground">
                           {p.name || p.email}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
