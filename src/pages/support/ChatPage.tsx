@@ -359,7 +359,6 @@ function MessageBubble({
   }
 
   const radius = bubbleRadius(isOwn, isFirstInGroup, isLastInGroup);
-  const colorClass = getUserColor(message.user_id);
 
   // Convert TSupport relative /uploads/... to proxied /api/support/files/...
   const fileUrl = (() => {
@@ -411,7 +410,7 @@ function MessageBubble({
       >
         {/* Author name (only for others, first in group) */}
         {!isOwn && isFirstInGroup && (
-          <p className={`text-xs font-semibold mb-0.5 ${colorClass}`}>
+          <p className="text-xs font-semibold mb-0.5 text-foreground/80">
             {displaySenderName(message)}
           </p>
         )}
