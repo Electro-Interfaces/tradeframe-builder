@@ -27,8 +27,8 @@ const KB_UPLOAD_DIR = path.resolve(process.env.KB_UPLOAD_DIR || path.join(__dirn
 router.get('/tree', requireAuth, async (req, res) => {
   try {
     const result = await kb.getTree(req.user, req.query.networkId || null);
-    if (result.denied) return res.status(403).json({ error: 'Нет доступа к этой компании' });
-    res.json({ categories: result.categories, articles: result.articles });
+    // Универсальная база видна всегда; company пустой, если нет доступа к запрошенной компании.
+    res.json({ universal: result.universal, company: result.company });
   } catch (e) {
     console.error('[kb] tree error:', e.message);
     res.status(503).json({ error: 'База знаний временно недоступна' });
