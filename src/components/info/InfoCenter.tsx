@@ -9,7 +9,7 @@
  * Изоляция — на backend (universal видно всем; локальные/контакты — по сети). Раскладка адаптивна
  * через CSS (md), без JS-ветвления. Детали — docs/info-knowledge-base-AGENT-TASK.md §13.
  */
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Loader2, ChevronLeft, ChevronRight, Search, BookOpen, Type, Library, FileText, Phone, Mail, Users } from 'lucide-react';
 import { useSupportContext } from '@/contexts/SupportContext';
@@ -61,6 +61,21 @@ function groupByCategory(articles: KbArticleListItem[], categories: KbCategory[]
   });
 }
 
+// Сворачиваемый подраздел (2-й уровень: категория). Раскрытые пункты — с тонкой направляющей слева.
+function CatGroup({ title, count, open, toggle, children }: { title: string; count: number; open: boolean; toggle: () => void; children: ReactNode }) {
+  return (
+    <div className="pt-1.5">
+      <button type="button" onClick={toggle} aria-expanded={open}
+        className="w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-[13px] font-semibold text-foreground/70 hover:text-foreground hover:bg-secondary/60 transition-colors">
+        <ChevronRight className={`h-3 w-3 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`} />
+        <span className="flex-1 text-left truncate">{title}</span>
+        <span className="text-[10px] font-normal text-muted-foreground/60 tabular-nums">{count}</span>
+      </button>
+      {open && <div className="ml-[15px] pl-2 border-l border-border/40 space-y-0.5 mt-0.5">{children}</div>}
+    </div>
+  );
+}
+
 export default function InfoCenter({ initialArticleId }: { initialArticleId?: string }) {
   const { pathname } = useLocation();
   const { infoTarget } = useSupportContext();
@@ -96,6 +111,10 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
   const [uniOpen, setUniOpen] = useState(false);
   const [localOpen, setLocalOpen] = useState(false);
   const [contactsOpen, setContactsOpen] = useState(false);
+  // Категории (2-й уровень) — свёрнуты по умолчанию; ключ `${prefix}:${title}`.
+  const [openCats, setOpenCats] = useState<Set<string>>(new Set());
+  const toggleCat = (key: string) =>
+    setOpenCats((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
 
   // Данные B (по сети)
   const [universal, setUniversal] = useState<KbTreePart>(EMPTY_PART);
@@ -204,8 +223,8 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
     </button>
   );
 
-  // Рендер сгруппированных статей B (просмотр) или плоских совпадений (поиск).
-  const renderB = (groups: [string, KbArticleListItem[]][], matches: KbSearchResult['articles']) =>
+  // Рендер статей B: просмотр — сворачиваемые категории; поиск — плоские совпадения.
+  const renderB = (prefix: string, groups: [string, KbArticleListItem[]][], matches: KbSearchResult['articles']) =>
     queryActive
       ? matches.map((a) => (
           <button key={a.id} type="button" onClick={() => setSelected({ kind: 'b', id: a.id })}
@@ -214,17 +233,19 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
             {a.snippet ? <span className="block text-xs text-muted-foreground truncate"><Snippet text={a.snippet} /></span> : null}
           </button>
         ))
-      : groups.map(([cat, items]) => (
-          <div key={cat} className="space-y-0.5">
-            <div className="px-2 pt-3 pb-1 text-xs font-semibold text-foreground/70 tracking-wide">{cat}</div>
-            {items.map((a) => (
-              <button key={a.id} type="button" onClick={() => setSelected({ kind: 'b', id: a.id })}
-                className={itemBtn(selected?.kind === 'b' && selected.id === a.id)}>
-                {a.title}
-              </button>
-            ))}
-          </div>
-        ));
+      : groups.map(([cat, items]) => {
+          const key = `${prefix}:${cat}`;
+          return (
+            <CatGroup key={key} title={cat} count={items.length} open={openCats.has(key)} toggle={() => toggleCat(key)}>
+              {items.map((a) => (
+                <button key={a.id} type="button" onClick={() => setSelected({ kind: 'b', id: a.id })}
+                  className={itemBtn(selected?.kind === 'b' && selected.id === a.id)}>
+                  {a.title}
+                </button>
+              ))}
+            </CatGroup>
+          );
+        });
 
   const uniOpenEff = uniOpen || queryActive;
   const localOpenEff = localOpen || queryActive;
@@ -249,15 +270,17 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
             <SectionHead icon={BookOpen} title="Работа с приложением" count={HELP_ARTICLES.length} open={aOpenEff} toggle={() => setAOpen((v) => !v)} />
             {aOpenEff && (
               <>
-                {aGroups.map(([cat, items]) => (
-                  <div key={cat} className="space-y-0.5">
-                    <div className="px-2 pt-3 pb-1 text-xs font-semibold text-foreground/70 tracking-wide">{cat}</div>
-                    {items.map((a) => (
-                      <button key={a.id} type="button" onClick={() => setSelected({ kind: 'a', id: a.id })}
-                        className={itemBtn(selected?.kind === 'a' && selected.id === a.id)}>{a.title}</button>
-                    ))}
-                  </div>
-                ))}
+                {aGroups.map(([cat, items]) => {
+                  const key = `a:${cat}`;
+                  return (
+                    <CatGroup key={key} title={cat} count={items.length} open={queryActive || openCats.has(key)} toggle={() => toggleCat(key)}>
+                      {items.map((a) => (
+                        <button key={a.id} type="button" onClick={() => setSelected({ kind: 'a', id: a.id })}
+                          className={itemBtn(selected?.kind === 'a' && selected.id === a.id)}>{a.title}</button>
+                      ))}
+                    </CatGroup>
+                  );
+                })}
                 {aGroups.length === 0 && <div className="px-2 py-2 text-xs text-muted-foreground">В инструкциях ничего не найдено</div>}
               </>
             )}
@@ -267,7 +290,7 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
           {(universal.articles.length > 0 || (queryActive && uniMatches.length > 0)) && (
             <div className="space-y-0.5">
               <SectionHead icon={Library} title="База знаний" count={queryActive ? uniMatches.length : universal.articles.length} open={uniOpenEff} toggle={() => setUniOpen((v) => !v)} />
-              {uniOpenEff && renderB(uniGroups, uniMatches)}
+              {uniOpenEff && renderB('uni', uniGroups, uniMatches)}
             </div>
           )}
 
@@ -275,7 +298,7 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
           {(local.articles.length > 0 || (queryActive && localMatches.length > 0)) && (
             <div className="space-y-0.5">
               <SectionHead icon={FileText} title={`Локальные документы${networkName ? ` · ${networkName}` : ''}`} count={queryActive ? localMatches.length : local.articles.length} open={localOpenEff} toggle={() => setLocalOpen((v) => !v)} />
-              {localOpenEff && renderB(localGroups, localMatches)}
+              {localOpenEff && renderB('local', localGroups, localMatches)}
             </div>
           )}
 
