@@ -42,6 +42,7 @@ import {
   PanelLeft,
 } from "lucide-react";
 import { useSupportContext } from "@/contexts/SupportContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
 
 interface AppSidebarProps {
   selectedTradingPoint: string;
@@ -63,6 +64,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
 
   const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
   const menuVisibility = useMenuVisibility();
+  const { isSuperAdmin } = useNewAuth();
 
   let unreadCounts = { tickets: 0, chat: 0, total: 0 };
   try {
@@ -144,7 +146,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
     { title: "Рассылка сообщений", url: "/network/broadcast-messages", icon: MessageSquare },
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
-    { title: "База знаний", url: "/admin/knowledge-base", icon: BookOpen },
+    // Редактор базы знаний ведёт поставщик: клиентскому network_admin пункт не показываем
+    // (backend всё равно отдаст 403 — это UX-гейт, не безопасность)
+    ...(isSuperAdmin() ? [{ title: "База знаний", url: "/admin/knowledge-base", icon: BookOpen }] : []),
     { title: "Рассылка инвентаризации", url: "/admin/inventory-recipients", icon: Mail },
     { title: "Журнал аудита", url: "/admin/audit", icon: History },
   ];

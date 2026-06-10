@@ -9,10 +9,12 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   /** Требовать административный доступ (super_admin, system_admin, network_admin или permission manage) */
   requireAdmin?: boolean;
+  /** Требовать строго super_admin/system_admin (backend всё равно гейтит — это UX-гейт от 403) */
+  requireSuperAdmin?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin }) => {
-  const { user, loading, isAdmin } = useNewAuth();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin, requireSuperAdmin }) => {
+  const { user, loading, isAdmin, isSuperAdmin } = useNewAuth();
   const location = useLocation();
   const isAuthenticated = !!user && !!getToken();
 
@@ -42,6 +44,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
 
   // Если требуется админский доступ, проверяем роль
   if (requireAdmin && !isAdmin()) {
+    return <Navigate to="/" replace />;
+  }
+  if (requireSuperAdmin && !isSuperAdmin()) {
     return <Navigate to="/" replace />;
   }
 

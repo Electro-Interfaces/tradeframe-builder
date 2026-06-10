@@ -283,7 +283,7 @@ const App = () => {
                   <Route path="/support/chat" element={<ProtectedRoute><LazyLoader><ChatPage /></LazyLoader></ProtectedRoute>} />
 
                   {/* Админ-редактор базы знаний компании (super-admin ведёт контент B) */}
-                  <Route path="/admin/knowledge-base" element={<ProtectedRoute requireAdmin><LazyLoader><KnowledgeBaseAdmin /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/knowledge-base" element={<ProtectedRoute requireSuperAdmin><LazyLoader><KnowledgeBaseAdmin /></LazyLoader></ProtectedRoute>} />
 
                   {/* Инфо — база знаний и инструкции (deep-link, постоянные ссылки на статьи) */}
                   <Route path="/info" element={<ProtectedRoute><LazyLoader><InfoPage /></LazyLoader></ProtectedRoute>} />
