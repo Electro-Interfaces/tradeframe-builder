@@ -853,12 +853,23 @@ function MessagePanel({
         </button>
         {callsEnabled && (
           <div className="flex items-center gap-1 pr-3 shrink-0">
-            <Button variant="ghost" size="icon" title="Аудиозвонок" onClick={() => startCall(true)}>
-              <Phone className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" title="Видеозвонок" onClick={() => startCall(false)}>
-              <Video className="h-4 w-4" />
-            </Button>
+            {nativeCallEligible ? (
+              // Чат ровно из 2 человек — нативный 1:1: аудио и видео это РАЗНЫЕ звонки.
+              <>
+                <Button variant="ghost" size="icon" title="Аудиозвонок" onClick={() => startCall(true)}>
+                  <Phone className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" title="Видеозвонок" onClick={() => startCall(false)}>
+                  <Video className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              // Группа/каналы — Jitsi-конференция: аудио и видео открывают ОДНО окно, поэтому
+              // одна кнопка «Видеоконференция» (две делали бы одно и то же).
+              <Button variant="ghost" size="icon" title="Видеоконференция" onClick={() => startCall(false)}>
+                <Video className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </div>

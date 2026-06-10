@@ -9,7 +9,7 @@
  * realtime — через polling ChatPage поверх живого /sync (R3); Room.timeline-подписка — фаза 4.
  */
 
-import { createClient, ClientEvent, HttpApiEvent, RoomEvent, type MatrixClient, type MatrixEvent } from 'matrix-js-sdk';
+import { createClient, ClientEvent, HttpApiEvent, RoomEvent, NotificationCountType, type MatrixClient, type MatrixEvent } from 'matrix-js-sdk';
 import { apiRequest } from './apiClient';
 import type { ChatRoom, ChatMessage, ChatParticipant } from '@/types/support';
 
@@ -375,9 +375,25 @@ export async function sendChatMessage(
 export async function markChatRead(roomId: string): Promise<void> {
   const c = await ensureClient();
   const room = c.getRoom(roomId);
-  const events = room?.getLiveTimeline().getEvents() || [];
-  const last = events[events.length - 1];
+  if (!room) return;
+  const events = room.getLiveTimeline().getEvents();
+  // Receipt ставим на последнее СООБЩЕНИЕ (не на state-событие): иначе getEventReadUpTo
+  // указывает мимо ленты сообщений и receiptUnread не обнуляется.
+  let last: MatrixEvent | null = null;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].getType() === 'm.room.message') { last = events[i]; break; }
+  }
+  if (!last && events.length) last = events[events.length - 1];
   if (last) await c.sendReadReceipt(last).catch(() => {});
+  // Оптимистично гасим счётчики сразу. Уведомления о звонке идут с @room-упоминанием →
+  // «highlight», который обычный read-receipt сбрасывает только после следующего /sync;
+  // без этого бейдж «непрочитано» висит после открытия чата.
+  try {
+    room.setUnreadNotificationCount(NotificationCountType.Total, 0);
+    room.setUnreadNotificationCount(NotificationCountType.Highlight, 0);
+  } catch {
+    /* старая версия SDK — счётчик догонит через sync */
+  }
 }
 
 export async function getChatRoom(roomId: string): Promise<ChatRoom> {
