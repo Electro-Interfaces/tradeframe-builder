@@ -87,6 +87,62 @@ const roomLimiter = rateLimit({
   message: { error: 'Слишком много запросов. Подождите.' },
 });
 
+// ── Звонки (Фаза 6, §6a ТЗ) ────────────────────────────
+// Анти-спам уведомлений: не чаще 1 сообщения-вызова в 2 минуты на комнату (in-memory,
+// сброс при рестарте сервера — приемлемо).
+const CALL_NOTIFY_COOLDOWN_MS = 2 * 60 * 1000;
+const lastCallNotify = new Map();
+
+const callLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Слишком много запросов звонка. Подождите.' },
+});
+
+// Начать звонок в комнате: гарантировать Jitsi-виджет + уведомить участников.
+// Авторизация: юзер должен быть joined-участником комнаты, а комната — управляемой нами
+// (@tf-chat-svc состоит в ней; для чужих roomId joined_members отдаёт 403).
+router.post('/call', requireAuth, callLimiter, async (req, res) => {
+  try {
+    const roomId = typeof req.body?.roomId === 'string' ? req.body.roomId : null;
+    if (!roomId || !roomId.startsWith('!')) {
+      return res.status(400).json({ error: 'roomId обязателен' });
+    }
+    const mxid = await mx.getMyMxid(req.user.id);
+    if (!mxid) return res.status(403).json({ error: 'Чат не инициализирован' });
+
+    let members;
+    try {
+      members = await mx.getJoinedMembers(roomId);
+    } catch {
+      return res.status(403).json({ error: 'Звонок в этой комнате недоступен' });
+    }
+    if (!members[mxid]) {
+      return res.status(403).json({ error: 'Вы не участник этой комнаты' });
+    }
+
+    const { domain, conferenceId } = await mx.ensureCallWidget(roomId);
+
+    const now = Date.now();
+    if ((lastCallNotify.get(roomId) || 0) < now - CALL_NOTIFY_COOLDOWN_MS) {
+      lastCallNotify.set(roomId, now);
+      const who = req.user.name || req.user.email || 'Клиент';
+      // best-effort: недоставленное уведомление не должно ломать сам звонок
+      mx.sendCallNotice(roomId, `📞 ${who} начал звонок — присоединяйтесь`).catch((e) =>
+        console.warn('[matrix] call notice failed:', e.message)
+      );
+    }
+
+    console.log(`[matrix] call started tf_user=${req.user.id} room=${roomId} conf=${conferenceId}`);
+    res.json({ domain, conferenceId, displayName: req.user.name || req.user.email || 'Клиент' });
+  } catch (e) {
+    console.error('[matrix] call error:', e.response?.status, e.response?.data?.errcode || e.message);
+    res.status(503).json({ error: 'Звонок временно недоступен' });
+  }
+});
+
 // Справочник сотрудников компании текущего юзера (для добавления в клиентский чат).
 router.get('/company-members', requireAuth, async (req, res) => {
   try {

@@ -1,5 +1,6 @@
 # ТЗ для агента: чат в TradeFrame на базе Matrix
 
+> Версия 1.1 — 10.06.2026: добавлена Фаза 6 «Звонки и видео» (§6a), обновлена Фаза 5 (RC-сервер выведен из эксплуатации 10.06, откат его настроек не нужен).
 > Версия 1.0 — 09.06.2026. Заменяет устаревшее `chat-rc-iframe-AGENT-TASK.md` (Rocket.Chat оказался платным: guest/custom-роли — только Enterprise). Перешли на **Matrix/Synapse** (бесплатно, self-hosted, изоляция клиентов доказана).
 >
 > Этот документ — исполнимое задание. Делай по фазам, после каждой — проверяй критерии готовности. Все пути — абсолютные. Секреты НЕ коммить.
@@ -68,6 +69,8 @@ Synapse (matrix.dataworker.ru) — уже развёрнут, изоляция �
 | ГИГ / АЗС | `!fMsvEzDUbgUdzPkJtP:matrix.dataworker.ru` |
 | ГИГ / Процессинг | `!gkYqUFNspIirJDDcSV:matrix.dataworker.ru` |
 | Команда поддержки (во всех клиентских чатах) | `@mag`, `@e.orlova`, `@d.korolev`, `@v.krol`, `@v.ginko`, `@gavrilov` |
+| TURN для WebRTC-звонков | настроен 10.06 (общий coturn, Synapse `/voip/turnServer` выдаёт креды; сквозной тест аллокации снаружи пройден) |
+| Видеоконференции | Jitsi `https://meet.dataworker.ru` — `external_api.js` отдаётся, iframe разрешён, демонстрация экрана из коробки; в Element подключён как `preferred_domain` |
 
 Полный реестр доступов/токенов — `D:\Users\magsp\ELSYPLUS\Servera\vault\matrix-admin.md` (НЕ в git).
 
@@ -267,6 +270,47 @@ export async function initMatrix(networkId?: string) {
 
 ---
 
+## 6a. Звонки и видео — Фаза 6 (добавлено 10.06.2026)
+
+Инфраструктура готова и проверена 10.06 (TURN-аллокация снаружи, Jitsi iframe — см. §2). Осталась чисто фронтовая/backend-обвязка.
+
+### 6a.1. Архитектурное решение: Jitsi-виджет, НЕ нативные m.call
+
+Нативные 1:1-звонки matrix-js-sdk (`m.call.*`) в Element **рендерят звонилку только в комнатах из 2 участников**. Наши комнаты — клиент + 6 поддержки + боты, поэтому на стороне команды входящий m.call просто не покажет UI ответа. Основной механизм — **Jitsi-виджет** (`m.widget` state event): работает в комнате любого размера, Element показывает команде нативную плашку «Join conference», демонстрация экрана из коробки (замена AnyDesk для «покажите, что у вас на экране»).
+
+```
+TradeFrame (кнопка 📞/🎥 в шапке чата)
+  └─ POST /api/chat/matrix/call {roomId}        ← backend, под TF-JWT
+       ├─ ensureCallWidget(roomId): state event m.widget от @tf-chat-svc (PL100), идемпотентно
+       │    url = https://meet.dataworker.ru/tf-<companySlug>-<8hex>   (suffix хранится в data виджета)
+       ├─ notify: m.room.message от @tf-chat-svc «📞 <Имя> начал звонок» + mention @room  → push команде
+       └─ ответ фронту: {domain, roomName, displayName}
+  └─ фронт открывает конференцию в модалке через external_api.js (meet.dataworker.ru)
+Команда: Element → в комнате видна плашка виджета → Join (или клик по упоминанию)
+```
+
+### 6a.2. Backend (`server/routes/chatMatrix.js` — дописать)
+
+- `POST /api/chat/matrix/call` (requireAuth): проверить, что комната принадлежит юзеру (его support-room или направление его компании — по таблицам `chat_matrix_*`), иначе 403.
+- `ensureCallWidget(roomId)`: GET state `m.widget`/`im.vector.modular.widgets` (id `tf-call`); если нет — PUT от `@tf-chat-svc`: `{type:"jitsi", url:"https://meet.dataworker.ru/<jitsiRoom>#config...", name:"Звонок", data:{domain:"meet.dataworker.ru", conferenceId:"<jitsiRoom>"}}`. `jitsiRoom = tf-<companySlug>-<crypto 8 hex>` — генерится ОДИН раз на комнату и переиспользуется (хранится в state виджета). Неугадываемость имени = изоляция конференции (Jitsi пускает анонимно).
+- Сообщение-вызов: не чаще 1 раза в 2 мин на комнату (анти-спам), формат `m.text` + `m.mentions {room:true}`.
+
+### 6a.3. Frontend
+
+- `src/services/jitsiCall.ts`: ленивая загрузка `https://meet.dataworker.ru/external_api.js`, `new JitsiMeetExternalAPI(domain, {roomName, parentNode, userInfo:{displayName: <ФИО из TF-профиля>}, configOverwrite:{prejoinConfig:{enabled:false}}})`.
+- Кнопки 📞 (аудио: `startWithVideoMuted:true`) и 🎥 в шапке ChatPage — только когда выбрана комната. Конференция — в модалке поверх чата (не уводить со страницы); закрытие модалки = `api.dispose()`.
+- НЕ тащить external_api.js в bundle — только динамический `<script>` (R5 остаётся в силе).
+
+### 6a.4. Фаза 6b (опционально, потом): нативные 1:1
+
+Если появятся настоящие DM-комнаты «клиент ↔ один сотрудник» — добавить `createNewMatrixCall` (звонок с рингтоном и push в Element X). Для текущей модели «комнаты поддержки всей командой» — не нужно.
+
+### 6a.5. Критерий готовности Фазы 6
+
+Клиент в TradeFrame жмёт 🎥 → открывается конференция в модалке; у команды в Element в той же комнате — плашка виджета + push-упоминание; сотрудник входит → двусторонние аудио/видео и демонстрация экрана работают; чужой человек угадать URL конференции не может; повторные клики не плодят виджеты/спам-сообщения.
+
+---
+
 ## 7. Провижн при онбординге клиента (организационное)
 
 Когда заводим нового сотрудника компании-клиента в TradeFrame:
@@ -286,7 +330,8 @@ export async function initMatrix(networkId?: string) {
 | **2. Frontend MVP** | matrix-js-sdk + adapter + ChatPage на личном чате | клиент входит в TradeFrame → Чат → видит «Поддержка — <Имя>» → пишет → сообщение видно в Element у команды → ответ команды виден в TradeFrame |
 | **3. Направления** | `ensureCompanyRooms` + показ Space-комнат | сотрудник ГИГ видит Общий/Учет/АЗС/Процессинг; чужую компанию не видит |
 | **4. Богатый UX** | файлы (`m.image`/`m.file` через `/_matrix/media`), typing, read receipts, unread badge | загрузка файла, индикатор печати, счётчик непрочитанных в сайдбаре |
-| **5. Чистка** | убрать `/api/chat/rc-token`, `server/routes/chat.js`, `server/services/rcChatService.js`, RC env, RC-зависимости + **откатить настройки RC-сервера** (`Iframe_Restrict_Access=true` на chat.dataworker.ru — закрыть открытый framing) | grep по `RC_`/`rocket` пуст; старый код удалён; `curl -sI https://chat.dataworker.ru/` снова с `X-Frame-Options` |
+| **5. Чистка** | убрать `/api/chat/rc-token`, `server/routes/chat.js`, `server/services/rcChatService.js`, RC env, RC-зависимости. ~~Откат настроек RC-сервера~~ — не нужен: **Rocket.Chat выведен из эксплуатации 10.06.2026** (сервер удалён, см. `ai-base/updates/2026-06-10-rocketchat-decommission.md`) | grep по `RC_`/`rocket` в коде/env пуст; старый код удалён |
+| **6. Звонки и видео** | §6a: `/api/chat/matrix/call` + `ensureCallWidget` + кнопки 📞/🎥 + модалка Jitsi | см. §6a.5: клиент звонит из TradeFrame, команда входит из Element, экран шарится, виджеты/уведомления не дублируются |
 
 **Сквозной тест изоляции (обязателен):** под клиентским аккаунтом `getRooms()` отдаёт только комнаты его компании; прямой запрос чужой/внутренней комнаты → 403; `publicRooms` пуст.
 
@@ -306,6 +351,7 @@ export async function initMatrix(networkId?: string) {
 - НЕ трогать UI-раскладку ChatPage (она уже подходит) — менять только источник данных.
 - НЕ создавать комнаты/аккаунты вне идемпотентных `ensure*`-функций (иначе дубли при каждом заходе).
 - НЕ использовать личный `@mag` как сервисный токен backend — только `@tf-chat-svc`.
+- НЕ делать звонки через нативные `m.call` в комнатах поддержки — Element не показывает UI звонка в комнате с >2 участниками. Только Jitsi-виджет (§6a). Нативные 1:1 — лишь если появятся настоящие DM (§6a.4).
 
 ---
 

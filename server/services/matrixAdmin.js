@@ -403,6 +403,52 @@ async function deleteClientRoom(roomId) {
   await postgres.query('DELETE FROM chat_matrix_client_rooms WHERE room_id = $1', [roomId]);
 }
 
+// ── звонки (Фаза 6): Jitsi-виджет в комнате ────────────
+// Один виджет на комнату (state_key tf-call-jitsi), имя конференции неугадываемое и
+// генерится ОДИН раз — повторные звонки переиспользуют ту же конференцию.
+const JITSI_DOMAIN = () => (process.env.MATRIX_JITSI_DOMAIN || 'meet.dataworker.ru').trim();
+const CALL_WIDGET_KEY = 'tf-call-jitsi';
+
+// Участники комнаты глазами @tf-chat-svc. 403 = комната не наша (svc не состоит) —
+// этим же закрывается и авторизация /call: чужие/посторонние roomId отсекаются.
+async function getJoinedMembers(roomId) {
+  const data = await mreq('get', `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/joined_members`);
+  return data?.joined || {};
+}
+
+async function ensureCallWidget(roomId) {
+  const enc = encodeURIComponent(roomId);
+  try {
+    const w = await mreq('get', `/_matrix/client/v3/rooms/${enc}/state/im.vector.modular.widgets/${CALL_WIDGET_KEY}`);
+    if (w?.data?.conferenceId) {
+      return { domain: w.data.domain || JITSI_DOMAIN(), conferenceId: w.data.conferenceId };
+    }
+  } catch (e) {
+    if (e.response?.status !== 404) throw e;
+  }
+  const domain = JITSI_DOMAIN();
+  const conferenceId = `tf-${crypto.randomBytes(6).toString('hex')}`;
+  // Формат виджета, который Element рендерит как «Join conference» (type: jitsi).
+  await mreq('put', `/_matrix/client/v3/rooms/${enc}/state/im.vector.modular.widgets/${CALL_WIDGET_KEY}`, {
+    type: 'jitsi',
+    id: CALL_WIDGET_KEY,
+    name: 'Звонок',
+    url: `https://${domain}/${conferenceId}`,
+    data: { domain, conferenceId, roomName: conferenceId },
+  });
+  return { domain, conferenceId };
+}
+
+// Сообщение-вызов с @room-упоминанием — даёт push команде в Element/Element X.
+async function sendCallNotice(roomId, body) {
+  const txn = `tfcall-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+  await mreq('put', `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txn}`, {
+    msgtype: 'm.text',
+    body,
+    'm.mentions': { room: true },
+  });
+}
+
 module.exports = {
   getCompany,
   companySlug,
@@ -425,4 +471,7 @@ module.exports = {
   addClientRoomMember,
   removeClientRoomMember,
   deleteClientRoom,
+  getJoinedMembers,
+  ensureCallWidget,
+  sendCallNotice,
 };
