@@ -128,4 +128,20 @@ router.post('/contacts', requireAuth, writeLimiter, async (req, res) => {
   catch (e) { console.error('[kb] createContact:', e.message); res.status(503).json({ error: 'Недоступно' }); }
 });
 
+// Админ-листинг (все статусы, super-only).
+router.get('/admin/articles', requireAuth, async (req, res) => {
+  try {
+    const r = await kb.adminListArticles(req.user, req.query.networkId || null);
+    if (r.forbidden) return res.status(403).json({ error: 'Недостаточно прав' });
+    res.json({ articles: r.articles });
+  } catch (e) { console.error('[kb] adminListArticles:', e.message); res.status(503).json({ error: 'Недоступно' }); }
+});
+router.get('/admin/categories', requireAuth, async (req, res) => {
+  try {
+    const r = await kb.adminListCategories(req.user, req.query.networkId || null);
+    if (r.forbidden) return res.status(403).json({ error: 'Недостаточно прав' });
+    res.json({ categories: r.categories });
+  } catch (e) { console.error('[kb] adminListCategories:', e.message); res.status(503).json({ error: 'Недоступно' }); }
+});
+
 module.exports = router;

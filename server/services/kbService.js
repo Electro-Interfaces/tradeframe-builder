@@ -176,9 +176,8 @@ async function getArticle(user, id) {
     [id],
   );
   if (!row) return { notFound: true };
-  if (row.status !== 'published') {
-    // черновики/архив — только админам (проверка роли в routes); здесь скрываем от чтения
-  }
+  // Черновики/архив — только поставщику (super/system); клиенту их не видно.
+  if (row.status !== 'published' && !isSuperAdmin(user)) return { notFound: true };
   const allowed = await resolveAllowedNetworkIds(user);
   if (allowed !== null && !allowed.includes(row.network_id)) {
     return { notFound: true }; // 404, чтобы не подтверждать существование
@@ -401,6 +400,34 @@ async function createContact(user, d) {
   return { id: row.id };
 }
 
+// ── Админ-листинг (все статусы, super-only) ────────────────────────────
+async function adminListArticles(user, requestedNetworkId) {
+  if (!isSuperAdmin(user)) return { forbidden: true };
+  const net = await resolveNetworkUuid(requestedNetworkId);
+  if (!net) return { articles: [] };
+  const members = await companyMemberNetworkIds(net);
+  const { rows } = await postgres.query(
+    `SELECT a.id::text AS id, a.network_id::text AS network_id, a.category_id::text AS category_id,
+            a.title, a.doc_kind, a.doc_number, a.status, a.version, a.is_current, a.effective_date, a.updated_at
+       FROM kb_articles a WHERE a.network_id::text = ANY($1) ORDER BY a.is_current DESC, a.updated_at DESC`,
+    [members],
+  );
+  return { articles: rows };
+}
+
+async function adminListCategories(user, requestedNetworkId) {
+  if (!isSuperAdmin(user)) return { forbidden: true };
+  const net = await resolveNetworkUuid(requestedNetworkId);
+  if (!net) return { categories: [] };
+  const members = await companyMemberNetworkIds(net);
+  const { rows } = await postgres.query(
+    `SELECT id::text AS id, network_id::text AS network_id, parent_id::text AS parent_id, title, icon, sort_order
+       FROM kb_categories WHERE network_id::text = ANY($1) ORDER BY sort_order, title`,
+    [members],
+  );
+  return { categories: rows };
+}
+
 module.exports = {
   markdownToPlain,
   resolveAllowedNetworkIds,
@@ -418,4 +445,6 @@ module.exports = {
   updateArticle,
   deleteArticle,
   createContact,
+  adminListArticles,
+  adminListCategories,
 };

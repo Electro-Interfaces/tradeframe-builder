@@ -98,3 +98,59 @@ export function searchKb(q: string, networkId?: string | null, signal?: AbortSig
 export function kbAttachmentUrl(id: string) {
   return `${getBackendOrigin()}/api/kb/attachments/${encodeURIComponent(id)}`;
 }
+
+// ── Админ (super-admin): листинг всех статусов + запись ─────────────────
+export interface KbAdminArticle {
+  id: string;
+  network_id: string;
+  category_id: string | null;
+  title: string;
+  doc_kind: string;
+  doc_number: string | null;
+  status: string;
+  version: number;
+  is_current: boolean;
+  effective_date: string | null;
+  updated_at: string;
+}
+export interface KbArticleInput {
+  networkId?: string;
+  categoryId?: string | null;
+  title: string;
+  bodyMd: string;
+  status: string;
+  docKind: string;
+  docNumber?: string | null;
+  effectiveDate?: string | null;
+  tags?: string[];
+}
+
+async function mutate<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${getBackendOrigin()}${path}`, {
+    method,
+    headers: authHeaders(),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    let msg = `Ошибка ${res.status}`;
+    try { msg = (await res.json()).error || msg; } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+  return res.json().catch(() => ({})) as Promise<T>;
+}
+
+export function adminListKbArticles(networkId?: string | null) {
+  return getJson<{ articles: KbAdminArticle[] }>(`/api/kb/admin/articles${netQs(networkId)}`);
+}
+export function createKbArticle(d: KbArticleInput) {
+  return mutate<{ id: string }>('POST', '/api/kb/articles', d);
+}
+export function updateKbArticle(id: string, d: Partial<KbArticleInput>) {
+  return mutate<{ id: string; newRevision?: boolean }>('PUT', `/api/kb/articles/${encodeURIComponent(id)}`, d);
+}
+export function deleteKbArticle(id: string) {
+  return mutate<{ ok: boolean }>('DELETE', `/api/kb/articles/${encodeURIComponent(id)}`);
+}
+export function createKbContact(d: { networkId?: string; fullName: string; position?: string; responsibility?: string; phone?: string; email?: string; note?: string; role?: string }) {
+  return mutate<{ id: string }>('POST', '/api/kb/contacts', d);
+}

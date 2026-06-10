@@ -37,6 +37,7 @@ import {
   MessageCircleMore,
   TrendingUp,
   Mail,
+  BookOpen,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -143,6 +144,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
     { title: "Рассылка сообщений", url: "/network/broadcast-messages", icon: MessageSquare },
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
+    { title: "База знаний", url: "/admin/knowledge-base", icon: BookOpen },
     { title: "Рассылка инвентаризации", url: "/admin/inventory-recipients", icon: Mail },
     { title: "Журнал аудита", url: "/admin/audit", icon: History },
   ];

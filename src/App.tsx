@@ -86,6 +86,7 @@ const InteractionPage = lazy(() => import("./pages/support/InteractionPage"));
 
 // Инфо — база знаний и инструкции (deep-link)
 const InfoPage = lazy(() => import("./pages/InfoPage"));
+const KnowledgeBaseAdmin = lazy(() => import("./pages/admin/KnowledgeBaseAdmin"));
 
 // Используем предварительно настроенный queryClient из lib/queryClient
 
@@ -282,6 +283,9 @@ const App = () => {
                   <Route path="/support/interaction" element={<ProtectedRoute><LazyLoader><InteractionPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/support/tickets" element={<ProtectedRoute><LazyLoader><TicketsPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/support/chat" element={<ProtectedRoute><LazyLoader><ChatPage /></LazyLoader></ProtectedRoute>} />
+
+                  {/* Админ-редактор базы знаний компании (super-admin ведёт контент B) */}
+                  <Route path="/admin/knowledge-base" element={<ProtectedRoute requireAdmin><LazyLoader><KnowledgeBaseAdmin /></LazyLoader></ProtectedRoute>} />
 
                   {/* Инфо — база знаний и инструкции (deep-link, постоянные ссылки на статьи) */}
                   <Route path="/info" element={<ProtectedRoute><LazyLoader><InfoPage /></LazyLoader></ProtectedRoute>} />

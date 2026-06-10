@@ -85,6 +85,14 @@ async function main() {
   check('Старая редакция ЛНД скрыта (archived)', !gigIds.includes(lnd.id));
   check('Новая редакция ЛНД видна (is_current)', gigIds.includes(upd.id));
 
+  console.log('\n[Черновики и admin-листинг]');
+  const draft = await kb.createArticle(superUser, { networkId: g1, title: 'Черновик ГИГ', bodyMd: 'не готово', status: 'draft', docKind: 'guide' });
+  check('Черновик НЕ виден в дереве клиента', !(await kb.getTree(userGig, g1)).articles.map((a) => a.id).includes(draft.id));
+  check('Черновик: getArticle клиента → 404', (await kb.getArticle(userGig, draft.id)).notFound === true);
+  check('Черновик: getArticle super → открыт', !!(await kb.getArticle(superUser, draft.id)).article);
+  check('adminList super: включает черновик', (await kb.adminListArticles(superUser, g1)).articles.map((a) => a.id).includes(draft.id));
+  check('adminList не-super: forbidden', (await kb.adminListArticles(userGig, g1)).forbidden === true);
+
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);
   await pool.closePool();
   process.exit(fail ? 1 : 0);
