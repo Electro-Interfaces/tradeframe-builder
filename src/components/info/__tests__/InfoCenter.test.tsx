@@ -28,6 +28,7 @@ function renderAt(path = '/') {
 describe('InfoCenter (фаза 0)', () => {
   it('рендерит список всех инструкций', () => {
     renderAt('/');
+    fireEvent.click(screen.getByText('Работа с приложением')); // секция свёрнута по умолчанию — раскрываем
     const nav = screen.getByRole('navigation', { name: 'Инструкции' });
     expect(within(nav).getByText('С чего начать')).toBeInTheDocument();
     expect(within(nav).getByText('Оборудование и связь')).toBeInTheDocument();
@@ -42,6 +43,7 @@ describe('InfoCenter (фаза 0)', () => {
 
   it('переключает статью по клику в списке', async () => {
     renderAt('/');
+    fireEvent.click(screen.getByText('Работа с приложением'));
     const nav = screen.getByRole('navigation', { name: 'Инструкции' });
     fireEvent.click(within(nav).getByText('Ценообразование сети'));
     expect(await screen.findByText('Основной сценарий')).toBeInTheDocument();
@@ -53,5 +55,13 @@ describe('InfoCenter (фаза 0)', () => {
     const nav = screen.getByRole('navigation', { name: 'Инструкции' });
     expect(within(nav).getByText('Ценообразование сети')).toBeInTheDocument();
     expect(within(nav).queryByText('Оборудование и связь')).not.toBeInTheDocument();
+  });
+
+  it('секция инструкций свёрнута по умолчанию и раскрывается по клику', () => {
+    renderAt('/');
+    const nav = screen.getByRole('navigation', { name: 'Инструкции' });
+    expect(within(nav).queryByText('С чего начать')).not.toBeInTheDocument(); // свёрнута
+    fireEvent.click(screen.getByText('Работа с приложением'));
+    expect(within(nav).getByText('С чего начать')).toBeInTheDocument(); // раскрыта
   });
 });

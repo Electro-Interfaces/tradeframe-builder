@@ -10,7 +10,7 @@
  */
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Loader2, ChevronLeft, Search, BookOpen, Type, Library, Phone, Mail, Users } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Search, BookOpen, Type, Library, Phone, Mail, Users } from 'lucide-react';
 import { useSupportContext } from '@/contexts/SupportContext';
 import { useSelection } from '@/contexts/SelectionContext';
 import { HELP_ARTICLES, findArticleByRoute, findArticleById, type HelpArticleMeta } from '@/content/help/manifest';
@@ -78,6 +78,7 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
   const [bArticles, setBArticles] = useState<KbArticleListItem[]>([]);
   const [contacts, setContacts] = useState<KbContact[]>([]);
   const [serverSearch, setServerSearch] = useState<KbSearchResult | null>(null);
+  const [aExpanded, setAExpanded] = useState(false); // «Работа с приложением» — свёрнута по умолчанию
 
   // Внешняя цель (повторный openInfo).
   useEffect(() => {
@@ -185,23 +186,31 @@ export default function InfoCenter({ initialArticleId }: { initialArticleId?: st
         </div>
 
         <nav aria-label="Инструкции" className="flex-1 min-h-0 overflow-y-auto p-2 space-y-4">
-          {/* A — работа с приложением */}
+          {/* A — работа с приложением (свёрнута по умолчанию; при поиске авто-раскрывается) */}
           <div className="space-y-0.5">
-            <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <BookOpen className="h-3.5 w-3.5" /> Работа с приложением
-            </div>
-            {aGroups.map(([cat, items]) => (
-              <div key={cat} className="space-y-0.5">
-                <div className="px-2 pt-1 text-[11px] font-medium text-muted-foreground/80">{cat}</div>
-                {items.map((a) => (
-                  <button key={a.id} type="button" onClick={() => setSelected({ kind: 'a', id: a.id })}
-                    className={itemBtn(selected?.kind === 'a' && selected.id === a.id)}>
-                    {a.title}
-                  </button>
+            <button type="button" onClick={() => setAExpanded((v) => !v)} aria-expanded={aExpanded || queryActive}
+              className="w-full flex items-center gap-2 px-1 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className={`h-3.5 w-3.5 transition-transform ${aExpanded || queryActive ? 'rotate-90' : ''}`} />
+              <BookOpen className="h-3.5 w-3.5" />
+              <span className="flex-1 text-left">Работа с приложением</span>
+              <span className="text-[10px] font-normal text-muted-foreground/70">{HELP_ARTICLES.length}</span>
+            </button>
+            {(aExpanded || queryActive) && (
+              <>
+                {aGroups.map(([cat, items]) => (
+                  <div key={cat} className="space-y-0.5">
+                    <div className="px-2 pt-1 text-[11px] font-medium text-muted-foreground/80">{cat}</div>
+                    {items.map((a) => (
+                      <button key={a.id} type="button" onClick={() => setSelected({ kind: 'a', id: a.id })}
+                        className={itemBtn(selected?.kind === 'a' && selected.id === a.id)}>
+                        {a.title}
+                      </button>
+                    ))}
+                  </div>
                 ))}
-              </div>
-            ))}
-            {aGroups.length === 0 && <div className="px-2 py-2 text-xs text-muted-foreground">В инструкциях ничего не найдено</div>}
+                {aGroups.length === 0 && <div className="px-2 py-2 text-xs text-muted-foreground">В инструкциях ничего не найдено</div>}
+              </>
+            )}
           </div>
 
           {/* B — база знаний компании */}
