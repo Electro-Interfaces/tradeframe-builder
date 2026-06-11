@@ -22,7 +22,6 @@
 - Онлайн-заказы через агрегаторы (MSTO)
 - Поступления нефтепродуктов и сверка данных
 - Автоматические уведомления (Telegram Bot, Email)
-- Broadcast-рассылка сообщений администраторами
 - Управление пользователями, ролями и правами доступа
 - Правовые документы с отслеживанием принятия
 - Журнал аудита действий пользователей
@@ -195,7 +194,6 @@ TradeControl/
 │   │   ├── reconciliationService.ts  #   Сверка данных
 │   │   ├── fuelInventoryService.ts   #   Остатки топлива
 │   │   ├── notificationService.ts    #   Уведомления
-│   │   ├── messageService.ts         #   Broadcast сообщения
 │   │   ├── *ExportService.ts         #   6 экспорт-сервисов (PDF/Excel)
 │   │   ├── *BusinessLogic.ts         #   4 бизнес-логики
 │   │   └── httpClients.ts            #   Retry, Idempotency, Trace
@@ -281,7 +279,6 @@ TradeControl/
 | `/network/reconciliation` | ReconciliationPage | Сверка данных |
 | `/network/sales-analysis` | SalesAnalysisPage | Анализ продаж |
 | `/network/notifications` | NetworkNotifications | Оповещения сети |
-| `/network/broadcast-messages` | BroadcastMessages | Рассылка сообщений |
 | `/network/messages` | Messages | Сообщения |
 
 ### Торговая точка (`/point/*`)
@@ -592,9 +589,11 @@ TradeControl/
 
 ## 10. Broadcast сообщения
 
-### Возможности
+> ⚠️ **Legacy.** UI-раздел «Рассылка сообщений» (`/network/broadcast-messages`) удалён из приложения — оповещения переведены в чат «Новости». Backend `/api/messages` и таблицы БД сохранены, но из интерфейса не вызываются.
 
-- Создание и отправка сообщений через UI (`/network/broadcast-messages`)
+### Возможности (backend, legacy)
+
+- Backend-механика рассылки сохранена в `server/routes/messagesRuntime.js`
 - Каналы доставки: Telegram, Email, оба
 - Получатели: все, по ролям, конкретные пользователи
 - Типы: новости, объявления, оповещения, техобслуживание

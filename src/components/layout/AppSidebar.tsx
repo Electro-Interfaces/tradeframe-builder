@@ -25,7 +25,6 @@ import {
   MapPin,
   Shield,
   Cog,
-  MessageSquare,
   Component,
   Receipt,
   Fuel,
@@ -144,7 +143,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Пользователи", url: "/admin/users-and-roles", icon: Users },
     { title: "Роли", url: "/admin/roles", icon: Shield },
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
-    { title: "Рассылка сообщений", url: "/network/broadcast-messages", icon: MessageSquare },
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
     // Редактор базы знаний ведёт поставщик: клиентскому network_admin пункт не показываем
     // (backend всё равно отдаст 403 — это UX-гейт, не безопасность)

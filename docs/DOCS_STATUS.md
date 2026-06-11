@@ -85,7 +85,7 @@
 | `setup/DEV_START.md` | Частично актуально | сверять команды с `README.md` |
 | `setup/PWA_SETUP.md` | Частично актуально | сверять с `vite.config.ts` |
 | `setup/PDF_EXPORT_SETUP_GUIDE.md` | Требует ревизии | версия 1.5.x |
-| `setup/BROADCAST_MESSAGES_SETUP.md` | Частично актуально | сверять с `/api/messages` |
+| `setup/BROADCAST_MESSAGES_SETUP.md` | История | UI-раздел рассылки удалён, оповещения переведены в чат «Новости»; backend `/api/messages` сохранён как legacy |
 | `setup/CRON_BUILDER_GUIDE.md` | Частично актуально | сверять с текущими компонентами |
 | `setup/SCHEDULE_EDITOR_GUIDE.md` | Частично актуально | сверять с текущим UI |
 | `setup/TANK_CALIBRATION_SETUP.md` | Частично актуально | сверять с PG/API |

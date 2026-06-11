@@ -64,7 +64,6 @@ const ROUTE_NAMES: Record<string, string> = {
   '/network/receipts': 'Поступления',
   '/network/coupons': 'Купоны',
   '/network/notifications': 'Оповещения сети',
-  '/network/broadcast-messages': 'Рассылка сообщений',
   '/point/prices': 'Цены ТТ',
   '/point/tanks': 'Резервуары',
   '/point/equipment': 'Оборудование',

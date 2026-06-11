@@ -81,7 +81,7 @@ Backend запускается из `server/index.js` и использует `s
 | `/api/nomenclature` | `server/routes/nomenclature.js` | номенклатура |
 | `/api/audit` | `server/routes/audit.js` | журнал аудита |
 | `/api/telegram` | `server/routes/telegramRuntime.js` | Telegram runtime |
-| `/api/messages` | `server/routes/messagesRuntime.js` | broadcast-сообщения |
+| `/api/messages` | `server/routes/messagesRuntime.js` | broadcast-сообщения (legacy: UI-раздел рассылки удалён, оповещения переведены в чат «Новости»; эндпоинт сохранён) |
 | `/api/tank-calibration` | `server/routes/tankCalibration.js` | калибровка резервуаров |
 | `/api/msto` | `server/routes/msto.js` | MSTO proxy |
 | `/api/support` | `server/routes/support.js` | TSupport |

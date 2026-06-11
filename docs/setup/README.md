@@ -8,7 +8,7 @@
 | `DEV_START.md` | частично актуально, сверять команды с root README |
 | `PWA_SETUP.md` | сверять с `vite.config.ts` |
 | `PDF_EXPORT_SETUP_GUIDE.md` | требует ревизии, старая версия |
-| `BROADCAST_MESSAGES_SETUP.md` | сверять с `/api/messages` |
+| `BROADCAST_MESSAGES_SETUP.md` | история — UI-раздел рассылки удалён, оповещения через чат «Новости» (backend `/api/messages` legacy) |
 | `CRON_BUILDER_GUIDE.md` | тематическая справка |
 | `SCHEDULE_EDITOR_GUIDE.md` | тематическая справка |
 | `TANK_CALIBRATION_SETUP.md` | сверять с PG/API |

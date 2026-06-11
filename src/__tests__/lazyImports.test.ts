@@ -35,7 +35,6 @@ describe('Lazy imports — все страницы App.tsx резолвятся'
     ['SalesAnalysisPage', () => import('@/pages/SalesAnalysisPage')],
     ['NetworkNotifications', () => import('@/pages/NetworkNotifications')],
     ['Messages', () => import('@/pages/Messages')],
-    ['BroadcastMessages', () => import('@/pages/BroadcastMessages')],
     ['Receipts', () => import('@/pages/network/Receipts')],
     ['NetworkPricing', () => import('@/pages/NetworkPricing')],
     ['OnlineOrdersMonitor', () => import('@/pages/OnlineOrdersMonitor')],
