@@ -100,6 +100,25 @@ function getTTL(urlPath) {
   return CACHE_TTL.default;
 }
 
+// Эффективный TTL с учётом содержимого ответа.
+// Сменный отчёт неизменен (и кэшируется на сутки) только для ЗАКРЫТОЙ смены.
+// Пока смена открыта, STS возвращает отчёт без финализированных release/sales/money.
+// Если закэшировать такой пустой снимок на 24ч, отчёт «залипает» пустым даже после
+// закрытия смены (до истечения TTL). Поэтому для незаполненного отчёта держим
+// короткий TTL — он самообновится, как только смена закроется и данные появятся.
+function getEffectiveTTL(urlPath, data) {
+  const baseTTL = getTTL(urlPath);
+  if (urlPath === '/v1/report/shift_report') {
+    const d = Array.isArray(data) ? data[0] : data;
+    const hasRelease = Array.isArray(d?.release) && d.release.length > 0;
+    const hasSales = Array.isArray(d?.sales) && d.sales.length > 0;
+    if (!hasRelease && !hasSales) {
+      return CACHE_TTL.default; // открытая/неполная смена — не залипаем на сутки
+    }
+  }
+  return baseTTL;
+}
+
 function invalidateCache(urlPath) {
   const prefixes = CACHE_INVALIDATION_MAP[urlPath];
   if (!prefixes) return 0;
@@ -418,7 +437,7 @@ async function proxyRequest(req, res) {
       const response = await fetchPromise;
 
       if (method === 'GET' && response.status === 200) {
-        cache.set(cacheKey, response.data, getTTL(urlPath));
+        cache.set(cacheKey, response.data, getEffectiveTTL(urlPath, response.data));
       }
 
       if (method === 'POST' && response.status >= 200 && response.status < 300) {
@@ -487,7 +506,7 @@ async function stsInternalRequest(urlPath, params, userHeaders) {
   const fakeReq = { headers: userHeaders || {} };
   const client = await getStsClient(fakeReq);
   const response = await client.request({ method: 'GET', url: urlPath, params: effectiveParams });
-  cache.set(cacheKey, response.data, getTTL(urlPath));
+  cache.set(cacheKey, response.data, getEffectiveTTL(urlPath, response.data));
   return response.data;
 }
 
