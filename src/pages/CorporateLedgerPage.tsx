@@ -311,6 +311,7 @@ export default function CorporateLedgerPage() {
         isOpen={orderModalOpen}
         onOpenChange={setOrderModalOpen}
         networkId={networkId}
+        networkExternalId={selectedNetwork?.external_id || ''}
         clients={clients}
         onCreated={loadOrders}
       />

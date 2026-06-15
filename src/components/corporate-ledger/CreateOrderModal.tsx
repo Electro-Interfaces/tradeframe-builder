@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { tradingPointsService } from '@/services/tradingPointsService';
+import { stsApiService } from '@/services/stsApi';
 import { corporateOrdersService } from '@/services/corporateOrdersService';
 import type { TradingPoint } from '@/types/tradingpoint';
+import type { Pump } from '@/services/sts/types';
 import {
   FUEL_OPTIONS,
   type CorporateClient,
@@ -24,14 +25,17 @@ interface CreateOrderModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   networkId: string;
+  networkExternalId: string;
   clients: CorporateClient[];
   onCreated: () => void;
 }
 
-export function CreateOrderModal({ isOpen, onOpenChange, networkId, clients, onCreated }: CreateOrderModalProps) {
+export function CreateOrderModal({ isOpen, onOpenChange, networkId, networkExternalId, clients, onCreated }: CreateOrderModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [points, setPoints] = useState<TradingPoint[]>([]);
+  const [pumps, setPumps] = useState<Pump[]>([]);
+  const [pumpsLoading, setPumpsLoading] = useState(false);
 
   const [clientId, setClientId] = useState('');
   const [pointId, setPointId] = useState('');
@@ -53,6 +57,20 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, clients, onC
       setComment('');
     }
   }, [isOpen, networkId]);
+
+  // Колонки/пистолеты подгружаем по выбранной АЗС (ТРК станции из STS)
+  useEffect(() => {
+    setColumnNumber('');
+    setPumps([]);
+    if (!isOpen || !pointId || !networkExternalId) return;
+    const point = points.find((p) => p.id === pointId);
+    if (!point?.external_id) return;
+    setPumpsLoading(true);
+    stsApiService.getPumps({ networkId: networkExternalId, tradingPointId: point.external_id })
+      .then(setPumps)
+      .catch(() => setPumps([]))
+      .finally(() => setPumpsLoading(false));
+  }, [pointId, networkExternalId, isOpen, points]);
 
   const activeClients = useMemo(() => clients.filter((c) => c.isActive), [clients]);
   const qtyNum = parseFloat(quantity);
@@ -81,7 +99,7 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, clients, onC
     setLoading(true);
     try {
       await corporateOrdersService.create(buildPayload());
-      toast({ title: 'Заказ добавлен в ведомость' });
+      toast({ title: 'Заказ оформлен' });
       onCreated();
       onOpenChange(false);
     } catch (e: any) {
@@ -93,7 +111,7 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, clients, onC
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Оформление заказа</DialogTitle>
         </DialogHeader>
@@ -127,8 +145,19 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, clients, onC
               </Select>
             </div>
             <div>
-              <Label htmlFor="co-col">Колонка / пистолет</Label>
-              <Input id="co-col" type="number" min="1" value={columnNumber} onChange={(e) => setColumnNumber(e.target.value)} placeholder="№" />
+              <Label>Колонка / пистолет</Label>
+              <Select value={columnNumber} onValueChange={setColumnNumber} disabled={!pointId || pumpsLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={!pointId ? 'Сначала выберите АЗС' : pumpsLoading ? 'Загрузка…' : (pumps.length ? 'Колонка' : 'Нет данных')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pumps.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}{p.fuelType && p.fuelType !== 'Неизвестно' ? ` · ${p.fuelType}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -156,18 +185,8 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, clients, onC
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Отмена</Button>
           <Button onClick={handleCreate} disabled={!isValid || loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Добавить в ведомость
+            Оформить заказ
           </Button>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button disabled className="bg-green-600 text-white">Выполнить заказ</Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>Отправка в MSTO будет доступна после подключения агента «ГИГ»</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </DialogFooter>
       </DialogContent>
     </Dialog>

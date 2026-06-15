@@ -88,7 +88,7 @@ export const FUEL_OPTIONS: { code: number; label: string }[] = [
 ];
 
 export const ORDER_STATUS_LABELS: Record<CorporateOrderStatus, string> = {
-  draft: 'Черновик',
+  draft: 'Оформлен',
   sent: 'Отправлен',
   fulfilled: 'Исполнен',
   partial: 'Частично',
