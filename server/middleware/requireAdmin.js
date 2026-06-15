@@ -29,6 +29,7 @@ function hasAdminAccess(user) {
       permission.section === 'admin'
       || permission.section === 'networks'
       || permission.section === 'nomenclature'
+      || permission.section === 'corporate_orders'
     );
   });
 }

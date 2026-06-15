@@ -14,6 +14,8 @@ const usersRoutes = require('./routes/users');
 const rolesRoutes = require('./routes/roles');
 const legalRoutes = require('./routes/legal');
 const nomenclatureRoutes = require('./routes/nomenclature');
+const corporateClientsRoutes = require('./routes/corporateClients');
+const corporateOrdersRoutes = require('./routes/corporateOrders');
 const auditRoutes = require('./routes/audit');
 const telegramRoutes = require('./routes/telegramRuntime');
 const messagesRoutes = require('./routes/messagesRuntime');
@@ -175,6 +177,10 @@ app.use('/api/equipment-templates', equipmentTemplatesRoutes);
 // Корректировки остатков по результатам инвентаризации (АКАЗС)
 app.use('/api/inventory-adjustments', inventoryAdjustmentsRoutes);
 
+// Ведомости: корпоративные клиенты и корпоративные онлайн-заказы (ГИГ)
+app.use('/api/corporate-clients', corporateClientsRoutes);
+app.use('/api/corporate-orders', corporateOrdersRoutes);
+
 // Smoke-test — полная проверка модулей (только для авторизованных)
 const { requireAuth: smokeAuth } = require('./middleware/auth');
 app.get('/api/smoke', smokeAuth, async (req, res) => {
@@ -217,6 +223,8 @@ app.get('/api/smoke', smokeAuth, async (req, res) => {
     checkTable('tankCalibrationTables', 'tank_calibration_tables'),
     checkTable('documentVersions', 'document_versions'),
     checkTable('nomenclature', 'nomenclature'),
+    checkTable('corporateClients', 'corporate_clients'),
+    checkTable('corporateOrders', 'corporate_orders'),
   ]);
 
   const total = Object.keys(checks).length;

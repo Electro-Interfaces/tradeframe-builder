@@ -39,6 +39,7 @@ const STSApiSettings = lazy(() => import("./pages/STSApiSettings"));
 const Tanks = lazy(() => import("./pages/Tanks"));
 const OperationsTransactionsPageSimple = lazy(() => import("./pages/OperationsTransactionsPageSimple"));
 const CouponsPage = lazy(() => import("./pages/CouponsPage"));
+const CorporateLedgerPage = lazy(() => import("./pages/CorporateLedgerPage"));
 const FuelInventory = lazy(() => import("./pages/FuelInventory"));
 
 // Admin страницы - ленивая загрузка (приоритет 2)
@@ -228,6 +229,7 @@ const App = () => {
                   <Route path="/point/tanks" element={<ProtectedRoute><LazyLoader><Tanks /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/operations-transactions" element={<ProtectedRoute><LazyLoader><OperationsTransactionsPageSimple /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/coupons" element={<ProtectedRoute><LazyLoader><CouponsPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/corporate-ledger" element={<ProtectedRoute><LazyLoader><CorporateLedgerPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/fuel-inventory" element={<ProtectedRoute><LazyLoader><FuelInventory /></LazyLoader></ProtectedRoute>} />
 
                   {/* Admin страницы - приоритет 2 (requireAdmin — проверка роли) */}

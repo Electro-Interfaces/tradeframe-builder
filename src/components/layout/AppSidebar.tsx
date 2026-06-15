@@ -129,6 +129,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Поступления", url: "/network/receipts", icon: PackagePlus },
     { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
     { title: "Купоны", url: "/network/coupons", icon: Component },
+    { title: "Ведомости", url: "/network/corporate-ledger", icon: FileText },
   ];
 
   const tradingPointMenuItems = [
