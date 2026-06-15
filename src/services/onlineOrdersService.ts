@@ -61,6 +61,14 @@ export interface OnlineOrdersStats {
 export interface OnlineOrdersFilters {
   dateFrom?: string;
   dateTo?: string;
+  /**
+   * Коды точек MSTO (servicePointId) для строгой выборки заказов ПО ID.
+   * Если задан (в т.ч. пустой массив) — заказы запрашиваются у MSTO с
+   * server-side фильтром по каждому коду и помечаются именно этим кодом,
+   * без сопоставления по названию точки. Пустой массив = нет привязок = пусто.
+   */
+  servicePointIds?: number[];
+  /** @deprecated сопоставление по имени — ненадёжно (см. servicePointIds) */
   stationNames?: string[];
   operationResults?: ('wait' | 'success' | 'cancel' | 'error')[];
 }
@@ -114,27 +122,59 @@ class OnlineOrdersService {
    * Получить онлайн-заказы из MSTO за период
    */
   async getOnlineOrders(filters: OnlineOrdersFilters): Promise<OnlineOrder[]> {
-    const { dateFrom, dateTo, stationNames, operationResults } = filters;
+    const { dateFrom, dateTo, servicePointIds, stationNames, operationResults } = filters;
+    const dFrom = dateFrom || new Date().toISOString().split('T')[0];
+    const dTo = dateTo || new Date().toISOString().split('T')[0];
+    const byDateDesc = (a: OnlineOrder, b: OnlineOrder) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime();
 
     try {
-      // Формируем параметры для MSTO API
-      const params: GetMstoTransactionsParams = {
-        dateFrom: dateFrom || new Date().toISOString().split('T')[0],
-        dateTo: dateTo || new Date().toISOString().split('T')[0],
-      };
+      // ── Строгий режим: сопоставление заказа с точкой ТОЛЬКО по servicePointId ──
+      // MSTO в транзакциях не отдаёт servicePointId, поэтому запрашиваем заказы по
+      // каждому коду точки отдельно (MSTO фильтрует на сервере) и проставляем заказу
+      // именно запрошенный код. БЕЗ угадывания по названию — иначе чужая точка с
+      // похожим именем (напр. газовая «Непокоренных», Пропан-24) прилипает к нашей.
+      if (servicePointIds !== undefined) {
+        if (servicePointIds.length === 0) return [];
 
-      // Фильтр по статусам
+        // allSettled: транзиентный сбой MSTO (502) по одной точке не должен
+        // ронять весь список — отдаём данные по успешным точкам, следующий
+        // poll догрузит остальное. Бросаем только если упали ВСЕ точки.
+        const settled = await Promise.allSettled<OnlineOrder[]>(
+          servicePointIds.map(async (spId): Promise<OnlineOrder[]> => {
+            const txs = await getMstoTransactions({
+              dateFrom: dFrom,
+              dateTo: dTo,
+              servicePointIds: [spId],
+              ...(operationResults && operationResults.length > 0 ? { operationResults } : {}),
+            });
+            // Авторитетно помечаем заказы кодом запрошенной точки
+            return txs.map(transformMstoToOrder).map((o): OnlineOrder => ({ ...o, servicePointId: spId }));
+          })
+        );
+
+        const fulfilled = settled.filter(
+          (r): r is PromiseFulfilledResult<OnlineOrder[]> => r.status === 'fulfilled'
+        );
+        if (fulfilled.length === 0) {
+          const firstRejected = settled.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+          throw firstRejected?.reason ?? new Error('Не удалось загрузить онлайн-заказы из MSTO');
+        }
+
+        const orders = fulfilled.flatMap((r) => r.value);
+        orders.sort(byDateDesc);
+        return orders;
+      }
+
+      // ── Legacy-режим (без указания точек): тянем всё, фильтр по имени (устар.) ──
+      const params: GetMstoTransactionsParams = { dateFrom: dFrom, dateTo: dTo };
       if (operationResults && operationResults.length > 0) {
         params.operationResults = operationResults;
       }
 
-      // Получаем транзакции из MSTO
       const transactions = await getMstoTransactions(params);
-
-      // Преобразуем в наш формат
       let orders = transactions.map(transformMstoToOrder);
 
-      // Фильтруем по станциям если указано
       if (stationNames && stationNames.length > 0) {
         orders = orders.filter(order =>
           stationNames.some(name =>
@@ -143,9 +183,7 @@ class OnlineOrdersService {
         );
       }
 
-      // Сортируем по дате (свежие сверху)
-      orders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+      orders.sort(byDateDesc);
       return orders;
 
     } catch (error) {

@@ -211,6 +211,15 @@ export default function OnlineOrdersMonitor() {
     return false;
   }, [isAllTradingPoints, networkMstoServicePointIds, globalSelectedStation, globalMstoServicePointId, networkTradingPoints]);
 
+  // Коды точек MSTO в текущем охвате (конкретная точка ИЛИ все точки сети).
+  // По ним заказы запрашиваются у MSTO строго по ID — без сопоставления по имени.
+  const scopedServicePointIds = useMemo(() => {
+    if (globalMstoServicePointId != null) return [globalMstoServicePointId];
+    if (networkMstoServicePointIds != null) return networkMstoServicePointIds;
+    return [];
+  }, [globalMstoServicePointId, networkMstoServicePointIds]);
+  const scopeKey = scopedServicePointIds.join(',');
+
   // Список видов топлива из заказов (для фильтра)
   // Формируется из заказов, уже отфильтрованных по станциям сети
   const fuelOptions = useMemo(() => {
@@ -314,7 +323,7 @@ export default function OnlineOrdersMonitor() {
   // Запуск/остановка мониторинга
   // Останавливаем polling когда открыто модальное окно
   useEffect(() => {
-    if (!isMonitoring || selectedOrderId) {
+    if (!isMonitoring || selectedOrderId || scopedServicePointIds.length === 0) {
       if (stopMonitoringRef.current) {
         stopMonitoringRef.current();
         stopMonitoringRef.current = null;
@@ -328,6 +337,7 @@ export default function OnlineOrdersMonitor() {
     const filters: OnlineOrdersFilters = {
       dateFrom,
       dateTo,
+      servicePointIds: scopedServicePointIds, // строго по ID точек охвата
       // Показываем все статусы, фильтрация на UI
     };
 
@@ -347,7 +357,7 @@ export default function OnlineOrdersMonitor() {
         stopMonitoringRef.current = null;
       }
     };
-  }, [isMonitoring, dateFrom, dateTo, handleOrdersUpdate, selectedOrderId]);
+  }, [isMonitoring, dateFrom, dateTo, handleOrdersUpdate, selectedOrderId, scopeKey]);
 
   // Ручное обновление (с индикатором загрузки)
   const handleManualRefresh = async () => {
@@ -357,6 +367,7 @@ export default function OnlineOrdersMonitor() {
       const filters: OnlineOrdersFilters = {
         dateFrom,
         dateTo,
+        servicePointIds: scopedServicePointIds, // строго по ID точек охвата
       };
       const newOrders = await onlineOrdersService.getOnlineOrders(filters);
       handleOrdersUpdate(newOrders, []);
@@ -374,6 +385,7 @@ export default function OnlineOrdersMonitor() {
       const filters: OnlineOrdersFilters = {
         dateFrom,
         dateTo,
+        servicePointIds: scopedServicePointIds, // строго по ID точек охвата
       };
       const newOrders = await onlineOrdersService.getOnlineOrders(filters);
       setOrders(newOrders);
@@ -655,6 +667,13 @@ export default function OnlineOrdersMonitor() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            {/* Транзиентный сбой MSTO (напр. 502) при поллинге — данные есть, показываем мягко */}
+            {error && orders.length > 0 && (
+              <div className="mx-4 mt-2 mb-1 flex items-center gap-2 rounded-md border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-300">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>Не удалось обновить из MSTO — показаны последние данные. Повтор автоматически.</span>
+              </div>
+            )}
             {mstoNotConfigured ? (
               <div className="p-8 text-center">
                 <Info className="w-12 h-12 text-primary mx-auto mb-3" />
@@ -673,7 +692,7 @@ export default function OnlineOrdersMonitor() {
                   Последующие обновления будут мгновенными.
                 </p>
               </div>
-            ) : error ? (
+            ) : error && orders.length === 0 ? (
               <div className="p-8 text-center">
                 <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
                 <p className="text-red-600 dark:text-red-400">{error}</p>
