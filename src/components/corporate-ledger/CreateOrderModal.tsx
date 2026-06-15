@@ -11,10 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { tradingPointsService } from '@/services/tradingPointsService';
-import { stsApiService } from '@/services/stsApi';
+import { stsProxyClient } from '@/services/stsProxyClient';
 import { corporateOrdersService } from '@/services/corporateOrdersService';
 import type { TradingPoint } from '@/types/tradingpoint';
-import type { Pump } from '@/services/sts/types';
 import {
   FUEL_OPTIONS,
   type CorporateClient,
@@ -34,8 +33,8 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, networkExter
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [points, setPoints] = useState<TradingPoint[]>([]);
-  const [pumps, setPumps] = useState<Pump[]>([]);
-  const [pumpsLoading, setPumpsLoading] = useState(false);
+  const [columns, setColumns] = useState<{ pos: number; nozzle: number; fuelName: string }[]>([]);
+  const [columnsLoading, setColumnsLoading] = useState(false);
 
   const [clientId, setClientId] = useState('');
   const [pointId, setPointId] = useState('');
@@ -58,21 +57,57 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, networkExter
     }
   }, [isOpen, networkId]);
 
-  // Колонки/пистолеты подгружаем по выбранной АЗС (ТРК станции из STS)
+  // Колонки/пистолеты выбранной АЗС по видам топлива — из транзакций станции.
+  // STS не отдаёт /v1/pumps (404); берём фактические pos/nozzle/fuel за 30 дней.
   useEffect(() => {
     setColumnNumber('');
-    setPumps([]);
+    setColumns([]);
     if (!isOpen || !pointId || !networkExternalId) return;
     const point = points.find((p) => p.id === pointId);
     if (!point?.external_id) return;
-    setPumpsLoading(true);
-    stsApiService.getPumps({ networkId: networkExternalId, tradingPointId: point.external_id })
-      .then(setPumps)
-      .catch(() => setPumps([]))
-      .finally(() => setPumpsLoading(false));
+    const now = new Date();
+    const dtEnd = now.toISOString().slice(0, 10);
+    const dtBeg = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    setColumnsLoading(true);
+    stsProxyClient.get<any[]>('/v2/transactions', {
+      system: networkExternalId,
+      station: point.external_id,
+      dt_beg: dtBeg,
+      dt_end: dtEnd,
+    })
+      .then((data) => {
+        const seen = new Set<string>();
+        const out: { pos: number; nozzle: number; fuelName: string }[] = [];
+        for (const st of Array.isArray(data) ? data : []) {
+          for (const it of (st?.items || [])) {
+            const pos = Number(it.pos);
+            const nozzle = Number(it.nozzle);
+            const fuelName = it.fuel_name || '';
+            if (!pos || !fuelName) continue;
+            const key = `${pos}-${nozzle}-${fuelName}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push({ pos, nozzle, fuelName });
+          }
+        }
+        out.sort((a, b) => a.pos - b.pos || a.nozzle - b.nozzle);
+        setColumns(out);
+      })
+      .catch(() => setColumns([]))
+      .finally(() => setColumnsLoading(false));
   }, [pointId, networkExternalId, isOpen, points]);
 
   const activeClients = useMemo(() => clients.filter((c) => c.isActive), [clients]);
+  const selectedFuelLabel = FUEL_OPTIONS.find((f) => String(f.code) === fuelCode)?.label || '';
+  // Колонки/пистолеты, доступные для выбранного вида топлива на этой АЗС
+  const fuelColumns = useMemo(() => {
+    if (!fuelCode) return [];
+    const lbl = selectedFuelLabel.toLowerCase();
+    return columns.filter((c) => {
+      const fn = c.fuelName.toLowerCase();
+      return fn === lbl || fn.includes(lbl) || lbl.includes(fn);
+    });
+  }, [columns, fuelCode, selectedFuelLabel]);
   const qtyNum = parseFloat(quantity);
   const isValid = !!clientId && !!pointId && !!fuelCode && !isNaN(qtyNum) && qtyNum > 0;
 
@@ -87,7 +122,7 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, networkExter
       stationName: point?.name,
       fuelCode: Number(fuelCode),
       fuelName: fuel?.label,
-      columnNumber: columnNumber ? Number(columnNumber) : null,
+      columnNumber: columnNumber ? Number(columnNumber.split('-')[0]) : null,
       mode,
       quantity: qtyNum,
       comment: comment.trim() || undefined,
@@ -137,7 +172,7 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, networkExter
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Вид топлива *</Label>
-              <Select value={fuelCode} onValueChange={setFuelCode}>
+              <Select value={fuelCode} onValueChange={(v) => { setFuelCode(v); setColumnNumber(''); }}>
                 <SelectTrigger><SelectValue placeholder="Топливо" /></SelectTrigger>
                 <SelectContent>
                   {FUEL_OPTIONS.map((f) => <SelectItem key={f.code} value={String(f.code)}>{f.label}</SelectItem>)}
@@ -146,14 +181,19 @@ export function CreateOrderModal({ isOpen, onOpenChange, networkId, networkExter
             </div>
             <div>
               <Label>Колонка / пистолет</Label>
-              <Select value={columnNumber} onValueChange={setColumnNumber} disabled={!pointId || pumpsLoading}>
+              <Select value={columnNumber} onValueChange={setColumnNumber} disabled={!pointId || !fuelCode || columnsLoading}>
                 <SelectTrigger>
-                  <SelectValue placeholder={!pointId ? 'Сначала выберите АЗС' : pumpsLoading ? 'Загрузка…' : (pumps.length ? 'Колонка' : 'Нет данных')} />
+                  <SelectValue placeholder={
+                    !pointId ? 'Сначала выберите АЗС'
+                      : !fuelCode ? 'Сначала выберите топливо'
+                        : columnsLoading ? 'Загрузка…'
+                          : (fuelColumns.length ? 'Колонка' : 'Нет данных')
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {pumps.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}{p.fuelType && p.fuelType !== 'Неизвестно' ? ` · ${p.fuelType}` : ''}
+                  {fuelColumns.map((c) => (
+                    <SelectItem key={`${c.pos}-${c.nozzle}`} value={`${c.pos}-${c.nozzle}`}>
+                      Колонка {c.pos} · пистолет {c.nozzle}
                     </SelectItem>
                   ))}
                 </SelectContent>
