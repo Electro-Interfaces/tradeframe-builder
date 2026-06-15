@@ -275,7 +275,7 @@ export default function CouponsPage() {
           systemId={Number(stationNetworkId)}
           stationId={Number(selectedStation.external_id)}
           fuelOptions={stationFuelOptions}
-          networkName={selectedNetwork.name}
+          networkName={selectedNetwork?.name}
           stationName={selectedStation.name}
           onSuccess={() => loadCouponsData(filters)}
           onCouponCreated={addOptimisticCoupon}

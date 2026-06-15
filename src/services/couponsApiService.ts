@@ -213,8 +213,11 @@ class CouponsApiService {
 
       const isOld = ageInDays > 7;
       const isCritical = ageInDays > 30;
-      const isActive = coupon.state.id === 0;
-      const isRedeemed = coupon.state.id === 2;
+      // Защита: STS может вернуть купон с отсутствующим/пустым state — нормализуем,
+      // иначе любой доступ coupon.state.id/.name роняет всю страницу купонов.
+      const state = coupon.state ?? { id: -1, name: '—' };
+      const isActive = state.id === 0;
+      const isRedeemed = state.id === 2;
       const isExpired = ageInDays > 90; // Считаем истекшими через 90 дней
 
       let priority: CouponPriority = 'normal';
@@ -223,6 +226,7 @@ class CouponsApiService {
 
       return {
         ...coupon,
+        state,
         ageInDays,
         ageInHours,
         isOld,
