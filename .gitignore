@@ -139,3 +139,7 @@ server/tmp/
 
 # Интеграционная спека TradeLink — содержит секретный ключ
 TRADELINK_STATUS_API.md
+.playwright-mcp/
+.help-wip/
+server/db/backups/
+/*.png
