@@ -6,6 +6,10 @@
 import { NetworkId } from '@/types/network';
 import { TradingPoint, TradingPointId, TradingPointInput, TradingPointExternalCode, TradingPointUpdateInput } from '@/types/tradingpoint';
 import { orgApiRequest } from './orgApiClient';
+import { createTtlCache } from './orgRefCache';
+
+// Справочник точек запрашивают десятки экранов — кэшируем на 5 минут
+const refCache = createTtlCache();
 
 function mapTradingPointFromApi(point: any): TradingPoint {
   return {
@@ -27,13 +31,20 @@ function mapTradingPointsFromApi(points: any[]): TradingPoint[] {
 
 export const tradingPointsService = {
   async getAll(): Promise<TradingPoint[]> {
-    return mapTradingPointsFromApi(await orgApiRequest('/trading-points'));
+    const points = await refCache.get<TradingPoint[]>('tp:all', async () =>
+      mapTradingPointsFromApi(await orgApiRequest('/trading-points'))
+    );
+    // Копия на каждый вызов: страницы сортируют/фильтруют список на месте
+    return [...points];
   },
 
   async getByNetworkId(networkId: NetworkId): Promise<TradingPoint[]> {
-    return mapTradingPointsFromApi(
-      await orgApiRequest(`/trading-points?networkId=${encodeURIComponent(networkId)}`)
+    const points = await refCache.get<TradingPoint[]>(`tp:network:${networkId}`, async () =>
+      mapTradingPointsFromApi(
+        await orgApiRequest(`/trading-points?networkId=${encodeURIComponent(networkId)}`)
+      )
     );
+    return [...points];
   },
 
   async getById(id: TradingPointId): Promise<TradingPoint | null> {
@@ -45,21 +56,26 @@ export const tradingPointsService = {
   },
 
   async create(input: TradingPointInput): Promise<TradingPoint> {
-    return mapTradingPointFromApi(await orgApiRequest('/trading-points', {
+    const created = mapTradingPointFromApi(await orgApiRequest('/trading-points', {
       method: 'POST',
       body: JSON.stringify(input)
     }));
+    refCache.invalidate('tp:');
+    return created;
   },
 
   async update(id: TradingPointId, input: TradingPointUpdateInput): Promise<TradingPoint | null> {
-    return mapTradingPointFromApi(await orgApiRequest(`/trading-points/${id}`, {
+    const updated = mapTradingPointFromApi(await orgApiRequest(`/trading-points/${id}`, {
       method: 'PUT',
       body: JSON.stringify(input)
     }));
+    refCache.invalidate('tp:');
+    return updated;
   },
 
   async remove(id: TradingPointId): Promise<boolean> {
     await orgApiRequest(`/trading-points/${id}`, { method: 'DELETE' });
+    refCache.invalidate('tp:');
     return true;
   },
 
@@ -108,6 +124,7 @@ export const tradingPointsService = {
       method: 'PUT',
       body: JSON.stringify(thresholds)
     });
+    refCache.invalidate('tp:');
   },
 
   async updateFuelLevelThresholds(pointId: TradingPointId, thresholds: any): Promise<void> {
@@ -115,6 +132,7 @@ export const tradingPointsService = {
       method: 'PUT',
       body: JSON.stringify(thresholds)
     });
+    refCache.invalidate('tp:');
   },
 
   async addExternalCode(pointId: TradingPointId, system: string, code: string, description?: string): Promise<TradingPointExternalCode> {
@@ -122,6 +140,7 @@ export const tradingPointsService = {
       method: 'POST',
       body: JSON.stringify({ system, code, description })
     });
+    refCache.invalidate('tp:');
     return {
       ...externalCode,
       createdAt: new Date(externalCode.createdAt),
@@ -141,6 +160,7 @@ export const tradingPointsService = {
       method: 'PUT',
       body: JSON.stringify({ system, code, description, isActive })
     });
+    refCache.invalidate('tp:');
     return {
       ...externalCode,
       createdAt: new Date(externalCode.createdAt),
@@ -152,6 +172,7 @@ export const tradingPointsService = {
     await orgApiRequest(`/trading-points/${pointId}/external-codes/${codeId}`, {
       method: 'DELETE'
     });
+    refCache.invalidate('tp:');
     return true;
   },
 };

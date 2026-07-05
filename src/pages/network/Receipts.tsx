@@ -330,13 +330,28 @@ export default function Receipts() {
       );
     }
 
-    // Сортировка: самые свежие наверху (по дате, DESC)
-    return filtered.sort((a, b) => {
+    // Сортировка: самые свежие наверху (по дате, DESC).
+    // Копия перед sort — иначе мутируется мемоизированный baseFilteredReceipts.
+    return [...filtered].sort((a, b) => {
       const dateA = new Date(a.dt).getTime();
       const dateB = new Date(b.dt).getTime();
       return dateB - dateA; // DESC - новые сверху
     });
   }, [baseFilteredReceipts, selectedKpiFuels]);
+
+  // Инкрементальный рендер: без ограничения длинный список (сотни строк с
+  // вычислениями в каждой) целиком пересчитывается на каждый ре-рендер.
+  const RENDER_CHUNK = 100;
+  const [visibleCount, setVisibleCount] = useState(RENDER_CHUNK);
+
+  useEffect(() => {
+    setVisibleCount(RENDER_CHUNK);
+  }, [filteredReceipts]);
+
+  const visibleReceipts = useMemo(
+    () => (filteredReceipts.length > visibleCount ? filteredReceipts.slice(0, visibleCount) : filteredReceipts),
+    [filteredReceipts, visibleCount]
+  );
 
   // Открытие модального окна с деталями
   const handleSelectReceipt = (receipt: FlatReceipt) => {
@@ -1018,7 +1033,7 @@ export default function Receipts() {
           </div>
         ) : isMobile ? (
           <MobileReceiptsTable
-            receipts={filteredReceipts}
+            receipts={visibleReceipts}
             onReceiptClick={handleSelectReceipt}
             confirmations={confirmations}
             getConfirmationKey={(r) => systemId ? makeConfirmationKey(systemId, r.stationNumber, r.tank, r.ttn, r.dt) : ''}
@@ -1065,7 +1080,7 @@ export default function Receipts() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReceipts.map((receipt, index) => {
+              {visibleReceipts.map((receipt, index) => {
                 const receiptId = `${receipt.stationNumber}-${receipt.shiftNumber}-${receipt.ttn}-${index}`;
 
                 const docVolume = parseFloat(receipt.doc.volume);
@@ -1226,6 +1241,13 @@ export default function Receipts() {
               })}
             </TableBody>
           </Table>
+        )}
+        {filteredReceipts.length > visibleCount && (
+          <div className="p-3 text-center">
+            <Button variant="outline" size="sm" onClick={() => setVisibleCount(c => c + RENDER_CHUNK)}>
+              Показать ещё {Math.min(RENDER_CHUNK, filteredReceipts.length - visibleCount)} (скрыто {filteredReceipts.length - visibleCount})
+            </Button>
+          </div>
         )}
           </Card>
         </div>

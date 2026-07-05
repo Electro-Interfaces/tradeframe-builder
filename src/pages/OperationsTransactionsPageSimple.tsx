@@ -560,6 +560,61 @@ export default function OperationsTransactionsPageSimple() {
     return filteredOperations.slice(startIndex, endIndex);
   }, [filteredOperations, currentPage, itemsPerPage]);
 
+  // KPI-агрегаты: раньше считались прямо в JSX — O(топливо × N) и O(оплаты × N)
+  // на каждый ре-рендер (включая тики поллинга и ввод в поиск).
+
+  // По видам топлива
+  const fuelKpis = useMemo(() => {
+    const fuels = [...new Set(operations.map(op => op.fuelType).filter(Boolean))];
+    return fuels.map(fuel => {
+      const ops = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
+      return {
+        fuel,
+        volume: ops.reduce((sum, op) => sum + (op.quantity || 0), 0),
+        revenue: ops.reduce((sum, op) => sum + (op.totalCost || 0), 0),
+        count: ops.length,
+      };
+    });
+  }, [operations, filteredOperations]);
+
+  // По способам оплаты (без isSelected — выбор карточки не должен пересчитывать агрегаты)
+  const paymentKpiCards = useMemo(() => {
+    const paymentGroups = new Map<string, Set<string>>();
+    operations.forEach(op => {
+      if (op.paymentMethod && op.status === 'completed') {
+        const raw = op.paymentMethod.toLowerCase();
+        const normalized = normalizePaymentMethod(op.paymentMethod);
+        if (!paymentGroups.has(normalized)) {
+          paymentGroups.set(normalized, new Set());
+        }
+        paymentGroups.get(normalized)!.add(raw);
+      }
+    });
+
+    return Array.from(paymentGroups.entries())
+      .map(([display, rawValues]) => {
+        const rawArr = Array.from(rawValues);
+        const filteredPaymentOps = filteredOperations.filter(op =>
+          rawArr.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed'
+        );
+        const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+        const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
+        return { key: display, display, filteredPaymentOps, filteredRevenue, filteredVolume };
+      })
+      .filter(card => card.filteredPaymentOps.length > 0)
+      .sort((a, b) => b.filteredRevenue - a.filteredRevenue);
+  }, [operations, filteredOperations]);
+
+  // Итого по завершённым
+  const totalKpis = useMemo(() => {
+    const ops = filteredOperations.filter(op => op.status === 'completed');
+    return {
+      count: ops.length,
+      volume: ops.reduce((sum, op) => sum + (op.quantity || 0), 0),
+      revenue: ops.reduce((sum, op) => sum + (op.totalCost || 0), 0),
+    };
+  }, [filteredOperations]);
+
   // Pull-to-refresh через переиспользуемый хук
   const handleRefreshData = async () => {
     if (selectedNetwork && (isAllTradingPoints || selectedTradingPoint)) {
@@ -851,26 +906,19 @@ export default function OperationsTransactionsPageSimple() {
                 <h3 className={`text-foreground/80 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
                 <span className="text-xs text-muted-foreground">выберите один или несколько элементов</span>
               </div>
-              <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : ''}`} style={isMobile ? undefined : { gridTemplateColumns: `repeat(${Math.min([...new Set(operations.map(op => op.fuelType).filter(Boolean))].length, 6)}, 1fr)` }}>
-                {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
-                  const filteredFuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
-                  const filteredVolume = filteredFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                  const filteredRevenue = filteredFuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                  const isSelected = selectedKpiFuels.has(fuel);
-
-                  return (
-                    <KPIFuelCard
-                      key={fuel}
-                      fuel={fuel}
-                      isSelected={isSelected}
-                      isMobile={isMobile}
-                      volume={filteredVolume}
-                      cost={filteredRevenue}
-                      transactionCount={filteredFuelOps.length}
-                      onClick={handleKpiFuelClick}
-                    />
-                  );
-                })}
+              <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : ''}`} style={isMobile ? undefined : { gridTemplateColumns: `repeat(${Math.min(fuelKpis.length, 6)}, 1fr)` }}>
+                {fuelKpis.map(({ fuel, volume, revenue, count }) => (
+                  <KPIFuelCard
+                    key={fuel}
+                    fuel={fuel}
+                    isSelected={selectedKpiFuels.has(fuel)}
+                    isMobile={isMobile}
+                    volume={volume}
+                    cost={revenue}
+                    transactionCount={count}
+                    onClick={handleKpiFuelClick}
+                  />
+                ))}
               </div>
             </div>
 
@@ -881,50 +929,24 @@ export default function OperationsTransactionsPageSimple() {
                 <span className="text-xs text-muted-foreground">выберите один или несколько элементов</span>
               </div>
               {(() => {
-                const paymentGroups = new Map<string, Set<string>>();
-                operations.forEach(op => {
-                  if (op.paymentMethod && op.status === 'completed') {
-                    const raw = op.paymentMethod.toLowerCase();
-                    const normalized = normalizePaymentMethod(op.paymentMethod);
-                    if (!paymentGroups.has(normalized)) {
-                      paymentGroups.set(normalized, new Set());
-                    }
-                    paymentGroups.get(normalized)!.add(raw);
-                  }
-                });
-
-                const cards = Array.from(paymentGroups.entries())
-                  .map(([display, rawValues]) => {
-                    const rawArr = Array.from(rawValues);
-                    const filteredPaymentOps = filteredOperations.filter(op =>
-                      rawArr.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed'
-                    );
-                    const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                    const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                    const isSelected = selectedKpiPayments.has(display);
-                    return { key: display, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected };
-                  })
-                  .filter(card => card.filteredPaymentOps.length > 0)
-                  .sort((a, b) => b.filteredRevenue - a.filteredRevenue);
-
                 // Основные 4 типа оплаты — всегда в первом ряду
                 const primaryTypes = ['Банковские', 'Наличные', 'Онлайн', 'Корп. карты'];
                 const topCards = primaryTypes
-                  .map(name => cards.find(c => c.key === name))
-                  .filter(Boolean) as typeof cards;
+                  .map(name => paymentKpiCards.find(c => c.key === name))
+                  .filter(Boolean) as typeof paymentKpiCards;
                 const topKeys = new Set(topCards.map(c => c.key));
-                const restCards = cards.filter(c => !topKeys.has(c.key));
+                const restCards = paymentKpiCards.filter(c => !topKeys.has(c.key));
 
                 return (
                   <div className="space-y-3">
                     {/* Топ-4 — крупные карточки */}
                     <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
-                      {topCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
+                      {topCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume }) => (
                         <KPIPaymentCard
                           key={key}
                           paymentKey={key}
                           display={display}
-                          isSelected={isSelected}
+                          isSelected={selectedKpiPayments.has(display)}
                           isMobile={isMobile}
                           volume={filteredVolume}
                           cost={filteredRevenue}
@@ -936,7 +958,9 @@ export default function OperationsTransactionsPageSimple() {
                     {/* Остальные — название, при выборе раскрываются данные */}
                     {restCards.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                        {restCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
+                        {restCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume }) => {
+                          const isSelected = selectedKpiPayments.has(display);
+                          return (
                           <button
                             key={key}
                             onClick={() => handleKpiPaymentClick(key)}
@@ -953,7 +977,8 @@ export default function OperationsTransactionsPageSimple() {
                               </span>
                             )}
                           </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -990,9 +1015,7 @@ export default function OperationsTransactionsPageSimple() {
               </div>
               <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {(() => {
-                    const totalOps = filteredOperations.filter(op => op.status === 'completed');
-                    const totalVolume = totalOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                    const totalRevenue = totalOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                    const { count: totalCount, volume: totalVolume, revenue: totalRevenue } = totalKpis;
 
                     const hasActiveFilters = selectedKpiFuels.size > 0 || selectedKpiPayments.size > 0;
                     return (
@@ -1012,7 +1035,7 @@ export default function OperationsTransactionsPageSimple() {
                                   <p className="text-foreground font-semibold text-xs truncate">Итого</p>
                                   <div className="flex items-center gap-1">
                                     <Activity className="w-3 h-3 text-muted-foreground" />
-                                    <span className="text-foreground text-xs font-medium">{totalOps.length}</span>
+                                    <span className="text-foreground text-xs font-medium">{totalCount}</span>
                                   </div>
                                 </div>
                                 <div className="text-right flex-shrink-0 ml-2">
@@ -1027,7 +1050,7 @@ export default function OperationsTransactionsPageSimple() {
                                 <p className="text-foreground font-semibold text-base truncate pr-2">Итого</p>
                                 <div className="flex items-center gap-1">
                                   <Activity className="w-3 h-3 text-muted-foreground" />
-                                  <span className="text-foreground/80 text-sm">{totalOps.length}</span>
+                                  <span className="text-foreground/80 text-sm">{totalCount}</span>
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0">

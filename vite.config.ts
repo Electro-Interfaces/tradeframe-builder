@@ -230,11 +230,6 @@ export default defineConfig(({ mode }) => {
             return 'recharts-vendor';
           }
 
-          // Chart.js (если используется)
-          if (id.includes('chart.js')) {
-            return 'chartjs-vendor';
-          }
-
           // PDF/Excel экспорт
           if (id.includes('jspdf')) {
             return 'pdf-vendor';

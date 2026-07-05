@@ -5,10 +5,16 @@
 
 import { Network, NetworkId, NetworkInput } from '@/types/network';
 import { orgApiRequest } from './orgApiClient';
+import { createTtlCache } from './orgRefCache';
+
+// Справочник сетей запрашивают десятки экранов — кэшируем на 5 минут
+const refCache = createTtlCache();
 
 export const networksService = {
   async getAll(userRole?: string): Promise<Network[]> {
-    return orgApiRequest('/networks');
+    const networks = await refCache.get<Network[]>('networks:all', () => orgApiRequest('/networks'));
+    // Копия на каждый вызов: страницы сортируют/фильтруют список на месте
+    return [...networks];
   },
 
   async getById(id: NetworkId): Promise<Network | null> {
@@ -20,23 +26,28 @@ export const networksService = {
   },
 
   async create(input: NetworkInput): Promise<Network> {
-    return orgApiRequest('/networks', {
+    const created = await orgApiRequest('/networks', {
       method: 'POST',
       body: JSON.stringify(input),
     });
+    refCache.invalidate('networks:');
+    return created;
   },
 
   async update(id: NetworkId, input: NetworkInput): Promise<Network | null> {
-    return orgApiRequest(`/networks/${id}`, {
+    const updated = await orgApiRequest(`/networks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     });
+    refCache.invalidate('networks:');
+    return updated;
   },
 
   async remove(id: NetworkId): Promise<boolean> {
     await orgApiRequest(`/networks/${id}`, {
       method: 'DELETE',
     });
+    refCache.invalidate('networks:');
     return true;
   },
 

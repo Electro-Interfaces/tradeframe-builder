@@ -6,7 +6,7 @@
  * - Polling непрочитанных каждые 30 сек (с visibility check)
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { getUnreadCounts } from '@/services/supportService';
 import { getChatUnread, subscribeChat, warmupChat } from '@/services/chatBackend';
@@ -275,7 +275,13 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
         counts.chat = mxChat;
         counts.total = counts.tickets + mxChat;
       }
-      setUnreadCounts(counts);
+      // Bail-out: числа не изменились — сохраняем прежний объект, чтобы поллинг
+      // каждые 30с не перерисовывал потребителей контекста впустую.
+      setUnreadCounts(prev =>
+        prev.tickets === counts.tickets && prev.chat === counts.chat && prev.total === counts.total
+          ? prev
+          : counts
+      );
     } catch {
       // Silently fail — не ломаем UI из-за недоступности TSupport
     }
@@ -286,7 +292,9 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
   const refreshChatUnread = useCallback(() => {
     const mxChat = getChatUnread();
     if (mxChat !== null) {
-      setUnreadCounts(prev => ({ ...prev, chat: mxChat, total: prev.tickets + mxChat }));
+      setUnreadCounts(prev =>
+        prev.chat === mxChat ? prev : { ...prev, chat: mxChat, total: prev.tickets + mxChat }
+      );
     }
   }, []);
 
@@ -339,28 +347,51 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
     setPageContext({});
   }, [location.pathname]);
 
+  // Провайдер ре-рендерится каждые 30с (поллинг unreadCounts) — без useMemo
+  // новый объект value перерисовывал бы всех потребителей (Header, Sidebar, меню).
+  const value = useMemo(
+    () => ({
+      isCreateDialogOpen,
+      openCreateDialog,
+      closeCreateDialog,
+      interactionSection,
+      toggleInteraction,
+      closeInteraction,
+      infoTarget,
+      openInfo,
+      pageContext,
+      registerPageContext,
+      buildAppContext,
+      unreadCounts,
+      refreshUnreadCounts,
+      clearTicketsBadge,
+      clearChatBadge,
+      ticketsVersion,
+      notifyTicketsChanged,
+    }),
+    [
+      isCreateDialogOpen,
+      openCreateDialog,
+      closeCreateDialog,
+      interactionSection,
+      toggleInteraction,
+      closeInteraction,
+      infoTarget,
+      openInfo,
+      pageContext,
+      registerPageContext,
+      buildAppContext,
+      unreadCounts,
+      refreshUnreadCounts,
+      clearTicketsBadge,
+      clearChatBadge,
+      ticketsVersion,
+      notifyTicketsChanged,
+    ]
+  );
+
   return (
-    <SupportContext.Provider
-      value={{
-        isCreateDialogOpen,
-        openCreateDialog,
-        closeCreateDialog,
-        interactionSection,
-        toggleInteraction,
-        closeInteraction,
-        infoTarget,
-        openInfo,
-        pageContext,
-        registerPageContext,
-        buildAppContext,
-        unreadCounts,
-        refreshUnreadCounts,
-        clearTicketsBadge,
-        clearChatBadge,
-        ticketsVersion,
-        notifyTicketsChanged,
-      }}
-    >
+    <SupportContext.Provider value={value}>
       {children}
     </SupportContext.Provider>
   );
