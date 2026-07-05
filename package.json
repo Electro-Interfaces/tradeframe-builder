@@ -18,6 +18,7 @@
     "check:repo-guards": "node scripts/js/check-repo-guards.mjs",
     "clean": "rimraf dist node_modules/.vite",
     "test": "vitest run",
+    "test:server": "node --test \"server/__tests__/*.test.js\"",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
