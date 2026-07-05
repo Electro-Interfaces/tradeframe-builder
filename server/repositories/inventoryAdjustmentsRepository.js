@@ -92,6 +92,12 @@ async function listAdjustments(filters = {}) {
   const conditions = [];
   const params = [];
 
+  // Scope пользователя: null — без ограничений, массив (в т.ч. пустой) — жёсткий фильтр.
+  if (Array.isArray(filters.allowedNetworkIds)) {
+    params.push(filters.allowedNetworkIds);
+    conditions.push(`a.network_id = ANY($${params.length}::uuid[])`);
+  }
+
   if (filters.networkId) {
     params.push(filters.networkId);
     conditions.push(`a.network_id = $${params.length}::uuid`);

@@ -123,8 +123,17 @@ router.post('/acceptances', requireAuth, async (req, res) => {
 
 // ─── Чувствительные чтения — requireAuth ───
 
+// Согласия чужого пользователя может читать только админ; свои — любой.
+function canReadUserLegalData(req) {
+  if (String(req.params.userId) === String(req.user?.id)) return true;
+  return ['super_admin', 'system_admin', 'network_admin'].includes(req.user?.role);
+}
+
 router.get('/users/:userId/acceptances', requireAuth, async (req, res) => {
   try {
+    if (!canReadUserLegalData(req)) {
+      return res.status(403).json({ error: 'Нет доступа к согласиям другого пользователя' });
+    }
     const items = await legalDataSource.getUserAcceptances(req.params.userId);
     return res.json(items);
   } catch (error) {
@@ -134,6 +143,9 @@ router.get('/users/:userId/acceptances', requireAuth, async (req, res) => {
 
 router.get('/users/:userId/consent-requirement', requireAuth, async (req, res) => {
   try {
+    if (!canReadUserLegalData(req)) {
+      return res.status(403).json({ error: 'Нет доступа к согласиям другого пользователя' });
+    }
     const item = await legalDataSource.getUserConsentRequirement(req.params.userId);
     return res.json(item);
   } catch (error) {

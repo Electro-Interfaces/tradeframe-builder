@@ -11,6 +11,7 @@ function getSource() {
 module.exports = {
   createDeliveryLog: (...args) => getSource().createDeliveryLog(...args),
   createNotification: (...args) => getSource().createNotification(...args),
+  deleteOldNotifications: (...args) => getSource().deleteOldNotifications(...args),
   findRecentNotification: (...args) => getSource().findRecentNotification(...args),
   getActiveRules: (...args) => getSource().getActiveRules(...args),
   getRecipients: (...args) => getSource().getRecipients(...args),

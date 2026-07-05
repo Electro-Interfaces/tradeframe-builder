@@ -8,7 +8,7 @@ const NodeCache = require('node-cache');
 
 // ─── Кэш ───────────────────────────────────────────────
 
-const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+const cache = new NodeCache({ stdTTL: 300, checkperiod: 60, maxKeys: 2000 });
 
 const CACHE_TTL = {
   '/servicePoints': 7200,
@@ -31,7 +31,15 @@ function getTTL(urlPath) {
 }
 
 function getCache(key) { return cache.get(key); }
-function setCache(key, data, ttl) { cache.set(key, data, ttl); }
+// При переполнении (ECACHEFULL) сбрасываем кэш — самолечение вместо роста памяти
+function setCache(key, data, ttl) {
+  try {
+    cache.set(key, data, ttl);
+  } catch {
+    cache.flushAll();
+    try { cache.set(key, data, ttl); } catch { /* не кэшируем */ }
+  }
+}
 
 function clearCache() {
   cache.flushAll();
@@ -132,7 +140,7 @@ async function proxyRequest(req, res, overridePath) {
     }
 
     if (method === 'GET' && response.status === 200) {
-      cache.set(cacheKey, response.data, getTTL(urlPath));
+      setCache(cacheKey, response.data, getTTL(urlPath));
     }
 
     res.status(response.status).json(response.data);

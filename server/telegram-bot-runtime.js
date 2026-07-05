@@ -200,8 +200,21 @@ function getBot() {
   return bot;
 }
 
+async function stopTelegramBot() {
+  if (!bot) {
+    return;
+  }
+  try {
+    await bot.stopPolling();
+  } catch {
+    // polling уже остановлен
+  }
+  bot = null;
+}
+
 module.exports = {
   getBot,
   initTelegramBot,
+  stopTelegramBot,
   sendNotification,
 };

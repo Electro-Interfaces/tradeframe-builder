@@ -3,12 +3,39 @@ const path = require('path');
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { requireInventoryPermission } = require('../middleware/inventoryPermission');
+const { getAllowedNetworkIds } = require('../middleware/scopeFilter');
 const service = require('../services/inventoryAdjustments/inventoryAdjustmentsService');
 const pdfRenderer = require('../services/inventoryAdjustments/pdfRenderer');
 
 const router = express.Router();
 
 router.use(requireAuth);
+
+// Загружает документ и сверяет его сеть со scope пользователя.
+// Чужой или несуществующий документ — одинаковый 404, чтобы не раскрывать наличие.
+async function loadAdjustmentInScope(req, res) {
+  const item = await service.getById(req.params.id);
+  if (!item) {
+    res.status(404).json({ error: 'Документ корректировки не найден' });
+    return null;
+  }
+  const allowed = await getAllowedNetworkIds(req.user);
+  if (allowed && !allowed.has(String(item.networkId))) {
+    res.status(404).json({ error: 'Документ корректировки не найден' });
+    return null;
+  }
+  return item;
+}
+
+// networkId (из params/query/body) должен входить в scope пользователя.
+async function assertNetworkInScope(req, res, networkId) {
+  const allowed = await getAllowedNetworkIds(req.user);
+  if (allowed && networkId && !allowed.has(String(networkId))) {
+    res.status(403).json({ error: 'Нет доступа к данным этой сети' });
+    return false;
+  }
+  return true;
+}
 
 function buildActor(req) {
   return {
@@ -37,6 +64,7 @@ router.get('/email-recipients/:networkId', requireInventoryPermission('read'), a
     if (!UUID_RE.test(req.params.networkId)) {
       return res.status(400).json({ error: 'networkId должен быть UUID' });
     }
+    if (!(await assertNetworkInScope(req, res, req.params.networkId))) return undefined;
     const config = await repo.getEmailRecipients(req.params.networkId);
     res.json(config || { recipients: [], cc: [], fromAddress: null });
   } catch (error) {
@@ -50,6 +78,7 @@ router.put('/email-recipients/:networkId', requireInventoryPermission('send'), a
     if (!UUID_RE.test(req.params.networkId)) {
       return res.status(400).json({ error: 'networkId должен быть UUID' });
     }
+    if (!(await assertNetworkInScope(req, res, req.params.networkId))) return undefined;
     const { recipients, cc, fromAddress } = req.body || {};
     if (!Array.isArray(recipients) || recipients.length === 0) {
       return res.status(400).json({ error: 'recipients — непустой массив email-адресов' });
@@ -85,6 +114,10 @@ router.put('/email-recipients/:networkId', requireInventoryPermission('send'), a
 // GET /api/inventory-adjustments?networkId=&tradingPointId=&status=&limit=&offset=
 router.get('/', requireInventoryPermission('read'), async (req, res) => {
   try {
+    const allowed = await getAllowedNetworkIds(req.user);
+    if (allowed && req.query.networkId && !allowed.has(String(req.query.networkId))) {
+      return res.status(403).json({ error: 'Нет доступа к данным этой сети' });
+    }
     const items = await service.list({
       networkId: req.query.networkId || undefined,
       tradingPointId: req.query.tradingPointId || undefined,
@@ -92,6 +125,7 @@ router.get('/', requireInventoryPermission('read'), async (req, res) => {
       createdByUserId: req.query.createdByUserId || undefined,
       limit: req.query.limit ? Number(req.query.limit) : undefined,
       offset: req.query.offset ? Number(req.query.offset) : undefined,
+      allowedNetworkIds: allowed ? Array.from(allowed) : null,
     });
     res.json(items);
   } catch (error) {
@@ -103,8 +137,8 @@ router.get('/', requireInventoryPermission('read'), async (req, res) => {
 // Если файл уже сгенерирован при отправке — отдаётся он. Иначе генерируем на лету.
 router.get('/:id/pdf', requireInventoryPermission('read'), async (req, res) => {
   try {
-    const adjustment = await service.getById(req.params.id);
-    if (!adjustment) return res.status(404).json({ error: 'Документ корректировки не найден' });
+    const adjustment = await loadAdjustmentInScope(req, res);
+    if (!adjustment) return undefined;
 
     let filePath = adjustment.pdfPath;
     if (!filePath || !fs.existsSync(filePath)) {
@@ -126,8 +160,8 @@ router.get('/:id/pdf', requireInventoryPermission('read'), async (req, res) => {
 // GET /api/inventory-adjustments/:id
 router.get('/:id', requireInventoryPermission('read'), async (req, res) => {
   try {
-    const item = await service.getById(req.params.id);
-    if (!item) return res.status(404).json({ error: 'Документ корректировки не найден' });
+    const item = await loadAdjustmentInScope(req, res);
+    if (!item) return undefined;
     res.json(item);
   } catch (error) {
     handleError(res, error);
@@ -137,6 +171,7 @@ router.get('/:id', requireInventoryPermission('read'), async (req, res) => {
 // POST /api/inventory-adjustments — создать draft
 router.post('/', requireInventoryPermission('write'), async (req, res) => {
   try {
+    if (!(await assertNetworkInScope(req, res, req.body?.networkId))) return undefined;
     const item = await service.createDraft(req.body, buildActor(req));
     res.status(201).json(item);
   } catch (error) {
@@ -147,6 +182,7 @@ router.post('/', requireInventoryPermission('write'), async (req, res) => {
 // PUT /api/inventory-adjustments/:id — обновить draft (шапка + items)
 router.put('/:id', requireInventoryPermission('write'), async (req, res) => {
   try {
+    if (!(await loadAdjustmentInScope(req, res))) return undefined;
     const item = await service.updateDraft(req.params.id, req.body, buildActor(req));
     res.json(item);
   } catch (error) {
@@ -158,6 +194,7 @@ router.put('/:id', requireInventoryPermission('write'), async (req, res) => {
 // Используется и для первичной отправки, и для повторной попытки после email_status='failed'.
 router.post('/:id/send', requireInventoryPermission('send'), async (req, res) => {
   try {
+    if (!(await loadAdjustmentInScope(req, res))) return undefined;
     const item = await service.sendAdjustment(req.params.id, buildActor(req));
     res.json(item);
   } catch (error) {
@@ -168,6 +205,7 @@ router.post('/:id/send', requireInventoryPermission('send'), async (req, res) =>
 // POST /api/inventory-adjustments/:id/cancel — отменить draft
 router.post('/:id/cancel', requireInventoryPermission('write'), async (req, res) => {
   try {
+    if (!(await loadAdjustmentInScope(req, res))) return undefined;
     const item = await service.cancelDraft(req.params.id, buildActor(req), req.body?.reason);
     res.json(item);
   } catch (error) {
@@ -178,6 +216,7 @@ router.post('/:id/cancel', requireInventoryPermission('write'), async (req, res)
 // DELETE /api/inventory-adjustments/:id — удалить draft
 router.delete('/:id', requireInventoryPermission('write'), async (req, res) => {
   try {
+    if (!(await loadAdjustmentInScope(req, res))) return undefined;
     await service.deleteDraft(req.params.id, buildActor(req));
     res.json({ ok: true });
   } catch (error) {

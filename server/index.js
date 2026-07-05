@@ -29,7 +29,7 @@ const receiptCostsRoutes = require('./routes/receiptCosts');
 const receiptConfirmationsRoutes = require('./routes/receiptConfirmations');
 const equipmentTemplatesRoutes = require('./routes/equipmentTemplates');
 const inventoryAdjustmentsRoutes = require('./routes/inventoryAdjustments');
-const { initTelegramBot } = require('./telegram-bot-runtime');
+const { initTelegramBot, stopTelegramBot } = require('./telegram-bot-runtime');
 const postgres = require('./db/pool');
 
 const rateLimit = require('express-rate-limit');
@@ -300,6 +300,7 @@ async function shutdown() {
 
   isShuttingDown = true;
   notificationScheduler.stop();
+  await stopTelegramBot().catch(() => {});
 
   const forceCloseTimer = setTimeout(() => {
     if (typeof server.closeAllConnections === 'function') {
@@ -326,5 +327,18 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
+  void shutdown();
+});
+
+// Необработанный reject не должен ронять процесс (внешние API без гарантий) —
+// логируем и продолжаем; страховка от падения остаётся за PM2 autorestart.
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server] Unhandled rejection:', reason instanceof Error ? reason.stack : reason);
+});
+
+// Состояние процесса после uncaughtException неизвестно — логируем и уходим
+// в управляемое завершение (PM2 поднимет заново).
+process.on('uncaughtException', (error) => {
+  console.error('[Server] Uncaught exception:', error.stack || error);
   void shutdown();
 });

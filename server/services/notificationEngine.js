@@ -36,7 +36,7 @@ class NotificationEngine {
       const response = await axios.post(`${STS_API_URL}/v1/login`, {
         username: STS_API_USERNAME,
         password: STS_API_PASSWORD
-      });
+      }, { timeout: 30000 });
 
       const rawToken = response.data;
       this.stsToken = typeof rawToken === 'string' ? rawToken.replace(/"/g, '') : rawToken;
@@ -57,6 +57,7 @@ class NotificationEngine {
       const token = await this.getStsToken();
 
       const response = await axios.get(`${STS_API_URL}/v2/info`, {
+        timeout: 30000,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -96,6 +97,21 @@ class NotificationEngine {
    * Проверить активные правила конкретного типа
    * @param {string} ruleType - тип правила (bill_acceptor_threshold, low_fuel_level, terminal_offline, etc.)
    */
+  /**
+   * Retention: удалить уведомления старше NOTIFICATIONS_RETENTION_DAYS (дефолт 90).
+   * Дедупликации (findRecentNotification) нужна только свежая история.
+   */
+  async cleanupOldNotifications() {
+    try {
+      const retentionDays = Number(process.env.NOTIFICATIONS_RETENTION_DAYS || 90);
+      const deleted = await notificationEngineDataSource.deleteOldNotifications(retentionDays);
+      return { success: true, deleted };
+    } catch (error) {
+      console.error('❌ Ошибка очистки старых уведомлений:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
   async processRulesByType(ruleType) {
     try {
       const rules = await notificationEngineDataSource.getActiveRules(ruleType);
@@ -565,6 +581,7 @@ class NotificationEngine {
         try {
           const token = await this.getStsToken();
           const response = await axios.get(`${STS_API_URL}/v1/tanks`, {
+            timeout: 30000,
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

@@ -54,7 +54,21 @@ const cache = new NodeCache({
   stdTTL: 120,
   checkperiod: 60,
   useClones: false,
+  // Потолок ключей: 24ч-TTL отчётов смен иначе растит память до PM2
+  // max_memory_restart → рестарт → повторный warmup-шторм на STS.
+  maxKeys: 8000,
 });
+
+// set с самолечением: при переполнении (ECACHEFULL) сбрасываем кэш целиком —
+// холодный кэш дешевле цикла «OOM-рестарт → warmup».
+function cacheSet(key, value, ttl) {
+  try {
+    cache.set(key, value, ttl);
+  } catch {
+    cache.flushAll();
+    try { cache.set(key, value, ttl); } catch { /* не кэшируем */ }
+  }
+}
 
 const CACHE_TTL = {
   '/v1/tanks': 120,
@@ -437,7 +451,7 @@ async function proxyRequest(req, res) {
       const response = await fetchPromise;
 
       if (method === 'GET' && response.status === 200) {
-        cache.set(cacheKey, response.data, getEffectiveTTL(urlPath, response.data));
+        cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data));
       }
 
       if (method === 'POST' && response.status >= 200 && response.status < 300) {
@@ -506,7 +520,7 @@ async function stsInternalRequest(urlPath, params, userHeaders) {
   const fakeReq = { headers: userHeaders || {} };
   const client = await getStsClient(fakeReq);
   const response = await client.request({ method: 'GET', url: urlPath, params: effectiveParams });
-  cache.set(cacheKey, response.data, getEffectiveTTL(urlPath, response.data));
+  cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data));
   return response.data;
 }
 

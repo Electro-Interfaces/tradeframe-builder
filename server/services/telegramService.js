@@ -10,6 +10,8 @@ class TelegramService {
     this.botToken = process.env.TELEGRAM_BOT_TOKEN;
     this.isConfigured = !!this.botToken;
     this.baseUrl = `https://api.telegram.org/bot${this.botToken}`;
+    // Таймаут по умолчанию: зависший api.telegram.org не должен блокировать отправку
+    this.http = axios.create({ timeout: 15000 });
 
     if (this.isConfigured) {
       this.verifyBot();
@@ -25,7 +27,7 @@ class TelegramService {
     }
 
     try {
-      const response = await axios.get(`${this.baseUrl}/getMe`);
+      const response = await this.http.get(`${this.baseUrl}/getMe`);
       if (response.data.ok) {
         return { success: true, bot: response.data.result };
       }
@@ -61,7 +63,7 @@ class TelegramService {
     } = options;
 
     try {
-      const response = await axios.post(`${this.baseUrl}/sendMessage`, {
+      const response = await this.http.post(`${this.baseUrl}/sendMessage`, {
         chat_id: chatId,
         text,
         parse_mode: parseMode,
@@ -316,7 +318,7 @@ ${emoji} <b>${levelText}</b>
     }
 
     try {
-      const response = await axios.get(`${this.baseUrl}/getChat`, {
+      const response = await this.http.get(`${this.baseUrl}/getChat`, {
         params: { chat_id: chatId }
       });
 
@@ -349,7 +351,7 @@ ${emoji} <b>${levelText}</b>
     }
 
     try {
-      const response = await axios.post(`${this.baseUrl}/setWebhook`, {
+      const response = await this.http.post(`${this.baseUrl}/setWebhook`, {
         url: webhookUrl
       });
 
@@ -379,7 +381,7 @@ ${emoji} <b>${levelText}</b>
     }
 
     try {
-      const response = await axios.post(`${this.baseUrl}/deleteWebhook`);
+      const response = await this.http.post(`${this.baseUrl}/deleteWebhook`);
 
       if (response.data.ok) {
         return { success: true };
@@ -408,7 +410,9 @@ ${emoji} <b>${levelText}</b>
     }
 
     try {
-      const response = await axios.get(`${this.baseUrl}/getUpdates`, {
+      const response = await this.http.get(`${this.baseUrl}/getUpdates`, {
+        // long-poll 30с на стороне Telegram — HTTP-таймаут должен быть больше
+        timeout: 35000,
         params: {
           offset,
           timeout: 30

@@ -275,9 +275,21 @@ async function createDeliveryLog(entry) {
   );
 }
 
+// Retention: таблица append-only, дедупликации нужна только свежая история.
+// Старые записи каскадно уносят с собой notification_delivery_log (FK CASCADE).
+async function deleteOldNotifications(retentionDays) {
+  const days = Number(retentionDays) > 0 ? Math.floor(Number(retentionDays)) : 90;
+  const { rowCount } = await postgres.query(
+    `DELETE FROM notifications WHERE created_at < now() - make_interval(days => $1)`,
+    [days]
+  );
+  return rowCount;
+}
+
 module.exports = {
   createDeliveryLog,
   createNotification,
+  deleteOldNotifications,
   findRecentNotification,
   getActiveRules,
   getRecipients,

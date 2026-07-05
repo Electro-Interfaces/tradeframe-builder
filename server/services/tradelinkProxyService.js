@@ -19,7 +19,17 @@ const NodeCache = require('node-cache');
 
 // ─── Кэш ───────────────────────────────────────────────
 
-const cache = new NodeCache({ stdTTL: 30, checkperiod: 30, useClones: false });
+const cache = new NodeCache({ stdTTL: 30, checkperiod: 30, useClones: false, maxKeys: 2000 });
+
+// При переполнении (ECACHEFULL) сбрасываем кэш — самолечение вместо роста памяти
+function cacheSet(key, data, ttl) {
+  try {
+    cache.set(key, data, ttl);
+  } catch {
+    cache.flushAll();
+    try { cache.set(key, data, ttl); } catch { /* не кэшируем */ }
+  }
+}
 
 const CACHE_TTL = {
   connectivity: 30,
@@ -81,7 +91,7 @@ async function hubGet(urlPath, ttlKey, cacheKey) {
   }
   cacheStats.misses++;
   const response = await getHubClient().get(urlPath);
-  cache.set(key, response.data, CACHE_TTL[ttlKey] || CACHE_TTL.default);
+  cacheSet(key, response.data, CACHE_TTL[ttlKey] || CACHE_TTL.default);
   return response.data;
 }
 

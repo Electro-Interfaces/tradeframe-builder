@@ -9,6 +9,7 @@ const notificationEngine = require('./notificationEngine');
 class NotificationScheduler {
   constructor() {
     this.tasks = new Map();
+    this.runningTasks = new Set();
     this.isRunning = false;
   }
 
@@ -50,6 +51,12 @@ class NotificationScheduler {
       () => this.runUnpunchedReceiptsChecks()
     );
 
+    this.scheduleTask(
+      'cleanupOldNotifications',
+      '30 4 * * *', // Ежедневно в 4:30 — retention таблицы notifications
+      () => notificationEngine.cleanupOldNotifications()
+    );
+
     this.isRunning = true;
   }
 
@@ -71,10 +78,19 @@ class NotificationScheduler {
     }
 
     const task = cron.schedule(cronExpression, async () => {
+      // Предыдущий тик ещё не завершился (например, STS отвечает медленно) —
+      // пропускаем, иначе зависшие проверки накапливаются друг на друге.
+      if (this.runningTasks.has(name)) {
+        console.error(`⚠️ Задача ${name} ещё выполняется — тик пропущен`);
+        return;
+      }
+      this.runningTasks.add(name);
       try {
         await callback();
       } catch (error) {
         console.error(`❌ Ошибка выполнения задачи ${name}:`, error);
+      } finally {
+        this.runningTasks.delete(name);
       }
     });
 
