@@ -4,29 +4,43 @@
  * Проксирует все /api/support/* на ai-orchestrator support-API
  * (events.dataworker.ru/api/support/*), который работает напрямую с проектом
  * Plane SUP. TSupport здесь больше не используется — окно «Заявки» не зависит
- * от его доступности. Аутентификация наружу — заголовки X-TF-User-*,
- * X-TF-Company-Id; внутрь — общий shared-secret (SUPPORT_INTAKE_SECRET).
+ * от его доступности. Личность/роль берутся из JWT (req.user), а не из
+ * клиентских заголовков; наружу — X-TF-User-*, X-TF-Company-Id; внутрь —
+ * общий shared-secret (SUPPORT_INTAKE_SECRET).
  */
 const express = require('express');
 const axios = require('axios');
+
+const { requireAuth } = require('../middleware/auth');
+const { getAllowedNetworkIds } = require('../middleware/scopeFilter');
 
 const router = express.Router();
 
 const SUPPORT_API_BASE = (process.env.SUPPORT_API_BASE || 'https://events.dataworker.ru').replace(/\/+$/, '');
 const SUPPORT_API_KEY = process.env.SUPPORT_INTAKE_SECRET || '';
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_ROLES = new Set(['super_admin', 'admin', 'manager', 'operator', 'user', 'customer']);
+// TF-коды ролей → роли support-API (не входящие в ALLOWED_ROLES деградируют до operator)
+const ROLE_MAP = {
+  system_admin: 'super_admin',
+  network_admin: 'admin',
+};
+
+// Лимиты на буферизуемые тела (upload/transcribe идут в память целиком)
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+const MAX_TRANSCRIBE_BYTES = 25 * 1024 * 1024;
+
+router.use(requireAuth);
 
 function userHeaders(req) {
-  const userId = req.headers['x-tf-user-id'] || '';
-  const userRole = req.headers['x-tf-user-role'] || 'operator';
+  const user = req.user || {};
+  const mappedRole = ROLE_MAP[user.role] || user.role || 'operator';
   return {
-    'X-TF-User-Id': UUID_RE.test(userId) ? userId : '',
-    'X-TF-User-Email': req.headers['x-tf-user-email'] || '',
-    'X-TF-User-Name': req.headers['x-tf-user-name'] || '',
-    'X-TF-User-Role': ALLOWED_ROLES.has(userRole) ? userRole : 'operator',
-    'X-TF-Company-Id': req.headers['x-tf-company-id'] || '',
+    'X-TF-User-Id': user.id || '',
+    'X-TF-User-Email': user.email || '',
+    'X-TF-User-Name': encodeURIComponent(user.name || ''),
+    'X-TF-User-Role': ALLOWED_ROLES.has(mappedRole) ? mappedRole : 'operator',
+    'X-TF-Company-Id': req.supportCompanyId || '',
     'X-Support-Key': SUPPORT_API_KEY,
   };
 }
@@ -37,29 +51,53 @@ router.get('/unread', (req, res, next) => {
   next();
 });
 
-// Проверка конфигурации + наличия пользователя
-router.use((req, res, next) => {
+// Проверка конфигурации + валидация выбранной компании по scope пользователя
+router.use(async (req, res, next) => {
   if (!SUPPORT_API_KEY) {
     return res.status(503).json({ error: 'Support API не настроен (SUPPORT_INTAKE_SECRET пуст)' });
   }
-  if (!UUID_RE.test(req.headers['x-tf-user-id'] || '')) {
-    return res.status(400).json({ error: 'Заголовок X-TF-User-Id обязателен' });
+  try {
+    const companyId = String(req.headers['x-tf-company-id'] || '');
+    if (companyId) {
+      const allowed = await getAllowedNetworkIds(req.user);
+      if (allowed && !allowed.has(companyId)) {
+        return res.status(403).json({ error: 'Нет доступа к данным этой сети' });
+      }
+    }
+    req.supportCompanyId = companyId;
+  } catch {
+    return res.status(500).json({ error: 'Ошибка проверки доступа' });
   }
   res.set('Cache-Control', 'no-store');
   next();
 });
 
+// Читает тело запроса в память с жёстким потолком размера
+async function readBody(req, maxBytes) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) {
+      const err = new Error('Тело запроса слишком большое');
+      err.statusCode = 413;
+      throw err;
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 // Upload файлов — multipart: проксируем СЫРОЙ поток с оригинальным Content-Type
 // (generic-прокси ниже ставит application/json и потерял бы boundary).
 router.post('/upload/:ticketId', async (req, res) => {
   try {
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
+    const body = await readBody(req, MAX_UPLOAD_BYTES);
     const r = await axios({
       method: 'POST',
       url: `${SUPPORT_API_BASE}/api/support/upload/${encodeURIComponent(req.params.ticketId)}`,
       headers: { ...userHeaders(req), 'Content-Type': req.headers['content-type'] || 'application/octet-stream' },
-      data: Buffer.concat(chunks),
+      data: body,
       timeout: 60000,
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
@@ -70,6 +108,9 @@ router.post('/upload/:ticketId', async (req, res) => {
     res.set('Content-Type', r.headers['content-type'] || 'application/json; charset=utf-8');
     res.send(Buffer.from(r.data));
   } catch (error) {
+    if (error.statusCode === 413) {
+      return res.status(413).json({ error: 'Файл слишком большой' });
+    }
     console.error('[Support Proxy] upload:', error.message);
     res.status(502).json({ error: 'Загрузка недоступна' });
   }
@@ -79,13 +120,12 @@ router.post('/upload/:ticketId', async (req, res) => {
 // (как /upload). Ответ оркестратора { text } отдаём как есть.
 router.post('/transcribe', async (req, res) => {
   try {
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
+    const body = await readBody(req, MAX_TRANSCRIBE_BYTES);
     const r = await axios({
       method: 'POST',
       url: `${SUPPORT_API_BASE}/api/support/transcribe`,
       headers: { ...userHeaders(req), 'Content-Type': req.headers['content-type'] || 'application/octet-stream' },
-      data: Buffer.concat(chunks),
+      data: body,
       timeout: 60000,
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
@@ -96,6 +136,9 @@ router.post('/transcribe', async (req, res) => {
     res.set('Content-Type', r.headers['content-type'] || 'application/json; charset=utf-8');
     res.send(Buffer.from(r.data));
   } catch (error) {
+    if (error.statusCode === 413) {
+      return res.status(413).json({ error: 'Аудио слишком большое' });
+    }
     console.error('[Support Proxy] transcribe:', error.message);
     res.status(502).json({ error: 'Распознавание речи недоступно' });
   }

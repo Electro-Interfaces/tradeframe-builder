@@ -77,18 +77,20 @@ function hasNetworkAccess(network, scope) {
 }
 
 /**
- * Кэш маппинга external_id -> network для проверки STS system параметра
+ * Кэш списка сетей (и маппинга external_id -> network) для scope-проверок
  * Обновляется раз в 5 минут
  */
+let networksCacheList = null;
 let networksByExternalId = null;
 let networkCacheTime = 0;
 const NETWORK_CACHE_TTL = 5 * 60 * 1000; // 5 минут
 
-async function getNetworkByExternalId(externalId) {
+async function getAllNetworksCached() {
   const now = Date.now();
-  if (!networksByExternalId || now - networkCacheTime > NETWORK_CACHE_TTL) {
+  if (!networksCacheList || now - networkCacheTime > NETWORK_CACHE_TTL) {
     try {
       const allNetworks = await orgDataSource.getNetworks();
+      networksCacheList = allNetworks;
       networksByExternalId = new Map();
       for (const n of allNetworks) {
         if (n.external_id) {
@@ -97,10 +99,43 @@ async function getNetworkByExternalId(externalId) {
       }
       networkCacheTime = now;
     } catch {
+      networksCacheList = networksCacheList || [];
       networksByExternalId = networksByExternalId || new Map();
     }
   }
+  return networksCacheList;
+}
+
+async function getNetworkByExternalId(externalId) {
+  await getAllNetworksCached();
   return networksByExternalId.get(String(externalId)) || null;
+}
+
+/**
+ * Разрешённые UUID сетей пользователя для фильтрации доменных данных
+ * (корп. заказы, инвентаризация и т.п.).
+ *
+ * null — ограничений нет (super_admin/system_admin/global scope);
+ * иначе Set<uuid> (возможно пустой — доступа нет никуда).
+ * networkCodes из ролей trading_point/assigned резолвятся в UUID через кэш сетей.
+ */
+async function getAllowedNetworkIds(user) {
+  const scope = getUserScope(user);
+  if (!scope.hasRestrictions) return null;
+
+  const ids = new Set();
+  scope.networkIds.forEach(id => ids.add(String(id)));
+
+  if (scope.networkCodes.size > 0) {
+    const allNetworks = await getAllNetworksCached();
+    for (const n of allNetworks) {
+      if (scope.networkCodes.has(n.code) || scope.networkCodes.has(n.external_id)) {
+        ids.add(String(n.id));
+      }
+    }
+  }
+
+  return ids;
 }
 
 /**
@@ -239,6 +274,7 @@ async function validateStsAccess(req, res, next) {
 module.exports = {
   getUserScope,
   hasNetworkAccess,
+  getAllowedNetworkIds,
   filterNetworksByScope,
   filterTradingPointsByScope,
   validateStsAccess,

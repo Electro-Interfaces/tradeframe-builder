@@ -15,6 +15,12 @@ async function getCorporateOrders(filters = {}) {
   const params = [];
   const conditions = ['1=1'];
 
+  // Scope пользователя: null — без ограничений, массив (в т.ч. пустой) — жёсткий фильтр.
+  if (Array.isArray(filters.allowedNetworkIds)) {
+    params.push(filters.allowedNetworkIds);
+    conditions.push(`o.network_id = ANY($${params.length}::uuid[])`);
+  }
+
   if (filters.networkId) {
     params.push(filters.networkId);
     conditions.push(`o.network_id = $${params.length}::uuid`);
