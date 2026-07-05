@@ -120,7 +120,7 @@ function getTTL(urlPath) {
 // Если закэшировать такой пустой снимок на 24ч, отчёт «залипает» пустым даже после
 // закрытия смены (до истечения TTL). Поэтому для незаполненного отчёта держим
 // короткий TTL — он самообновится, как только смена закроется и данные появятся.
-function getEffectiveTTL(urlPath, data) {
+function getEffectiveTTL(urlPath, data, queryParams) {
   const baseTTL = getTTL(urlPath);
   if (urlPath === '/v1/report/shift_report') {
     const d = Array.isArray(data) ? data[0] : data;
@@ -130,6 +130,22 @@ function getEffectiveTTL(urlPath, data) {
       return CACHE_TTL.default; // открытая/неполная смена — не залипаем на сутки
     }
   }
+
+  // Чанк транзакций, целиком закончившийся ДО сегодняшних суток, неизменяем —
+  // держим долго (как отчёты закрытых смен). Это спасает от повторного
+  // 10-секундного похода в STS за каждым историческим куском месяца.
+  if (urlPath === '/v1/transactions' || urlPath === '/v2/transactions') {
+    const dtEnd = queryParams?.dt_end;
+    if (dtEnd) {
+      const end = new Date(String(dtEnd).replace(' ', 'T'));
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      if (Number.isFinite(end.getTime()) && end < todayStart) {
+        return 21600; // 6 часов
+      }
+    }
+  }
+
   return baseTTL;
 }
 
@@ -451,7 +467,7 @@ async function proxyRequest(req, res) {
       const response = await fetchPromise;
 
       if (method === 'GET' && response.status === 200) {
-        cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data));
+        cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data, effectiveQuery));
       }
 
       if (method === 'POST' && response.status >= 200 && response.status < 300) {
@@ -520,7 +536,7 @@ async function stsInternalRequest(urlPath, params, userHeaders) {
   const fakeReq = { headers: userHeaders || {} };
   const client = await getStsClient(fakeReq);
   const response = await client.request({ method: 'GET', url: urlPath, params: effectiveParams });
-  cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data));
+  cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data, effectiveParams));
   return response.data;
 }
 

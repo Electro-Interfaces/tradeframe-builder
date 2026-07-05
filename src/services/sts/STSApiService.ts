@@ -908,7 +908,9 @@ class STSApiService {
       // «худел» до последнего дожившего чанка (3 дня на графике реализации).
       const MAX_CHUNK_DAYS = 7;
       const CHUNK_CONCURRENCY = 3;
-      const CHUNK_RETRIES = 2;
+      // 1 ретрай: разовые 500 STS сглаживает, а стоимость повтора мала —
+      // одинаковые конкурентные GET дедуплицируются на backend (inflightRequests).
+      const CHUNK_RETRIES = 1;
 
       const parseRawTransactions = (data: any): any[] => {
         if (Array.isArray(data) && data.length > 0 && data[0].items) {

@@ -151,6 +151,13 @@ export function useNetworkOverviewData() {
       const filtered = await filterBySelectedPoints(stsTransactions);
       setTransactions(filtered);
 
+      // Основные данные на экране — снимаем спиннер. Сравнение с прошлым
+      // периодом и карточки станции догружаются фоном (это ещё столько же
+      // походов в STS, ждать их для отрисовки страницы не нужно).
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+
       // Предыдущий период
       try {
         const fromDate = new Date(dateFrom);
