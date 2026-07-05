@@ -244,6 +244,9 @@ export interface Transaction {
   startTime: string;
   endTime?: string;
   duration?: number;
+  /** Числовой timestamp startTime (мс) — вычислен один раз при маппинге,
+   *  чтобы фильтры/сортировки/агрегаты не парсили строку даты на каждую строку */
+  tsMs?: number;
   orderedQuantity?: number;  // заказанное количество литров (order)
   orderedAmount?: number;    // заказанная сумма в рублях (order_cost)
   apiData?: {

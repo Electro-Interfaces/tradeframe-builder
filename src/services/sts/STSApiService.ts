@@ -878,10 +878,12 @@ class STSApiService {
         let mappedTransactions = rawTransactions.map(tx => this.mapApiTransactionToTransaction(tx));
 
         // Дополнительная клиентская фильтрация по датам как safety-net
-        // на случай, если STS вернет лишние записи.
+        // на случай, если STS вернет лишние записи. Работаем с tsMs — строковый
+        // парсинг даты в фильтре и КАЖДОМ сравнении сортировки на 100k строк
+        // блокировал главный поток на секунды («страница замирает»).
         if (dateFromMs !== null || dateToMs !== null) {
           mappedTransactions = mappedTransactions.filter(tx => {
-            const txMs = new Date(tx.startTime || tx.date).getTime();
+            const txMs = tx.tsMs ?? NaN;
             if (!Number.isFinite(txMs)) return false;
             if (dateFromMs !== null && txMs < dateFromMs) return false;
             if (dateToMs !== null && txMs > dateToMs) return false;
@@ -889,11 +891,7 @@ class STSApiService {
           });
         }
 
-        mappedTransactions.sort((a, b) => {
-          const aTime = new Date(a.startTime || a.date).getTime();
-          const bTime = new Date(b.startTime || b.date).getTime();
-          return bTime - aTime;
-        });
+        mappedTransactions.sort((a, b) => (b.tsMs ?? 0) - (a.tsMs ?? 0));
 
         if (limit && limit > 0) {
           mappedTransactions = mappedTransactions.slice(0, limit);
@@ -1194,6 +1192,9 @@ class STSApiService {
       stationName: apiTransaction.stationName,
       startTime,
       endTime: endTime || undefined,
+      // Один парсинг даты на строку — все последующие фильтры/сортировки/агрегаты
+      // работают с числом (на 100k строк это разница «секунды ↔ миллисекунды»)
+      tsMs: new Date(startTime).getTime(),
       pumpId,
       pumpName,
       fuelType,

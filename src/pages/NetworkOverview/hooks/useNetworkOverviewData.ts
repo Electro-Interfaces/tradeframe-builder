@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, startTransition } from "react";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { stsApiService } from "@/services/sts";
@@ -149,7 +149,9 @@ export function useNetworkOverviewData() {
       // Загружаем транзакции по выбранным сетям
       const stsTransactions = await fetchTransactionsForNetworks(dateFrom, dateTo, transactionExternalIds, tradingPointId);
       const filtered = await filterBySelectedPoints(stsTransactions);
-      setTransactions(filtered);
+      // startTransition: рендер 100k строк — неотложное обновление; меню и
+      // прочий интерактив не замирают, пока React пересчитывает страницу
+      startTransition(() => setTransactions(filtered));
 
       // Основные данные на экране — снимаем спиннер. Сравнение с прошлым
       // периодом и карточки станции догружаются фоном (это ещё столько же
@@ -168,7 +170,8 @@ export function useNetworkOverviewData() {
         const prevFromStr = prevFrom.toISOString().split('T')[0];
         const prevToStr = prevTo.toISOString().split('T')[0];
         const prevTxns = await fetchTransactionsForNetworks(prevFromStr, prevToStr, transactionExternalIds, tradingPointId);
-        setPrevPeriodTransactions(await filterBySelectedPoints(prevTxns));
+        const prevFiltered = await filterBySelectedPoints(prevTxns);
+        startTransition(() => setPrevPeriodTransactions(prevFiltered));
       } catch {
         setPrevPeriodTransactions([]);
       }

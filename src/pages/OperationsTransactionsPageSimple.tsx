@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -235,12 +235,11 @@ export default function OperationsTransactionsPageSimple() {
         return;
       }
 
-      // Сортируем транзакции по дате (свежие сверху)
-      const sortedTransactions = transactions.sort((a, b) => {
-        const dateA = new Date(a.startTime || a.date).getTime();
-        const dateB = new Date(b.startTime || b.date).getTime();
-        return dateB - dateA; // Убывающий порядок (свежие сверху)
-      });
+      // Сортируем транзакции по дате (свежие сверху) — по числовому tsMs:
+      // строковый new Date() на каждое сравнение при 100k строк блокировал UI
+      const sortedTransactions = transactions.sort(
+        (a, b) => (b.tsMs ?? new Date(b.startTime || b.date).getTime()) - (a.tsMs ?? new Date(a.startTime || a.date).getTime())
+      );
 
       // Преобразуем STS транзакции в формат № таблицы
       const stsTransactionsWithSource = sortedTransactions.map(tx => {
@@ -256,6 +255,7 @@ export default function OperationsTransactionsPageSimple() {
           stationName: tx.stationName || rawTx.stationName,
           startTime: rawTx.dt || tx.startTime || tx.date,
           endTime: tx.endTime,
+          tsMs: tx.tsMs, // числовой timestamp для фильтров/сортировок без парсинга строк
 
           // Топливо и количество
           fuelType: rawTx.fuel_name || tx.fuelType || '-',
@@ -299,8 +299,9 @@ export default function OperationsTransactionsPageSimple() {
         return;
       }
 
-      // Заменяем операции новыми данными из STS API
-      setOperations(stsTransactionsWithSource);
+      // Заменяем операции новыми данными из STS API.
+      // startTransition: рендер большого списка не должен замораживать интерактив
+      startTransition(() => setOperations(stsTransactionsWithSource));
 
     } catch (error: any) {
       if (requestId !== currentRequestIdRef.current) {
@@ -420,7 +421,7 @@ export default function OperationsTransactionsPageSimple() {
       
       // Фильтр по датам (используем debounced версии)
       if (debouncedDateFrom || debouncedDateTo) {
-        const recordDate = new Date(record.startTime);
+        const recordDate = typeof record.tsMs === 'number' ? new Date(record.tsMs) : new Date(record.startTime);
         // Используем локальную дату вместо UTC для корректной фильтрации
         const recordDateStr = recordDate.getFullYear() + '-' +
           String(recordDate.getMonth() + 1).padStart(2, '0') + '-' +
@@ -543,12 +544,10 @@ export default function OperationsTransactionsPageSimple() {
       }
     }
 
-    // Сортировка по дате (свежие сверху)
-    return filtered.sort((a, b) => {
-      const dateA = new Date(a.startTime).getTime();
-      const dateB = new Date(b.startTime).getTime();
-      return dateB - dateA; // Убывающий порядок (свежие сверху)
-    });
+    // Сортировка по дате (свежие сверху) — по числовому tsMs без парсинга строк
+    return filtered.sort(
+      (a, b) => (b.tsMs ?? new Date(b.startTime).getTime()) - (a.tsMs ?? new Date(a.startTime).getTime())
+    );
   }, [kpiFilteredOperations, debouncedSearchQuery]);
   
   // Пагинация №
