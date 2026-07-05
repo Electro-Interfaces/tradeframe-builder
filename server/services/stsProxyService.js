@@ -542,6 +542,17 @@ async function stsInternalRequest(urlPath, params, userHeaders) {
 
 // ─── Exports ───────────────────────────────────────────
 
+// Персистентность кэша между рестартами (деплой ≠ холодный старт для всех)
+const cacheSnapshot = require('./cacheSnapshot');
+
+function saveCacheSnapshot() {
+  return cacheSnapshot.saveSnapshot(cache, 'sts');
+}
+
+function loadCacheSnapshot() {
+  return cacheSnapshot.loadSnapshot(cache, 'sts');
+}
+
 module.exports = {
   getStsClient,
   proxyRequest,
@@ -550,5 +561,7 @@ module.exports = {
   getCacheStats,
   clearCache,
   invalidateCache,
+  saveCacheSnapshot,
+  loadCacheSnapshot,
   get jwtToken() { return jwtToken; },
 };

@@ -41,8 +41,16 @@ router.post('/_token/refresh', requireAuth, async (req, res) => {
 
 router.get('/servicePoints', async (req, res) => {
   try {
+    // Справочник точек MSTO меняется редко, а ходит за ним и поллинг
+    // онлайн-заказов, и ведомости — без кэша каждый вызов стоил ~2.5с.
+    const urlPath = '/private/servicePoints';
+    const cacheKey = mstoProxy.generateCacheKey(urlPath, {});
+    const cached = mstoProxy.getCache(cacheKey);
+    if (cached !== undefined) return res.json(cached);
+
     const client = await mstoProxy.getMstoClient();
-    const response = await client.get('/private/servicePoints');
+    const response = await client.get(urlPath);
+    mstoProxy.setCache(cacheKey, response.data, mstoProxy.getTTL(urlPath));
     res.json(response.data);
   } catch (error) {
     if (error.response?.status === 403 || error.response?.status === 404 ||

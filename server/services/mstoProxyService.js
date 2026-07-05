@@ -10,10 +10,12 @@ const NodeCache = require('node-cache');
 
 const cache = new NodeCache({ stdTTL: 300, checkperiod: 60, maxKeys: 2000 });
 
+// Ключи должны совпадать с реальными путями запросов к MSTO (/private/...) —
+// иначе getTTL молча падает в default (так «умер» 2ч-TTL справочника точек).
 const CACHE_TTL = {
-  '/servicePoints': 7200,
-  '/transactions': 600,
-  '/tariffs': 3600,
+  '/private/servicePoints': 7200,
+  '/private/transactions': 600,
+  '/private/tariffs': 3600,
   'default': 600,
 };
 
@@ -195,6 +197,17 @@ async function warmupCache() {
   }
 }
 
+// Персистентность кэша между рестартами (деплой ≠ холодный старт для всех)
+const cacheSnapshot = require('./cacheSnapshot');
+
+function saveCacheSnapshot() {
+  return cacheSnapshot.saveSnapshot(cache, 'msto');
+}
+
+function loadCacheSnapshot() {
+  return cacheSnapshot.loadSnapshot(cache, 'msto');
+}
+
 module.exports = {
   getMstoClient,
   proxyRequest,
@@ -206,6 +219,8 @@ module.exports = {
   warmupCache,
   generateCacheKey,
   getTTL,
+  saveCacheSnapshot,
+  loadCacheSnapshot,
   getCache,
   setCache,
 };

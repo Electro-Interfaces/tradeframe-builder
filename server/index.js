@@ -261,6 +261,20 @@ app.use((err, req, res, next) => {
 
 // Запуск сервера
 const server = app.listen(PORT, () => {
+  // Восстанавливаем кэши из снапшота ДО warmup'ов — после деплоя тёплые
+  // данные (отчёты смен, чанки транзакций, справочники MSTO) уже на месте.
+  try {
+    const stsProxy = require('./services/stsProxyService');
+    const mstoProxy = require('./services/mstoProxyService');
+    const stsRestored = stsProxy.loadCacheSnapshot();
+    const mstoRestored = mstoProxy.loadCacheSnapshot();
+    if (stsRestored > 0 || mstoRestored > 0) {
+      console.log(`[CacheSnapshot] восстановлено: STS ${stsRestored}, MSTO ${mstoRestored} записей`);
+    }
+  } catch (err) {
+    console.error('[CacheSnapshot] restore failed:', err.message);
+  }
+
   // Запуск планировщика уведомлений (можно отключить через DISABLE_NOTIFICATION_SCHEDULER=true)
   if (process.env.DISABLE_NOTIFICATION_SCHEDULER !== 'true') {
     notificationScheduler.start();
@@ -300,6 +314,16 @@ async function shutdown() {
 
   isShuttingDown = true;
   notificationScheduler.stop();
+
+  // Сохраняем кэши на диск — следующий процесс стартует тёплым
+  try {
+    const stsSaved = require('./services/stsProxyService').saveCacheSnapshot();
+    const mstoSaved = require('./services/mstoProxyService').saveCacheSnapshot();
+    console.log(`[CacheSnapshot] сохранено: STS ${stsSaved}, MSTO ${mstoSaved} записей`);
+  } catch (err) {
+    console.error('[CacheSnapshot] save failed:', err.message);
+  }
+
   await stopTelegramBot().catch(() => {});
 
   const forceCloseTimer = setTimeout(() => {
