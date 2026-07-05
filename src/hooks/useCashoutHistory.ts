@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { stsApiService } from '@/services/stsApi';
+import { stsApiService } from '@/services/sts';
 import { tradingPointsService } from '@/services/tradingPointsService';
 import type { CashoutRecord, StationCashout } from '@/types/equipment';
 

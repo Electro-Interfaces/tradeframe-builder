@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend, Cell } from "recharts";
-import { Transaction } from '@/services/stsApi';
+import { Transaction } from '@/services/sts';
 
 interface StationRevenueChartProps {
   transactions: Transaction[];

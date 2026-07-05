@@ -6,7 +6,7 @@ import { Loader2, Wifi, WifiOff, RefreshCw, Clock, AlertTriangle } from "lucide-
 import { useSelection } from "@/contexts/SelectionContext";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { tradingPointsService } from "@/services/tradingPointsService";
-import { stsApiService } from "@/services/stsApi";
+import { stsApiService } from "@/services/sts";
 import { TradingPoint } from "@/types/tradingpoint";
 
 interface StationConnectionInfo {

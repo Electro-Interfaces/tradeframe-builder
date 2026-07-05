@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { stsApiService, Transaction } from '@/services/stsApi';
+import { stsApiService, Transaction } from '@/services/sts';
 import { tradingPointsService } from '@/services/tradingPointsService';
 import { useToast } from '@/hooks/use-toast';
 

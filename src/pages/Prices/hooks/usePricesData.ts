@@ -9,7 +9,7 @@ import {
   TradingNetworkService
 } from "@/services/tradingNetworkAPI";
 import { CachedFuelPrice, pricesCacheService } from "@/services/pricesCache";
-import { stsApiService, Price as STSPrice, PriceScheduleEntry } from "@/services/stsApi";
+import { stsApiService, Price as STSPrice, PriceScheduleEntry } from "@/services/sts";
 import { auditLogService } from "@/services/auditLogService";
 
 // Types - CachedFuelPrice as main type

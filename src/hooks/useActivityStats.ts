@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import { getFuelPriority, sortFuelTypes } from '@/utils/fuelPriority';
-import type { Transaction } from '@/services/stsApi';
+import type { Transaction } from '@/services/sts';
 
 interface UseActivityStatsOptions {
   transactions: Transaction[];

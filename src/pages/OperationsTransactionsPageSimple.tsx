@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, RefreshCw, Filter } from "lucide-react";
 import { operationsService } from "@/services/operationsService";
-import { stsApiService } from "@/services/stsApi";
+import { stsApiService } from "@/services/sts";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import KPIFuelCard from "@/components/operations/KPIFuelCard";
 import KPIPaymentCard from "@/components/operations/KPIPaymentCard";

@@ -34,7 +34,7 @@ import type {
   FuelLevelThresholds,
   FuelLevelThreshold,
 } from "@/types/tradingpoint";
-import { stsApiService } from "@/services/stsApi";
+import { stsApiService } from "@/services/sts";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import {
   EQUIPMENT_CARD_INNER_PADDING_CLASS,

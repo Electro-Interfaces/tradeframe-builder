@@ -20,7 +20,7 @@ import { PeriodComparison } from "@/components/charts/PeriodComparison";
 import { AverageCheckTrend } from "@/components/charts/AverageCheckTrend";
 import { WeekdayPattern } from "@/components/charts/WeekdayPattern";
 import { CashlessShareTrend } from "@/components/charts/CashlessShareTrend";
-import { stsApiService } from "@/services/stsApi";
+import { stsApiService } from "@/services/sts";
 import { todayString, monthsAgoString } from "@/utils/dateUtils";
 
 import { useNetworkOverviewData } from "./hooks/useNetworkOverviewData";

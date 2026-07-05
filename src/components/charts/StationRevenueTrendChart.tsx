@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Transaction } from '@/services/stsApi';
+import { Transaction } from '@/services/sts';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 

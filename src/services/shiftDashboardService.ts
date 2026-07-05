@@ -37,7 +37,7 @@ import type {
   CashFlowMetrics,
   CashFlowItem,
 } from '@/types/shift-dashboard';
-import { stsApiService } from './stsApi';
+import { stsApiService } from './sts';
 import type { CashoutRecord, StationCashout } from '@/types/equipment';
 import {
   PAYMENT_NAMES,

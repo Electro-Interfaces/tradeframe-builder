@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { Transaction } from '@/services/stsApi';
+import { Transaction } from '@/services/sts';
 import { getFuelColor } from '@/types/shift-dashboard';
 import { getFuelPriority } from '@/utils/fuelPriority';
 

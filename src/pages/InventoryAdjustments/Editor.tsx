@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useStationNetworkId } from '@/hooks/useStationNetworkId';
-import { stsApiService } from '@/services/stsApi';
+import { stsApiService } from '@/services/sts';
 import { inventoryAdjustmentsService } from '@/services/inventoryAdjustmentsService';
 import type {
   InventoryAdjustment,

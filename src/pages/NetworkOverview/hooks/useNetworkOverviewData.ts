@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useNewAuth } from "@/contexts/NewAuthContext";
-import { stsApiService } from "@/services/stsApi";
+import { stsApiService } from "@/services/sts";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
 import { todayString, monthsAgoString } from "@/utils/dateUtils";

@@ -3,7 +3,7 @@
  */
 
 import { useMemo } from 'react';
-import type { Transaction } from '@/services/stsApi';
+import type { Transaction } from '@/services/sts';
 
 interface UseNetworkStatsOptions {
   transactions: Transaction[];

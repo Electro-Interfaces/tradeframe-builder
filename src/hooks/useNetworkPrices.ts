@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { stsApiService, Price } from '@/services/stsApi';
+import { stsApiService, Price } from '@/services/sts';
 import { tradingPointsService } from '@/services/tradingPointsService';
 import { shiftsService } from '@/services/shiftsService';
 import { Network } from '@/types/network';

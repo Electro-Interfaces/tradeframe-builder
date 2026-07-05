@@ -8,7 +8,7 @@ import { equipmentService } from '@/services/equipmentService';
 import { useToast } from '@/hooks/use-toast';
 import type { TerminalInfo, TerminalEquipmentItem } from '@/types/equipment';
 import type { Tank } from '@/types/tanks';
-import { stsApiService } from '@/services/stsApi';
+import { stsApiService } from '@/services/sts';
 
 interface UseEquipmentOptions {
   networkId?: string;
