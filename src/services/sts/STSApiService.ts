@@ -902,10 +902,13 @@ class STSApiService {
         return mappedTransactions;
       }
 
-      // STS медленнее на больших периодах — дробим на недельные чанки и грузим
-      // параллельно. 7 дней STS отдаёт быстро (~0.7с), а месяц = ~5 чанков вместо 15
-      // (раньше было по 2 дня) — влезают в один параллельный батч браузера.
+      // STS медленнее на больших периодах — дробим на недельные чанки.
+      // ВАЖНО: не грузить все чанки разом — под параллельной нагрузкой STS
+      // деградирует (20с+ на чанк) и начинает отвечать 500, из-за чего месяц
+      // «худел» до последнего дожившего чанка (3 дня на графике реализации).
       const MAX_CHUNK_DAYS = 7;
+      const CHUNK_CONCURRENCY = 3;
+      const CHUNK_RETRIES = 2;
 
       const parseRawTransactions = (data: any): any[] => {
         if (Array.isArray(data) && data.length > 0 && data[0].items) {
@@ -926,16 +929,46 @@ class STSApiService {
       };
 
       const fetchChunk = async (chunkBeg: string, chunkEnd: string): Promise<any[]> => {
-        try {
-          const p = new URLSearchParams();
-          p.set('dt_beg', chunkBeg);
-          p.set('dt_end', chunkEnd);
-          const data = await this.apiRequest<any>(`/v2/transactions?${p.toString()}`, {}, contextParams, 60000);
-          return parseRawTransactions(data);
-        } catch {
-          // Чанк не загрузился — возвращаем пустой массив, остальные чанки продолжат работать
-          return [];
+        const p = new URLSearchParams();
+        p.set('dt_beg', chunkBeg);
+        p.set('dt_end', chunkEnd);
+        const data = await this.apiRequest<any>(`/v2/transactions?${p.toString()}`, {}, contextParams, 60000);
+        return parseRawTransactions(data);
+      };
+
+      // Ретраи сглаживают разовые 500/таймауты STS. Если чанк не загрузился
+      // и после ретраев — пробрасываем ошибку: неполные данные хуже честной
+      // «Ошибки загрузки» (KPI и графики молча занижались до одного чанка).
+      const fetchChunkWithRetry = async (chunkBeg: string, chunkEnd: string): Promise<any[]> => {
+        let lastError: unknown;
+        for (let attempt = 0; attempt <= CHUNK_RETRIES; attempt++) {
+          try {
+            return await fetchChunk(chunkBeg, chunkEnd);
+          } catch (error) {
+            lastError = error;
+            if (attempt < CHUNK_RETRIES) {
+              await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1)));
+            }
+          }
         }
+        throw lastError;
+      };
+
+      // Пул воркеров: не больше CHUNK_CONCURRENCY чанков к STS одновременно
+      const fetchChunksPooled = async (chunkList: Array<{ beg: string; end: string }>): Promise<any[]> => {
+        const results: any[][] = new Array(chunkList.length);
+        let nextIndex = 0;
+        const workers = Array.from(
+          { length: Math.min(CHUNK_CONCURRENCY, chunkList.length) },
+          async () => {
+            while (nextIndex < chunkList.length) {
+              const i = nextIndex++;
+              results[i] = await fetchChunkWithRetry(chunkList[i].beg, chunkList[i].end);
+            }
+          }
+        );
+        await Promise.all(workers);
+        return results.flat();
       };
 
       let allRaw: any[] = [];
@@ -959,8 +992,7 @@ class STSApiService {
             cur.setDate(cur.getDate() + MAX_CHUNK_DAYS);
           }
 
-          const results = await Promise.all(chunks.map(c => fetchChunk(c.beg, c.end)));
-          allRaw = results.flat();
+          allRaw = await fetchChunksPooled(chunks);
         } else {
           if (params.toString()) {
             endpoint += `?${params.toString()}`;
