@@ -415,7 +415,7 @@ const LoginPageWithLegal = () => {
           <div className="inline-flex items-center justify-center w-10 h-10 bg-primary rounded-full mb-1">
             <Shield className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-foreground mb-0.5">TradePoint</h1>
+          <h1 className="text-xl font-bold text-foreground mb-0.5">Monitor</h1>
           <p className="text-xs text-muted-foreground">Система управления АЗС</p>
         </div>
 

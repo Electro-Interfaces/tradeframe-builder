@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Bell, Wifi, LifeBuoy, Sun, Moon, ChevronsLeft, ChevronsRight, MessageCircle, HelpCircle } from "lucide-react";
+import { LogOut, User, Bell, Wifi, LifeBuoy, Sun, Moon, ChevronsLeft, ChevronsRight, MessageCircle, HelpCircle, Gauge } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
@@ -147,11 +147,11 @@ export function Header({
         {/* Desktop Left Section: Logo + Brand + Sidebar toggle */}
         <div className="hidden md:flex items-center gap-4">
           <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-base">TP</span>
+            <Gauge className="h-6 w-6 text-white" strokeWidth={2.2} />
           </div>
           <div>
-            <h1 className="font-semibold text-foreground text-lg tracking-tight">TradePoint</h1>
-            <p className="text-xs text-muted-foreground">v{APP_VERSION}</p>
+            <h1 className="font-semibold text-foreground text-lg tracking-tight">Monitor</h1>
+            <p className="text-xs text-muted-foreground">Монитор {APP_VERSION}</p>
           </div>
           {toggleSidebar && (
             <button
