@@ -21,6 +21,8 @@ export function useNetworkOverviewData() {
   // Состояния данных
   const [transactions, setTransactions] = useState<any[]>([]);
   const [prevPeriodTransactions, setPrevPeriodTransactions] = useState<any[]>([]);
+  // Кол-во дней, которые STS не отдал (стойкий 500) — для баннера неполноты
+  const [missingDays, setMissingDays] = useState(0);
   const [tanks, setTanks] = useState<any[]>([]);
   const [terminalInfo, setTerminalInfo] = useState<any>(null);
   const [prices, setPrices] = useState<any[]>([]);
@@ -77,7 +79,8 @@ export function useNetworkOverviewData() {
     return stationNumbers.size > 0 ? stationNumbers : null;
   }, [user?.roles]);
 
-  // Загрузка транзакций из STS по всем выбранным сетям
+  // Загрузка транзакций из STS по всем выбранным сетям.
+  // Собираем метку неполноты (__partial) со всех сетей, чтобы показать баннер.
   const fetchTransactionsForNetworks = useCallback(async (
     from: string, to: string, externalIds: string[], tradingPointId?: string
   ) => {
@@ -88,7 +91,12 @@ export function useNetworkOverviewData() {
         return stsApiService.getTransactions(from, to, 0, params).catch(() => [] as any[]);
       })
     );
-    return results.flat();
+    const flat = results.flat();
+    const totalMissingDays = results.reduce((sum, r) => sum + ((r as any).__partial?.days || 0), 0);
+    if (totalMissingDays > 0) {
+      Object.defineProperty(flat, '__partial', { value: { days: totalMissingDays }, enumerable: false });
+    }
+    return flat;
   }, []);
 
   // Фильтрация транзакций по справочнику зарегистрированных станций
@@ -125,6 +133,7 @@ export function useNetworkOverviewData() {
     try {
       setTransactions([]);
       setPrevPeriodTransactions([]);
+      setMissingDays(0);
       setTanks([]);
       setTerminalInfo(null);
       setPrices([]);
@@ -149,6 +158,7 @@ export function useNetworkOverviewData() {
       // Загружаем транзакции по выбранным сетям
       const stsTransactions = await fetchTransactionsForNetworks(dateFrom, dateTo, transactionExternalIds, tradingPointId);
       const filtered = await filterBySelectedPoints(stsTransactions);
+      setMissingDays((stsTransactions as any).__partial?.days || 0);
       // startTransition: рендер 100k строк — неотложное обновление; меню и
       // прочий интерактив не замирают, пока React пересчитывает страницу
       startTransition(() => setTransactions(filtered));
@@ -280,6 +290,7 @@ export function useNetworkOverviewData() {
     // Data states
     transactions,
     prevPeriodTransactions,
+    missingDays,
     tanks,
     terminalInfo,
     prices,

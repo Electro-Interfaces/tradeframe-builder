@@ -936,9 +936,7 @@ class STSApiService {
         return parseRawTransactions(data);
       };
 
-      // Ретраи сглаживают разовые 500/таймауты STS. Если чанк не загрузился
-      // и после ретраев — пробрасываем ошибку: неполные данные хуже честной
-      // «Ошибки загрузки» (KPI и графики молча занижались до одного чанка).
+      // Ретраи сглаживают разовые 500/таймауты STS.
       const fetchChunkWithRetry = async (chunkBeg: string, chunkEnd: string): Promise<any[]> => {
         let lastError: unknown;
         for (let attempt = 0; attempt <= CHUNK_RETRIES; attempt++) {
@@ -954,20 +952,35 @@ class STSApiService {
         throw lastError;
       };
 
-      // Пул воркеров: не больше CHUNK_CONCURRENCY чанков к STS одновременно
+      // Диапазоны, которые STS так и не отдал (стойкий 500 на конкретных датах —
+      // битые данные на стороне STS). Приложим к результату, чтобы страница
+      // показала честный баннер «данные за N дней недоступны».
+      const failedRanges: Array<{ beg: string; end: string }> = [];
+
+      // Пул воркеров: не больше CHUNK_CONCURRENCY чанков к STS одновременно.
+      // Один битый чанк НЕ роняет весь месяц — собираем что доступно (частичные
+      // данные с предупреждением лучше пустого экрана). Полный отказ — только
+      // если не пришёл НИ ОДИН чанк (это уже реальная недоступность сети/STS).
       const fetchChunksPooled = async (chunkList: Array<{ beg: string; end: string }>): Promise<any[]> => {
-        const results: any[][] = new Array(chunkList.length);
+        const results: any[][] = new Array(chunkList.length).fill(null).map(() => []);
         let nextIndex = 0;
         const workers = Array.from(
           { length: Math.min(CHUNK_CONCURRENCY, chunkList.length) },
           async () => {
             while (nextIndex < chunkList.length) {
               const i = nextIndex++;
-              results[i] = await fetchChunkWithRetry(chunkList[i].beg, chunkList[i].end);
+              try {
+                results[i] = await fetchChunkWithRetry(chunkList[i].beg, chunkList[i].end);
+              } catch {
+                failedRanges.push(chunkList[i]);
+              }
             }
           }
         );
         await Promise.all(workers);
+        if (failedRanges.length === chunkList.length) {
+          throw new Error('STS не отдал ни одного диапазона транзакций');
+        }
         return results.flat();
       };
 
@@ -1008,7 +1021,21 @@ class STSApiService {
         allRaw = parseRawTransactions(data);
       }
 
-      return normalizeTransactions(allRaw);
+      const normalized = normalizeTransactions(allRaw);
+      // Метка неполноты: непровальное свойство на массиве (не ломает потребителей,
+      // читающих его как обычный Transaction[]). Страница покажет предупреждение.
+      if (failedRanges.length > 0) {
+        const days = failedRanges.reduce((sum, r) => {
+          const b = new Date(`${r.beg.split(' ')[0]}T00:00:00`).getTime();
+          const e = new Date(`${r.end.split(' ')[0]}T00:00:00`).getTime();
+          return sum + Math.round((e - b) / 86400000) + 1;
+        }, 0);
+        Object.defineProperty(normalized, '__partial', {
+          value: { failedRanges, days },
+          enumerable: false,
+        });
+      }
+      return normalized;
     } catch (error) {
       console.error('🔍 STS API: Ошибка получения транзакций:', error);
       throw error;

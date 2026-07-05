@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Download, Loader2, RefreshCw, Activity, Filter, ChevronDown, ChevronRight, FileText, FileSpreadsheet } from "lucide-react";
+import { Download, Loader2, RefreshCw, Activity, Filter, ChevronDown, ChevronRight, FileText, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
@@ -56,6 +56,7 @@ export function NetworkOverview() {
 
     transactions,
     prevPeriodTransactions,
+    missingDays,
     loading,
     stsApiConfigured,
     setStsApiConfigured,
@@ -291,6 +292,16 @@ export function NetworkOverview() {
                 </>
               )}
             </div>
+          </div>
+        )}
+        {/* Баннер неполноты: STS не отдал часть дней (стойкий 500 на его стороне) */}
+        {missingDays > 0 && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>
+              Данные за {missingDays} дн. периода временно недоступны на стороне АЗС-сервера — показатели ниже
+              рассчитаны по доступным дням. Попробуйте обновить позже.
+            </span>
           </div>
         )}
         {/* Заголовок страницы */}
