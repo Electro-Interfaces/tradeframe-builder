@@ -26,7 +26,6 @@ describe('Lazy imports — все страницы App.tsx резолвятся'
     ['Users', () => import('@/pages/admin/Users')],
     ['Roles', () => import('@/pages/admin/Roles')],
     ['AuditLog', () => import('@/pages/AuditLog')],
-    ['DataMigration', () => import('@/pages/DataMigration')],
 
     // Settings — приоритет 2
     ['UserNotificationSettings', () => import('@/pages/UserNotificationSettings')],
@@ -45,15 +44,10 @@ describe('Lazy imports — все страницы App.tsx резолвятся'
     ['ShiftReportsV2', () => import('@/pages/ShiftReportsV2')],
     ['ShiftDashboard', () => import('@/pages/ShiftDashboard')],
     ['SimpleProfile', () => import('@/pages/SimpleProfile')],
-    ['TestServices', () => import('@/pages/TestServices')],
-    ['TestServicesSimple', () => import('@/pages/TestServicesSimple')],
-    ['TestDebug', () => import('@/pages/TestDebug')],
-    ['MobileBrowserTest', () => import('@/pages/MobileBrowserTest')],
     ['LegalDocuments', () => import('@/pages/LegalDocuments')],
     ['LegalDocumentEditor', () => import('@/pages/LegalDocumentEditor')],
     ['LegalDocumentHistory', () => import('@/pages/LegalDocumentHistory')],
     ['LegalUsersAcceptances', () => import('@/pages/LegalUsersAcceptances')],
-    ['LogoVariants', () => import('@/pages/LogoVariants')],
 
     // Support
     ['TicketsPage', () => import('@/pages/support/TicketsPage')],
@@ -61,9 +55,11 @@ describe('Lazy imports — все страницы App.tsx резолвятся'
   ];
 
   pages.forEach(([name, importFn]) => {
+    // 30с: под полным сьютом трансформация тяжёлых страниц (NetworkOverview ~13с)
+    // не укладывалась в 10с и тест флаковал — проверяем резолв, не скорость.
     it(`${name} — модуль загружается и имеет default export`, async () => {
       const mod = await importFn();
       expect(mod).toHaveProperty('default');
-    }, 10000);
+    }, 30000);
   });
 });

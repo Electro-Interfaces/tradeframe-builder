@@ -46,7 +46,6 @@ const FuelInventory = lazy(() => import("./pages/FuelInventory"));
 const Users = lazy(() => import("./pages/admin/Users"));
 const Roles = lazy(() => import("./pages/admin/Roles"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
-const DataMigration = lazy(() => import("./pages/DataMigration"));
 
 // Settings страницы - ленивая загрузка (приоритет 2)
 const UserNotificationSettings = lazy(() => import("./pages/UserNotificationSettings"));
@@ -68,15 +67,10 @@ const NetworksPage = lazy(() => import("./pages/NetworksPage"));
 const ShiftReportsV2 = lazy(() => import("./pages/ShiftReportsV2"));
 const ShiftDashboard = lazy(() => import("./pages/ShiftDashboard"));
 const SimpleProfile = lazy(() => import("./pages/SimpleProfile"));
-const TestServices = lazy(() => import("./pages/TestServices"));
-const TestServicesSimple = lazy(() => import("./pages/TestServicesSimple"));
-const TestDebug = lazy(() => import("./pages/TestDebug"));
-const MobileBrowserTest = lazy(() => import("./pages/MobileBrowserTest"));
 const LegalDocuments = lazy(() => import("./pages/LegalDocuments"));
 const LegalDocumentEditor = lazy(() => import("./pages/LegalDocumentEditor"));
 const LegalDocumentHistory = lazy(() => import("./pages/LegalDocumentHistory"));
 const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances"));
-const LogoVariants = lazy(() => import("./pages/LogoVariants"));
 
 // Support страницы
 const TicketsPage = lazy(() => import("./pages/support/TicketsPage"));
@@ -236,7 +230,6 @@ const App = () => {
                   <Route path="/admin/users-and-roles" element={<ProtectedRoute requireAdmin><LazyLoader><Users /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/roles" element={<ProtectedRoute requireAdmin><LazyLoader><Roles /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/audit" element={<ProtectedRoute requireAdmin><LazyLoader><AuditLog /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/data-migration" element={<ProtectedRoute requireAdmin><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
 
                   {/* Settings страницы - приоритет 2 */}
                   <Route path="/settings/notifications" element={<ProtectedRoute><LazyLoader><UserNotificationSettings /></LazyLoader></ProtectedRoute>} />
@@ -265,17 +258,12 @@ const App = () => {
                   <Route path="/point/shift-reports-v2" element={<ProtectedRoute><LazyLoader><ShiftReportsV2 /></LazyLoader></ProtectedRoute>} />
                   <Route path="/point/shift-dashboard" element={<ProtectedRoute><LazyLoader><ShiftDashboard /></LazyLoader></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><LazyLoader><SimpleProfile /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/test-services" element={<ProtectedRoute requireAdmin><LazyLoader><TestServices /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/test-simple" element={<ProtectedRoute requireAdmin><LazyLoader><TestServicesSimple /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/test-debug" element={<ProtectedRoute requireAdmin><LazyLoader><TestDebug /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/admin/mobile-browser-test" element={<ProtectedRoute requireAdmin><LazyLoader><MobileBrowserTest /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/legal-documents" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocuments /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/legal-documents/users-acceptances" element={<ProtectedRoute requireAdmin><LazyLoader><LegalUsersAcceptances /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/legal-documents/:docType/history" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocumentHistory /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/legal-documents/:docType/edit" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/legal-documents/:docType/create" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/legal-documents/:docType/view" element={<ProtectedRoute requireAdmin><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/logos" element={<LazyLoader><LogoVariants /></LazyLoader>} />
 
                   {/* Support страницы */}
                   <Route path="/support/interaction" element={<ProtectedRoute><LazyLoader><InteractionPage /></LazyLoader></ProtectedRoute>} />
