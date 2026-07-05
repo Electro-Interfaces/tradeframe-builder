@@ -936,7 +936,12 @@ class STSApiService {
         return parseRawTransactions(data);
       };
 
-      // Ретраи сглаживают разовые 500/таймауты STS.
+      // Ретраи сглаживают таймауты/сетевые сбои. Детерминированный 500 от STS
+      // (битые данные за конкретный день) ретраить бессмысленно — тот же результат,
+      // только +пауза; backend такие 500 держит в negative-cache и отвечает мгновенно.
+      const isDeterministic500 = (error: unknown) =>
+        error instanceof Error && /HTTP 5\d\d/.test(error.message);
+
       const fetchChunkWithRetry = async (chunkBeg: string, chunkEnd: string): Promise<any[]> => {
         let lastError: unknown;
         for (let attempt = 0; attempt <= CHUNK_RETRIES; attempt++) {
@@ -944,6 +949,7 @@ class STSApiService {
             return await fetchChunk(chunkBeg, chunkEnd);
           } catch (error) {
             lastError = error;
+            if (isDeterministic500(error)) break; // не ретраим стойкий 500
             if (attempt < CHUNK_RETRIES) {
               await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1)));
             }

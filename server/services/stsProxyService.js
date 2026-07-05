@@ -70,6 +70,14 @@ function cacheSet(key, value, ttl) {
   }
 }
 
+// Negative-cache: STS стойко отдаёт 500 на конкретных диапазонах (битые
+// транзакции на его стороне, напр. 03.06 у ГИГ). Сам 500 приходит через
+// ~4с «раздумий» STS, и без этого кэша КАЖДАЯ загрузка Обзора повторно
+// ждала эти 4с (×2 с ретраем) на битом чанке. Запоминаем факт 500 на
+// короткое время и отвечаем мгновенно, не долбя STS.
+const NEGATIVE_TTL = Number(process.env.STS_NEGATIVE_CACHE_TTL_S || 300);
+const negativeCache = new NodeCache({ stdTTL: NEGATIVE_TTL, checkperiod: 120, maxKeys: 2000 });
+
 const CACHE_TTL = {
   '/v1/tanks': 120,
   '/v2/info': 60,
@@ -315,6 +323,8 @@ function buildOutgoingCacheTag(stationCodes) {
 }
 
 async function proxyRequest(req, res) {
+  // Ключ для negative-cache в catch (cacheKey объявлен внутри try, там не виден)
+  let negKey = null;
   try {
     const { method, query, body } = req;
     const urlPath = req.path;
@@ -377,6 +387,7 @@ async function proxyRequest(req, res) {
     const cacheKey = generateCacheKey(urlPath, effectiveQuery)
       + buildAliasCacheTag(aliasExpansions)
       + buildOutgoingCacheTag(movedStations);
+    negKey = cacheKey;
 
     // Cache check (GET only)
     if (method === 'GET') {
@@ -384,6 +395,11 @@ async function proxyRequest(req, res) {
       if (cachedData !== undefined) {
         cacheStats.hits++;
         return res.status(200).json(cachedData);
+      }
+      // Недавно этот диапазон стойко дал 500 — не ждём STS повторно
+      const neg = negativeCache.get(cacheKey);
+      if (neg !== undefined) {
+        return res.status(neg.status || 500).json(neg.body);
       }
       cacheStats.misses++;
     }
@@ -492,11 +508,16 @@ async function proxyRequest(req, res) {
     }
 
     if (error.response) {
-      res.status(error.response.status).json({
+      const body = {
         error: 'STS API Error',
         message: error.response.data?.message || error.message,
         details: error.response.data,
-      });
+      };
+      // Стойкий 500 на GET — negative-cache, чтобы не ждать STS повторно
+      if (req.method === 'GET' && negKey && error.response.status >= 500) {
+        try { negativeCache.set(negKey, { status: error.response.status, body }); } catch { /* ignore */ }
+      }
+      res.status(error.response.status).json(body);
     } else if (error.request) {
       res.status(503).json({ error: 'Service Unavailable', message: 'STS API did not respond' });
     } else {
