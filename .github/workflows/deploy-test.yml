@@ -29,7 +29,9 @@ jobs:
         run: npm run check:repo-guards
 
       - name: Backend unit tests
-        run: npm run test:server
+        run: |
+          npm ci --prefix server
+          npm run test:server
 
       - name: Sync version
         run: npm run sync-version
