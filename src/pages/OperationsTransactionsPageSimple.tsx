@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, RefreshCw, Filter } from "lucide-react";
 import { operationsService } from "@/services/operationsService";
-import { stsApiService } from "@/services/sts";
+import { getCachedTransactions } from "@/services/transactionsCache";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import KPIFuelCard from "@/components/operations/KPIFuelCard";
 import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
@@ -180,7 +180,7 @@ export default function OperationsTransactionsPageSimple() {
         // Загружаем транзакции для всех станций по всем выбранным сетям
         const results = await Promise.all(
           selectedExternalIds.map(networkId =>
-            stsApiService.getTransactions(dateFrom, dateTo, 0, { networkId }).catch(() => [] as any[])
+            getCachedTransactions(dateFrom, dateTo, 0, { networkId }).catch(() => [] as any[])
           )
         );
         transactions = results.flat();
@@ -237,7 +237,7 @@ export default function OperationsTransactionsPageSimple() {
           (selectedStation?.networkId
             ? selectedNetworks.find(n => n.id === selectedStation.networkId)?.external_id
             : null) || selectedExternalIds[0];
-        const txData = await stsApiService.getTransactions(dateFrom, dateTo, 0, {
+        const txData = await getCachedTransactions(dateFrom, dateTo, 0, {
           networkId: stationNetworkExtId,
           tradingPointId: tradingPointExternalId!
         }).catch(() => [] as any[]);

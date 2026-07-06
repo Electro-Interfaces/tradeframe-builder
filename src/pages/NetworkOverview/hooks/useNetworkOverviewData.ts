@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, startTransition } fr
 import { useSelection } from "@/contexts/SelectionContext";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { stsApiService } from "@/services/sts";
+import { getCachedTransactions } from "@/services/transactionsCache";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
 import { todayString, monthsAgoString } from "@/utils/dateUtils";
@@ -88,7 +89,7 @@ export function useNetworkOverviewData() {
       externalIds.map(networkId => {
         const params: { networkId: string; tradingPointId?: string } = { networkId };
         if (tradingPointId) params.tradingPointId = tradingPointId;
-        return stsApiService.getTransactions(from, to, 0, params).catch(() => [] as any[]);
+        return getCachedTransactions(from, to, 0, params).catch(() => [] as any[]);
       })
     );
     const flat = results.flat();
