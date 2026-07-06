@@ -57,6 +57,16 @@ class NotificationScheduler {
       () => notificationEngine.cleanupOldNotifications()
     );
 
+    // Досинк материализованных транзакций (свежесть «сегодня») — каждые 10 минут.
+    // Синкает только хвост (сегодня + незакрытые дни через курсор), быстро.
+    if (process.env.DISABLE_STS_SYNC !== 'true') {
+      this.scheduleTask(
+        'syncStsTransactions',
+        '*/10 * * * *',
+        () => require('./analytics/stsSync').syncAllNetworks(),
+      );
+    }
+
     this.isRunning = true;
   }
 

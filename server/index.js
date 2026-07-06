@@ -181,6 +181,9 @@ app.use('/api/inventory-adjustments', inventoryAdjustmentsRoutes);
 app.use('/api/corporate-clients', corporateClientsRoutes);
 app.use('/api/corporate-orders', corporateOrdersRoutes);
 
+// Аналитика из материализованных транзакций (Обзор/Операции без сырья в браузере)
+app.use('/api/analytics', require('./routes/analytics'));
+
 // Smoke-test — полная проверка модулей (только для авторизованных)
 const { requireAuth: smokeAuth } = require('./middleware/auth');
 app.get('/api/smoke', smokeAuth, async (req, res) => {
@@ -302,6 +305,19 @@ const server = app.listen(PORT, () => {
     stsRoutes.warmupCache().catch(err => {
       console.error('[Server] STS fuel-inventory warmup failed:', err.message);
     });
+  }
+
+  // Материализация транзакций STS→PG при старте (фоново, не блокирует запуск).
+  // Отключается через DISABLE_STS_SYNC=true.
+  if (process.env.DISABLE_STS_SYNC !== 'true') {
+    setTimeout(() => {
+      require('./services/analytics/stsSync').syncAllNetworks()
+        .then(res => {
+          const rows = res.reduce((s, r) => s + (r.rows || 0), 0);
+          console.log(`[STS Sync] стартовый синк: ${rows} транзакций по ${res.length} сетям`);
+        })
+        .catch(err => console.error('[STS Sync] стартовый синк failed:', err.message));
+    }, 15000); // даём серверу подняться и прогреть кэши STS
   }
 });
 
