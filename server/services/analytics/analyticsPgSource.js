@@ -87,15 +87,24 @@ async function getOverview({ networkIds, from, to, allowedStations }) {
 }
 
 // Список операций с серверной пагинацией + те же KPI/разбивки для шапки.
-async function getOperations({ networkIds, from, to, allowedStations, fuel, payment, station, search, page = 1, pageSize = 100 }) {
+async function getOperations({ networkIds, from, to, allowedStations, fuels, payments, station, shift, receipt, pos, card, search, page = 1, pageSize = 100 }) {
   const b = bounds(from, to);
   const params = [networkIds, b.from, b.to];
   const conds = [`network_id = ANY($1::uuid[])`, `dt >= $2`, `dt <= $3`];
   if (Array.isArray(allowedStations)) { params.push(allowedStations); conds.push(`station_code = ANY($${params.length}::int[])`); }
-  if (fuel) { params.push(fuel); conds.push(`fuel_name = $${params.length}`); }
-  if (payment) { params.push(payment); conds.push(`payment_method = $${params.length}`); }
+  // Мультивыбор топлива/оплаты (KPI-карточки) — массивы значений
+  const fuelArr = Array.isArray(fuels) ? fuels.filter(Boolean) : (fuels ? [fuels] : []);
+  const payArr = Array.isArray(payments) ? payments.filter(Boolean) : (payments ? [payments] : []);
+  if (fuelArr.length) { params.push(fuelArr); conds.push(`fuel_name = ANY($${params.length}::text[])`); }
+  if (payArr.length) { params.push(payArr); conds.push(`payment_method = ANY($${params.length}::text[])`); }
   if (station) { params.push(Number(station)); conds.push(`station_code = $${params.length}`); }
-  if (search) { params.push(`%${search}%`); conds.push(`(CAST(receipt AS TEXT) ILIKE $${params.length} OR CAST(shift AS TEXT) ILIKE $${params.length} OR card ILIKE $${params.length})`); }
+  // Разобранные поля умного поиска (строгое совпадение по числам)
+  if (shift) { params.push(Number(shift)); conds.push(`shift = $${params.length}`); }
+  if (receipt) { params.push(Number(receipt)); conds.push(`receipt = $${params.length}`); }
+  if (pos) { params.push(Number(pos)); conds.push(`pos = $${params.length}`); }
+  if (card) { params.push(`%${card}%`); conds.push(`card ILIKE $${params.length}`); }
+  // Свободный текст (остаток запроса) — по карте/топливу/чеку
+  if (search) { params.push(`%${search}%`); conds.push(`(CAST(receipt AS TEXT) ILIKE $${params.length} OR card ILIKE $${params.length} OR fuel_name ILIKE $${params.length})`); }
   const where = `WHERE ${conds.join(' AND ')}`;
 
   const total = await postgres.queryOne(`SELECT count(*)::int c FROM sts_transactions ${where}`, params);
@@ -106,8 +115,9 @@ async function getOperations({ networkIds, from, to, allowedStations, fuel, paym
   params.push(offset); const offsetParam = params.length;
 
   const rows = await postgres.query(`
-    SELECT dt, station_code, receipt, shift, pos, nozzle, tank, fuel_name, fuel_code,
-           quantity, price, cost, mass, payment_method, pay_type_name, card, status
+    SELECT sts_id, dt, station_code, receipt, shift, pos, nozzle, tank, fuel_name, fuel_code,
+           quantity, price, cost, mass, payment_method, pay_type_name, card, status,
+           order_qty, order_cost
       FROM sts_transactions ${where}
      ORDER BY dt DESC
      LIMIT $${limitParam} OFFSET $${offsetParam}`, params);
@@ -117,11 +127,13 @@ async function getOperations({ networkIds, from, to, allowedStations, fuel, paym
     page: Number(page) || 1,
     pageSize: limit,
     rows: rows.rows.map(r => ({
-      dt: r.dt, stationCode: r.station_code, receipt: r.receipt, shift: r.shift,
+      stsId: r.sts_id, dt: r.dt, stationCode: r.station_code, receipt: r.receipt, shift: r.shift,
       pos: r.pos, nozzle: r.nozzle, tank: r.tank, fuelName: r.fuel_name, fuelCode: r.fuel_code,
       quantity: Number(r.quantity), price: Number(r.price), cost: Number(r.cost),
       mass: r.mass != null ? Number(r.mass) : null, paymentMethod: r.payment_method,
       payTypeName: r.pay_type_name, card: r.card, status: r.status,
+      orderQty: r.order_qty != null ? Number(r.order_qty) : null,
+      orderCost: r.order_cost != null ? Number(r.order_cost) : null,
     })),
   };
 }

@@ -60,11 +60,13 @@ router.get('/operations', async (req, res) => {
   try {
     const networkIds = await resolveNetworkIds(req);
     if (!networkIds.length) return res.json({ total: 0, page: 1, pageSize: 100, rows: [] });
-    const { from, to, fuel, payment, station, search, page, pageSize } = req.query;
+    const { from, to, fuels, payments, station, shift, receipt, pos, card, search, page, pageSize } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Параметры from и to обязательны' });
+    const splitCsv = (v) => (v ? String(v).split(',').map(s => s.trim()).filter(Boolean) : []);
     const data = await analytics.getOperations({
       networkIds, from, to, allowedStations: allowedStationsOf(req.user),
-      fuel, payment, station, search, page, pageSize,
+      fuels: splitCsv(fuels), payments: splitCsv(payments),
+      station, shift, receipt, pos, card, search, page, pageSize,
     });
     res.json(data);
   } catch (error) {
