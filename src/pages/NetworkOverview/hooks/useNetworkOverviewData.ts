@@ -113,11 +113,16 @@ export function useNetworkOverviewData() {
       const relevantPoints = selectedTradingPoints.length < allPoints.length
         ? allPoints.filter(p => selectedTradingPoints.includes(p.id))
         : allPoints;
-      const allowedExtIds = new Set(
-        relevantPoints
-          .map(p => p.external_id)
-          .filter(Boolean)
-      );
+      // Собираем ВСЕ STS-номера точки: external_id + external_codes[sts].
+      // Станция может иметь несколько STS-кодов (напр. Светогорск: текущий 8
+      // + исторический 9008 за июнь) — ловим транзакции по любому из них.
+      const allowedExtIds = new Set<string>();
+      relevantPoints.forEach(p => {
+        if (p.external_id) allowedExtIds.add(String(p.external_id));
+        (p.externalCodes || []).forEach((ec: any) => {
+          if (ec?.system === 'sts' && ec.code) allowedExtIds.add(String(ec.code));
+        });
+      });
       return txns.filter(t => allowedExtIds.has(String(t.stationNumber)));
     } catch { /* ignore */ }
     return txns;

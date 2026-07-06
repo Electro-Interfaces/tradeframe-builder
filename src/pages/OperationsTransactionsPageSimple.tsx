@@ -188,9 +188,15 @@ export default function OperationsTransactionsPageSimple() {
             const relevantPoints = selectedTradingPoints.length > 0 && selectedTradingPoints.length < allNetworkPoints.length
               ? allNetworkPoints.filter(p => selectedTradingPoints.includes(p.id))
               : allNetworkPoints;
-            const allowedExtIds = new Set(
-              relevantPoints.map(p => p.external_id).filter(Boolean)
-            );
+            // Все STS-номера точки: external_id + external_codes[sts]
+            // (станция может иметь несколько кодов — напр. Светогорск 8 + 9008).
+            const allowedExtIds = new Set<string>();
+            relevantPoints.forEach((p: any) => {
+              if (p.external_id) allowedExtIds.add(String(p.external_id));
+              (p.externalCodes || []).forEach((ec: any) => {
+                if (ec?.system === 'sts' && ec.code) allowedExtIds.add(String(ec.code));
+              });
+            });
             transactions = transactions.filter((t: any) =>
               allowedExtIds.has(String(t.stationNumber))
             );
