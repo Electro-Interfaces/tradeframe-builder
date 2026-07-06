@@ -903,10 +903,10 @@ export default function OperationsTransactionsPageSimple() {
                     {isBusy ? (
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Загрузка №...</span>
+                        <span>Загрузка операций...</span>
                       </div>
                     ) : (
-                      'Нет № по выбранным фильтрам'
+                      'Нет операций по выбранным фильтрам'
                     )}
                   </div>
                 )}
