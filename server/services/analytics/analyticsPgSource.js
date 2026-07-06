@@ -22,7 +22,7 @@ async function getOverview({ networkIds, from, to, allowedStations }) {
   }
   const where = `WHERE network_id = ANY($1::uuid[]) AND dt >= $2 AND dt <= $3${scope}`;
 
-  const [kpi, byFuel, byPayment, byDay, byHour, byStation] = await Promise.all([
+  const [kpi, byFuel, byPayment, byDay, byHour, byStation, byDayFuel, byDayHour] = await Promise.all([
     postgres.queryOne(`
       SELECT count(*)::int ops,
              COALESCE(sum(quantity),0) volume,
@@ -54,6 +54,18 @@ async function getOverview({ networkIds, from, to, allowedStations }) {
              COALESCE(sum(quantity),0) volume, COALESCE(sum(cost),0) revenue
         FROM sts_transactions ${where}
        GROUP BY station_code ORDER BY revenue DESC NULLS LAST`, params),
+    // День × топливо — для стекового графика «Реализация по дням»
+    postgres.query(`
+      SELECT dt::date AS day_date, fuel_name, count(*)::int ops,
+             COALESCE(sum(quantity),0) volume, COALESCE(sum(cost),0) revenue
+        FROM sts_transactions ${where}
+       GROUP BY dt::date, fuel_name ORDER BY dt::date`, params),
+    // День × час — для тепловой карты активности
+    postgres.query(`
+      SELECT dt::date AS day_date, extract(hour FROM dt)::int AS hour_num,
+             count(*)::int ops, COALESCE(sum(cost),0) revenue
+        FROM sts_transactions ${where}
+       GROUP BY dt::date, extract(hour FROM dt) ORDER BY dt::date, hour_num`, params),
   ]);
 
   return {
@@ -69,6 +81,8 @@ async function getOverview({ networkIds, from, to, allowedStations }) {
     byDay: byDay.rows.map(r => ({ date: r.day_date, operations: r.ops, volume: Number(r.volume), revenue: Number(r.revenue) })),
     byHour: byHour.rows.map(r => ({ hour: r.hour_num, operations: r.ops, revenue: Number(r.revenue) })),
     byStation: byStation.rows.map(r => ({ stationCode: r.station_code, operations: r.ops, volume: Number(r.volume), revenue: Number(r.revenue) })),
+    byDayFuel: byDayFuel.rows.map(r => ({ date: r.day_date, fuel: r.fuel_name, operations: r.ops, volume: Number(r.volume), revenue: Number(r.revenue) })),
+    byDayHour: byDayHour.rows.map(r => ({ date: r.day_date, hour: r.hour_num, operations: r.ops, revenue: Number(r.revenue) })),
   };
 }
 
