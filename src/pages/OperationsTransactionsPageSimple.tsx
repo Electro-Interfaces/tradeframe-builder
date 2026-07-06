@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
+import React, { useState, useMemo, useEffect, useRef, useTransition } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -107,6 +107,12 @@ export default function OperationsTransactionsPageSimple() {
   // STS API состояние
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [loadingFromSTS, setLoadingFromSTS] = useState(false);
+  // Транзишн выкладки транзакций в state: пока он идёт (обработка тысяч строк),
+  // isPending=true. Без учёта isPending между «спиннер снят» и «данные показаны»
+  // мелькало ложное «Нет операций по фильтрам».
+  const [isPending, startTransition] = useTransition();
+  // Идёт ли загрузка/обработка данных — единый флаг для спиннеров и empty-state
+  const isBusy = loading || loadingFromSTS || isPending;
   const [stsError, setStsError] = useState<string | null>(null);
 
   // Модальное окно деталей операции
@@ -421,27 +427,21 @@ export default function OperationsTransactionsPageSimple() {
     });
   }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, selectedPosNumber, allowedStationNumbers]);
 
-  // Фильтрация по датам (отдельный useMemo с debounced значениями)
+  // Фильтрация по датам (отдельный useMemo с debounced значениями).
+  // Границы периода вычисляем ОДИН раз в мс и сравниваем с числовым tsMs —
+  // раньше на каждую из тысяч записей создавался Date и форматировалась строка,
+  // что и подвешивало главный поток на больших выборках.
   const dateFilteredOperations = useMemo(() => {
+    if (!debouncedDateFrom && !debouncedDateTo) return baseFilteredOperations;
+
+    const fromMs = debouncedDateFrom ? new Date(`${debouncedDateFrom}T00:00:00`).getTime() : null;
+    const toMs = debouncedDateTo ? new Date(`${debouncedDateTo}T23:59:59.999`).getTime() : null;
+
     return baseFilteredOperations.filter(record => {
-      
-      // Фильтр по датам (используем debounced версии)
-      if (debouncedDateFrom || debouncedDateTo) {
-        const recordDate = typeof record.tsMs === 'number' ? new Date(record.tsMs) : new Date(record.startTime);
-        // Используем локальную дату вместо UTC для корректной фильтрации
-        const recordDateStr = recordDate.getFullYear() + '-' +
-          String(recordDate.getMonth() + 1).padStart(2, '0') + '-' +
-          String(recordDate.getDate()).padStart(2, '0');
-
-        if (debouncedDateFrom && recordDateStr < debouncedDateFrom) {
-          return false;
-        }
-
-        if (debouncedDateTo && recordDateStr > debouncedDateTo) {
-          return false;
-        }
-      }
-
+      const ms = typeof record.tsMs === 'number' ? record.tsMs : new Date(record.startTime).getTime();
+      if (!Number.isFinite(ms)) return true; // без даты — не отсекаем
+      if (fromMs !== null && ms < fromMs) return false;
+      if (toMs !== null && ms > toMs) return false;
       return true;
     });
   }, [baseFilteredOperations, debouncedDateFrom, debouncedDateTo]);
@@ -1190,7 +1190,7 @@ export default function OperationsTransactionsPageSimple() {
 
                 {paginatedOperations.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
-                    {loading ? (
+                    {isBusy ? (
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
                         <span>Загрузка №...</span>
@@ -1232,7 +1232,7 @@ export default function OperationsTransactionsPageSimple() {
             <div>
               {filteredOperations.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  {loading ? (
+                  {isBusy ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
                       <span>Загрузка операций...</span>
