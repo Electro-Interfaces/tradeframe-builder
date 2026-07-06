@@ -1,7 +1,7 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Download, Loader2, RefreshCw, Activity, Filter, ChevronDown, ChevronRight, FileText, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { Download, Loader2, RefreshCw, Activity, Filter, ChevronDown, ChevronRight, FileText, FileSpreadsheet, AlertTriangle, BarChart3 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import { todayString, monthsAgoString } from "@/utils/dateUtils";
 
 import { useNetworkOverviewData } from "./hooks/useNetworkOverviewData";
 import { useNetworkOverviewStats } from "./hooks/useNetworkOverviewStats";
+import { useNetworkOverviewAnalytics } from "./hooks/useNetworkOverviewAnalytics";
 import { exportToExcel, exportDashboardToPdf } from "./components/NetworkOverviewExport";
 import { OverviewKPICards } from "./components/OverviewKPICards";
 import { OverviewTables } from "./components/OverviewTables";
@@ -32,8 +33,22 @@ import { OverviewTables } from "./components/OverviewTables";
 export function NetworkOverview() {
   const isMobile = useIsMobile();
 
-  const data = useNetworkOverviewData();
+  // Раскрытие тяжёлой детальной аналитики (графики на сырье STS) + ленивый
+  // экспорт: сырьё грузим только когда пользователь этого явно потребовал.
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [exportPending, setExportPending] = useState<null | 'excel' | 'pdf'>(null);
+  const rawEnabled = showAdvanced || exportPending !== null;
 
+  // Сырьё STS тянется лениво (enabled=rawEnabled). При первом рендере — НЕ грузится.
+  const data = useNetworkOverviewData(rawEnabled);
+
+  // Основной блок — из готовых серверных агрегатов (мгновенно).
+  const analytics = useNetworkOverviewAnalytics({
+    dateFrom: data.dateFrom,
+    dateTo: data.dateTo,
+  });
+
+  // Детальная статистика из сырья — для расширенного блока и экспорта.
   const stats = useNetworkOverviewStats({
     transactions: data.transactions,
     dateFrom: data.dateFrom,
@@ -58,6 +73,7 @@ export function NetworkOverview() {
     prevPeriodTransactions,
     missingDays,
     loading,
+    hasLoadedRaw,
     stsApiConfigured,
     setStsApiConfigured,
     initializing,
@@ -81,25 +97,13 @@ export function NetworkOverview() {
     activityCardRef,
     comparisonCardRef,
 
-    loadTransactions,
     handleManualRefresh,
-    handleRefreshData,
     toast,
   } = data;
 
-  const {
-    completedTransactions,
-    filteredTransactions,
-    totalRevenue,
-    totalVolume,
-    averageCheck,
-    fuelTypeStats,
-    paymentTypeStats,
-    paymentFuelBreakdown,
-    dailyActivityData,
-    dailySalesData,
-    heatmapData,
-  } = stats;
+  // Показ основного блока — при наличии серверных агрегатов.
+  const showMain = !initializing && !!selectedNetwork && analytics.hasData;
+  const mainBusy = analytics.loading || analytics.isPending;
 
   // Функция для вибрации на поддерживаемых устройствах
   const triggerHapticFeedback = () => {
@@ -171,6 +175,13 @@ export function NetworkOverview() {
     }
   };
 
+  // Обновление: принудительный досинк + перечитать агрегаты (и сырьё, если оно загружено).
+  const handleCombinedRefresh = async () => {
+    if (!selectedNetwork) return;
+    await analytics.refresh();
+    if (rawEnabled) handleManualRefresh();
+  };
+
   const handleTouchEnd = async () => {
     if (!isMobile || !startTouchRef.current) return;
 
@@ -181,7 +192,7 @@ export function NetworkOverview() {
       triggerHapticFeedback();
 
       try {
-        await handleRefreshData();
+        await handleCombinedRefresh();
       } finally {
         setTimeout(() => {
           resetPull();
@@ -192,48 +203,41 @@ export function NetworkOverview() {
     }
   };
 
-  // Добавляем обработчики touch событий
-  useEffect(() => {
-    if (!isMobile || !scrollContainerRef.current) return;
-
-    const container = scrollContainerRef.current;
-
-  }, []);
-
-  // Export handlers
-  const handleExportExcel = () => {
+  // Export runners. Агрегатные показатели берём из адаптера (совпадают с экраном),
+  // сырьё (filteredTransactions/сравнение) и связка «оплата×топливо» — из stats.
+  const runExportExcel = () => {
     exportToExcel({
       dateFrom,
       dateTo,
       selectedNetwork,
       selectedTradingPoint,
-      totalRevenue,
-      totalVolume,
-      averageCheck,
-      filteredTransactions,
-      fuelTypeStats,
-      paymentTypeStats,
-      paymentFuelBreakdown,
-      dailyActivityData,
-      dailySalesData,
-      heatmapData,
+      totalRevenue: analytics.totalRevenue,
+      totalVolume: analytics.totalVolume,
+      averageCheck: analytics.averageCheck,
+      filteredTransactions: stats.filteredTransactions,
+      fuelTypeStats: analytics.fuelTypeStats,
+      paymentTypeStats: stats.paymentTypeStats,
+      paymentFuelBreakdown: stats.paymentFuelBreakdown,
+      dailyActivityData: analytics.dailyActivityData,
+      dailySalesData: analytics.dailySalesData,
+      heatmapData: analytics.heatmapData,
       toast,
     });
   };
 
-  const handleExportPdf = () => {
+  const runExportPdf = () => {
     exportDashboardToPdf({
       initializing,
       selectedNetwork,
       selectedTradingPoint,
-      filteredTransactions,
-      completedTransactions,
+      filteredTransactions: stats.filteredTransactions,
+      completedTransactions: stats.completedTransactions,
       prevPeriodTransactions,
-      totalRevenue,
-      totalVolume,
-      averageCheck,
-      fuelTypeStats,
-      paymentTypeStats,
+      totalRevenue: analytics.totalRevenue,
+      totalVolume: analytics.totalVolume,
+      averageCheck: analytics.averageCheck,
+      fuelTypeStats: analytics.fuelTypeStats,
+      paymentTypeStats: analytics.paymentTypeStats,
       dateFrom,
       dateTo,
       loading,
@@ -246,6 +250,43 @@ export function NetworkOverview() {
       toast,
     });
   };
+
+  // Export handlers: если сырьё ещё не загружено — сначала ленивая загрузка,
+  // затем экспорт выполнит эффект ниже (когда данные будут готовы).
+  const handleExportExcel = () => {
+    if (!hasLoadedRaw) {
+      setExportPending('excel');
+      return;
+    }
+    runExportExcel();
+  };
+
+  const handleExportPdf = () => {
+    if (!hasLoadedRaw) {
+      // PDF захватывает DOM блока сравнения — раскрываем расширенную аналитику,
+      // чтобы соответствующие карточки отрисовались.
+      setShowAdvanced(true);
+      setExportPending('pdf');
+      return;
+    }
+    runExportPdf();
+  };
+
+  // Досрочный запуск экспорта после ленивой загрузки сырья.
+  useEffect(() => {
+    if (!exportPending) return;
+    if (!hasLoadedRaw || loading) return;
+    // Небольшая задержка — дать transition разложить транзакции и DOM отрисоваться.
+    const t = setTimeout(() => {
+      if (exportPending === 'excel') runExportExcel();
+      else runExportPdf();
+      setExportPending(null);
+    }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportPending, hasLoadedRaw, loading, transactions, prevPeriodTransactions]);
+
+  const exportBusy = exportingPdf || exportPending !== null;
 
   return (
     <MainLayout fullWidth={true}>
@@ -309,25 +350,30 @@ export function NetworkOverview() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-foreground">Обзор сети</h1>
             <div className="flex items-center gap-2">
-              {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
+              {!initializing && selectedNetwork && analytics.hasData && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled={exportBusy}
                     >
-                      <Download className="h-4 w-4 mr-2" />
+                      {exportBusy ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-2" />
+                      )}
                       Экспорт
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44 bg-card border-border shadow-xl rounded-lg">
-                    <DropdownMenuItem onClick={handleExportExcel} disabled={loading || exportingPdf} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                    <DropdownMenuItem onClick={handleExportExcel} disabled={exportBusy} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
                       <FileSpreadsheet className="w-4 h-4 text-green-600 dark:text-green-400" />
                       <span className="text-sm font-medium">Экспорт в Excel</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportPdf} disabled={loading || exportingPdf} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                    <DropdownMenuItem onClick={handleExportPdf} disabled={exportBusy} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
                       <FileText className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      <span className="text-sm font-medium">{exportingPdf ? 'PDF\u2026' : 'Экспорт в PDF'}</span>
+                      <span className="text-sm font-medium">{exportingPdf ? 'PDF…' : 'Экспорт в PDF'}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -365,12 +411,12 @@ export function NetworkOverview() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleManualRefresh();
+                        handleCombinedRefresh();
                       }}
-                      disabled={loading}
-                      
+                      disabled={mainBusy}
+
                     >
-                      <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-4 h-4 ${mainBusy ? 'animate-spin' : ''}`} />
                     </Button>
                     {filtersOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
@@ -410,56 +456,54 @@ export function NetworkOverview() {
         )}
 
         {/* Средние значения - сразу после фильтров */}
-        {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
+        {showMain && (
           <OverviewKPICards
             isMobile={isMobile}
-            averageCheck={averageCheck}
-            totalVolume={totalVolume}
-            filteredTransactionsCount={filteredTransactions.length}
+            averageCheck={analytics.averageCheck}
+            totalVolume={analytics.totalVolume}
+            filteredTransactionsCount={analytics.operationsCount}
             dateFrom={dateFrom}
             dateTo={dateTo}
-            fuelTypeStats={fuelTypeStats}
+            fuelTypeStats={analytics.fuelTypeStats}
           />
         )}
 
         {/* KPI блок с таблицами */}
-        {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
+        {showMain && (
           <OverviewTables
             isMobile={isMobile}
-            fuelTypeStats={fuelTypeStats}
-            paymentTypeStats={paymentTypeStats}
-            totalRevenue={totalRevenue}
-            totalVolume={totalVolume}
-            filteredTransactionsCount={filteredTransactions.length}
+            fuelTypeStats={analytics.fuelTypeStats}
+            paymentTypeStats={analytics.paymentTypeStats}
+            totalRevenue={analytics.totalRevenue}
+            totalVolume={analytics.totalVolume}
+            filteredTransactionsCount={analytics.operationsCount}
           />
         )}
 
-
-
-        {/* График реализации по дням с разбивкой по топливу - Оптимизированный */}
-        {!initializing && !loading && selectedNetwork && transactions.length > 0 && (
+        {/* График реализации по дням с разбивкой по топливу */}
+        {showMain && analytics.dailySalesData.data.length > 0 && (
           <div ref={dailySalesCardRef} className="w-full">
             <DailySalesChart
-              data={dailySalesData.data}
-              fuelTypes={dailySalesData.fuelTypes}
+              data={analytics.dailySalesData.data}
+              fuelTypes={analytics.dailySalesData.fuelTypes}
               isMobile={isMobile}
             />
           </div>
         )}
 
         {/* Производительность по топливу, Распределение оплат и Суточная активность */}
-        {!initializing && !loading && selectedNetwork && transactions.length > 0 && (
+        {showMain && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full">
               {/* График производительности по видам топлива */}
               <div className="w-full lg:col-span-1 lg:h-full">
                 <FuelPerformanceChart
-                  data={fuelTypeStats.map(fuel => ({
+                  data={analytics.fuelTypeStats.map(fuel => ({
                     type: fuel.type,
                     operations: fuel.operations,
                     revenue: fuel.revenue,
                     volume: fuel.volume,
                     avgCheck: fuel.operations > 0 ? fuel.revenue / fuel.operations : 0,
-                    share: totalRevenue > 0 ? (fuel.revenue / totalRevenue) * 100 : 0
+                    share: analytics.totalRevenue > 0 ? (fuel.revenue / analytics.totalRevenue) * 100 : 0
                   }))}
                   isMobile={isMobile}
                 />
@@ -468,7 +512,7 @@ export function NetworkOverview() {
               {/* График распределения способов оплаты */}
               <div className="w-full lg:col-span-1 lg:h-full">
                 <PaymentDistributionChart
-                  data={paymentTypeStats.map(payment => {
+                  data={analytics.paymentTypeStats.map(payment => {
                     const typeLower = payment.type.toLowerCase();
                     let paymentType = 'other';
                     if (typeLower.includes('наличн')) paymentType = 'cash';
@@ -483,7 +527,7 @@ export function NetworkOverview() {
                       revenue: payment.revenue,
                       volume: payment.volume,
                       avgCheck: payment.operations > 0 ? payment.revenue / payment.operations : 0,
-                      share: totalRevenue > 0 ? (payment.revenue / totalRevenue) * 100 : 0
+                      share: analytics.totalRevenue > 0 ? (payment.revenue / analytics.totalRevenue) * 100 : 0
                     };
                   })}
                   isMobile={isMobile}
@@ -493,72 +537,105 @@ export function NetworkOverview() {
               {/* График суточной активности по часам */}
               <div ref={activityCardRef} className="w-full lg:col-span-2 lg:h-full">
                 <HourlyActivityChart
-                  data={dailyActivityData}
+                  data={analytics.dailyActivityData}
                   isMobile={isMobile}
                 />
               </div>
           </div>
         )}
 
-        {/* Сравнение станций - только если данные по ВСЕЙ сети */}
-        {!initializing && !loading && selectedNetwork && stsApiConfigured && transactions.length > 0 && isAllTradingPoints && (
-          <>
-            {/* Заголовок секции */}
-            <div className="w-full">
-              <h2 className={`font-bold text-foreground flex items-center ${isMobile ? 'text-lg mb-1 gap-1.5' : 'text-2xl mb-2 gap-2'}`}>
-                <span className={isMobile ? 'text-lg' : 'text-2xl'}>📊</span>
-                {isMobile ? 'Сравнение станций' : 'Сравнение работы станций'}
-              </h2>
-              <p className={`text-muted-foreground ${isMobile ? 'text-xs mb-4' : 'text-sm mb-6'}`}>
-                Аналитика и сравнительные показатели по всем АЗС сети
-              </p>
-            </div>
-
-            {/* График 1: Выручка по станциям */}
-            <StationRevenueChart
-              transactions={filteredTransactions}
-              className="w-full"
-              isMobile={isMobile}
-            />
-
-            {/* График 2 и 3: В две колонки на больших экранах, стек на мобильных */}
-            <div className={`w-full grid grid-cols-1 ${isMobile ? 'gap-4' : 'xl:grid-cols-2 gap-6'}`}>
-              {/* График 2: Продажи по видам топлива */}
-              <StationFuelSalesChart
-                transactions={filteredTransactions}
-                className="w-full"
-                isMobile={isMobile}
-              />
-
-              {/* График 3: Динамика выручки */}
-              <StationRevenueTrendChart
-                transactions={filteredTransactions}
-                className="w-full"
-                isMobile={isMobile}
-              />
-            </div>
-
-          </>
+        {/* Кнопка раскрытия расширенной аналитики (тяжёлые графики на сырье STS) */}
+        {showMain && (
+          <div className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => setShowAdvanced(v => !v)}
+              className="w-full sm:w-auto"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              {showAdvanced ? 'Скрыть расширенную аналитику' : 'Показать расширенную аналитику'}
+              {showAdvanced ? <ChevronDown className="h-4 w-4 ml-2" /> : <ChevronRight className="h-4 w-4 ml-2" />}
+            </Button>
+          </div>
         )}
 
-        {/* Сравнение периодов + Динамика среднего чека */}
-        {!initializing && !loading && selectedNetwork && stsApiConfigured && transactions.length > 0 && (
-          <div ref={comparisonCardRef} className="w-full space-y-6">
-            <PeriodComparison
-              currentTransactions={completedTransactions}
-              previousTransactions={prevPeriodTransactions}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              className="w-full"
-            />
-            <AverageCheckTrend
-              transactions={completedTransactions}
-              className="w-full"
-            />
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <WeekdayPattern transactions={filteredTransactions} />
-              <CashlessShareTrend transactions={filteredTransactions} />
-            </div>
+        {/* Расширенная аналитика — сырьё грузится лениво, только по раскрытию */}
+        {showMain && showAdvanced && (
+          <div className="w-full space-y-6">
+            {loading && (
+              <div className="bg-card border border-border rounded-lg p-8 text-center">
+                <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
+                <p className="text-muted-foreground">Загружаем детальную аналитику по операциям…</p>
+              </div>
+            )}
+
+            {!loading && transactions.length === 0 && (
+              <div className="bg-card border border-border rounded-lg p-8 text-center">
+                <Activity className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">Нет детальных данных по операциям за выбранный период.</p>
+              </div>
+            )}
+
+            {/* Сравнение станций - только если данные по ВСЕЙ сети */}
+            {!loading && stsApiConfigured && transactions.length > 0 && isAllTradingPoints && (
+              <>
+                {/* Заголовок секции */}
+                <div className="w-full">
+                  <h2 className={`font-bold text-foreground flex items-center ${isMobile ? 'text-lg mb-1 gap-1.5' : 'text-2xl mb-2 gap-2'}`}>
+                    <span className={isMobile ? 'text-lg' : 'text-2xl'}>📊</span>
+                    {isMobile ? 'Сравнение станций' : 'Сравнение работы станций'}
+                  </h2>
+                  <p className={`text-muted-foreground ${isMobile ? 'text-xs mb-4' : 'text-sm mb-6'}`}>
+                    Аналитика и сравнительные показатели по всем АЗС сети
+                  </p>
+                </div>
+
+                {/* График 1: Выручка по станциям */}
+                <StationRevenueChart
+                  transactions={stats.filteredTransactions}
+                  className="w-full"
+                  isMobile={isMobile}
+                />
+
+                {/* График 2 и 3: В две колонки на больших экранах, стек на мобильных */}
+                <div className={`w-full grid grid-cols-1 ${isMobile ? 'gap-4' : 'xl:grid-cols-2 gap-6'}`}>
+                  {/* График 2: Продажи по видам топлива */}
+                  <StationFuelSalesChart
+                    transactions={stats.filteredTransactions}
+                    className="w-full"
+                    isMobile={isMobile}
+                  />
+
+                  {/* График 3: Динамика выручки */}
+                  <StationRevenueTrendChart
+                    transactions={stats.filteredTransactions}
+                    className="w-full"
+                    isMobile={isMobile}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Сравнение периодов + Динамика среднего чека */}
+            {!loading && stsApiConfigured && transactions.length > 0 && (
+              <div ref={comparisonCardRef} className="w-full space-y-6">
+                <PeriodComparison
+                  currentTransactions={stats.completedTransactions}
+                  previousTransactions={prevPeriodTransactions}
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                  className="w-full"
+                />
+                <AverageCheckTrend
+                  transactions={stats.completedTransactions}
+                  className="w-full"
+                />
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <WeekdayPattern transactions={stats.filteredTransactions} />
+                  <CashlessShareTrend transactions={stats.filteredTransactions} />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -584,8 +661,27 @@ export function NetworkOverview() {
           </div>
         )}
 
+        {/* Ошибка загрузки серверной аналитики */}
+        {!initializing && selectedNetwork && stsApiConfigured && analytics.error && !mainBusy && (
+          <div className="bg-card border border-red-600/50 rounded-lg p-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+              <p className="text-red-600 dark:text-red-300 text-sm">{analytics.error}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => analytics.reload()}
+              className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 hover:bg-red-900/20 flex-shrink-0"
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Повторить
+            </Button>
+          </div>
+        )}
+
         {/* Состояние загрузки с skeleton loaders */}
-        {!initializing && selectedNetwork && stsApiConfigured && loading && (
+        {!initializing && selectedNetwork && stsApiConfigured && mainBusy && !analytics.hasData && (
           <div className="space-y-6">
             <ChartSkeleton height="h-80" isMobile={isMobile} showLegend={true} />
             <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'}`}>
@@ -596,8 +692,8 @@ export function NetworkOverview() {
           </div>
         )}
 
-        {/* Сообщение об отсутствии транзакций */}
-        {!initializing && selectedNetwork && stsApiConfigured && !loading && transactions.length === 0 && (
+        {/* Сообщение об отсутствии данных */}
+        {!initializing && selectedNetwork && stsApiConfigured && !mainBusy && !analytics.hasData && !analytics.error && (
           <div className="bg-card border border-border rounded-lg p-8 text-center">
             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
               <Activity className="w-8 h-8 text-muted-foreground" />
@@ -605,7 +701,7 @@ export function NetworkOverview() {
             <h3 className="text-xl font-semibold text-foreground mb-2">Нет данных за выбранный период</h3>
             <p className="text-muted-foreground mb-4">Измените диапазон дат или нажмите кнопку "Обновить данные" для загрузки актуальной информации.</p>
             <Button
-              onClick={() => loadTransactions()}
+              onClick={() => analytics.refresh()}
               className="bg-primary hover:bg-primary/80 text-white"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
@@ -639,7 +735,7 @@ export function NetworkOverview() {
                     setInitializing(false);
 
                     if (isConfigured) {
-                      handleManualRefresh();
+                      analytics.reload();
                     } else {
                       toast({
                         title: "Настройки не найдены",

@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { todayString, monthsAgoString } from "@/utils/dateUtils";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 
-export function useNetworkOverviewData() {
+export function useNetworkOverviewData(enabled: boolean = true) {
   const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized, selectedTradingPoints } = useSelection();
   const { selectedExternalIds, selectedNetworks } = useSelectedNetworks();
   const { user } = useNewAuth();
@@ -28,6 +28,9 @@ export function useNetworkOverviewData() {
   const [terminalInfo, setTerminalInfo] = useState<any>(null);
   const [prices, setPrices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  // Хотя бы раз успешно (не по abort) завершали загрузку сырья — чтобы экспорт
+  // знал, что данные готовы, и не запускался на пустом наборе.
+  const [hasLoadedRaw, setHasLoadedRaw] = useState(false);
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -223,6 +226,7 @@ export function useNetworkOverviewData() {
     } finally {
       if (!signal?.aborted) {
         setLoading(false);
+        setHasLoadedRaw(true);
       }
     }
   }, [selectedExternalIds, selectedNetworks, selectedTradingPoint, selectedStation, selectedTradingPoints, isAllTradingPoints, dateFrom, dateTo, fetchTransactionsForNetworks, filterBySelectedPoints]);
@@ -234,6 +238,11 @@ export function useNetworkOverviewData() {
 
     if (!isInitialized) return;
     setInitializing(false);
+
+    // Ленивая загрузка сырья: пока раздел «Расширенная аналитика»/экспорт не
+    // запрошены (enabled=false), тяжёлые транзакции STS не тянем — основной
+    // блок «Обзора» рендерится из серверных агрегатов мгновенно.
+    if (!enabled) return;
 
     if (selectedExternalIds.length === 0 || !isConfigured) return;
 
@@ -250,7 +259,7 @@ export function useNetworkOverviewData() {
     return () => {
       controller.abort();
     };
-  }, [isInitialized, selectedExternalIds, selectedTradingPoint, selectedStation?.external_id, dateFrom, dateTo, loadTransactions]);
+  }, [enabled, isInitialized, selectedExternalIds, selectedTradingPoint, selectedStation?.external_id, dateFrom, dateTo, loadTransactions]);
 
   // Ручное обновление с отменой предыдущего запроса
   const handleManualRefresh = useCallback(() => {
@@ -301,6 +310,7 @@ export function useNetworkOverviewData() {
     terminalInfo,
     prices,
     loading,
+    hasLoadedRaw,
     stsApiConfigured,
     setStsApiConfigured,
     initializing,
