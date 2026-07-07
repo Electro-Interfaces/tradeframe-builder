@@ -410,31 +410,94 @@ export default function FuelInventory() {
               ) : (
                 displayGroups.map((group) => {
                   const isStationCollapsed = collapsed.has(group.key);
+
+                  // Агрегаты станции для свёрнутого вида
+                  const capTanks = group.tanks.filter((t) => t.capacity > 0);
+                  const capSum = capTanks.reduce((s, t) => s + t.capacity, 0);
+                  const stFill = capSum > 0 ? (capTanks.reduce((s, t) => s + t.volumeBook, 0) / capSum) * 100 : null;
+                  const daysArr = group.tanks
+                    .map((t) => getDaysToReorder(t.volumeBook, t.volumeSales, periodDays))
+                    .filter((d): d is number => d != null);
+                  const minDays = daysArr.length ? Math.min(...daysArr) : null;
+                  // Состав по видам топлива (для полоски-стека)
+                  const mix = new Map<string, { vol: number; bg: string }>();
+                  group.tanks.forEach((t) => {
+                    const cur = mix.get(t.fuelName) || { vol: 0, bg: getFuelColor(t.fuelName).bg };
+                    cur.vol += t.volumeBook;
+                    mix.set(t.fuelName, cur);
+                  });
+                  const mixArr = Array.from(mix.entries()).map(([name, v]) => ({ name, ...v }));
+
                   return (
                     <div key={group.key} className="mb-2.5 overflow-hidden rounded-xl border border-border bg-card">
                       {/* Шапка станции */}
                       <button
                         type="button"
                         onClick={() => toggleStation(group.key)}
-                        className={cn(GRID_COLS, 'w-full px-4 py-3 text-left bg-di-surface-high hover:bg-di-surface-high/70 transition-colors')}
+                        className={cn(GRID_COLS, 'w-full px-4 py-3 text-left bg-di-surface-high hover:bg-di-surface-high/70 transition-colors items-center')}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <ChevronDown
-                            className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isStationCollapsed && '-rotate-90')}
-                          />
-                          <span className="font-bold text-foreground truncate">{group.stationName}</span>
-                          <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground tabular-nums">
-                            {group.tanks.length} рез.
-                          </span>
-                          {group.alertCount > 0 && (
-                            <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-bold text-amber-500 tabular-nums">
-                              {group.alertCount} ⚠
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ChevronDown
+                              className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isStationCollapsed && '-rotate-90')}
+                            />
+                            <span className="font-bold text-foreground truncate">{group.stationName}</span>
+                            <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground tabular-nums">
+                              {group.tanks.length} рез.
                             </span>
-                          )}
+                            {group.alertCount > 0 && (
+                              <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-bold text-amber-500 tabular-nums">
+                                {group.alertCount} ⚠
+                              </span>
+                            )}
+                          </div>
+                          {/* Состав по видам топлива */}
+                          <div className="flex items-center gap-2 pl-6">
+                            <div className="flex h-1.5 w-40 overflow-hidden rounded-full bg-secondary">
+                              {mixArr.map((m) => (
+                                <div
+                                  key={m.name}
+                                  className={cn('h-full', m.bg)}
+                                  style={{ width: `${group.totalBook > 0 ? (m.vol / group.totalBook) * 100 : 0}%` }}
+                                  title={`${m.name}: ${formatNumber(m.vol)} л`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[11px] text-muted-foreground truncate">
+                              {mixArr.map((m) => m.name).join(' · ')}
+                            </span>
+                          </div>
                         </div>
                         <span className="text-right font-bold tabular-nums text-foreground">{formatNumber(group.totalBook)} л</span>
-                        <span />
-                        <span />
+                        {/* Средневзвешенное заполнение станции */}
+                        <div>
+                          {stFill != null ? (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className={cn('font-semibold tabular-nums', fillTextColor(stFill))}>{Math.round(stFill)}%</span>
+                                <span className="text-muted-foreground text-[11px]">в среднем</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                                <div className={cn('h-full rounded-full', barColor(stFill))} style={{ width: `${Math.min(stFill, 100)}%` }} />
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">ёмкость не задана</span>
+                          )}
+                        </div>
+                        {/* Ближайший дозаказ по станции */}
+                        <div className="text-right">
+                          {minDays != null ? (
+                            <div className="flex flex-col items-end">
+                              <span className={cn('font-bold tabular-nums', minDays <= 3 ? 'text-red-500' : minDays <= 6 ? 'text-amber-500' : 'text-foreground')}>
+                                {minDays} <span className="text-xs font-normal text-muted-foreground">дн.</span>
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">ближайший</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
                       </button>
 
                       {/* Строки резервуаров */}

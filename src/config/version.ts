@@ -1,11 +1,11 @@
 // Централизованное управление версией приложения
-export const APP_VERSION = '2.3.24';
+export const APP_VERSION = '2.3.25';
 
 // Дополнительная информация о версии
 export const VERSION_INFO = {
   major: 2,
   minor: 3,
-  patch: 24,
+  patch: 25,
   full: APP_VERSION,
   displayName: `TradePoint v${APP_VERSION}`,
   copyright: `© 2025 TradePoint v${APP_VERSION}`
