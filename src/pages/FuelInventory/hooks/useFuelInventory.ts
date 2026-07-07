@@ -3,7 +3,7 @@
  * Использует React Query для кэширования
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useNewAuth } from '@/contexts/NewAuthContext';
@@ -53,6 +53,10 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
   // Состояние прогресса загрузки смен
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: 0 });
 
+  // Флаг принудительного обновления (кнопка «Обновить») — минует кэш backend.
+  // Через ref, т.к. refetch() не передаёт аргументы в queryFn.
+  const forceRef = useRef(false);
+
   // Создаем ключ запроса на основе всех параметров
   const queryKey = useMemo(() => {
     // Преобразуем Set в массив для стабильного ключа кэша
@@ -81,6 +85,10 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         throw new Error('Не выбрана торговая сеть');
       }
 
+      // Считываем и сбрасываем флаг принудительного обновления
+      const force = forceRef.current;
+      forceRef.current = false;
+
       // Загружаем данные по всем выбранным сетям
       const allData: TankInventory[] = [];
 
@@ -97,6 +105,7 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
           dt_beg: formatDateForApi(dateFrom, false),
           dt_end: formatDateForApi(dateTo, true),
           allowedStations: allowedStationNumbers,
+          force,
         };
 
         try {
@@ -142,12 +151,19 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
 
   const error = queryError?.message || null;
 
+  // «Обновить» — принудительно минуем кэш backend и берём свежие данные.
+  const refresh = useCallback(() => {
+    forceRef.current = true;
+    return loadInventory();
+  }, [loadInventory]);
+
   return {
     loading,
     inventory,
     fuelSummaries,
     error,
     loadInventory,
+    refresh,
     loadingProgress
   };
 };

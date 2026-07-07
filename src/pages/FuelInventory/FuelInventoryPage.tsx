@@ -65,7 +65,7 @@ export default function FuelInventory() {
   const [dateTo, setDateTo] = useState<string>(() => todayString());
 
   // Используем хуки для загрузки данных - загружаем ВСЕ станции (фильтр на клиенте)
-  const { loading, inventory, fuelSummaries, error, loadInventory, loadingProgress } = useFuelInventory(dateFrom, dateTo);
+  const { loading, inventory, fuelSummaries, error, loadInventory, refresh, loadingProgress } = useFuelInventory(dateFrom, dateTo);
 
   // Хук для графиков (фильтрация по ТТ из глобального селектора в хедере)
   const { chartData, loading: loadingCharts, loaded: chartsLoaded, loadChartData } = useShiftChartData(dateFrom, dateTo, 'all');
@@ -115,7 +115,7 @@ export default function FuelInventory() {
             <p className="text-xs text-muted-foreground mt-0.5">Книжные остатки по резервуарам на основании сменных отчетов</p>
           </div>
           <div className="flex gap-3 items-center shrink-0">
-            <Button variant="outline" size="sm" onClick={loadInventory} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={refresh} disabled={loading} title="Обновить (свежие данные, минуя кэш)">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>

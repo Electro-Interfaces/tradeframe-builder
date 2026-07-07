@@ -30,11 +30,14 @@ function fuelInvTtl(dt_end) {
 
 // Обёртка над aggregateStationInventory с кэшем результата + дедупликацией in-flight
 const fuelInvInflight = new Map();
-async function aggregateStationInventoryCached(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders) {
+async function aggregateStationInventoryCached(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders, force) {
   const key = `fuelinv:${system}:${station.id}:${dt_beg}:${dt_end}`;
-  const cached = fuelInvCache.get(key);
-  if (cached !== undefined) return cached;
-  if (fuelInvInflight.has(key)) return fuelInvInflight.get(key);
+  // force (кнопка «Обновить») — минуем кэш и пересчитываем свежее.
+  if (!force) {
+    const cached = fuelInvCache.get(key);
+    if (cached !== undefined) return cached;
+    if (fuelInvInflight.has(key)) return fuelInvInflight.get(key);
+  }
 
   const promise = aggregateStationInventory(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders)
     .then((result) => {
@@ -113,7 +116,7 @@ router.post('/v1/control/shift_close', (req, res) => stsProxy.proxyRequest(req, 
 // ─── Fuel inventory (server-side aggregation) ──────────
 
 router.post('/fuel-inventory', async (req, res) => {
-  const { system, stations, dt_beg, dt_end, allowedStations } = req.body;
+  const { system, stations, dt_beg, dt_end, allowedStations, force } = req.body;
 
   if (!system || !stations || !dt_beg || !dt_end) {
     return res.status(400).json({ error: 'Missing required parameters: system, stations, dt_beg, dt_end' });
@@ -133,7 +136,7 @@ router.post('/fuel-inventory', async (req, res) => {
 
     const results = await Promise.all(filteredStations.map(async (station) => {
       try {
-        return await aggregateStationInventoryCached(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders);
+        return await aggregateStationInventoryCached(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders, force);
       } catch (e) {
         console.error(`[Fuel Inventory] Error for station ${station.id}:`, e.message);
         return [];

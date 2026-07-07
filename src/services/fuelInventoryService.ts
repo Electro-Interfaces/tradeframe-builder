@@ -18,6 +18,7 @@ export interface InventoryParams {
   dt_beg?: string;
   dt_end?: string;
   allowedStations?: Set<string> | null; // Разрешенные станции для фильтрации по ролям
+  force?: boolean;          // кнопка «Обновить» — минуть кэш backend, взять свежее
   onProgress?: (loaded: number, total: number) => void; // Callback для отслеживания прогресса загрузки смен
 }
 
@@ -131,7 +132,8 @@ export async function getInventoryFromServer(params: InventoryParams): Promise<T
       stations,
       dt_beg: params.dt_beg,
       dt_end: params.dt_end,
-      allowedStations: params.allowedStations ? Array.from(params.allowedStations) : null
+      allowedStations: params.allowedStations ? Array.from(params.allowedStations) : null,
+      force: params.force || false
     }
   });
 }
