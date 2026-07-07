@@ -1,12 +1,12 @@
 /**
- * Страница "Остатки топлива" (рефакторинг v1.7.1)
- * Показывает текущие остатки по всем резервуарам сети с аналитикой и динамикой
- * Модульная архитектура с разделением на components, hooks, utils
+ * Страница "Остатки топлива" — новый дизайн (Этап 1)
+ * Сводка KPI сверху + группировка резервуаров по станциям + фильтр «требуют внимания».
+ * Датчики (факт. уровень, вода, расхождение книжн/факт, раскрытие строк) — Этап 2.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -14,19 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSelection } from '@/contexts/SelectionContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { todayString, daysAgoString } from '@/utils/dateUtils';
+import { cn } from '@/lib/utils';
+import { getFuelColor } from '@/utils/fuelColors';
 
 // Импорты из локальных модулей
 import { useFuelInventory } from './hooks/useFuelInventory';
@@ -38,10 +31,12 @@ import {
   formatNumber,
   filterInventory,
   sortInventory,
-  calculateTotals
+  getPeriodDays,
+  getDaysToReorder,
+  getFillLevel,
+  isTankAttention,
+  groupByStation,
 } from './utils/fuelInventoryHelpers';
-import { getFuelColor } from '@/types/shift-dashboard';
-import { FuelBadge } from '@/components/common/FuelBadge';
 import { FuelLegend } from '@/components/common/FuelLegend';
 import {
   FILTER_PANEL_CLASS,
@@ -49,16 +44,22 @@ import {
   FILTER_PANEL_TITLE_CLASS,
 } from '@/components/common/filterPanel';
 
+// Единая сетка колонок для шапки/строк десктопной таблицы
+const GRID_COLS = 'grid grid-cols-[minmax(0,1.9fr)_130px_210px_140px] gap-3 items-center';
+
 export default function FuelInventory() {
-  const { selectedNetwork } = useSelection();
   const isMobile = useIsMobile();
 
   // Состояние фильтров
   const [selectedFuel, setSelectedFuel] = useState<string>('all');
+  const [attnOnly, setAttnOnly] = useState<boolean>(false);
 
-  // Состояние сортировки (по умолчанию - по ТТ по возрастанию)
+  // Состояние сортировки (по умолчанию - по станции по возрастанию)
   const [sortColumn, setSortColumn] = useState<'station' | 'fuel' | 'volumeBook'>('station');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Свёрнутые станции (по умолчанию пустой Set = все станции РАЗВЁРНУТЫ)
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   // Фильтры дат - по умолчанию последние 7 дней (локальный часовой пояс)
   const [dateFrom, setDateFrom] = useState<string>(() => daysAgoString(7));
@@ -70,6 +71,9 @@ export default function FuelInventory() {
   // Хук для графиков (фильтрация по ТТ из глобального селектора в хедере)
   const { chartData, loading: loadingCharts, loaded: chartsLoaded, loadChartData } = useShiftChartData(dateFrom, dateTo, 'all');
 
+  // Число дней периода для прогноза «до дозаказа»
+  const periodDays = useMemo(() => getPeriodDays(dateFrom, dateTo), [dateFrom, dateTo]);
+
   // Обработчик клика на заголовок столбца для сортировки
   const handleSort = (column: 'station' | 'fuel' | 'volumeBook') => {
     if (sortColumn === column) {
@@ -80,20 +84,73 @@ export default function FuelInventory() {
     }
   };
 
-  // Фильтрация и сортировка данных
-  // Фильтруем только по виду топлива (ТТ фильтруется глобально из хедера)
+  // Фильтрация и сортировка данных (ТТ фильтруется глобально из хедера)
   const filteredInventory = filterInventory(inventory, selectedFuel, 'all');
   const sortedInventory = sortInventory(filteredInventory, sortColumn, sortDirection);
 
-  // Расчет суммарных значений для всех отфильтрованных данных
-  const totals = calculateTotals(sortedInventory);
+  // Группировка по станциям (порядок наследуется от отсортированного списка)
+  const allGroups = useMemo(
+    () => groupByStation(sortedInventory, periodDays),
+    [sortedInventory, periodDays]
+  );
 
-  // Вспомогательные функции
-  // Цветовая индикация по уровню заполнения резервуара
-  const getProgressColor = (fillPercent: number) => {
-    if (fillPercent >= 20) return 'bg-emerald-600';  // >= 20% - зеленый (норма)
-    if (fillPercent >= 10) return 'bg-yellow-500'; // 10-20% - желтый (внимание)
-    return 'bg-red-500';                            // < 10% - красный (критический)
+  // Группы для отображения: при включённом фильтре «Требуют внимания»
+  // оставляем только проблемные резервуары и прячем станции без них
+  const displayGroups = useMemo(() => {
+    if (!attnOnly) return allGroups;
+    return allGroups
+      .map((g) => ({ ...g, tanks: g.tanks.filter((t) => isTankAttention(t, periodDays)) }))
+      .filter((g) => g.tanks.length > 0);
+  }, [allGroups, attnOnly, periodDays]);
+
+  // Сводка (KPI) — по всем отфильтрованным резервуарам
+  const stats = useMemo(() => {
+    let totalBook = 0;
+    let totalReceipts = 0;
+    let totalSales = 0;
+    let critCount = 0;
+    let reorderCount = 0;
+
+    for (const tank of sortedInventory) {
+      totalBook += tank.volumeBook;
+      totalReceipts += tank.volumeReceipts;
+      totalSales += tank.volumeSales;
+
+      if (tank.capacity > 0 && tank.fillPercent < 10) critCount += 1;
+
+      const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, periodDays);
+      if (days != null && days <= 3) reorderCount += 1;
+    }
+
+    return {
+      totalBook,
+      totalReceipts,
+      totalSales,
+      critCount,
+      reorderCount,
+      stationCount: allGroups.length,
+      tankCount: sortedInventory.length,
+    };
+  }, [sortedInventory, allGroups, periodDays]);
+
+  // Управление раскрытием станций
+  const anyCollapsed = allGroups.some((g) => collapsed.has(g.key));
+
+  const toggleStation = (key: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleExpandAll = () => {
+    if (anyCollapsed) {
+      setCollapsed(new Set());
+    } else {
+      setCollapsed(new Set(allGroups.map((g) => g.key)));
+    }
   };
 
   const getSortIcon = (column: 'station' | 'fuel' | 'volumeBook') => {
@@ -104,6 +161,18 @@ export default function FuelInventory() {
       <ArrowUp className="h-3 w-3" /> :
       <ArrowDown className="h-3 w-3" />;
   };
+
+  // Цвет заливки прогресс-бара по уровню заполнения
+  const barColor = (fillPercent: number) => {
+    const lv = getFillLevel(fillPercent);
+    return lv === 'crit' ? 'bg-red-500' : lv === 'warn' ? 'bg-amber-500' : 'bg-emerald-500';
+  };
+  const fillTextColor = (fillPercent: number) => {
+    const lv = getFillLevel(fillPercent);
+    return lv === 'crit' ? 'text-red-500' : lv === 'warn' ? 'text-amber-500' : 'text-emerald-500';
+  };
+
+  const isEmpty = displayGroups.length === 0 && !loading;
 
   return (
     <MainLayout>
@@ -176,6 +245,55 @@ export default function FuelInventory() {
           </Card>
         )}
 
+        {/* Сводка (KPI) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Всего топлива */}
+          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-primary" />
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Всего топлива</div>
+            <div className="mt-1.5 text-2xl font-bold tabular-nums text-foreground">{formatNumber(stats.totalBook)}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+              литров · {stats.stationCount} ст. · {stats.tankCount} рез.
+            </div>
+          </div>
+
+          {/* Критический уровень */}
+          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-red-500" />
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Критический уровень</div>
+            <div className={cn('mt-1.5 text-2xl font-bold tabular-nums', stats.critCount > 0 ? 'text-red-500' : 'text-foreground')}>
+              {stats.critCount}
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground">резервуаров ниже 10%</div>
+          </div>
+
+          {/* Требуют дозаказа */}
+          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-amber-500" />
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Требуют дозаказа</div>
+            <div className={cn('mt-1.5 text-2xl font-bold tabular-nums', stats.reorderCount > 0 ? 'text-amber-500' : 'text-foreground')}>
+              {stats.reorderCount}
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground">опустеют за ≤ 3 дня</div>
+          </div>
+
+          {/* Поступления за период */}
+          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500" />
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Поступления за период</div>
+            <div className="mt-1.5 text-2xl font-bold tabular-nums text-emerald-500">{formatNumber(stats.totalReceipts)}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">литров за период</div>
+          </div>
+
+          {/* Реализация за период */}
+          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-primary" />
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Реализация за период</div>
+            <div className="mt-1.5 text-2xl font-bold tabular-nums text-primary">{formatNumber(stats.totalSales)}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">литров за период</div>
+          </div>
+        </div>
+
         {/* Графики динамики остатков по сменам */}
         <FuelBalanceCharts
           chartData={chartData}
@@ -184,15 +302,40 @@ export default function FuelInventory() {
           onLoad={loadChartData}
         />
 
-        {/* Таблица/Карточки остатков */}
+        {/* Остатки по станциям / резервуарам */}
         <div className="bg-di-surface-mid rounded-xl border border-transparent p-4">
           <div className={`flex ${isMobile ? 'flex-col gap-3' : 'flex-row justify-between items-center'} mb-4`}>
             <h2 className="font-headline font-bold text-foreground text-lg">Остатки по резервуарам</h2>
-              <div className="flex items-center gap-2">
-                <FuelLegend />
-               {/* Фильтр по виду топлива */}
-               <Select value={selectedFuel} onValueChange={setSelectedFuel}>
-                <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <FuelLegend />
+
+              {/* Фильтр «Требуют внимания» */}
+              <button
+                type="button"
+                onClick={() => setAttnOnly((v) => !v)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                  attnOnly
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <span className={cn('h-1.5 w-1.5 rounded-full', attnOnly ? 'bg-primary' : 'bg-amber-500')} />
+                Требуют внимания
+              </button>
+
+              {/* Развернуть / свернуть всё */}
+              <button
+                type="button"
+                onClick={toggleExpandAll}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {anyCollapsed ? 'Развернуть всё' : 'Свернуть всё'}
+              </button>
+
+              {/* Фильтр по виду топлива */}
+              <Select value={selectedFuel} onValueChange={setSelectedFuel}>
+                <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[180px]'} bg-background`}>
                   <SelectValue placeholder="Все виды топлива" />
                 </SelectTrigger>
                 <SelectContent>
@@ -204,213 +347,173 @@ export default function FuelInventory() {
                   ))}
                 </SelectContent>
               </Select>
-              </div>
+            </div>
           </div>
-            {isMobile ? (
-              /* Мобильный вид - карточки */
-              <div className="space-y-3">
-                {sortedInventory.length === 0 && !loading ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Нет данных для отображения
-                  </div>
-                ) : (
-                  sortedInventory.map((tank, idx) => (
-                    <TankInventoryCard key={idx} tank={tank} />
-                  ))
-                )}
 
-                {/* Итоговая карточка для мобильных */}
-                {totals && (
-                  <Card className="bg-background/70 border-border border-2">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="text-sm font-semibold text-foreground mb-3">
-                        ИТОГО ({totals.tankCount} {totals.tankCount === 1 ? 'резервуар' : totals.tankCount < 5 ? 'резервуара' : 'резервуаров'})
+          {isMobile ? (
+            /* Мобильный вид - карточки */
+            <div className="space-y-3">
+              {isEmpty ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {attnOnly ? 'Нет резервуаров, требующих внимания' : 'Нет данных для отображения'}
+                </div>
+              ) : (
+                displayGroups.map((group) => (
+                  <div key={group.key} className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-semibold text-foreground truncate">{group.stationName}</span>
+                        {group.alertCount > 0 && (
+                          <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-bold text-amber-500 tabular-nums">
+                            {group.alertCount} ⚠
+                          </span>
+                        )}
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-card rounded p-2">
-                          <div className="text-[10px] text-muted-foreground mb-0.5">Начальный</div>
-                          <div className="text-sm font-mono text-foreground/80 font-semibold">
-                            {formatNumber(totals.volumeBegin)} л
-                          </div>
-                        </div>
-                        <div className="bg-card rounded p-2">
-                          <div className="text-[10px] text-muted-foreground mb-0.5">Книжный</div>
-                          <div className="text-sm font-mono text-foreground font-bold">
-                            {formatNumber(totals.volumeBook)} л
-                          </div>
-                        </div>
-                        <div className="bg-emerald-100 dark:bg-emerald-900/20 rounded p-2 border border-green-300 dark:border-green-700/30">
-                          <div className="text-[10px] text-green-600 dark:text-green-400 mb-0.5">Поступления</div>
-                          <div className="text-sm font-mono text-green-600 dark:text-green-400 font-semibold">
-                            +{formatNumber(totals.volumeReceipts)} л
-                          </div>
-                        </div>
-                        <div className="bg-primary/10 dark:bg-blue-900/20 rounded p-2 border border-primary/30 dark:border-blue-700/30">
-                          <div className="text-[10px] text-primary dark:text-primary/70 mb-0.5">Реализация</div>
-                          <div className="text-sm font-mono text-primary dark:text-primary/70 font-semibold">
-                            -{formatNumber(totals.volumeSales)} л
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground text-right mt-2">
-                        Заполнение: {totals.capacity > 0 ? `${((totals.volumeBook / totals.capacity) * 100).toFixed(1)}%` : '—'}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            ) : (
-              /* Десктопный вид - таблица */
-              <div>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent border-none">
-                      <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        <button
-                          onClick={() => handleSort('station')}
-                          className="flex items-center gap-1 hover:text-foreground transition-colors"
-                        >
-                          ТТ
-                          {getSortIcon('station')}
-                        </button>
-                      </TableHead>
-                      <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Резервуар</TableHead>
-                      <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        <button
-                          onClick={() => handleSort('fuel')}
-                          className="flex items-center gap-1 hover:text-foreground transition-colors"
-                        >
-                          Топливо
-                          {getSortIcon('fuel')}
-                        </button>
-                      </TableHead>
-                      <TableHead className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ТТН</TableHead>
-                      <TableHead className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Смены</TableHead>
-                      <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Нач. остаток</TableHead>
-                      <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Поступления</TableHead>
-                      <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Реализация</TableHead>
-                      <TableHead className="text-right text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        <button
-                          onClick={() => handleSort('volumeBook')}
-                          className="flex items-center gap-1 hover:text-foreground transition-colors ml-auto"
-                        >
-                          Книжный остаток
-                          {getSortIcon('volumeBook')}
-                        </button>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {/* Итоговая строка ПЕРВОЙ */}
-                    {totals && sortedInventory.length > 0 && (
-                      <TableRow className="bg-di-surface-high/50 hover:bg-di-surface-high transition-colors [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl">
-                        <TableCell colSpan={3} className="text-foreground font-semibold">
-                          ИТОГО ({totals.tankCount} резерв.)
-                        </TableCell>
-                        <TableCell className="text-center font-mono text-primary dark:text-primary/70 font-semibold">
-                          {totals.receiptCount}
-                        </TableCell>
-                        <TableCell className="text-center font-mono text-purple-600 dark:text-purple-400 font-semibold">
-                          {totals.shiftCount}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-foreground/80 font-semibold">
-                          {formatNumber(totals.volumeBegin)} л
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-green-600 dark:text-green-400 font-semibold">
-                          +{formatNumber(totals.volumeReceipts)} л
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-primary dark:text-primary/70 font-semibold">
-                          -{formatNumber(totals.volumeSales)} л
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="space-y-1">
-                            <div className="font-mono text-foreground font-bold">
-                              {formatNumber(totals.volumeBook)} л
-                            </div>
-                            <div className="flex items-center gap-2 justify-end">
-                              {totals.capacity > 0 ? (
-                                <>
-                                  <span className="text-xs text-muted-foreground font-semibold">
-                                    {((totals.volumeBook / totals.capacity) * 100).toFixed(1)}%
-                                  </span>
-                                  <div className="w-24 h-2 bg-secondary rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full ${getProgressColor((totals.volumeBook / totals.capacity) * 100)}`}
-                                      style={{ width: `${Math.max(0, Math.min(100, (totals.volumeBook / totals.capacity) * 100))}%` }}
-                                    ></div>
-                                  </div>
-                                </>
-                              ) : (
-                                <span className="text-xs text-muted-foreground" title="Ёмкость резервуаров не настроена в STS">—</span>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-
-                    {sortedInventory.map((tank, idx) => (
-                      <TableRow key={idx} className="bg-di-surface-low hover:bg-di-surface-high transition-colors group [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl">
-                        <TableCell className="text-foreground">
-                          {tank.stationName || `АЗС ${tank.station}`}
-                        </TableCell>
-                        <TableCell className="text-foreground">Р{tank.tankNumber}</TableCell>
-                        <TableCell>
-                          <FuelBadge fuel={tank.fuelName} />
-                        </TableCell>
-                        <TableCell className="text-center font-mono text-primary dark:text-primary/70">
-                          {tank.receiptCount || 0}
-                        </TableCell>
-                        <TableCell className="text-center font-mono text-purple-600 dark:text-purple-400">
-                          {tank.shiftCount || 0}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-muted-foreground">
-                          {formatNumber(tank.volumeBegin)} л
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-green-600 dark:text-green-400">
-                          +{formatNumber(tank.volumeReceipts)} л
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-primary dark:text-primary/70">
-                          -{formatNumber(tank.volumeSales)} л
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="space-y-1">
-                            <div className="font-mono text-foreground font-semibold">
-                              {formatNumber(tank.volumeBook)} л
-                            </div>
-                            <div className="flex items-center gap-2 justify-end">
-                              {tank.capacity > 0 ? (
-                                <>
-                                  <span className="text-xs text-muted-foreground">{tank.fillPercent.toFixed(1)}%</span>
-                                  <div className="w-24 h-2 bg-secondary rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full ${getProgressColor(tank.fillPercent)}`}
-                                      style={{ width: `${Math.max(0, Math.min(100, tank.fillPercent))}%` }}
-                                    ></div>
-                                  </div>
-                                </>
-                              ) : (
-                                <span className="text-xs text-muted-foreground" title="Ёмкость резервуара не настроена в STS — процент заполнения недоступен">
-                                  ёмкость не задана
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {formatNumber(group.totalBook)} л
+                      </span>
+                    </div>
+                    {group.tanks.map((tank) => (
+                      <TankInventoryCard key={`${tank.station}-${tank.tankNumber}-${tank.fuelCode}`} tank={tank} />
                     ))}
-
-                    {sortedInventory.length === 0 && !loading && (
-                      <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                          Нет данных для отображения
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            /* Десктопный вид - группы по станциям */
+            <div>
+              {/* Шапка столбцов */}
+              <div className={cn(GRID_COLS, 'px-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground')}>
+                <button
+                  onClick={() => handleSort('station')}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                >
+                  Станция / резервуар
+                  {getSortIcon('station')}
+                </button>
+                <button
+                  onClick={() => handleSort('volumeBook')}
+                  className="flex items-center gap-1 justify-end hover:text-foreground transition-colors"
+                >
+                  Книжный остаток
+                  {getSortIcon('volumeBook')}
+                </button>
+                <span>Заполнение</span>
+                <span className="text-right">До дозаказа</span>
               </div>
-            )}
+
+              {isEmpty ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {attnOnly ? 'Нет резервуаров, требующих внимания' : 'Нет данных для отображения'}
+                </div>
+              ) : (
+                displayGroups.map((group) => {
+                  const isStationCollapsed = collapsed.has(group.key);
+                  return (
+                    <div key={group.key} className="mb-2.5 overflow-hidden rounded-xl border border-border bg-card">
+                      {/* Шапка станции */}
+                      <button
+                        type="button"
+                        onClick={() => toggleStation(group.key)}
+                        className={cn(GRID_COLS, 'w-full px-4 py-3 text-left bg-di-surface-high hover:bg-di-surface-high/70 transition-colors')}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ChevronDown
+                            className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isStationCollapsed && '-rotate-90')}
+                          />
+                          <span className="font-bold text-foreground truncate">{group.stationName}</span>
+                          <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground tabular-nums">
+                            {group.tanks.length} рез.
+                          </span>
+                          {group.alertCount > 0 && (
+                            <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-bold text-amber-500 tabular-nums">
+                              {group.alertCount} ⚠
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-right font-bold tabular-nums text-foreground">{formatNumber(group.totalBook)} л</span>
+                        <span />
+                        <span />
+                      </button>
+
+                      {/* Строки резервуаров */}
+                      {!isStationCollapsed && (
+                        <div>
+                          {group.tanks.map((tank) => {
+                            const fuel = getFuelColor(tank.fuelName);
+                            const hasCapacity = tank.capacity > 0;
+                            const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, periodDays);
+                            return (
+                              <div
+                                key={`${tank.station}-${tank.tankNumber}-${tank.fuelCode}`}
+                                className={cn(GRID_COLS, 'border-t border-border px-4 py-2.5 hover:bg-di-surface-low/60 transition-colors')}
+                              >
+                                {/* Резервуар */}
+                                <div className="flex items-center gap-2 min-w-0 pl-6">
+                                  <span className={cn('inline-flex items-center justify-center min-w-8 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase text-white shrink-0', fuel.bg)}>
+                                    {fuel.label}
+                                  </span>
+                                  <span className="font-semibold text-foreground">Р{tank.tankNumber}</span>
+                                  <span className="text-xs text-muted-foreground truncate">{tank.fuelName}</span>
+                                </div>
+
+                                {/* Книжный остаток */}
+                                <span className="text-right font-semibold tabular-nums text-foreground">
+                                  {formatNumber(tank.volumeBook)}
+                                  <span className="text-muted-foreground font-normal"> л</span>
+                                </span>
+
+                                {/* Заполнение */}
+                                <div>
+                                  {hasCapacity ? (
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className={cn('font-semibold tabular-nums', fillTextColor(tank.fillPercent))}>
+                                          {Math.round(tank.fillPercent)}%
+                                        </span>
+                                        <span className="text-muted-foreground tabular-nums">{formatNumber(tank.capacity)} л</span>
+                                      </div>
+                                      <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                                        <div
+                                          className={cn('h-full rounded-full', barColor(tank.fillPercent))}
+                                          style={{ width: `${Math.max(0, Math.min(100, tank.fillPercent))}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground" title="Ёмкость резервуара не настроена в STS">
+                                      ёмкость не задана
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* До дозаказа */}
+                                <div className="text-right">
+                                  {days == null ? (
+                                    <span className="text-muted-foreground">—</span>
+                                  ) : (
+                                    <span
+                                      className={cn(
+                                        'font-semibold tabular-nums',
+                                        days <= 3 ? 'text-red-500' : days <= 6 ? 'text-amber-500' : 'text-foreground'
+                                      )}
+                                    >
+                                      {days} <span className="text-xs font-normal text-muted-foreground">дн.</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
 
       </div>

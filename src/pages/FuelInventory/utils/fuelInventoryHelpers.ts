@@ -104,3 +104,93 @@ export const calculateTotals = (inventory: TankInventory[]) => {
 export const getUniqueStations = (inventory: TankInventory[]): number[] => {
   return Array.from(new Set(inventory.map(t => t.station)));
 };
+
+/**
+ * Число дней в выбранном периоде (разница дат + 1, минимум 1)
+ */
+export const getPeriodDays = (dateFrom: string, dateTo: string): number => {
+  const from = new Date(dateFrom).getTime();
+  const to = new Date(dateTo).getTime();
+  if (isNaN(from) || isNaN(to)) return 1;
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  return Math.max(1, Math.round((to - from) / MS_PER_DAY) + 1);
+};
+
+/**
+ * Прогноз: на сколько дней хватит книжного остатка при текущем темпе реализации.
+ * perDay = реализация за период / число дней периода.
+ * Возвращает null, если реализации не было (темп <= 0) — прогноз невозможен.
+ */
+export const getDaysToReorder = (
+  volumeBook: number,
+  volumeSales: number,
+  periodDays: number
+): number | null => {
+  const perDay = volumeSales / periodDays;
+  if (!isFinite(perDay) || perDay <= 0) return null;
+  return Math.max(0, Math.round(volumeBook / perDay));
+};
+
+/**
+ * Уровень заполнения резервуара: критический (<10%), внимание (<22%), норма
+ */
+export type FillLevel = 'crit' | 'warn' | 'ok';
+
+export const getFillLevel = (fillPercent: number): FillLevel => {
+  if (fillPercent < 10) return 'crit';
+  if (fillPercent < 22) return 'warn';
+  return 'ok';
+};
+
+/**
+ * Резервуар «требует внимания»: низкое заполнение (<22% при известной ёмкости)
+ * ИЛИ скоро опустеет (дней до дозаказа <= 6)
+ */
+export const isTankAttention = (tank: TankInventory, periodDays: number): boolean => {
+  const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, periodDays);
+  const lowFill = tank.capacity > 0 && tank.fillPercent < 22;
+  const lowDays = days != null && days <= 6;
+  return lowFill || lowDays;
+};
+
+/**
+ * Группа резервуаров одной станции
+ */
+export interface StationGroup {
+  key: string;             // уникальный ключ станции (station + name)
+  station: number;
+  stationName: string;
+  tanks: TankInventory[];
+  totalBook: number;       // суммарный книжный остаток по станции
+  alertCount: number;      // число проблемных резервуаров
+}
+
+/**
+ * Группировка резервуаров по станциям с сохранением порядка появления
+ * (порядок станций и резервуаров наследуется от переданного отсортированного списка)
+ */
+export const groupByStation = (
+  inventory: TankInventory[],
+  periodDays: number
+): StationGroup[] => {
+  const map = new Map<string, StationGroup>();
+
+  for (const tank of inventory) {
+    const stationName = tank.stationName || `АЗС ${tank.station}`;
+    const key = `${tank.station}|${stationName}`;
+
+    let group = map.get(key);
+    if (!group) {
+      group = { key, station: tank.station, stationName, tanks: [], totalBook: 0, alertCount: 0 };
+      map.set(key, group);
+    }
+
+    group.tanks.push(tank);
+    group.totalBook += tank.volumeBook;
+    if (isTankAttention(tank, periodDays)) {
+      group.alertCount += 1;
+    }
+  }
+
+  return Array.from(map.values());
+};
