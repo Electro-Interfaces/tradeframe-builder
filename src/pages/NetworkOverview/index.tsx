@@ -145,10 +145,11 @@ export function NetworkOverview() {
     const prevFromStr = prevFrom.toISOString().split('T')[0];
     const prevToStr = prevTo.toISOString().split('T')[0];
 
+    const stations = analytics.selectedStationCodes;
     try {
       const [det, prev] = await Promise.all([
-        fetchDetailedAnalytics({ networkIds: selectedNetworkIds, from: data.dateFrom, to: data.dateTo }),
-        fetchOverview({ networkIds: selectedNetworkIds, from: prevFromStr, to: prevToStr }).catch(() => null),
+        fetchDetailedAnalytics({ networkIds: selectedNetworkIds, from: data.dateFrom, to: data.dateTo, stations }),
+        fetchOverview({ networkIds: selectedNetworkIds, from: prevFromStr, to: prevToStr, stations }).catch(() => null),
       ]);
       if (reqId !== detailedRequestIdRef.current) return;
       setDetailed(det);
@@ -161,7 +162,7 @@ export function NetworkOverview() {
     } finally {
       if (reqId === detailedRequestIdRef.current) setDetailedLoading(false);
     }
-  }, [selectedNetworkIds, data.dateFrom, data.dateTo]);
+  }, [selectedNetworkIds, data.dateFrom, data.dateTo, analytics.selectedStationCodes]);
 
   // Грузим агрегаты при раскрытии расширенной аналитики и перегружаем при смене
   // периода/сети (loadDetailed меняет идентичность). Пока блок свёрнут — не грузим.

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useTransition } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useSelection } from "@/contexts/SelectionContext";
 import { fetchOverview, triggerSync, type OverviewResponse } from "@/services/analyticsService";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { getFuelPriority } from "@/utils/fuelPriority";
 
 /**
@@ -11,9 +13,10 @@ import { getFuelPriority } from "@/utils/fuelPriority";
  * графики «Реализация по дням / Топливо / Оплата / Часы»). Браузер больше не
  * тащит и не суммирует сырьё STS — основной блок появляется мгновенно.
  *
- * Известное ограничение Фазы 1: overview агрегируется по СЕТИ (station в
- * эндпоинт не передаётся). При выборе конкретной торговой точки KPI остаются
- * по сети — это приемлемо, отмечено в задаче.
+ * Фильтр по станциям: если в шапке выбрано подмножество торговых точек (одна
+ * или несколько) — их номера (external_id) передаются в эндпоинт как stations,
+ * и агрегаты считаются только по ним. Если выбраны все точки — фильтр не идёт
+ * (вся сеть). Экспортируется `selectedStationCodes` для расширенной аналитики.
  */
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -39,7 +42,7 @@ export interface AnalyticsPaymentStat {
 }
 
 export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOverviewAnalyticsParams) {
-  const { selectedNetworkIds, selectedTradingPoint, isInitialized } = useSelection();
+  const { selectedNetworkIds, selectedTradingPoints, isInitialized } = useSelection();
 
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,6 +51,37 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
 
   // Защита от гонок: помечаем каждый запрос и игнорируем «отставшие» ответы.
   const currentRequestIdRef = useRef(0);
+
+  // Справочник точек выбранных сетей — чтобы перевести выбранные id точек в
+  // номера станций (external_id) для фильтра аналитики.
+  const { data: networkPoints = [] } = useQuery({
+    queryKey: ['overviewPoints', ...[...selectedNetworkIds].sort()],
+    queryFn: async () => {
+      if (!selectedNetworkIds.length) return [];
+      const results = await Promise.all(
+        selectedNetworkIds.map((id) => tradingPointsService.getByNetworkId(id).catch(() => []))
+      );
+      return results.flat();
+    },
+    enabled: selectedNetworkIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Коды выбранных станций. Все точки выбраны (или ничего/справочник не готов) →
+  // undefined = фильтра нет, считаем всю сеть.
+  const selectedStationCodes = useMemo<string[] | undefined>(() => {
+    if (!networkPoints.length) return undefined;
+    const total = networkPoints.length;
+    if (!selectedTradingPoints.length || selectedTradingPoints.length >= total) return undefined;
+    const codes = networkPoints
+      .filter((p: any) => selectedTradingPoints.includes(p.id))
+      .map((p: any) => p.external_id)
+      .filter(Boolean) as string[];
+    return codes.length ? codes : undefined;
+  }, [networkPoints, selectedTradingPoints]);
+
+  // Стабильный ключ выбора станций для зависимостей эффектов.
+  const stationsKey = selectedStationCodes ? selectedStationCodes.slice().sort().join(',') : '';
 
   const load = useCallback(async () => {
     const networkIds = selectedNetworkIds;
@@ -60,7 +94,7 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchOverview({ networkIds, from: dateFrom, to: dateTo });
+      const res = await fetchOverview({ networkIds, from: dateFrom, to: dateTo, stations: selectedStationCodes });
       if (requestId !== currentRequestIdRef.current) return;
       // startTransition: выкладка агрегатов не должна морозить интерактив
       startTransition(() => setOverview(res));
@@ -74,9 +108,9 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
     } finally {
       if (requestId === currentRequestIdRef.current) setLoading(false);
     }
-  }, [selectedNetworkIds, dateFrom, dateTo]);
+  }, [selectedNetworkIds, dateFrom, dateTo, stationsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Грузим при смене сети / точки / периода. Если сеть не выбрана — не грузим.
+  // Грузим при смене сети / выбора станций / периода. Если сеть не выбрана — не грузим.
   useEffect(() => {
     if (!isInitialized) return;
     if (!selectedNetworkIds || selectedNetworkIds.length === 0) {
@@ -84,9 +118,7 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
       return;
     }
     load();
-    // selectedTradingPoint в зависимостях по ТЗ: эндпоинт станцию игнорирует,
-    // но перезапрос при смене точки безвреден (агрегаты быстрые).
-  }, [isInitialized, selectedNetworkIds, selectedTradingPoint, dateFrom, dateTo, load]);
+  }, [isInitialized, selectedNetworkIds, stationsKey, dateFrom, dateTo, load]);
 
   // Кнопка «Обновить»: принудительный досинк выбранной сети + перечитать агрегаты.
   const refresh = useCallback(async () => {
@@ -250,6 +282,10 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
     // Сырой ответ агрегатов текущего периода — нужен расширенной аналитике
     // (byStation для графика станций, byDay/kpi для сравнения периодов).
     overview,
+
+    // Коды выбранных станций (undefined = вся сеть) — расширенная аналитика
+    // передаёт их в /overview-detailed и prev-period /overview.
+    selectedStationCodes,
 
     totalRevenue,
     totalVolume,

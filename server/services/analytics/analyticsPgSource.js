@@ -10,16 +10,28 @@ function bounds(from, to) {
   return { from: `${from} 00:00:00`, to: `${to} 23:59:59.999` };
 }
 
+// Пересечение scope пользователя (allowedStations) и явного выбора станций
+// (stations из UI). Возвращает {clause, params} для дописывания в WHERE.
+// null-массивы означают «без ограничения». Пустой результат-массив → фильтр,
+// который никогда не совпадёт (чтобы не показать чужое).
+function stationScopeClause(allowedStations, stations, params) {
+  const a = Array.isArray(allowedStations) ? allowedStations.map(Number).filter(Number.isFinite) : null;
+  const s = Array.isArray(stations) ? stations.map(Number).filter(Number.isFinite) : null;
+  let list;
+  if (a && s) list = a.filter((x) => s.includes(x)); // пересечение
+  else list = a || s; // одно из ограничений или ни одного
+  if (!list) return ''; // без ограничения станций
+  params.push(list);
+  return ` AND station_code = ANY($${params.length}::int[])`;
+}
+
 // Сводка «Обзора»: KPI + разбивки по топливу/оплате/дням/часам/станциям.
-// allowedStations (массив int) — scope пользователя; null = без ограничений.
-async function getOverview({ networkIds, from, to, allowedStations }) {
+// allowedStations — scope пользователя (null = без ограничений);
+// stations — явный выбор станций в UI (null/пусто = все точки сети).
+async function getOverview({ networkIds, from, to, allowedStations, stations }) {
   const b = bounds(from, to);
   const params = [networkIds, b.from, b.to];
-  let scope = '';
-  if (Array.isArray(allowedStations)) {
-    params.push(allowedStations);
-    scope = ` AND station_code = ANY($${params.length}::int[])`;
-  }
+  const scope = stationScopeClause(allowedStations, stations, params);
   const where = `WHERE network_id = ANY($1::uuid[]) AND dt >= $2 AND dt <= $3${scope}`;
 
   const [kpi, byFuel, byPayment, byDay, byHour, byStation, byDayFuel, byDayHour] = await Promise.all([
@@ -89,14 +101,10 @@ async function getOverview({ networkIds, from, to, allowedStations }) {
 // Детальная аналитика Обзора (расширенный блок): станция×топливо, станция×день,
 // день×оплата. Отдельно от getOverview, чтобы не утяжелять базовый overview,
 // который дёргают Операции. Период произвольный.
-async function getDetailedAnalytics({ networkIds, from, to, allowedStations }) {
+async function getDetailedAnalytics({ networkIds, from, to, allowedStations, stations }) {
   const b = bounds(from, to);
   const params = [networkIds, b.from, b.to];
-  let scope = '';
-  if (Array.isArray(allowedStations)) {
-    params.push(allowedStations);
-    scope = ` AND station_code = ANY($${params.length}::int[])`;
-  }
+  const scope = stationScopeClause(allowedStations, stations, params);
   const where = `WHERE network_id = ANY($1::uuid[]) AND dt >= $2 AND dt <= $3${scope}`;
 
   const [byStationFuel, byStationDay, byDayPayment] = await Promise.all([

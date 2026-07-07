@@ -49,9 +49,9 @@ async function apiGet<T>(path: string, params: Record<string, any>): Promise<T> 
   return res.json();
 }
 
-export interface OverviewParams { networkIds: string[]; from: string; to: string; }
+export interface OverviewParams { networkIds: string[]; from: string; to: string; stations?: (string | number)[]; }
 export function fetchOverview(p: OverviewParams): Promise<OverviewResponse> {
-  return apiGet<OverviewResponse>('overview', { networkId: p.networkIds, from: p.from, to: p.to });
+  return apiGet<OverviewResponse>('overview', { networkId: p.networkIds, from: p.from, to: p.to, stations: p.stations });
 }
 
 export interface DetailedAnalyticsResponse {
@@ -60,7 +60,7 @@ export interface DetailedAnalyticsResponse {
   byDayPayment: { date: string; method: string; operations: number; revenue: number }[];
 }
 export function fetchDetailedAnalytics(p: OverviewParams): Promise<DetailedAnalyticsResponse> {
-  return apiGet<DetailedAnalyticsResponse>('overview-detailed', { networkId: p.networkIds, from: p.from, to: p.to });
+  return apiGet<DetailedAnalyticsResponse>('overview-detailed', { networkId: p.networkIds, from: p.from, to: p.to, stations: p.stations });
 }
 
 export interface OperationsParams {

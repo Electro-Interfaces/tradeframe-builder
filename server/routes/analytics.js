@@ -45,9 +45,10 @@ router.get('/overview', async (req, res) => {
   try {
     const networkIds = await resolveNetworkIds(req);
     if (!networkIds.length) return res.json({ kpi: { operations: 0, volume: 0, revenue: 0, avgCheck: 0 }, byFuel: [], byPayment: [], byDay: [], byHour: [], byStation: [] });
-    const { from, to } = req.query;
+    const { from, to, stations } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Параметры from и to обязательны' });
-    const data = await analytics.getOverview({ networkIds, from, to, allowedStations: allowedStationsOf(req.user) });
+    const stationList = stations ? String(stations).split(',').map(s => s.trim()).filter(Boolean) : null;
+    const data = await analytics.getOverview({ networkIds, from, to, allowedStations: allowedStationsOf(req.user), stations: stationList });
     res.json(data);
   } catch (error) {
     console.error('[Analytics] overview:', error.message);
@@ -60,9 +61,10 @@ router.get('/overview-detailed', async (req, res) => {
   try {
     const networkIds = await resolveNetworkIds(req);
     if (!networkIds.length) return res.json({ byStationFuel: [], byStationDay: [], byDayPayment: [] });
-    const { from, to } = req.query;
+    const { from, to, stations } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Параметры from и to обязательны' });
-    const data = await analytics.getDetailedAnalytics({ networkIds, from, to, allowedStations: allowedStationsOf(req.user) });
+    const stationList = stations ? String(stations).split(',').map(s => s.trim()).filter(Boolean) : null;
+    const data = await analytics.getDetailedAnalytics({ networkIds, from, to, allowedStations: allowedStationsOf(req.user), stations: stationList });
     res.json(data);
   } catch (error) {
     console.error('[Analytics] overview-detailed:', error.message);
