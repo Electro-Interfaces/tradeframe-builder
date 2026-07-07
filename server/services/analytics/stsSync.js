@@ -1,17 +1,36 @@
 /**
  * Синк транзакций STS → PostgreSQL (таблица sts_transactions).
  *
- * Синкаем ПО ДНЯМ: день — лёгкий запрос к STS (не падает как неделя/месяц),
- * закрытый день неизменен → синкается один раз (курсор sts_sync_cursor),
- * «сегодня» перечитывается при каждом прогоне. Дедупликация upsert по
- * (system, station_code, sts_id).
+ * Синкаем ПО ДНЯМ: день — лёгкий запрос к STS (не падает как неделя/месяц).
+ * Дедупликация upsert по (system, station_code, sts_id).
+ *
+ * Самоподстраховка от пробелов (курсор sts_sync_cursor):
+ *  1. FORWARD — от (last_synced − RESYNC_TAIL) до сегодня: новые дни + сегодня +
+ *     перечитывание хвоста последних дней (STS иногда дописывает прошлые дни
+ *     задним числом).
+ *  2. BACKFILL — досинк истории НАЗАД до глубины INITIAL_DAYS, останавливаясь на
+ *     границе данных станции (N пустых дней подряд). Станции, появившиеся позже
+ *     первого наполнения, автоматически догоняют полный период (кейс АЗС 207).
+ *  3. DUAL-CODE — станции, сменившие номер, синкаются и под старым номером,
+ *     данные пишутся под текущим (кейс Светогорск 9008 → 8).
  */
 const postgres = require('../../db/pool');
 const stsProxy = require('../stsProxyService');
-const orgDataSource = require('../org/orgDataSource');
 const { normalizePaymentMethod } = require('./paymentNormalize');
 
 const INITIAL_DAYS = Number(process.env.STS_SYNC_INITIAL_DAYS || 40);
+// Перечитываем последние N закрытых дней — STS может дописать их задним числом.
+const RESYNC_TAIL_DAYS = Number(process.env.STS_SYNC_TAIL_DAYS || 3);
+// Backfill останавливается после стольких пустых дней подряд — это граница
+// данных станции (раньше не работала / не слала).
+const BACKFILL_EMPTY_STOP = Number(process.env.STS_SYNC_BACKFILL_STOP || 5);
+// Потолок дней backfill за один прогон станции — чтобы не молотить STS слишком
+// долго в одном тике; хвост догоняется в следующих прогонах.
+const BACKFILL_MAX_DAYS = Number(process.env.STS_SYNC_BACKFILL_MAX || 60);
+
+// Станции, сменившие STS-номер: текущий → [старые номера]. Данные старых номеров
+// пишутся под текущим station_code. Расширяется по мере переименований.
+const DUAL_STATION_CODES = { 8: [9008] };
 
 const num = (v) => {
   if (v === null || v === undefined || v === '') return null;
@@ -58,8 +77,9 @@ function extractRows(data, fallbackStation) {
   })).filter((r) => r.stsId != null && r.dt != null);
 }
 
-// Многострочный upsert одной пачки транзакций
-async function upsertBatch(networkId, system, rows) {
+// Многострочный upsert одной пачки транзакций. writeStation != null →
+// station_code принудительно этот номер (для dual-code: читаем старый, пишем новый).
+async function upsertBatch(networkId, system, rows, writeStation) {
   if (!rows.length) return 0;
   const cols = 23;
   const values = [];
@@ -68,7 +88,7 @@ async function upsertBatch(networkId, system, rows) {
     const b = i * cols;
     values.push(`($${b+1},$${b+2},$${b+3},$${b+4},$${b+5},$${b+6},$${b+7},$${b+8},$${b+9},$${b+10},$${b+11},$${b+12},$${b+13},$${b+14},$${b+15},$${b+16},$${b+17},$${b+18},$${b+19},$${b+20},$${b+21},$${b+22},$${b+23})`);
     params.push(
-      networkId, system, r.stationCode, r.stsId, r.dt, r.shift, r.receipt,
+      networkId, system, writeStation != null ? writeStation : r.stationCode, r.stsId, r.dt, r.shift, r.receipt,
       r.pos, r.nozzle, r.tank, r.fuelCode, r.fuelName, r.quantity, r.price,
       r.cost, r.mass, r.density, r.payTypeId, r.payTypeName, r.paymentMethod,
       r.card, r.orderQty, r.orderCost
@@ -98,56 +118,109 @@ async function upsertBatch(networkId, system, rows) {
 function ymd(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+function midnight(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 
-// Синк одного дня одной станции
-async function syncStationDay(networkId, system, stationCode, date) {
+// Синк одного дня. readStation — номер запроса к STS; writeStation — под каким
+// номером писать (для dual-code отличается). Возвращает число строк.
+async function syncStationDay(networkId, system, readStation, date, writeStation) {
   const data = await stsProxy.stsInternalRequest('/v2/transactions', {
-    system, station: stationCode,
+    system, station: readStation,
     dt_beg: `${date} 00:00:00`, dt_end: `${date} 23:59:59`,
   }, {});
-  const rows = extractRows(data, stationCode);
-  // upsert батчами по 500 строк
+  const rows = extractRows(data, readStation);
   let total = 0;
   for (let i = 0; i < rows.length; i += 500) {
-    total += await upsertBatch(networkId, system, rows.slice(i, i + 500));
+    total += await upsertBatch(networkId, system, rows.slice(i, i + 500), writeStation);
   }
   return total;
 }
 
-// Синк станции: от курсора (или INITIAL_DAYS назад) до сегодня, по дням.
-// Прошлые дни синкаются один раз, сегодня перечитывается.
+// Backfill истории НАЗАД от fromDay (включительно) до targetStart, с остановкой
+// на границе данных (BACKFILL_EMPTY_STOP пустых дней подряд) и потолком дней.
+// Возвращает { rows, reached (самый ранний обработанный день), done }.
+async function backfillDown(networkId, system, readStation, writeStation, fromDay, targetStart) {
+  let rows = 0;
+  let emptyStreak = 0;
+  let processed = 0;
+  let reached = fromDay;
+  let hitBoundary = false;
+  for (let d = midnight(fromDay); d >= targetStart; d = addDays(d, -1)) {
+    const got = await syncStationDay(networkId, system, readStation, ymd(d), writeStation);
+    rows += got;
+    reached = new Date(d);
+    processed++;
+    if (got === 0) { emptyStreak++; } else { emptyStreak = 0; }
+    if (emptyStreak >= BACKFILL_EMPTY_STOP) { hitBoundary = true; break; }
+    if (processed >= BACKFILL_MAX_DAYS) break; // добьём в следующем прогоне
+  }
+  // done, если дошли до целевой глубины или упёрлись в границу данных
+  const done = hitBoundary || reached <= targetStart;
+  return { rows, reached, done };
+}
+
+// Синк одной станции: forward (хвост+сегодня) + backfill истории.
 async function syncStation(networkId, system, stationCode) {
   const cur = await postgres.queryOne(
-    `SELECT last_synced_date FROM sts_sync_cursor WHERE system=$1 AND station_code=$2`,
+    `SELECT last_synced_date, first_synced_date, backfill_done
+       FROM sts_sync_cursor WHERE system=$1 AND station_code=$2`,
     [system, stationCode]
   );
-  const today = new Date(); today.setHours(0,0,0,0);
-  let from;
-  if (cur?.last_synced_date) {
-    from = new Date(cur.last_synced_date); from.setHours(0,0,0,0);
-  } else {
-    from = new Date(today); from.setDate(from.getDate() - INITIAL_DAYS);
-  }
-
+  const today = midnight(new Date());
+  const targetStart = addDays(today, -INITIAL_DAYS);
   let rowsTotal = 0;
-  let lastClosed = cur?.last_synced_date ? new Date(cur.last_synced_date) : null;
+  let minSynced = cur?.first_synced_date ? midnight(cur.first_synced_date) : null;
+
   try {
-    for (let d = new Date(from); d <= today; d.setDate(d.getDate() + 1)) {
-      const isToday = d.getTime() === today.getTime();
-      rowsTotal += await syncStationDay(networkId, system, stationCode, ymd(d));
-      if (!isToday) lastClosed = new Date(d); // закрытый день зафиксирован
+    // 1. FORWARD: от (last_synced − RESYNC_TAIL) или targetStart — до сегодня.
+    let from;
+    if (cur?.last_synced_date) {
+      from = addDays(midnight(cur.last_synced_date), -RESYNC_TAIL_DAYS);
+      if (from < targetStart) from = new Date(targetStart);
+    } else {
+      from = new Date(targetStart);
     }
-    // last_synced_date = вчера (сегодня не закрыт, перечитаем в след. раз)
-    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    for (let d = new Date(from); d <= today; d = addDays(d, 1)) {
+      rowsTotal += await syncStationDay(networkId, system, stationCode, ymd(d));
+      if (!minSynced || d < minSynced) minSynced = new Date(d);
+    }
+    const yesterday = addDays(today, -1);
+
+    // 2. BACKFILL истории назад до targetStart (пока не сделан).
+    let backfillDone = !!cur?.backfill_done;
+    if (!backfillDone && (!minSynced || minSynced > targetStart)) {
+      const start = addDays(minSynced || from, -1);
+      const bf = await backfillDown(networkId, system, stationCode, null, start, targetStart);
+      rowsTotal += bf.rows;
+      if (!minSynced || bf.reached < minSynced) minSynced = bf.reached;
+      backfillDone = bf.done;
+    }
+
     await postgres.query(
-      `INSERT INTO sts_sync_cursor (system, station_code, network_id, last_synced_date, last_run_at, last_ok_at, last_error, rows_total)
-       VALUES ($1,$2,$3,$4, now(), now(), NULL,
-               COALESCE((SELECT rows_total FROM sts_sync_cursor WHERE system=$1 AND station_code=$2),0) + $5)
+      `INSERT INTO sts_sync_cursor
+         (system, station_code, network_id, last_synced_date, first_synced_date,
+          backfill_done, last_run_at, last_ok_at, last_error, rows_total)
+       VALUES ($1,$2,$3,$4,$5,$6, now(), now(), NULL,
+               COALESCE((SELECT rows_total FROM sts_sync_cursor WHERE system=$1 AND station_code=$2),0) + $7)
        ON CONFLICT (system, station_code) DO UPDATE SET
-         last_synced_date=EXCLUDED.last_synced_date, last_run_at=now(), last_ok_at=now(),
-         last_error=NULL, rows_total=sts_sync_cursor.rows_total + $5, network_id=EXCLUDED.network_id`,
-      [system, stationCode, networkId, ymd(yesterday), rowsTotal]
+         last_synced_date=EXCLUDED.last_synced_date,
+         first_synced_date=LEAST(sts_sync_cursor.first_synced_date, EXCLUDED.first_synced_date),
+         backfill_done=EXCLUDED.backfill_done,
+         last_run_at=now(), last_ok_at=now(), last_error=NULL,
+         rows_total=sts_sync_cursor.rows_total + $7, network_id=EXCLUDED.network_id`,
+      [system, stationCode, networkId, ymd(yesterday), minSynced ? ymd(minSynced) : ymd(targetStart), backfillDone, rowsTotal]
     );
+
+    // 3. DUAL-CODE: синк старых номеров станции (данные пишем под текущим).
+    const aliases = DUAL_STATION_CODES[stationCode] || [];
+    for (const alias of aliases) {
+      try {
+        rowsTotal += await syncAlias(networkId, system, stationCode, alias, targetStart, today);
+      } catch (e) {
+        console.warn(`[STS Sync] alias ${alias}→${stationCode} failed: ${e.message}`);
+      }
+    }
+
     return { stationCode, rows: rowsTotal, ok: true };
   } catch (error) {
     await postgres.query(
@@ -158,6 +231,45 @@ async function syncStation(networkId, system, stationCode) {
     ).catch(() => {});
     return { stationCode, rows: rowsTotal, ok: false, error: error.message };
   }
+}
+
+// Синк данных под старым номером станции (alias), запись под текущим station_code.
+// Backfill истории один раз + перечитывание хвоста (вдруг старый номер ещё дописывает).
+async function syncAlias(networkId, system, stationCode, aliasCode, targetStart, today) {
+  const cur = await postgres.queryOne(
+    `SELECT first_synced_date, backfill_done FROM sts_sync_alias_cursor
+      WHERE system=$1 AND station_code=$2 AND alias_code=$3`,
+    [system, stationCode, aliasCode]
+  );
+  let rows = 0;
+  let minSynced = cur?.first_synced_date ? midnight(cur.first_synced_date) : null;
+  let backfillDone = !!cur?.backfill_done;
+
+  // Хвост: перечитываем последние RESYNC_TAIL_DAYS (на случай поздних дописок).
+  const tailFrom = addDays(today, -RESYNC_TAIL_DAYS);
+  for (let d = new Date(tailFrom); d <= today; d = addDays(d, 1)) {
+    rows += await syncStationDay(networkId, system, aliasCode, ymd(d), stationCode);
+  }
+
+  // Backfill истории старого номера назад до targetStart (один раз).
+  if (!backfillDone && (!minSynced || minSynced > targetStart)) {
+    const start = addDays(minSynced || tailFrom, -1);
+    const bf = await backfillDown(networkId, system, aliasCode, stationCode, start, targetStart);
+    rows += bf.rows;
+    if (!minSynced || bf.reached < minSynced) minSynced = bf.reached;
+    backfillDone = bf.done;
+  }
+
+  await postgres.query(
+    `INSERT INTO sts_sync_alias_cursor
+       (system, station_code, alias_code, first_synced_date, backfill_done, last_run_at)
+     VALUES ($1,$2,$3,$4,$5, now())
+     ON CONFLICT (system, station_code, alias_code) DO UPDATE SET
+       first_synced_date=LEAST(sts_sync_alias_cursor.first_synced_date, EXCLUDED.first_synced_date),
+       backfill_done=EXCLUDED.backfill_done, last_run_at=now()`,
+    [system, stationCode, aliasCode, minSynced ? ymd(minSynced) : ymd(targetStart), backfillDone]
+  );
+  return rows;
 }
 
 // Список станций сети из справочника (external_id = STS station code)
@@ -199,4 +311,4 @@ async function syncAllNetworks() {
   return out;
 }
 
-module.exports = { syncStation, syncNetwork, syncAllNetworks, getNetworkStations, extractRows };
+module.exports = { syncStation, syncNetwork, syncAllNetworks, getNetworkStations, extractRows, DUAL_STATION_CODES };

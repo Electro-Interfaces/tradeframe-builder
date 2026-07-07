@@ -13,9 +13,17 @@ import { extractStationNumber } from '@/utils/tradingPointUtils';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
 export const useFuelInventory = (dateFrom: string, dateTo: string) => {
-  const { selectedNetwork, selectedNetworkIds, selectedStation } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedStation, selectedTradingPoints, isAllTradingPoints } = useSelection();
   const { selectedNetworks, selectedExternalIds } = useSelectedNetworks();
   const { user } = useNewAuth();
+
+  // Выбранные точки (id) для фильтра остатков. Все выбраны → undefined (вся сеть).
+  // Поддержка мультивыбора: одна или несколько станций — как в Обзоре/Операциях.
+  const selectedPointIds = useMemo<string[] | undefined>(() => {
+    if (isAllTradingPoints) return undefined;
+    if (!selectedTradingPoints?.length) return undefined;
+    return selectedTradingPoints;
+  }, [isAllTradingPoints, selectedTradingPoints]);
 
   // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
   const allowedStationNumbers = useMemo(() => {
@@ -53,12 +61,12 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
     return [
       'fuelInventory',
       [...selectedExternalIds].sort(),
-      selectedStation?.id,
+      selectedPointIds ? [...selectedPointIds].sort() : 'all',
       dateFrom,
       dateTo,
       allowedStationsArray
     ];
-  }, [selectedExternalIds, selectedStation?.id, dateFrom, dateTo, allowedStationNumbers]);
+  }, [selectedExternalIds, selectedPointIds, dateFrom, dateTo, allowedStationNumbers]);
 
   // React Query для загрузки данных с кэшированием
   const {
@@ -83,7 +91,9 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         const params = {
           system: parseInt(network.external_id),
           networkId: network.id,
+          // Одна станция (обратная совместимость) + мультивыбор точек
           station: selectedStation ? extractStationNumber(selectedStation) : undefined,
+          selectedPointIds,
           dt_beg: formatDateForApi(dateFrom, false),
           dt_end: formatDateForApi(dateTo, true),
           allowedStations: allowedStationNumbers,

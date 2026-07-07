@@ -13,7 +13,8 @@ import type { TankHistoryRecord, ReceiptResponse, TransactionV2Response } from '
 export interface InventoryParams {
   system: number;           // external_id сети для STS API
   networkId: string;        // UUID сети для получения списка ТТ
-  station?: number;         // external_id ТТ (опционально)
+  station?: number;         // external_id ТТ (опционально, одна станция)
+  selectedPointIds?: string[]; // id выбранных точек (мультивыбор; undefined = все)
   dt_beg?: string;
   dt_end?: string;
   allowedStations?: Set<string> | null; // Разрешенные станции для фильтрации по ролям
@@ -111,6 +112,8 @@ export async function getInventoryFromServer(params: InventoryParams): Promise<T
       const stationNum = extractStationNumber(point);
       if (!stationNum) return false;
       if (params.station && stationNum !== params.station) return false;
+      // Мультивыбор точек (одна или несколько) — фильтр по id выбранных точек
+      if (params.selectedPointIds && !params.selectedPointIds.includes(point.id)) return false;
       if (params.allowedStations && !params.allowedStations.has(point.external_id || String(stationNum))) return false;
       return true;
     })
@@ -163,6 +166,10 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
       if (!stationNum) return false;
       // Если выбрана конкретная ТТ - обрабатываем только её
       if (params.station && stationNum !== params.station) {
+        return false;
+      }
+      // Мультивыбор точек (одна или несколько)
+      if (params.selectedPointIds && !params.selectedPointIds.includes(point.id)) {
         return false;
       }
       // Фильтрация по разрешенным станциям (RBAC)
