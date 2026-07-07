@@ -2,7 +2,7 @@
   "name": "TradePoint - Управление торговыми сетями",
   "short_name": "TradePoint",
   "description": "Система управления торговыми сетями и АЗС. Включает: обзор сетей, операции, цены, резервуары, оборудование, управление пользователями.",
-  "version": "2.3.25",
+  "version": "2.3.26",
   "theme_color": "#1e293b",
   "background_color": "#1e293b",
   "display": "standalone",

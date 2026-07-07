@@ -27,6 +27,9 @@ import { useShiftChartData } from './hooks/useShiftChartData';
 import { FuelInventoryFilters } from './components/FuelInventoryFilters';
 import { TankInventoryCard } from './components/TankInventoryCard';
 import { FuelBalanceCharts } from './components/FuelBalanceCharts';
+import { TankDetailDialog } from './components/TankDetailDialog';
+import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
+import type { TankInventory } from '@/services/fuelInventoryService';
 import {
   formatNumber,
   filterInventory,
@@ -50,9 +53,15 @@ const GRID_COLS = 'grid grid-cols-[minmax(0,1.9fr)_130px_210px_140px] gap-3 item
 export default function FuelInventory() {
   const isMobile = useIsMobile();
 
+  // Сети-кандидаты для резолва станция→точка→датчик в модалке подробностей
+  const { selectedNetworks } = useSelectedNetworks();
+
   // Состояние фильтров
   const [selectedFuel, setSelectedFuel] = useState<string>('all');
   const [attnOnly, setAttnOnly] = useState<boolean>(false);
+
+  // Выбранный резервуар для модалки подробного состояния (Этап 2)
+  const [selectedTank, setSelectedTank] = useState<TankInventory | null>(null);
 
   // Состояние сортировки (по умолчанию - по станции по возрастанию)
   const [sortColumn, setSortColumn] = useState<'station' | 'fuel' | 'volumeBook'>('station');
@@ -374,7 +383,13 @@ export default function FuelInventory() {
                       </span>
                     </div>
                     {group.tanks.map((tank) => (
-                      <TankInventoryCard key={`${tank.station}-${tank.tankNumber}-${tank.fuelCode}`} tank={tank} />
+                      <div
+                        key={`${tank.station}-${tank.tankNumber}-${tank.fuelCode}`}
+                        onClick={() => setSelectedTank(tank)}
+                        className="cursor-pointer"
+                      >
+                        <TankInventoryCard tank={tank} />
+                      </div>
                     ))}
                   </div>
                 ))
@@ -510,7 +525,17 @@ export default function FuelInventory() {
                             return (
                               <div
                                 key={`${tank.station}-${tank.tankNumber}-${tank.fuelCode}`}
-                                className={cn(GRID_COLS, 'border-t border-border px-4 py-2.5 hover:bg-di-surface-low/60 transition-colors')}
+                                onClick={() => setSelectedTank(tank)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setSelectedTank(tank);
+                                  }
+                                }}
+                                title="Подробное состояние резервуара"
+                                className={cn(GRID_COLS, 'cursor-pointer border-t border-border px-4 py-2.5 hover:bg-di-surface-low/60 transition-colors')}
                               >
                                 {/* Резервуар */}
                                 <div className="flex items-center gap-2 min-w-0 pl-6">
@@ -578,6 +603,14 @@ export default function FuelInventory() {
             </div>
           )}
         </div>
+
+        {/* Модалка подробного состояния резервуара (книжн. ↔ факт по датчику) */}
+        <TankDetailDialog
+          open={!!selectedTank}
+          onOpenChange={(v) => !v && setSelectedTank(null)}
+          tank={selectedTank}
+          networks={selectedNetworks}
+        />
 
       </div>
     </MainLayout>

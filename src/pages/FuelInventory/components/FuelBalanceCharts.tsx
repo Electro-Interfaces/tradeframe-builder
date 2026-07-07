@@ -50,48 +50,37 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const FuelBalanceCharts = ({ chartData, loading, loaded, onLoad }: FuelBalanceChartsProps) => {
-  // Если данные не загружены - показываем кнопку
+  // Не загружено — компактная кнопка-строка (не занимает место впустую)
   if (!loaded && !loading) {
     return (
-      <Card className="bg-card border-border">
-        <CardContent className="py-8">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <LineChart className="w-12 h-12 text-muted-foreground" />
-            <p className="text-muted-foreground text-center">
-              Нажмите кнопку для построения графиков остатков по сменам
-            </p>
-            <Button onClick={onLoad} variant="outline" className="gap-2">
-              <LineChart className="w-4 h-4" />
-              Построить графики
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <button
+        type="button"
+        onClick={onLoad}
+        className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-card/50 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary hover:bg-card transition-colors"
+      >
+        <LineChart className="w-4 h-4" />
+        Построить графики остатков по сменам
+      </button>
     );
   }
 
-  // Загрузка
+  // Загрузка — компактная строка
   if (loading) {
     return (
-      <Card className="bg-card border-border">
-        <CardContent className="py-8">
-          <div className="flex items-center justify-center gap-3">
-            <RefreshCw className="w-5 h-5 text-primary dark:text-primary/70 animate-spin" />
-            <p className="text-primary dark:text-primary/70">Загрузка данных для графиков...</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-primary dark:text-primary/70">
+        <RefreshCw className="w-4 h-4 animate-spin" />
+        Загрузка графиков остатков по сменам…
+      </div>
     );
   }
 
-  // Нет данных
+  // Нет данных — компактно
   if (chartData.length === 0) {
     return (
-      <Card className="bg-card border-border">
-        <CardContent className="py-8 text-center text-muted-foreground">
-          Нет данных для построения графиков
-        </CardContent>
-      </Card>
+      <div className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
+        <LineChart className="w-4 h-4" />
+        Нет данных для построения графиков за период
+      </div>
     );
   }
 
