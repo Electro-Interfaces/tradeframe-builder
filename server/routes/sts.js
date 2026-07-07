@@ -4,12 +4,47 @@
  */
 
 const express = require('express');
+const NodeCache = require('node-cache');
 const { requireAuth, tryAuth } = require('../middleware/auth');
 const { validateStsAccess } = require('../middleware/scopeFilter');
 const stsProxy = require('../services/stsProxyService');
 const orgDataSource = require('../services/org/orgDataSource');
 
 const router = express.Router();
+
+// Кэш ГОТОВОГО результата агрегации «Остатки» по станции.
+// Раньше кэшировались только STS-ответы (shifts/shift_report), а сама агрегация
+// десятков отчётов пересчитывалась на КАЖДЫЙ заход — отсюда задержка даже при
+// тёплом STS-кэше. Кэшируем результат по (system, station, период).
+// Умный TTL: закрытый период (не включает сегодня) неизменен → долго; период с
+// сегодняшним днём меняется в течение смены → коротко.
+const fuelInvCache = new NodeCache({ stdTTL: 900, maxKeys: 4000, useClones: false });
+const FUELINV_TTL_CLOSED = 6 * 3600; // закрытый период — 6ч
+const FUELINV_TTL_TODAY = 600;       // включает сегодня — 10 мин
+
+function fuelInvTtl(dt_end) {
+  const end = new Date(dt_end);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return end >= today ? FUELINV_TTL_TODAY : FUELINV_TTL_CLOSED;
+}
+
+// Обёртка над aggregateStationInventory с кэшем результата + дедупликацией in-flight
+const fuelInvInflight = new Map();
+async function aggregateStationInventoryCached(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders) {
+  const key = `fuelinv:${system}:${station.id}:${dt_beg}:${dt_end}`;
+  const cached = fuelInvCache.get(key);
+  if (cached !== undefined) return cached;
+  if (fuelInvInflight.has(key)) return fuelInvInflight.get(key);
+
+  const promise = aggregateStationInventory(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders)
+    .then((result) => {
+      fuelInvCache.set(key, result, fuelInvTtl(dt_end));
+      return result;
+    })
+    .finally(() => fuelInvInflight.delete(key));
+  fuelInvInflight.set(key, promise);
+  return promise;
+}
 
 // /v1/services — справочник типов топлива, не требует строгой авторизации
 router.get('/v1/services', tryAuth, async (req, res) => {
@@ -98,7 +133,7 @@ router.post('/fuel-inventory', async (req, res) => {
 
     const results = await Promise.all(filteredStations.map(async (station) => {
       try {
-        return await aggregateStationInventory(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders);
+        return await aggregateStationInventoryCached(system, station, periodStart, periodEnd, dt_beg, dt_end, userHeaders);
       } catch (e) {
         console.error(`[Fuel Inventory] Error for station ${station.id}:`, e.message);
         return [];
@@ -255,7 +290,9 @@ async function warmupCache() {
       // незачем и можно перегрузить внешний API.
       for (const station of stations) {
         try {
-          await aggregateStationInventory(net.external_id, station, periodStart, periodEnd, dt_beg, dt_end, {});
+          // Прогреваем СРАЗУ результат-кэш (а не только STS-ответы) — первый
+          // заход после рестарта отдаётся из готового агрегата мгновенно.
+          await aggregateStationInventoryCached(net.external_id, station, periodStart, periodEnd, dt_beg, dt_end, {});
           warmed++;
         } catch { /* станция пропущена — прогрев best-effort */ }
       }
