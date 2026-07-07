@@ -17,6 +17,7 @@ import {
 import { ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useDebounce } from '@/hooks/use-debounce';
 import { todayString, daysAgoString } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 import { getFuelColor } from '@/utils/fuelColors';
@@ -74,14 +75,19 @@ export default function FuelInventory() {
   const [dateFrom, setDateFrom] = useState<string>(() => daysAgoString(7));
   const [dateTo, setDateTo] = useState<string>(() => todayString());
 
+  // Период применяется автоматически с задержкой (без кнопки «Применить»):
+  // не грузим на каждую цифру при вводе даты, но и не заставляем жать кнопку.
+  const debouncedDateFrom = useDebounce(dateFrom, 600);
+  const debouncedDateTo = useDebounce(dateTo, 600);
+
   // Используем хуки для загрузки данных - загружаем ВСЕ станции (фильтр на клиенте)
-  const { loading, inventory, fuelSummaries, error, loadInventory, refresh, loadingProgress } = useFuelInventory(dateFrom, dateTo);
+  const { loading, inventory, fuelSummaries, error, refresh, loadingProgress } = useFuelInventory(debouncedDateFrom, debouncedDateTo);
 
   // Хук для графиков (фильтрация по ТТ из глобального селектора в хедере)
-  const { chartData, loading: loadingCharts, loaded: chartsLoaded, loadChartData } = useShiftChartData(dateFrom, dateTo, 'all');
+  const { chartData, loading: loadingCharts, loaded: chartsLoaded, loadChartData } = useShiftChartData(debouncedDateFrom, debouncedDateTo, 'all');
 
   // Число дней периода для прогноза «до дозаказа»
-  const periodDays = useMemo(() => getPeriodDays(dateFrom, dateTo), [dateFrom, dateTo]);
+  const periodDays = useMemo(() => getPeriodDays(debouncedDateFrom, debouncedDateTo), [debouncedDateFrom, debouncedDateTo]);
 
   // Обработчик клика на заголовок столбца для сортировки
   const handleSort = (column: 'station' | 'fuel' | 'volumeBook') => {
@@ -213,8 +219,6 @@ export default function FuelInventory() {
                 dateTo={dateTo}
                 onDateFromChange={setDateFrom}
                 onDateToChange={setDateTo}
-                onApply={loadInventory}
-                loading={loading}
               />
             </div>
           </div>

@@ -1,9 +1,6 @@
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RefreshCw } from 'lucide-react';
 import {
-  FILTER_PANEL_ACTION_FIELD_CLASS,
   FILTER_PANEL_CONTROL_CLASS,
   FILTER_PANEL_FIELD_CLASS,
   FILTER_PANEL_FIELDS_CLASS,
@@ -14,17 +11,15 @@ interface FuelInventoryFiltersProps {
   dateTo: string;
   onDateFromChange: (value: string) => void;
   onDateToChange: (value: string) => void;
-  onApply: () => void;
-  loading?: boolean;
 }
 
+// Период применяется автоматически (с задержкой) — отдельной кнопки «Применить»
+// нет, как и на остальных страницах. Свежие данные — кнопкой «Обновить» в шапке.
 export const FuelInventoryFilters = ({
   dateFrom,
   dateTo,
   onDateFromChange,
   onDateToChange,
-  onApply,
-  loading = false
 }: FuelInventoryFiltersProps) => {
   return (
     <div className={FILTER_PANEL_FIELDS_CLASS}>
@@ -50,18 +45,6 @@ export const FuelInventoryFilters = ({
               onChange={(e) => onDateToChange(e.target.value)}
               className={FILTER_PANEL_CONTROL_CLASS}
             />
-          </div>
-
-          {/* Кнопка применить */}
-          <div className={`${FILTER_PANEL_ACTION_FIELD_CLASS} flex items-end`}>
-            <Button
-              onClick={onApply}
-              disabled={loading}
-              className="w-full gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Применить
-            </Button>
           </div>
     </div>
   );
