@@ -133,7 +133,7 @@ export default function FuelInventory() {
 
       if (tank.capacity > 0 && tank.fillPercent < 10) critCount += 1;
 
-      const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, periodDays);
+      const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, tank.shiftCount, periodDays);
       if (days != null && days <= 3) reorderCount += 1;
     }
 
@@ -435,7 +435,7 @@ export default function FuelInventory() {
                   const capSum = capTanks.reduce((s, t) => s + t.capacity, 0);
                   const stFill = capSum > 0 ? (capTanks.reduce((s, t) => s + t.volumeBook, 0) / capSum) * 100 : null;
                   const daysArr = group.tanks
-                    .map((t) => getDaysToReorder(t.volumeBook, t.volumeSales, periodDays))
+                    .map((t) => getDaysToReorder(t.volumeBook, t.volumeSales, t.shiftCount, periodDays))
                     .filter((d): d is number => d != null);
                   const minDays = daysArr.length ? Math.min(...daysArr) : null;
                   // Состав по видам топлива (для полоски-стека)
@@ -525,7 +525,7 @@ export default function FuelInventory() {
                           {group.tanks.map((tank) => {
                             const fuel = getFuelColor(tank.fuelName);
                             const hasCapacity = tank.capacity > 0;
-                            const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, periodDays);
+                            const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, tank.shiftCount, periodDays);
                             return (
                               <div
                                 key={`${tank.station}-${tank.tankNumber}-${tank.fuelCode}`}

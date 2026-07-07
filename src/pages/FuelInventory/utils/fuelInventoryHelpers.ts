@@ -118,17 +118,25 @@ export const getPeriodDays = (dateFrom: string, dateTo: string): number => {
 
 /**
  * Прогноз: на сколько дней хватит книжного остатка при текущем темпе реализации.
- * perDay = реализация за период / число дней периода.
- * Возвращает null, если реализации не было (темп <= 0) — прогноз невозможен.
+ *
+ * Темп считаем по числу ФАКТИЧЕСКИХ смен с продажами (shiftCount), а не по
+ * календарным дням фильтра: станция могла закрыть не каждый день, а сегодняшний
+ * день ещё не закрыт — деление на календарный период занижало бы темп и завышало
+ * прогноз (ДТ показывал «35 дней» вместо реальных ~26). Одна суточная смена ≈ один
+ * день продаж. Резерв — периодные дни, если смен нет.
+ * Возвращает null, если реализации/смен не было — прогноз невозможен.
  */
 export const getDaysToReorder = (
   volumeBook: number,
   volumeSales: number,
-  periodDays: number
+  shiftCount: number,
+  periodDays?: number
 ): number | null => {
-  const perDay = volumeSales / periodDays;
+  const days = shiftCount > 0 ? shiftCount : (periodDays && periodDays > 0 ? periodDays : 0);
+  if (days <= 0 || volumeSales <= 0) return null;
+  const perDay = volumeSales / days;
   if (!isFinite(perDay) || perDay <= 0) return null;
-  return Math.max(0, Math.round(volumeBook / perDay));
+  return Math.max(1, Math.round(volumeBook / perDay));
 };
 
 /**
@@ -147,7 +155,7 @@ export const getFillLevel = (fillPercent: number): FillLevel => {
  * ИЛИ скоро опустеет (дней до дозаказа <= 6)
  */
 export const isTankAttention = (tank: TankInventory, periodDays: number): boolean => {
-  const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, periodDays);
+  const days = getDaysToReorder(tank.volumeBook, tank.volumeSales, tank.shiftCount, periodDays);
   const lowFill = tank.capacity > 0 && tank.fillPercent < 22;
   const lowDays = days != null && days <= 6;
   return lowFill || lowDays;
