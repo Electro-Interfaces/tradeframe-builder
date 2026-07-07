@@ -267,13 +267,13 @@ async function warmupCache() {
 
     const fmt = (d, eod) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${eod ? '23:59:59' : '00:00:00'}`;
+    // Кэш «Остатков» — по ТОЧНОМУ периоду (fuelinv:sys:st:dt_beg:dt_end), поэтому
+    // прогрев обязан совпасть с периодом, который открывает фронт по умолчанию
+    // (последние 7 дней, daysAgoString(7)). Раньше грелся 31-дневный период —
+    // другой ключ, промах кэша, каждый заход был холодным. Греем оба частых
+    // периода: 7 дней (дефолт) и 31 день (месячный отчёт).
     const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - 31); // месяц закрывает и недельные, и месячные запросы
-    const dt_beg = fmt(start, false);
-    const dt_end = fmt(end, true);
-    const periodStart = new Date(dt_beg);
-    const periodEnd = new Date(dt_end);
+    const WARMUP_PERIODS = [7, 31];
 
     let warmed = 0;
     for (const net of active) {
@@ -288,16 +288,24 @@ async function warmupCache() {
         .map((p) => ({ id: p.external_id, name: p.name }));
       // Последовательно: STS отдаёт shift_report почти последовательно, параллелить
       // незачем и можно перегрузить внешний API.
-      for (const station of stations) {
-        try {
-          // Прогреваем СРАЗУ результат-кэш (а не только STS-ответы) — первый
-          // заход после рестарта отдаётся из готового агрегата мгновенно.
-          await aggregateStationInventoryCached(net.external_id, station, periodStart, periodEnd, dt_beg, dt_end, {});
-          warmed++;
-        } catch { /* станция пропущена — прогрев best-effort */ }
+      for (const days of WARMUP_PERIODS) {
+        const start = new Date();
+        start.setDate(start.getDate() - days);
+        const dt_beg = fmt(start, false);
+        const dt_end = fmt(end, true);
+        const periodStart = new Date(dt_beg);
+        const periodEnd = new Date(dt_end);
+        for (const station of stations) {
+          try {
+            // Прогреваем СРАЗУ результат-кэш (а не только STS-ответы) — первый
+            // заход после рестарта отдаётся из готового агрегата мгновенно.
+            await aggregateStationInventoryCached(net.external_id, station, periodStart, periodEnd, dt_beg, dt_end, {});
+            warmed++;
+          } catch { /* станция пропущена — прогрев best-effort */ }
+        }
       }
     }
-    console.log(`[STS] Прогрев кэша «Остатки»: ${warmed} станций за 31 день`);
+    console.log(`[STS] Прогрев кэша «Остатки»: ${warmed} прогревов (${WARMUP_PERIODS.join('+')} дней)`);
   } catch (e) {
     console.error('[STS] Прогрев кэша «Остатки» не удался:', e.message);
   }

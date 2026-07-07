@@ -9,11 +9,10 @@ import { useSelection } from '@/contexts/SelectionContext';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import { getInventoryFromServer, getInventoryFromShiftReports, aggregateByFuel, type TankInventory, type FuelInventorySummary } from '@/services/fuelInventoryService';
-import { extractStationNumber } from '@/utils/tradingPointUtils';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
 export const useFuelInventory = (dateFrom: string, dateTo: string) => {
-  const { selectedNetwork, selectedNetworkIds, selectedStation, selectedTradingPoints, isAllTradingPoints } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedTradingPoints, isAllTradingPoints } = useSelection();
   const { selectedNetworks, selectedExternalIds } = useSelectedNetworks();
   const { user } = useNewAuth();
 
@@ -91,8 +90,9 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         const params = {
           system: parseInt(network.external_id),
           networkId: network.id,
-          // Одна станция (обратная совместимость) + мультивыбор точек
-          station: selectedStation ? extractStationNumber(selectedStation) : undefined,
+          // Фильтр по выбранным точкам (одна/несколько; undefined = вся сеть).
+          // selectedStation НЕ используем — он грузится асинхронно и рассинхронится
+          // с queryKey (React Query рефетчит по selectedPointIds раньше).
           selectedPointIds,
           dt_beg: formatDateForApi(dateFrom, false),
           dt_end: formatDateForApi(dateTo, true),
