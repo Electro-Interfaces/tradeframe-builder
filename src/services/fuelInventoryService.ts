@@ -56,6 +56,7 @@ export interface TankInventory {
   freeVolume: number;            // Свободный объем
   fillPercent: number;           // Процент заполнения
   lastUpdate: string;            // Время последнего обновления
+  networkId?: string;            // UUID сети (проставляется при загрузке) — для резолва датчика в модалке независимо от глобального выбора
   initialShift?: {               // Информация о сменном отчете для начальных данных
     number: number;              // Номер смены
     date: string;                // Дата смены
@@ -125,7 +126,7 @@ export async function getInventoryFromServer(params: InventoryParams): Promise<T
 
   if (stations.length === 0) return [];
 
-  return stsProxyRequest<TankInventory[]>('/fuel-inventory', {
+  const data = await stsProxyRequest<TankInventory[]>('/fuel-inventory', {
     method: 'POST',
     body: {
       system: params.system,
@@ -136,6 +137,8 @@ export async function getInventoryFromServer(params: InventoryParams): Promise<T
       force: params.force || false
     }
   });
+  // Проставляем сеть — модалка резолвит датчик по ней, не завися от глобального выбора
+  return data.map((t) => ({ ...t, networkId: params.networkId }));
 }
 
 /**
@@ -443,7 +446,8 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
     inventory.push(...tankInventories);
   });
 
-  return inventory;
+  // Проставляем сеть — для резолва датчика в модалке независимо от глобального выбора
+  return inventory.map((t) => ({ ...t, networkId: params.networkId }));
 }
 
 /**

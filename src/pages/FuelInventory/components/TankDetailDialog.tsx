@@ -102,7 +102,14 @@ export function TankDetailDialog({ open, onOpenChange, tank, networks }: TankDet
         let fallbackNetworkId: string | null = null;
         let fallbackPointId: string | null = null;
 
-        for (const net of networks) {
+        // Сеть резервуара известна из самих остатков (tank.networkId) — используем
+        // её в приоритете, чтобы датчик резолвился даже если глобальный выбор сети
+        // ещё не готов или пуст. networks — запасной перебор.
+        const candidateNetworks: { id: string }[] = tank.networkId
+          ? [{ id: tank.networkId }, ...networks.filter((n) => n.id !== tank.networkId)]
+          : networks;
+
+        for (const net of candidateNetworks) {
           // 1. Станция → торговая точка (UUID) внутри этой сети
           const points = await tradingPointsService.getByNetworkId(net.id);
           const point = points.find((p) => extractStationNumber(p) === tank.station);
@@ -179,7 +186,7 @@ export function TankDetailDialog({ open, onOpenChange, tank, networks }: TankDet
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, tank?.station, tank?.tankNumber, tank?.fuelCode, networkKey]);
+  }, [open, tank?.station, tank?.tankNumber, tank?.fuelCode, tank?.networkId, networkKey]);
 
   if (!tank) return null;
 
