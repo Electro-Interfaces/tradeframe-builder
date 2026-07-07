@@ -54,6 +54,15 @@ export function fetchOverview(p: OverviewParams): Promise<OverviewResponse> {
   return apiGet<OverviewResponse>('overview', { networkId: p.networkIds, from: p.from, to: p.to });
 }
 
+export interface DetailedAnalyticsResponse {
+  byStationFuel: { stationCode: number; fuel: string; operations: number; volume: number; revenue: number }[];
+  byStationDay: { stationCode: number; date: string; operations: number; volume: number; revenue: number }[];
+  byDayPayment: { date: string; method: string; operations: number; revenue: number }[];
+}
+export function fetchDetailedAnalytics(p: OverviewParams): Promise<DetailedAnalyticsResponse> {
+  return apiGet<DetailedAnalyticsResponse>('overview-detailed', { networkId: p.networkIds, from: p.from, to: p.to });
+}
+
 export interface OperationsParams {
   networkIds: string[]; from: string; to: string;
   fuels?: string[]; payments?: string[]; station?: string | number;

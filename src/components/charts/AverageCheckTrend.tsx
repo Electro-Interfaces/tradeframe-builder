@@ -4,18 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { classifyPayment } from '@/utils/paymentUtils';
-import { type ChartTransaction as Transaction, getRevenue, getTxDate, linearRegression } from '@/utils/transactionChartUtils';
-
-/** Частный клиент = НЕ корпоративный (fuel_card, corporate, coupon) */
-function isRetail(tx: Transaction): boolean {
-  if (!tx.paymentMethod) return true;
-  const cat = classifyPayment(tx.paymentMethod);
-  return cat !== 'fuel_card' && cat !== 'corporate' && cat !== 'coupon';
-}
+import { linearRegression } from '@/utils/transactionChartUtils';
+import type { OverviewDay } from '@/services/analyticsService';
 
 interface AverageCheckTrendProps {
-  transactions: Transaction[];
+  days: OverviewDay[];
   className?: string;
 }
 
@@ -27,49 +20,32 @@ interface DayPoint {
   trend?: number;
 }
 
-export function AverageCheckTrend({ transactions, className }: AverageCheckTrendProps) {
+export function AverageCheckTrend({ days, className }: AverageCheckTrendProps) {
   const isMobile = useIsMobile();
 
   const { chartData, currentAvgCheck, trendType, trendPct } = useMemo(() => {
-    if (!transactions || transactions.length === 0) {
+    if (!days || days.length === 0) {
       return { chartData: [], currentAvgCheck: 0, trendType: 'stable' as const, trendPct: 0 };
     }
 
-    // Группируем по дням
-    const dailyMap = new Map<string, { revenue: number; count: number }>();
+    // Готовый серверный агрегат по дням: средний чек дня = выручка / операции.
+    const sorted = days
+      .filter((d) => d.operations > 0 && d.revenue > 0)
+      .slice()
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    for (const tx of transactions) {
-      if (!isRetail(tx)) continue; // только частные клиенты
-      const d = getTxDate(tx);
-      if (!d) continue;
-      const key = d.toISOString().split('T')[0];
-      const r = getRevenue(tx);
-      if (r <= 0) continue;
-      const existing = dailyMap.get(key);
-      if (existing) {
-        existing.revenue += r;
-        existing.count++;
-      } else {
-        dailyMap.set(key, { revenue: r, count: 1 });
-      }
-    }
-
-    // Сортируем по дате
-    const sortedKeys = Array.from(dailyMap.keys()).sort();
-
-    if (sortedKeys.length === 0) {
+    if (sorted.length === 0) {
       return { chartData: [], currentAvgCheck: 0, trendType: 'stable' as const, trendPct: 0 };
     }
 
     // Строим точки
-    const points: DayPoint[] = sortedKeys.map((key) => {
-      const { revenue, count } = dailyMap.get(key)!;
-      const d = new Date(key);
+    const points: DayPoint[] = sorted.map((day) => {
+      const d = new Date(day.date);
       return {
-        date: key,
+        date: String(day.date),
         displayDate: d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
-        avgCheck: Math.round(revenue / count),
-        operations: count,
+        avgCheck: Math.round(day.revenue / day.operations),
+        operations: day.operations,
       };
     });
 
@@ -93,7 +69,7 @@ export function AverageCheckTrend({ transactions, className }: AverageCheckTrend
     const trendType = trendPct > 1 ? 'up' : trendPct < -1 ? 'down' : 'stable';
 
     return { chartData, currentAvgCheck, trendType, trendPct };
-  }, [transactions]);
+  }, [days]);
 
   if (chartData.length === 0) {
     return null;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Download, Loader2, RefreshCw, Activity, Filter, ChevronDown, ChevronRight, FileText, FileSpreadsheet, AlertTriangle, BarChart3 } from "lucide-react";
@@ -21,6 +21,15 @@ import { AverageCheckTrend } from "@/components/charts/AverageCheckTrend";
 import { WeekdayPattern } from "@/components/charts/WeekdayPattern";
 import { CashlessShareTrend } from "@/components/charts/CashlessShareTrend";
 import { stsApiService } from "@/services/sts";
+import { useSelection } from "@/contexts/SelectionContext";
+import { classifyPayment } from "@/utils/paymentUtils";
+import {
+  fetchDetailedAnalytics,
+  fetchOverview,
+  type DetailedAnalyticsResponse,
+  type OverviewResponse,
+  type OverviewDay,
+} from "@/services/analyticsService";
 import { todayString, monthsAgoString } from "@/utils/dateUtils";
 
 import { useNetworkOverviewData } from "./hooks/useNetworkOverviewData";
@@ -33,14 +42,19 @@ import { OverviewTables } from "./components/OverviewTables";
 export function NetworkOverview() {
   const isMobile = useIsMobile();
 
-  // Раскрытие тяжёлой детальной аналитики (графики на сырье STS) + ленивый
-  // экспорт: сырьё грузим только когда пользователь этого явно потребовал.
+  // Раскрытие расширенной аналитики (графики на серверных агрегатах) + ленивый
+  // экспорт: сырьё STS грузим ТОЛЬКО для экспорта, по явному клику пользователя.
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [exportPending, setExportPending] = useState<null | 'excel' | 'pdf'>(null);
-  const rawEnabled = showAdvanced || exportPending !== null;
+  // Раньше расширенная аналитика тоже тянула сырьё; теперь она на агрегатах,
+  // поэтому сырьё нужно исключительно экспорту.
+  const rawEnabled = exportPending !== null;
 
-  // Сырьё STS тянется лениво (enabled=rawEnabled). При первом рендере — НЕ грузится.
+  // Сырьё STS тянется лениво (enabled=rawEnabled). Расширенная аналитика его НЕ трогает.
   const data = useNetworkOverviewData(rawEnabled);
+
+  // Выбранные сети — для серверных агрегатов расширенной аналитики.
+  const { selectedNetworkIds } = useSelection();
 
   // Основной блок — из готовых серверных агрегатов (мгновенно).
   const analytics = useNetworkOverviewAnalytics({
@@ -104,6 +118,83 @@ export function NetworkOverview() {
   // Показ основного блока — при наличии серверных агрегатов.
   const showMain = !initializing && !!selectedNetwork && analytics.hasData;
   const mainBusy = analytics.loading || analytics.isPending;
+
+  // ── Расширенная аналитика на серверных агрегатах (без сырья STS) ───────────
+  // detailed: станция×топливо / станция×день / день×оплата. prevOverview:
+  // агрегаты прошлого периода той же длины — для «Сравнения периодов».
+  const [detailed, setDetailed] = useState<DetailedAnalyticsResponse | null>(null);
+  const [prevOverview, setPrevOverview] = useState<OverviewResponse | null>(null);
+  const [detailedLoading, setDetailedLoading] = useState(false);
+  const [detailedError, setDetailedError] = useState<string | null>(null);
+  const detailedRequestIdRef = useRef(0);
+
+  const loadDetailed = useCallback(async () => {
+    if (!selectedNetworkIds || selectedNetworkIds.length === 0) return;
+    const reqId = ++detailedRequestIdRef.current;
+    setDetailedLoading(true);
+    setDetailedError(null);
+
+    // Предыдущий период той же длины: prevTo = dateFrom − 1 день,
+    // prevFrom = prevTo − длина периода (совпадает с логикой сырья и подзаголовком
+    // «Сравнения периодов»).
+    const fromMs = new Date(data.dateFrom).getTime();
+    const toMs = new Date(data.dateTo).getTime();
+    const periodMs = toMs - fromMs;
+    const prevTo = new Date(fromMs - 86400000);
+    const prevFrom = new Date(prevTo.getTime() - periodMs);
+    const prevFromStr = prevFrom.toISOString().split('T')[0];
+    const prevToStr = prevTo.toISOString().split('T')[0];
+
+    try {
+      const [det, prev] = await Promise.all([
+        fetchDetailedAnalytics({ networkIds: selectedNetworkIds, from: data.dateFrom, to: data.dateTo }),
+        fetchOverview({ networkIds: selectedNetworkIds, from: prevFromStr, to: prevToStr }).catch(() => null),
+      ]);
+      if (reqId !== detailedRequestIdRef.current) return;
+      setDetailed(det);
+      setPrevOverview(prev);
+    } catch (e: any) {
+      if (reqId !== detailedRequestIdRef.current) return;
+      setDetailedError(e?.message || 'Не удалось загрузить детальную аналитику');
+      setDetailed(null);
+      setPrevOverview(null);
+    } finally {
+      if (reqId === detailedRequestIdRef.current) setDetailedLoading(false);
+    }
+  }, [selectedNetworkIds, data.dateFrom, data.dateTo]);
+
+  // Грузим агрегаты при раскрытии расширенной аналитики и перегружаем при смене
+  // периода/сети (loadDetailed меняет идентичность). Пока блок свёрнут — не грузим.
+  useEffect(() => {
+    if (!showAdvanced) return;
+    loadDetailed();
+  }, [showAdvanced, loadDetailed]);
+
+  // Дневной агрегат «частных» операций для «Среднего чека» — из byDayPayment.
+  // Частные = ВСЕ методы, КРОМЕ исключаемых прежним isRetail: fuel_card /
+  // corporate / coupon (тот же classifyPayment, что был в старой версии графика,
+  // — список исключений совпадает). Средний чек дня компонент считает как
+  // retailRevenue / retailOperations.
+  const retailByDay = useMemo<OverviewDay[]>(() => {
+    const rows = detailed?.byDayPayment;
+    if (!rows || rows.length === 0) return [];
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const byDay = new Map<string, { operations: number; revenue: number }>();
+    for (const r of rows) {
+      const cat = classifyPayment(r.method || '');
+      if (cat === 'fuel_card' || cat === 'corporate' || cat === 'coupon') continue; // корп/талоны/купоны
+      const d = new Date(r.date);
+      if (isNaN(d.getTime())) continue;
+      // День в локальной зоне — как в остальных графиках страницы.
+      const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const e = byDay.get(key);
+      if (e) { e.operations += r.operations; e.revenue += r.revenue; }
+      else byDay.set(key, { operations: r.operations, revenue: r.revenue });
+    }
+    return Array.from(byDay.entries())
+      .map(([date, v]) => ({ date, operations: v.operations, revenue: v.revenue, volume: 0 }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [detailed]);
 
   // Функция для вибрации на поддерживаемых устройствах
   const triggerHapticFeedback = () => {
@@ -544,7 +635,7 @@ export function NetworkOverview() {
           </div>
         )}
 
-        {/* Кнопка раскрытия расширенной аналитики (тяжёлые графики на сырье STS) */}
+        {/* Кнопка раскрытия расширенной аналитики (графики на серверных агрегатах) */}
         {showMain && (
           <div className="w-full">
             <Button
@@ -559,25 +650,29 @@ export function NetworkOverview() {
           </div>
         )}
 
-        {/* Расширенная аналитика — сырьё грузится лениво, только по раскрытию */}
+        {/* Расширенная аналитика — готовые серверные агрегаты, без загрузки сырья STS */}
         {showMain && showAdvanced && (
           <div className="w-full space-y-6">
-            {loading && (
-              <div className="bg-card border border-border rounded-lg p-8 text-center">
-                <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
-                <p className="text-muted-foreground">Загружаем детальную аналитику по операциям…</p>
-              </div>
-            )}
-
-            {!loading && transactions.length === 0 && (
-              <div className="bg-card border border-border rounded-lg p-8 text-center">
-                <Activity className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">Нет детальных данных по операциям за выбранный период.</p>
+            {detailedError && (
+              <div className="bg-card border border-red-600/50 rounded-lg p-6 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                  <p className="text-red-600 dark:text-red-300 text-sm">{detailedError}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadDetailed()}
+                  className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 hover:bg-red-900/20 flex-shrink-0"
+                >
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Повторить
+                </Button>
               </div>
             )}
 
             {/* Сравнение станций - только если данные по ВСЕЙ сети */}
-            {!loading && stsApiConfigured && transactions.length > 0 && isAllTradingPoints && (
+            {isAllTradingPoints && (analytics.overview?.byStation?.length ?? 0) > 0 && (
               <>
                 {/* Заголовок секции */}
                 <div className="w-full">
@@ -590,52 +685,61 @@ export function NetworkOverview() {
                   </p>
                 </div>
 
-                {/* График 1: Выручка по станциям */}
+                {/* График 1: Выручка по станциям (byStation из overview — доступен сразу) */}
                 <StationRevenueChart
-                  transactions={stats.filteredTransactions}
+                  stations={analytics.overview!.byStation}
                   className="w-full"
                   isMobile={isMobile}
                 />
 
-                {/* График 2 и 3: В две колонки на больших экранах, стек на мобильных */}
-                <div className={`w-full grid grid-cols-1 ${isMobile ? 'gap-4' : 'xl:grid-cols-2 gap-6'}`}>
-                  {/* График 2: Продажи по видам топлива */}
-                  <StationFuelSalesChart
-                    transactions={stats.filteredTransactions}
-                    className="w-full"
-                    isMobile={isMobile}
-                  />
+                {/* Графики 2 и 3 — детальные агрегаты (станция×топливо, станция×день) */}
+                {detailed ? (
+                  <div className={`w-full grid grid-cols-1 ${isMobile ? 'gap-4' : 'xl:grid-cols-2 gap-6'}`}>
+                    {/* График 2: Продажи по видам топлива */}
+                    <StationFuelSalesChart
+                      data={detailed.byStationFuel}
+                      className="w-full"
+                      isMobile={isMobile}
+                    />
 
-                  {/* График 3: Динамика выручки */}
-                  <StationRevenueTrendChart
-                    transactions={stats.filteredTransactions}
-                    className="w-full"
-                    isMobile={isMobile}
-                  />
-                </div>
+                    {/* График 3: Динамика выручки */}
+                    <StationRevenueTrendChart
+                      data={detailed.byStationDay}
+                      className="w-full"
+                      isMobile={isMobile}
+                    />
+                  </div>
+                ) : detailedLoading ? (
+                  <div className="bg-card border border-border rounded-lg p-8 text-center">
+                    <Loader2 className="w-6 h-6 text-primary animate-spin mx-auto mb-2" />
+                    <p className="text-muted-foreground text-sm">Загружаем детальную аналитику по станциям…</p>
+                  </div>
+                ) : null}
               </>
             )}
 
-            {/* Сравнение периодов + Динамика среднего чека */}
-            {!loading && stsApiConfigured && transactions.length > 0 && (
-              <div ref={comparisonCardRef} className="w-full space-y-6">
-                <PeriodComparison
-                  currentTransactions={stats.completedTransactions}
-                  previousTransactions={prevPeriodTransactions}
-                  dateFrom={dateFrom}
-                  dateTo={dateTo}
-                  className="w-full"
-                />
-                <AverageCheckTrend
-                  transactions={stats.completedTransactions}
-                  className="w-full"
-                />
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <WeekdayPattern transactions={stats.filteredTransactions} />
-                  <CashlessShareTrend transactions={stats.filteredTransactions} />
-                </div>
+            {/* Сравнение периодов + Динамика среднего чека + паттерны */}
+            <div ref={comparisonCardRef} className="w-full space-y-6">
+              <PeriodComparison
+                currentPeriod={analytics.overview
+                  ? { kpi: analytics.overview.kpi, byDay: analytics.overview.byDay }
+                  : { kpi: { operations: 0, volume: 0, revenue: 0, avgCheck: 0 }, byDay: [] }}
+                previousPeriod={prevOverview
+                  ? { kpi: prevOverview.kpi, byDay: prevOverview.byDay }
+                  : null}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                className="w-full"
+              />
+              <AverageCheckTrend
+                days={retailByDay}
+                className="w-full"
+              />
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <WeekdayPattern days={analytics.overview?.byDay ?? []} />
+                <CashlessShareTrend dayPayments={detailed?.byDayPayment ?? []} />
               </div>
-            )}
+            </div>
           </div>
         )}
 

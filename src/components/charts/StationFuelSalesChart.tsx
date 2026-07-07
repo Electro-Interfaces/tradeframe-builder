@@ -2,12 +2,14 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { Transaction } from '@/services/sts';
+import type { DetailedAnalyticsResponse } from '@/services/analyticsService';
 import { getFuelColor } from '@/types/shift-dashboard';
 import { getFuelPriority } from '@/utils/fuelPriority';
 
+type StationFuelRow = DetailedAnalyticsResponse['byStationFuel'][number];
+
 interface StationFuelSalesChartProps {
-  transactions: Transaction[];
+  data: StationFuelRow[];
   className?: string;
   isMobile?: boolean;
 }
@@ -16,7 +18,7 @@ const formatFull = (value: number) =>
   new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value);
 
 export const StationFuelSalesChart: React.FC<StationFuelSalesChartProps> = ({
-  transactions,
+  data: rows,
   className = '',
   isMobile = false
 }) => {
@@ -24,15 +26,16 @@ export const StationFuelSalesChart: React.FC<StationFuelSalesChartProps> = ({
     const stationFuelMap = new Map<string, Map<string, number>>();
     const allFuelTypes = new Set<string>();
 
-    transactions.forEach(transaction => {
-      const stationKey = transaction.stationName || `Станция ${transaction.stationNumber || 'N/A'}`;
-      const fuelType = transaction.fuelType || 'Неизвестно';
+    // Готовый серверный агрегат станция×топливо (byStationFuel).
+    rows.forEach(row => {
+      const stationKey = `Станция ${row.stationCode}`;
+      const fuelType = row.fuel || 'Неизвестно';
 
       if (!stationFuelMap.has(stationKey)) {
         stationFuelMap.set(stationKey, new Map());
       }
       const fuelMap = stationFuelMap.get(stationKey)!;
-      fuelMap.set(fuelType, (fuelMap.get(fuelType) || 0) + (transaction.total || 0));
+      fuelMap.set(fuelType, (fuelMap.get(fuelType) || 0) + (row.revenue || 0));
       allFuelTypes.add(fuelType);
     });
 
@@ -67,7 +70,7 @@ export const StationFuelSalesChart: React.FC<StationFuelSalesChartProps> = ({
       .sort((a, b) => b._total - a._total);
 
     return { chartData: data, fuelTypes: sortedFuelTypes, fuelTotals: totals };
-  }, [transactions]);
+  }, [rows]);
 
   const chartConfig = useMemo(() => {
     const config: Record<string, { label: string; color: string }> = {};

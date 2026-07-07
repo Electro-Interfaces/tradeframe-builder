@@ -2,10 +2,10 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend, Cell } from "recharts";
-import { Transaction } from '@/services/sts';
+import type { OverviewStation } from '@/services/analyticsService';
 
 interface StationRevenueChartProps {
-  transactions: Transaction[];
+  stations: OverviewStation[];
   className?: string;
   isMobile?: boolean;
 }
@@ -23,38 +23,22 @@ const STATION_COLORS = [
 ];
 
 export const StationRevenueChart: React.FC<StationRevenueChartProps> = ({
-  transactions,
+  stations,
   className = '',
   isMobile = false
 }) => {
   const chartData = useMemo(() => {
-    // Группируем транзакции по станциям
-    const stationMap = new Map<string, { revenue: number; volume: number; operations: number }>();
-
-    transactions.forEach(transaction => {
-      const stationKey = transaction.stationName || `Станция ${transaction.stationNumber || 'N/A'}`;
-
-      if (!stationMap.has(stationKey)) {
-        stationMap.set(stationKey, { revenue: 0, volume: 0, operations: 0 });
-      }
-
-      const data = stationMap.get(stationKey)!;
-      data.revenue += transaction.total || 0;
-      data.volume += transaction.volume || 0;
-      data.operations += 1;
-    });
-
-    // Преобразуем в массив и сортируем по выручке (по убыванию)
-    return Array.from(stationMap.entries())
-      .map(([station, data]) => ({
-        station,
-        revenue: Math.round(data.revenue * 100) / 100,
-        volume: Math.round(data.volume * 10) / 10,
-        operations: data.operations,
-        averageCheck: data.operations > 0 ? Math.round((data.revenue / data.operations) * 100) / 100 : 0
+    // Готовый серверный агрегат по станциям (byStation) → формат графика.
+    return stations
+      .map((s) => ({
+        station: `Станция ${s.stationCode}`,
+        revenue: Math.round(s.revenue * 100) / 100,
+        volume: Math.round(s.volume * 10) / 10,
+        operations: s.operations,
+        averageCheck: s.operations > 0 ? Math.round((s.revenue / s.operations) * 100) / 100 : 0
       }))
       .sort((a, b) => b.revenue - a.revenue);
-  }, [transactions]);
+  }, [stations]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ru-RU', {

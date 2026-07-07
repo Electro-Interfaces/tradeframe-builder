@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { type ChartTransaction as Transaction, getRevenue, getVolume, getTxDate } from '@/utils/transactionChartUtils';
+import type { OverviewKpi, OverviewDay } from '@/services/analyticsService';
 
 interface PeriodStats {
   revenue: number;
@@ -19,73 +19,65 @@ interface PeriodStats {
   weekendDays: number;
 }
 
+/** Готовые серверные агрегаты периода: KPI + разбивка по дням. */
+export interface PeriodAggregate {
+  kpi: OverviewKpi;
+  byDay: OverviewDay[];
+}
+
 interface PeriodComparisonProps {
-  currentTransactions: Transaction[];
-  previousTransactions: Transaction[];
+  currentPeriod: PeriodAggregate;
+  previousPeriod: PeriodAggregate | null;
   dateFrom: string;
   dateTo: string;
   className?: string;
 }
 
-/** Подсчёт уникальных дней в наборе дат, разбитых на будни/выходные */
-function countDayTypes(dates: Date[]): { weekdays: number; weekends: number } {
-  const weekdaySet = new Set<string>();
-  const weekendSet = new Set<string>();
-  for (const d of dates) {
-    const key = d.toISOString().split('T')[0];
+const EMPTY_STATS: PeriodStats = {
+  revenue: 0, volume: 0, avgCheck: 0, operations: 0,
+  weekdayRevenue: 0, weekdayVolume: 0, weekdayOps: 0, weekdayDays: 0,
+  weekendRevenue: 0, weekendVolume: 0, weekendOps: 0, weekendDays: 0,
+};
+
+/**
+ * Собираем PeriodStats из готового агрегата: KPI-итоги берём как есть, а
+ * разбивку будни/выходные восстанавливаем из byDay (каждая запись = один день,
+ * поэтому кол-во будних/выходных дней = число соответствующих записей).
+ */
+function calcStats(agg: PeriodAggregate): PeriodStats {
+  let wdRevenue = 0, wdVolume = 0, wdOps = 0, weekdayDays = 0;
+  let weRevenue = 0, weVolume = 0, weOps = 0, weekendDays = 0;
+
+  for (const day of agg.byDay) {
+    const d = new Date(day.date);
+    if (isNaN(d.getTime())) continue;
     const dow = d.getDay(); // 0=Sun, 6=Sat
     if (dow === 0 || dow === 6) {
-      weekendSet.add(key);
+      weRevenue += day.revenue;
+      weVolume += day.volume;
+      weOps += day.operations;
+      weekendDays++;
     } else {
-      weekdaySet.add(key);
+      wdRevenue += day.revenue;
+      wdVolume += day.volume;
+      wdOps += day.operations;
+      weekdayDays++;
     }
   }
-  return { weekdays: weekdaySet.size, weekends: weekendSet.size };
-}
-
-function calcStats(transactions: Transaction[]): PeriodStats {
-  let revenue = 0, volume = 0;
-  let wdRevenue = 0, wdVolume = 0, wdOps = 0;
-  let weRevenue = 0, weVolume = 0, weOps = 0;
-  const dates: Date[] = [];
-
-  for (const tx of transactions) {
-    const d = getTxDate(tx);
-    if (!d) continue;
-    const r = getRevenue(tx);
-    const v = getVolume(tx);
-    revenue += r;
-    volume += v;
-    dates.push(d);
-
-    const dow = d.getDay();
-    if (dow === 0 || dow === 6) {
-      weRevenue += r;
-      weVolume += v;
-      weOps++;
-    } else {
-      wdRevenue += r;
-      wdVolume += v;
-      wdOps++;
-    }
-  }
-
-  const { weekdays, weekends } = countDayTypes(dates);
-  const ops = transactions.length;
 
   return {
-    revenue,
-    volume,
-    avgCheck: ops > 0 ? revenue / ops : 0,
-    operations: ops,
+    revenue: agg.kpi.revenue,
+    volume: agg.kpi.volume,
+    avgCheck: agg.kpi.avgCheck,
+    operations: agg.kpi.operations,
     weekdayRevenue: wdRevenue,
     weekdayVolume: wdVolume,
     weekdayOps: wdOps,
-    weekdayDays: weekdays,
+    weekdayDays,
     weekendRevenue: weRevenue,
     weekendVolume: weVolume,
     weekendOps: weOps,
-    weekendDays: weekends,
+    weekendDays,
   };
 }
 
@@ -131,16 +123,16 @@ function formatDate(dateStr: string): string {
 }
 
 export function PeriodComparison({
-  currentTransactions,
-  previousTransactions,
+  currentPeriod,
+  previousPeriod,
   dateFrom,
   dateTo,
   className,
 }: PeriodComparisonProps) {
   const isMobile = useIsMobile();
 
-  const current = useMemo(() => calcStats(currentTransactions), [currentTransactions]);
-  const previous = useMemo(() => calcStats(previousTransactions), [previousTransactions]);
+  const current = useMemo(() => calcStats(currentPeriod), [currentPeriod]);
+  const previous = useMemo(() => (previousPeriod ? calcStats(previousPeriod) : EMPTY_STATS), [previousPeriod]);
 
   const hasPrevData = previous.operations > 0;
 

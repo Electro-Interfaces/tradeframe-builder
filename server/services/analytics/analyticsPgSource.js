@@ -86,6 +86,47 @@ async function getOverview({ networkIds, from, to, allowedStations }) {
   };
 }
 
+// Детальная аналитика Обзора (расширенный блок): станция×топливо, станция×день,
+// день×оплата. Отдельно от getOverview, чтобы не утяжелять базовый overview,
+// который дёргают Операции. Период произвольный.
+async function getDetailedAnalytics({ networkIds, from, to, allowedStations }) {
+  const b = bounds(from, to);
+  const params = [networkIds, b.from, b.to];
+  let scope = '';
+  if (Array.isArray(allowedStations)) {
+    params.push(allowedStations);
+    scope = ` AND station_code = ANY($${params.length}::int[])`;
+  }
+  const where = `WHERE network_id = ANY($1::uuid[]) AND dt >= $2 AND dt <= $3${scope}`;
+
+  const [byStationFuel, byStationDay, byDayPayment] = await Promise.all([
+    // Станция × топливо — StationFuelSalesChart
+    postgres.query(`
+      SELECT station_code, fuel_name, count(*)::int ops,
+             COALESCE(sum(quantity),0) volume, COALESCE(sum(cost),0) revenue
+        FROM sts_transactions ${where}
+       GROUP BY station_code, fuel_name ORDER BY station_code`, params),
+    // Станция × день — StationRevenueTrendChart
+    postgres.query(`
+      SELECT station_code, dt::date AS day_date, count(*)::int ops,
+             COALESCE(sum(quantity),0) volume, COALESCE(sum(cost),0) revenue
+        FROM sts_transactions ${where}
+       GROUP BY station_code, dt::date ORDER BY station_code, dt::date`, params),
+    // День × оплата — CashlessShareTrend
+    postgres.query(`
+      SELECT dt::date AS day_date, payment_method, count(*)::int ops,
+             COALESCE(sum(cost),0) revenue
+        FROM sts_transactions ${where}
+       GROUP BY dt::date, payment_method ORDER BY dt::date`, params),
+  ]);
+
+  return {
+    byStationFuel: byStationFuel.rows.map(r => ({ stationCode: r.station_code, fuel: r.fuel_name, operations: r.ops, volume: Number(r.volume), revenue: Number(r.revenue) })),
+    byStationDay: byStationDay.rows.map(r => ({ stationCode: r.station_code, date: r.day_date, operations: r.ops, volume: Number(r.volume), revenue: Number(r.revenue) })),
+    byDayPayment: byDayPayment.rows.map(r => ({ date: r.day_date, method: r.payment_method, operations: r.ops, revenue: Number(r.revenue) })),
+  };
+}
+
 // Список операций с серверной пагинацией + те же KPI/разбивки для шапки.
 async function getOperations({ networkIds, from, to, allowedStations, fuels, payments, station, shift, receipt, pos, card, search, page = 1, pageSize = 100 }) {
   const b = bounds(from, to);
@@ -150,4 +191,4 @@ async function getSyncStatus(networkId) {
   return { lastSyncedAt: lastOk?.m || null, stations: rows.rows };
 }
 
-module.exports = { getOverview, getOperations, getSyncStatus };
+module.exports = { getOverview, getDetailedAnalytics, getOperations, getSyncStatus };

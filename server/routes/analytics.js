@@ -55,6 +55,21 @@ router.get('/overview', async (req, res) => {
   }
 });
 
+// GET /api/analytics/overview-detailed?networkId=&from=&to= — расширенная аналитика Обзора
+router.get('/overview-detailed', async (req, res) => {
+  try {
+    const networkIds = await resolveNetworkIds(req);
+    if (!networkIds.length) return res.json({ byStationFuel: [], byStationDay: [], byDayPayment: [] });
+    const { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'Параметры from и to обязательны' });
+    const data = await analytics.getDetailedAnalytics({ networkIds, from, to, allowedStations: allowedStationsOf(req.user) });
+    res.json(data);
+  } catch (error) {
+    console.error('[Analytics] overview-detailed:', error.message);
+    res.status(500).json({ error: error.message || 'Ошибка аналитики' });
+  }
+});
+
 // GET /api/analytics/operations?networkId=&from=&to=&fuel=&payment=&station=&search=&page=&pageSize=
 router.get('/operations', async (req, res) => {
   try {

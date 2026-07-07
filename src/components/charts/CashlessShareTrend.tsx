@@ -8,10 +8,13 @@ import {
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { classifyPayment } from '@/utils/paymentUtils';
-import { type ChartTransaction as Transaction, getRevenue, getTxDate, linearRegression } from '@/utils/transactionChartUtils';
+import { linearRegression } from '@/utils/transactionChartUtils';
+import type { DetailedAnalyticsResponse } from '@/services/analyticsService';
+
+type DayPaymentRow = DetailedAnalyticsResponse['byDayPayment'][number];
 
 interface ClientMixTrendProps {
-  transactions: Transaction[];
+  dayPayments: DayPaymentRow[];
   className?: string;
 }
 
@@ -54,7 +57,9 @@ const LINE_COLORS = {
   online: '#059669', // тёмно-зелёный — онлайн заказы
 };
 
-export function CashlessShareTrend({ transactions, className }: ClientMixTrendProps) {
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+export function CashlessShareTrend({ dayPayments, className }: ClientMixTrendProps) {
   const isMobile = useIsMobile();
   const [tooltipDismissed, setTooltipDismissed] = useState(false);
   const lastInteraction = useRef<number>(0);
@@ -71,19 +76,22 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
   }, [isMobile]);
 
   const { chartData, avgCorpShare, trendType, trendPct } = useMemo(() => {
-    if (!transactions || transactions.length === 0) {
+    if (!dayPayments || dayPayments.length === 0) {
       return { chartData: [], avgCorpShare: 0, trendType: 'stable' as const, trendPct: 0 };
     }
 
+    // Готовый серверный агрегат день×оплата (byDayPayment). Способ оплаты уже
+    // нормализован сервером — раскладываем по группам тем же classifyPayment.
     const dailyMap = new Map<string, { cash: number; card: number; online: number; corp: number }>();
 
-    for (const tx of transactions) {
-      const d = getTxDate(tx);
-      if (!d) continue;
-      const r = getRevenue(tx);
+    for (const row of dayPayments) {
+      const r = row.revenue;
       if (r <= 0) continue;
-      const key = d.toISOString().split('T')[0];
-      const group = toGroup(tx.paymentMethod);
+      const d = new Date(row.date);
+      if (isNaN(d.getTime())) continue;
+      // День — в локальной зоне (как основной блок), чтобы корзины дней совпадали.
+      const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+      const group = toGroup(row.method);
       const existing = dailyMap.get(key);
       if (existing) {
         existing[group] += r;
@@ -131,7 +139,7 @@ export function CashlessShareTrend({ transactions, className }: ClientMixTrendPr
     const trendType = trendPct > 0.5 ? 'up' : trendPct < -0.5 ? 'down' : 'stable';
 
     return { chartData: points, avgCorpShare, trendType, trendPct };
-  }, [transactions]);
+  }, [dayPayments]);
 
   if (chartData.length === 0) return null;
 

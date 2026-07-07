@@ -2,10 +2,10 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { type ChartTransaction as Transaction, getRevenue, getVolume, getTxDate } from '@/utils/transactionChartUtils';
+import type { OverviewDay } from '@/services/analyticsService';
 
 interface WeekdayPatternProps {
-  transactions: Transaction[];
+  days: OverviewDay[];
   className?: string;
 }
 
@@ -17,37 +17,35 @@ function toWeekdayIndex(jsDay: number): number {
   return jsDay === 0 ? 6 : jsDay - 1;
 }
 
-export function WeekdayPattern({ transactions, className }: WeekdayPatternProps) {
+export function WeekdayPattern({ days, className }: WeekdayPatternProps) {
   const isMobile = useIsMobile();
 
   const { chartData, bestDay, worstDay } = useMemo(() => {
-    if (!transactions || transactions.length === 0) {
+    if (!days || days.length === 0) {
       return { chartData: [], bestDay: '', worstDay: '' };
     }
 
-    // Собираем данные по дням недели
+    // Собираем данные по дням недели из готового агрегата (запись = один день).
     const weekdays = Array.from({ length: 7 }, () => ({
       revenue: 0,
       volume: 0,
       operations: 0,
-      uniqueDays: new Set<string>(),
+      dayCount: 0,
     }));
 
-    for (const tx of transactions) {
-      const d = getTxDate(tx);
-      if (!d) continue;
-      const r = getRevenue(tx);
-      if (r <= 0) continue;
+    for (const day of days) {
+      const d = new Date(day.date);
+      if (isNaN(d.getTime())) continue;
+      if (day.revenue <= 0) continue;
       const idx = toWeekdayIndex(d.getDay());
-      const dayKey = d.toISOString().split('T')[0];
-      weekdays[idx].revenue += r;
-      weekdays[idx].volume += getVolume(tx);
-      weekdays[idx].operations++;
-      weekdays[idx].uniqueDays.add(dayKey);
+      weekdays[idx].revenue += day.revenue;
+      weekdays[idx].volume += day.volume;
+      weekdays[idx].operations += day.operations;
+      weekdays[idx].dayCount++;
     }
 
     const data = weekdays.map((wd, i) => {
-      const dayCount = wd.uniqueDays.size || 1;
+      const dayCount = wd.dayCount || 1;
       return {
         name: WEEKDAY_NAMES[i],
         fullName: WEEKDAY_FULL[i],
@@ -76,7 +74,7 @@ export function WeekdayPattern({ transactions, className }: WeekdayPatternProps)
       bestDay: best.fullName,
       worstDay: worst.fullName,
     };
-  }, [transactions]);
+  }, [days]);
 
   if (chartData.length === 0) return null;
 

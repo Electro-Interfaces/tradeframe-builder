@@ -2,12 +2,14 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Transaction } from '@/services/sts';
+import type { DetailedAnalyticsResponse } from '@/services/analyticsService';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
+type StationDayRow = DetailedAnalyticsResponse['byStationDay'][number];
+
 interface StationRevenueTrendChartProps {
-  transactions: Transaction[];
+  data: StationDayRow[];
   className?: string;
   isMobile?: boolean;
 }
@@ -26,7 +28,7 @@ const STATION_COLORS = [
 ];
 
 export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> = ({
-  transactions,
+  data: rows,
   className = '',
   isMobile = false
 }) => {
@@ -34,16 +36,17 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
     const dateStationMap = new Map<string, Map<string, number>>();
     const allStations = new Set<string>();
 
-    transactions.forEach(transaction => {
-      if (!transaction.date) return;
-      const dateKey = format(parseISO(transaction.date), 'yyyy-MM-dd');
-      const stationKey = transaction.stationName || `Станция ${transaction.stationNumber || 'N/A'}`;
+    // Готовый серверный агрегат станция×день (byStationDay).
+    rows.forEach(row => {
+      if (!row.date) return;
+      const dateKey = format(parseISO(String(row.date)), 'yyyy-MM-dd');
+      const stationKey = `Станция ${row.stationCode}`;
 
       if (!dateStationMap.has(dateKey)) {
         dateStationMap.set(dateKey, new Map());
       }
       const stationMap = dateStationMap.get(dateKey)!;
-      stationMap.set(stationKey, (stationMap.get(stationKey) || 0) + (transaction.total || 0));
+      stationMap.set(stationKey, (stationMap.get(stationKey) || 0) + (row.revenue || 0));
       allStations.add(stationKey);
     });
 
@@ -77,7 +80,7 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
     });
 
     return { chartData: data, stations: sortedStations, stationTotals: totals };
-  }, [transactions]);
+  }, [rows]);
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}М`;

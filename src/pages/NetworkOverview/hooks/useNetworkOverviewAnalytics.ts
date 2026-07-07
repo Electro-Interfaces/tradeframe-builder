@@ -247,6 +247,10 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
     error,
     hasData,
 
+    // Сырой ответ агрегатов текущего периода — нужен расширенной аналитике
+    // (byStation для графика станций, byDay/kpi для сравнения периодов).
+    overview,
+
     totalRevenue,
     totalVolume,
     averageCheck,
