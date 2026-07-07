@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect, useRef, useTransition } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,8 +39,36 @@ import {
 } from "@/components/common/filterPanel";
 
 export default function OperationsTransactionsPageSimple() {
-  const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized } = useSelection();
+  const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedTradingPoints, selectedStation, isAllTradingPoints, isInitialized } = useSelection();
   const isMobile = useIsMobile();
+
+  // Справочник точек выбранных сетей — перевод выбранных id точек в номера
+  // станций (external_id) для фильтра аналитики (одна или несколько станций).
+  const { data: networkPoints = [] } = useQuery({
+    queryKey: ['opsPoints', ...[...selectedNetworkIds].sort()],
+    queryFn: async () => {
+      if (!selectedNetworkIds.length) return [];
+      const results = await Promise.all(
+        selectedNetworkIds.map((id) => tradingPointsService.getByNetworkId(id).catch(() => []))
+      );
+      return results.flat();
+    },
+    enabled: selectedNetworkIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Коды выбранных станций. Все выбраны (или ничего/справочник не готов) →
+  // undefined = без фильтра (вся сеть).
+  const selectedStationCodes = useMemo<string[] | undefined>(() => {
+    if (!networkPoints.length) return undefined;
+    if (!selectedTradingPoints?.length || selectedTradingPoints.length >= networkPoints.length) return undefined;
+    const codes = networkPoints
+      .filter((p: any) => selectedTradingPoints.includes(p.id))
+      .map((p: any) => p.external_id)
+      .filter(Boolean) as string[];
+    return codes.length ? codes : undefined;
+  }, [networkPoints, selectedTradingPoints]);
+  const stationsKey = selectedStationCodes ? selectedStationCodes.slice().sort().join(',') : '';
 
   // Управление фильтрами через кастомный хук
   const {
@@ -106,13 +136,6 @@ export default function OperationsTransactionsPageSimple() {
   const filteredOperations = serverRows;
   const paginatedOperations = serverRows;
 
-  // Номер станции для конкретной выбранной точки (для «Все точки» — не задаём)
-  const getPointStation = (): string | undefined => {
-    if (isAllTradingPoints) return undefined;
-    if (!selectedTradingPoint || selectedTradingPoint === 'all') return undefined;
-    return selectedStation?.external_id || undefined;
-  };
-
   // Основная серверная загрузка: агрегаты периода + страница списка
   const loadServerData = async () => {
     const networkIds = selectedNetworkIds;
@@ -126,13 +149,14 @@ export default function OperationsTransactionsPageSimple() {
 
     const from = debouncedDateFrom;
     const to = debouncedDateTo;
-    const pointStation = getPointStation();
     const parsed = parseOperationsSearch(debouncedSearchQuery);
-    // Приоритет — явно выбранная точка; иначе станция из строки поиска («азс 6»)
-    const station = pointStation ?? parsed.station;
+    // Приоритет — явный выбор точек в шапке (одна или несколько); иначе станция
+    // из строки поиска («азс 6»). undefined = вся сеть.
+    const stations = selectedStationCodes ?? (parsed.station ? [parsed.station] : undefined);
 
-    // overview зависит только от периода/сети (KPI-клики/поиск/страница не влияют)
-    const overviewKey = `${networkIds.join(',')}|${from}|${to}`;
+    // overview зависит от периода/сети/выбранных станций (KPI-клики/поиск/страница
+    // не влияют). stations в ключе — иначе при смене точек KPI не перезапросятся.
+    const overviewKey = `${networkIds.join(',')}|${from}|${to}|${stations ? stations.slice().sort().join(',') : ''}`;
     const needOverview = overviewKey !== lastOverviewKeyRef.current;
 
     const requestId = ++currentRequestIdRef.current;
@@ -141,14 +165,14 @@ export default function OperationsTransactionsPageSimple() {
 
     try {
       const [overviewRes, opsRes] = await Promise.all([
-        needOverview ? fetchOverview({ networkIds, from, to }) : Promise.resolve(null),
+        needOverview ? fetchOverview({ networkIds, from, to, stations }) : Promise.resolve(null),
         fetchOperations({
           networkIds,
           from,
           to,
           fuels: selectedKpiFuels.size > 0 ? Array.from(selectedKpiFuels) : undefined,
           payments: selectedKpiPayments.size > 0 ? Array.from(selectedKpiPayments) : undefined,
-          station,
+          stations,
           shift: parsed.shift,
           receipt: parsed.receipt,
           pos: parsed.pos,
@@ -196,9 +220,8 @@ export default function OperationsTransactionsPageSimple() {
 
     const from = debouncedDateFrom;
     const to = debouncedDateTo;
-    const pointStation = getPointStation();
     const parsed = parseOperationsSearch(debouncedSearchQuery);
-    const station = pointStation ?? parsed.station;
+    const stations = selectedStationCodes ?? (parsed.station ? [parsed.station] : undefined);
 
     const pageSize = 500;
     const all: any[] = [];
@@ -212,7 +235,7 @@ export default function OperationsTransactionsPageSimple() {
         to,
         fuels: selectedKpiFuels.size > 0 ? Array.from(selectedKpiFuels) : undefined,
         payments: selectedKpiPayments.size > 0 ? Array.from(selectedKpiPayments) : undefined,
-        station,
+        stations,
         shift: parsed.shift,
         receipt: parsed.receipt,
         pos: parsed.pos,
@@ -320,7 +343,7 @@ export default function OperationsTransactionsPageSimple() {
 
     const sig = JSON.stringify({
       net: selectedNetworkIds,
-      point: getPointStation() ?? '',
+      stations: stationsKey,
       all: isAllTradingPoints,
       from: debouncedDateFrom,
       to: debouncedDateTo,
@@ -343,9 +366,8 @@ export default function OperationsTransactionsPageSimple() {
   }, [
     isInitialized,
     selectedNetworkIds,
-    selectedTradingPoint,
+    stationsKey,
     isAllTradingPoints,
-    selectedStation,
     debouncedDateFrom,
     debouncedDateTo,
     debouncedSearchQuery,

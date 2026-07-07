@@ -136,7 +136,7 @@ async function getDetailedAnalytics({ networkIds, from, to, allowedStations, sta
 }
 
 // Список операций с серверной пагинацией + те же KPI/разбивки для шапки.
-async function getOperations({ networkIds, from, to, allowedStations, fuels, payments, station, shift, receipt, pos, card, search, page = 1, pageSize = 100 }) {
+async function getOperations({ networkIds, from, to, allowedStations, fuels, payments, station, stations, shift, receipt, pos, card, search, page = 1, pageSize = 100 }) {
   const b = bounds(from, to);
   const params = [networkIds, b.from, b.to];
   const conds = [`network_id = ANY($1::uuid[])`, `dt >= $2`, `dt <= $3`];
@@ -147,6 +147,10 @@ async function getOperations({ networkIds, from, to, allowedStations, fuels, pay
   if (fuelArr.length) { params.push(fuelArr); conds.push(`fuel_name = ANY($${params.length}::text[])`); }
   if (payArr.length) { params.push(payArr); conds.push(`payment_method = ANY($${params.length}::text[])`); }
   if (station) { params.push(Number(station)); conds.push(`station_code = $${params.length}`); }
+  // Мультивыбор станций (выбор точек в шапке). Пересекается со scope-ограничением
+  // выше (оба через AND), поэтому чужое не покажет.
+  const stationArr = Array.isArray(stations) ? stations.map(Number).filter(Number.isFinite) : [];
+  if (stationArr.length) { params.push(stationArr); conds.push(`station_code = ANY($${params.length}::int[])`); }
   // Разобранные поля умного поиска (строгое совпадение по числам)
   if (shift) { params.push(Number(shift)); conds.push(`shift = $${params.length}`); }
   if (receipt) { params.push(Number(receipt)); conds.push(`receipt = $${params.length}`); }

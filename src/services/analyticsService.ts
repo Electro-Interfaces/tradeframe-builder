@@ -65,14 +65,14 @@ export function fetchDetailedAnalytics(p: OverviewParams): Promise<DetailedAnaly
 
 export interface OperationsParams {
   networkIds: string[]; from: string; to: string;
-  fuels?: string[]; payments?: string[]; station?: string | number;
+  fuels?: string[]; payments?: string[]; station?: string | number; stations?: (string | number)[];
   shift?: string | number; receipt?: string | number; pos?: string | number; card?: string;
   search?: string; page?: number; pageSize?: number;
 }
 export function fetchOperations(p: OperationsParams): Promise<OperationsResponse> {
   return apiGet<OperationsResponse>('operations', {
     networkId: p.networkIds, from: p.from, to: p.to,
-    fuels: p.fuels, payments: p.payments, station: p.station,
+    fuels: p.fuels, payments: p.payments, station: p.station, stations: p.stations,
     shift: p.shift, receipt: p.receipt, pos: p.pos, card: p.card,
     search: p.search, page: p.page, pageSize: p.pageSize,
   });
