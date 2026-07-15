@@ -673,6 +673,15 @@ class STSApiService {
       const bankSum = parseFloat(posItem?.bank_sum || '0') || 0;
       const posShift = posItem?.shift || shiftData;
 
+      // Параметр «Номинал купюр»: value — массив {count, nominal}, а не строка
+      const denominationsRaw = billAcceptor?.params?.find((p: any) => p.name === 'Номинал купюр')?.value;
+      const billDenominations = Array.isArray(denominationsRaw)
+        ? denominationsRaw
+            .map((d: any) => ({ nominal: Number(d?.nominal), count: Number(d?.count) }))
+            .filter((d: { nominal: number; count: number }) => Number.isFinite(d.nominal) && Number.isFinite(d.count))
+            .sort((a: { nominal: number }, b: { nominal: number }) => b.nominal - a.nominal)
+        : undefined;
+
       return {
         number: posItem?.number || (index + 1),
         status: posItem?.dt_info ? 'online' as const : 'offline' as const,
@@ -691,7 +700,8 @@ class STSApiService {
               billCount: billAcceptor.params?.find((p: any) => p.name === 'Количество купюр')?.value ?
                 parseInt(billAcceptor.params.find((p: any) => p.name === 'Количество купюр').value) : undefined,
               billAmount: billAcceptor.params?.find((p: any) => p.name === 'Сумма купюр')?.value ?
-                parseFloat(billAcceptor.params.find((p: any) => p.name === 'Сумма купюр').value) : undefined
+                parseFloat(billAcceptor.params.find((p: any) => p.name === 'Сумма купюр').value) : undefined,
+              billDenominations
             }
           } : {}),
           ...(cardReader && getDeviceStatus(cardReader) !== 'absent' ? {

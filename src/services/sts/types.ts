@@ -162,6 +162,7 @@ export interface TerminalInfo {
         name: string;
         billCount?: number;
         billAmount?: number;
+        billDenominations?: Array<{ nominal: number; count: number }>;
       };
       cardReader?: {
         status: 'online' | 'error';

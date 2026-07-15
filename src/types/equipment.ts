@@ -202,6 +202,7 @@ export interface TerminalEquipmentItem {
   // Дополнительные поля для купюроприемника
   billCount?: number;
   billAmount?: number;
+  billDenominations?: BillDenomination[];
   // Дополнительные поля для ККТ (фискальный регистратор)
   hasUnpunchedReceipts?: boolean;  // Есть не пробитые чеки
   cashSum?: number;                 // Сумма наличных для пробития
@@ -275,11 +276,20 @@ export interface TerminalDevice {
 }
 
 /**
+ * Купюры одного номинала в кассете купюроприемника
+ */
+export interface BillDenomination {
+  nominal: number;   // Номинал купюры, ₽
+  count: number;     // Количество купюр этого номинала
+}
+
+/**
  * Детали купюроприемника
  */
 export interface BillAcceptorDetails {
   billCount: number;
   billAmount: number;
+  billDenominations?: BillDenomination[];
 }
 
 /**

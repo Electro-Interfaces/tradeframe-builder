@@ -32,6 +32,7 @@ interface BillAcceptorCardProps {
 export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThresholds, cashoutRecords = [], cashoutLoading = false }: BillAcceptorCardProps) {
   const [saving, setSaving] = useState(false);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+  const [isDenomExpanded, setIsDenomExpanded] = useState(false);
   const [thresholdForm, setThresholdForm] = useState({
     billCountWarning: thresholds?.billCountWarning?.toString() || '',
     billCountCritical: thresholds?.billCountCritical?.toString() || '',
@@ -76,6 +77,29 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
   const maxCapacity = thresholds?.billCountCritical || 1000;
   const fillPercent = Math.min((billCount / maxCapacity) * 100, 100);
   const avgNote = billCount > 0 ? billAmount / billCount : 0;
+  const denominations = (billAcceptor.billDenominations || []).filter(d => d.count > 0);
+  const denomTotal = denominations.reduce((sum, d) => sum + d.nominal * d.count, 0);
+
+  const renderDenominationRows = (compact: boolean) => denominations.map((d) => {
+    const sum = d.nominal * d.count;
+    const share = denomTotal > 0 ? (sum / denomTotal) * 100 : 0;
+    return (
+      <div key={d.nominal} className={`flex items-center ${compact ? 'gap-2' : 'gap-3'}`}>
+        <span className={`shrink-0 text-right font-headline font-bold text-di-on-surface ${compact ? 'w-14 text-xs' : 'w-16 text-sm'}`}>
+          {d.nominal.toLocaleString('ru-RU')} ₽
+        </span>
+        <span className={`shrink-0 text-right text-di-on-surface-variant ${compact ? 'w-10 text-[10px]' : 'w-12 text-xs'}`}>
+          × {d.count}
+        </span>
+        <div className="flex-1 h-1.5 bg-di-surface-lowest rounded-full overflow-hidden">
+          <div className="h-full bg-di-primary" style={{ width: `${Math.max(share, 1.5)}%` }} />
+        </div>
+        <span className={`shrink-0 text-right font-bold text-di-on-surface ${compact ? 'w-16 text-[10px]' : 'w-24 text-xs'}`}>
+          {sum.toLocaleString('ru-RU')} ₽
+        </span>
+      </div>
+    );
+  });
 
   // ─── Mobile view ───
   if (isMobile) {
@@ -113,6 +137,14 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
           <Suspense fallback={null}>
             <CashoutHistoryDialog cashoutRecords={cashoutRecords} loading={cashoutLoading} isMobile={isMobile} />
           </Suspense>
+          {denominations.length > 0 && (
+            <Button size="sm" variant="outline" onClick={() => setIsDenomExpanded(!isDenomExpanded)}
+              className={`flex-1 ${getEquipmentActionButtonClass(isMobile)} border-di-outline-variant text-di-on-surface-variant hover:bg-di-surface`}>
+              <Banknote className="w-4 h-4" />
+              <span>Номиналы</span>
+              {isDenomExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
             className={`flex-1 ${getEquipmentActionButtonClass(isMobile)} border-di-outline-variant text-di-on-surface-variant hover:bg-di-surface`}>
             <Settings className="w-4 h-4" />
@@ -120,6 +152,12 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             {isSettingsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </div>
+
+        {isDenomExpanded && denominations.length > 0 && (
+          <div className="space-y-1.5 border-t border-di-outline-variant/15 pt-3">
+            {renderDenominationRows(true)}
+          </div>
+        )}
 
         {isSettingsExpanded && (
           <div className="space-y-3 border-t border-di-outline-variant/15 pt-3">
@@ -177,6 +215,14 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             <Suspense fallback={null}>
               <CashoutHistoryDialog cashoutRecords={cashoutRecords} loading={cashoutLoading} isMobile={false} />
             </Suspense>
+            {denominations.length > 0 && (
+              <Button size="sm" variant="outline" onClick={() => setIsDenomExpanded(!isDenomExpanded)}
+                className={`${getEquipmentActionButtonClass(false)} border-di-outline-variant text-di-on-surface-variant hover:bg-di-surface text-xs`}>
+                <Banknote className="w-4 h-4" />
+                Номиналы
+                {isDenomExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
               className={`${getEquipmentActionButtonClass(false)} border-di-outline-variant text-di-on-surface-variant hover:bg-di-surface text-xs`}>
               <Settings className="w-4 h-4" />
@@ -263,6 +309,16 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             </div>
           </div>
         </div>
+
+        {/* Denominations panel — раскрывается кнопкой «Номиналы» в шапке */}
+        {isDenomExpanded && denominations.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-di-outline-variant/10 relative z-10">
+            <h3 className="text-[10px] font-bold text-di-outline uppercase tracking-widest mb-4">Купюры по номиналам</h3>
+            <div className="space-y-1.5">
+              {renderDenominationRows(false)}
+            </div>
+          </div>
+        )}
 
         {/* Settings panel */}
         {isSettingsExpanded && (

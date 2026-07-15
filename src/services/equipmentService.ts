@@ -153,6 +153,7 @@ class EquipmentService {
         statusText: isOnline ? 'Готов' : 'Ошибка',
         billCount: pos.devices.billAcceptor.billCount,
         billAmount: pos.devices.billAcceptor.billAmount,
+        billDenominations: pos.devices.billAcceptor.billDenominations,
         posNumber
       });
     }
