@@ -81,6 +81,17 @@ function extractRows(data, fallbackStation) {
 // station_code принудительно этот номер (для dual-code: читаем старый, пишем новый).
 async function upsertBatch(networkId, system, rows, writeStation) {
   if (!rows.length) return 0;
+  // Дедуп внутри пачки по ключу конфликта (system, station_code, sts_id): STS
+  // иногда отдаёт дубль транзакции в одном ответе, а INSERT..ON CONFLICT не
+  // может задеть одну строку дважды в ОДНОМ запросе. Оставляем последнее вхождение.
+  if (rows.length > 1) {
+    const seen = new Map();
+    for (const r of rows) {
+      const st = writeStation != null ? writeStation : r.stationCode;
+      seen.set(`${st}:${r.stsId}`, r);
+    }
+    if (seen.size !== rows.length) rows = Array.from(seen.values());
+  }
   const cols = 23;
   const values = [];
   const params = [];
