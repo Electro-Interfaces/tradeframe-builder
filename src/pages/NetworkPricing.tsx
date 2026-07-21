@@ -18,16 +18,23 @@ import { StationPricesTable } from "@/components/network-prices/StationPricesTab
 import { PriceDynamicsChart } from "@/components/network-prices/PriceDynamicsChart";
 import { LoadingState, ErrorState } from "@/components/common/PageStates";
 import { SelectNetworkMessage } from "@/components/common/SelectNetworkMessage";
-import { DollarSign, RefreshCw, TrendingUp, Fuel } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DollarSign, RefreshCw, TrendingUp, Download, Loader2, FileSpreadsheet, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { exportPricingToExcel, exportPricingToPdf } from "@/components/network-prices/pricingExport";
 
 export default function NetworkPricing() {
   const { selectedNetwork, isInitialized } = useSelection();
   const { selectedNetworks } = useSelectedNetworks();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   // Выбранный период на уровне страницы
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+
+  // Флаг активной выгрузки (Excel/PDF) — блокирует кнопку и показывает спиннер
+  const [exporting, setExporting] = useState(false);
 
   // Загрузка цен по всем выбранным сетям
   const {
@@ -49,6 +56,36 @@ export default function NetworkPricing() {
   // Pull-to-refresh для мобильных
   const handleRefreshData = async () => {
     await refresh();
+  };
+
+  // Общие параметры для выгрузки (цены/статистика/динамика/продажи)
+  const exportParams = () => ({
+    networkPrices,
+    statistics,
+    priceHistoryMap,
+    salesByPrice,
+    selectedNetwork,
+    selectedNetworks,
+    selectedPeriod,
+    toast,
+  });
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      await exportPricingToExcel(exportParams());
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await exportPricingToPdf(exportParams());
+    } finally {
+      setExporting(false);
+    }
   };
 
   const { pullState, pullDistance, scrollContainerRef } = usePullToRefresh({
@@ -172,6 +209,37 @@ export default function NetworkPricing() {
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 {!isMobile && <span className="ml-2">Обновить</span>}
               </Button>
+
+              {/* Меню экспорта — доступно, когда есть загруженные цены */}
+              {networkPrices.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={loading || exporting}
+                      className="border-border text-foreground hover:bg-secondary flex-shrink-0"
+                    >
+                      {exporting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      {!isMobile && <span className="ml-2">Экспорт</span>}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44 bg-card border-border shadow-xl rounded-lg">
+                    <DropdownMenuItem onClick={handleExportExcel} disabled={exporting} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                      <FileSpreadsheet className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <span className="text-sm font-medium">Экспорт в Excel</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPdf} disabled={exporting} className="flex items-center gap-2 hover:bg-secondary cursor-pointer py-2.5">
+                      <FileText className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <span className="text-sm font-medium">Экспорт в PDF</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>
