@@ -4,9 +4,10 @@
  * Excel (ExcelJS — умеет встраивать картинки):
  *   1. Сводка           — шапка + статистика по видам топлива
  *   2. Цены по точкам   — матрица «точка × вид топлива → текущая цена»
- *   3. Динамика цен     — «дата × вид топлива → средняя цена по сети» (сырьё графика)
- *   4. График динамики  — сам график step-line, встроенный картинкой (рисуется на canvas)
- *   5. Продажи по ценам — разбивка объёма/выручки по действовавшим ценам
+ *   3. Динамика цен      — «дата × вид топлива → средняя цена по сети» (сырьё графика)
+ *   4. График динамики   — сам график step-line, встроенный картинкой (рисуется на canvas)
+ *   5. Динамика по точкам — блоки по каждой точке: «дата × вид → цена» (не усреднённая)
+ *   6. Продажи по ценам  — разбивка объёма/выручки по действовавшим ценам
  *
  * PDF (landscape):
  *   сводка + таблица статистики + тот же график динамики + продажи по ценам.
@@ -276,6 +277,7 @@ function renderPriceDynamicsChart(
 export async function exportPricingToExcel({
   networkPrices,
   statistics,
+  priceHistoryMap,
   salesByPrice,
   selectedNetwork,
   selectedNetworks,
@@ -423,7 +425,60 @@ export async function exportPricingToExcel({
       wsChart.addImage(imageId, { tl: { col: 0.3, row: 0.5 }, ext: { width: 1000, height: 500 } });
     }
 
-    // ── Лист 5: Продажи по ценам ──
+    // ── Лист 5: Динамика по точкам (конкретная история цен каждой точки) ──
+    // Не усреднённая: для каждой торговой точки отдельный блок «дата × вид → цена»
+    // из priceHistoryMap (события изменения цен на самой точке).
+    if (priceHistoryMap && priceHistoryMap.size > 0) {
+      const wsByStation = workbook.addWorksheet("Динамика по точкам");
+      sectionTitle(wsByStation, "ДИНАМИКА ИЗМЕНЕНИЙ ЦЕН ПО ТОЧКАМ");
+      wsByStation.addRow([]);
+
+      let maxCols = 1; // Дата + макс. число видов среди точек — для ширины колонок
+
+      // Порядок точек — как в networkPrices (отсортированы по номеру станции)
+      networkPrices.forEach((station) => {
+        const history = priceHistoryMap.get(station.stationId) || [];
+        if (history.length === 0) return;
+
+        const fuelsAtStation = sortFuelTypes(Array.from(new Set(history.map((h) => h.fuelType))));
+
+        // Группировка по КАЛЕНДАРНОМУ дню (как лист «Динамика цен»): несколько
+        // изменений одного вида за день схлопываются в последнее (позднее по времени),
+        // иначе события с разным временем суток дают дубли строк на одну дату.
+        const dateMap = new Map<string, Map<string, number>>();
+        [...history]
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .forEach((h) => {
+            const day = h.date.split("T")[0];
+            if (!dateMap.has(day)) dateMap.set(day, new Map());
+            dateMap.get(day)!.set(h.fuelType, h.price); // тот же день → последнее значение
+          });
+        const dates = Array.from(dateMap.keys()).sort();
+
+        const stationLabel = station.stationDescription
+          ? `${station.stationName.trim()} · ${station.stationDescription.trim()}`
+          : station.stationName.trim();
+        const titleRow = wsByStation.addRow([stationLabel]);
+        titleRow.getCell(1).font = { bold: true, size: 12 };
+
+        headerRow(wsByStation, ["Дата", ...fuelsAtStation]);
+        dates.forEach((d) => {
+          const row: (string | number)[] = [fmtDate(d)];
+          fuelsAtStation.forEach((f) => {
+            const price = dateMap.get(d)!.get(f);
+            row.push(price !== undefined ? Number(price.toFixed(2)) : "");
+          });
+          wsByStation.addRow(row);
+        });
+        wsByStation.addRow([]); // разделитель между точками
+
+        maxCols = Math.max(maxCols, 1 + fuelsAtStation.length);
+      });
+
+      setWidths(wsByStation, [14, ...Array.from({ length: maxCols - 1 }, () => 12)]);
+    }
+
+    // ── Лист 6: Продажи по ценам ──
     if (salesByPrice.length > 0) {
       const grouped = salesByPrice.reduce((acc, s) => {
         (acc[s.fuelType] ??= []).push(s);
