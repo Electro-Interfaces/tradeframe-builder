@@ -191,6 +191,19 @@ async function getOperations({ networkIds, from, to, allowedStations, fuels, pay
   };
 }
 
+// Нижняя граница материализованного покрытия по сетям — самый ранний
+// first_synced_date из курсоров. Если запрошенный период начинается раньше,
+// данных в PG нет → нужен STS-фолбэк. null = сети ещё ни разу не синкались.
+async function coverageStart(networkIds) {
+  const r = await postgres.queryOne(
+    `SELECT MIN(first_synced_date) AS m FROM sts_sync_cursor WHERE network_id = ANY($1::uuid[])`,
+    [networkIds]
+  );
+  if (!r?.m) return null;
+  const d = r.m; // node-pg парсит date как JS Date на локальную полночь → берём календарные компоненты
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // Метаданные синка (свежесть данных) для UI: когда последний раз синкали
 async function getSyncStatus(networkId) {
   const rows = await postgres.query(
@@ -203,4 +216,4 @@ async function getSyncStatus(networkId) {
   return { lastSyncedAt: lastOk?.m || null, stations: rows.rows };
 }
 
-module.exports = { getOverview, getDetailedAnalytics, getOperations, getSyncStatus };
+module.exports = { getOverview, getDetailedAnalytics, getOperations, getSyncStatus, coverageStart };

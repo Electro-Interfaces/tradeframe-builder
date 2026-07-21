@@ -7,10 +7,19 @@ const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { getUserScope, getAllowedNetworkIds } = require('../middleware/scopeFilter');
 const analytics = require('../services/analytics/analyticsPgSource');
+const stsSource = require('../services/analytics/analyticsStsSource');
 const stsSync = require('../services/analytics/stsSync');
 
 const router = express.Router();
 router.use(requireAuth);
+
+// Выбор источника: если запрошенный период начинается РАНЬШЕ материализованного
+// окна PG (или покрытия нет вовсе) — берём данные напрямую из STS (историю
+// глубже окна PG не держит). Иначе — быстрый PG-источник.
+async function pickSource(networkIds, from) {
+  const cov = await analytics.coverageStart(networkIds);
+  return (!cov || String(from) < cov) ? stsSource : analytics;
+}
 
 // Разрешённые станции пользователя (scope). null = без ограничений.
 function allowedStationsOf(user) {
@@ -48,7 +57,8 @@ router.get('/overview', async (req, res) => {
     const { from, to, stations } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Параметры from и to обязательны' });
     const stationList = stations ? String(stations).split(',').map(s => s.trim()).filter(Boolean) : null;
-    const data = await analytics.getOverview({ networkIds, from, to, allowedStations: allowedStationsOf(req.user), stations: stationList });
+    const source = await pickSource(networkIds, from);
+    const data = await source.getOverview({ networkIds, from, to, allowedStations: allowedStationsOf(req.user), stations: stationList });
     res.json(data);
   } catch (error) {
     console.error('[Analytics] overview:', error.message);
@@ -64,7 +74,8 @@ router.get('/overview-detailed', async (req, res) => {
     const { from, to, stations } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Параметры from и to обязательны' });
     const stationList = stations ? String(stations).split(',').map(s => s.trim()).filter(Boolean) : null;
-    const data = await analytics.getDetailedAnalytics({ networkIds, from, to, allowedStations: allowedStationsOf(req.user), stations: stationList });
+    const source = await pickSource(networkIds, from);
+    const data = await source.getDetailedAnalytics({ networkIds, from, to, allowedStations: allowedStationsOf(req.user), stations: stationList });
     res.json(data);
   } catch (error) {
     console.error('[Analytics] overview-detailed:', error.message);
@@ -80,7 +91,8 @@ router.get('/operations', async (req, res) => {
     const { from, to, fuels, payments, station, stations, shift, receipt, pos, card, search, page, pageSize } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'Параметры from и to обязательны' });
     const splitCsv = (v) => (v ? String(v).split(',').map(s => s.trim()).filter(Boolean) : []);
-    const data = await analytics.getOperations({
+    const source = await pickSource(networkIds, from);
+    const data = await source.getOperations({
       networkIds, from, to, allowedStations: allowedStationsOf(req.user),
       fuels: splitCsv(fuels), payments: splitCsv(payments),
       station, stations: splitCsv(stations), shift, receipt, pos, card, search, page, pageSize,

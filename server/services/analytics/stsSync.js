@@ -136,6 +136,33 @@ async function syncStationDay(networkId, system, readStation, date, writeStation
   return total;
 }
 
+// Чистая выборка транзакций станции за день из STS БЕЗ записи в БД —
+// для STS-фолбэка на исторические периоды вне материализованного окна.
+// writeStation != null → подменяем station_code (dual-code: читаем старый номер,
+// отдаём под текущим).
+async function fetchStationDayRows(system, readStation, date, writeStation) {
+  const data = await stsProxy.stsInternalRequest('/v2/transactions', {
+    system, station: readStation,
+    dt_beg: `${date} 00:00:00`, dt_end: `${date} 23:59:59`,
+  }, {});
+  const rows = extractRows(data, readStation);
+  if (writeStation != null) rows.forEach((r) => { r.stationCode = writeStation; });
+  return rows;
+}
+
+// Выборка транзакций ОДНОЙ станции за произвольный диапазон [from, to] одним
+// запросом (STS отдаёт месяц станции за ~секунды). Для STS-фолбэка на историю.
+// Падает лишь очень широкий запрос (год+) — вызывающий откатывается на чанки.
+async function fetchStationRangeRows(system, readStation, from, to, writeStation) {
+  const data = await stsProxy.stsInternalRequest('/v2/transactions', {
+    system, station: readStation,
+    dt_beg: `${from} 00:00:00`, dt_end: `${to} 23:59:59`,
+  }, {});
+  const rows = extractRows(data, readStation);
+  if (writeStation != null) rows.forEach((r) => { r.stationCode = writeStation; });
+  return rows;
+}
+
 // Backfill истории НАЗАД от fromDay (включительно) до targetStart, с остановкой
 // на границе данных (BACKFILL_EMPTY_STOP пустых дней подряд) и потолком дней.
 // Возвращает { rows, reached (самый ранний обработанный день), done }.
@@ -311,4 +338,4 @@ async function syncAllNetworks() {
   return out;
 }
 
-module.exports = { syncStation, syncNetwork, syncAllNetworks, getNetworkStations, extractRows, DUAL_STATION_CODES };
+module.exports = { syncStation, syncNetwork, syncAllNetworks, getNetworkStations, extractRows, fetchStationDayRows, fetchStationRangeRows, DUAL_STATION_CODES };
