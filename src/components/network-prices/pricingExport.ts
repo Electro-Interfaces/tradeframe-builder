@@ -1,22 +1,23 @@
 /**
  * Экспорт данных страницы «Ценообразование» в Excel и PDF.
  *
- * Excel (4 листа):
+ * Excel (ExcelJS — умеет встраивать картинки):
  *   1. Сводка           — шапка + статистика по видам топлива
  *   2. Цены по точкам   — матрица «точка × вид топлива → текущая цена»
  *   3. Динамика цен     — «дата × вид топлива → средняя цена по сети» (сырьё графика)
- *   4. Продажи по ценам — разбивка объёма/выручки по действовавшим ценам
+ *   4. График динамики  — сам график step-line, встроенный картинкой (рисуется на canvas)
+ *   5. Продажи по ценам — разбивка объёма/выручки по действовавшим ценам
  *
  * PDF (landscape):
- *   сводка + таблица статистики + график динамики (рисуется на canvas) + продажи по ценам.
+ *   сводка + таблица статистики + тот же график динамики + продажи по ценам.
  *
- * Паттерн повторяет NetworkOverviewExport.ts (loadXlsx / loadPdfMake + Roboto для кириллицы).
+ * Excel — ExcelJS (addImage для графика), PDF — pdfMake + Roboto для кириллицы.
  */
 
 import { loadPdfMake } from "@/utils/pdfMake";
-import { loadXlsx } from "@/utils/xlsxLoader";
 import { getFuelPriority, sortFuelTypes } from "@/utils/fuelPriority";
 import { getFuelColorHex } from "@/utils/fuelColors";
+import type ExcelJSNS from "exceljs";
 import type {
   NetworkPriceData,
   PriceStatistics,
@@ -88,6 +89,18 @@ const fuelColumns = (networkPrices: NetworkPriceData[]): string[] => {
 const fileSlug = (network: Network | null, networks: Network[]): string => {
   const base = networks.length > 1 ? "сети" : network?.name || "сеть";
   return base.replace(/[^a-zA-Zа-яА-Я0-9]+/g, "_").replace(/^_|_$/g, "") || "сеть";
+};
+
+/** Скачивание Blob как файла (ExcelJS не пишет файл сам — отдаёт буфер) */
+const downloadBlob = (blob: Blob, fileName: string): void => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 // ─────────────────────── График динамики → PNG ───────────────────────
@@ -279,54 +292,54 @@ export async function exportPricingToExcel({
   }
 
   try {
-    const XLSX = await loadXlsx();
-    const workbook = XLSX.utils.book_new();
+    const ExcelJSModule = await import("exceljs");
+    const ExcelJSLib = ExcelJSModule.default;
+    const workbook = new ExcelJSLib.Workbook();
 
     const title = networkTitle(selectedNetwork, selectedNetworks);
     const stats = sortStats(statistics);
     const fuels = fuelColumns(networkPrices);
 
-    const markTitle = (aoa: any[], text: string, ws: any) => {
-      const idx = aoa.findIndex((r) => r[0] === text);
-      if (idx > -1) {
-        const addr = "A" + (idx + 1);
-        if ((ws as any)[addr]) {
-          (ws as any)[addr].s = { font: { bold: true, sz: 14 }, alignment: { horizontal: "left" } };
-        }
-      }
+    // ── Стили и хелперы листов ──
+    const thin = { style: "thin" as const, color: { argb: "FFD1D5DB" } };
+    const border = { top: thin, left: thin, bottom: thin, right: thin };
+    const headerStyle: Partial<ExcelJSNS.Style> = {
+      font: { bold: true, size: 10 },
+      fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } },
+      alignment: { horizontal: "left", vertical: "middle" },
+      border,
+    };
+    const sectionTitle = (ws: ExcelJSNS.Worksheet, text: string) => {
+      const r = ws.addRow([text]);
+      r.getCell(1).font = { bold: true, size: 14 };
+    };
+    const headerRow = (ws: ExcelJSNS.Worksheet, values: (string | number)[]) => {
+      const r = ws.addRow(values);
+      r.eachCell((c) => { c.style = { ...headerStyle }; });
+    };
+    const setWidths = (ws: ExcelJSNS.Worksheet, widths: number[]) => {
+      widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     };
 
     // ── Лист 1: Сводка + статистика ──
-    const summaryData: any[] = [
-      ["ЦЕНООБРАЗОВАНИЕ — ОТЧЁТ ПО СЕТИ"],
-      [""],
-      ["Показатель", "Значение"],
-      ["Торговая сеть", title],
-      ["Период анализа", periodLabel(selectedPeriod)],
-      ["Торговых точек", networkPrices.length],
-      ["Видов топлива", stats.length],
-      ["Дата формирования", new Date().toLocaleString("ru-RU")],
-      [""],
-      ["СТАТИСТИКА ПО ВИДАМ ТОПЛИВА"],
-      [""],
-      [
-        "Вид топлива",
-        "Средняя, ₽",
-        "Мин, ₽",
-        "Точка (мин)",
-        "Макс, ₽",
-        "Точка (макс)",
-        "Разброс, ₽",
-        "Разброс, %",
-        "Изм. за период, ₽",
-        "Изм. за период, %",
-        "Продажи, л",
-        "Выручка, ₽",
-      ],
-    ];
-
+    const wsSummary = workbook.addWorksheet("Сводка");
+    sectionTitle(wsSummary, "ЦЕНООБРАЗОВАНИЕ — ОТЧЁТ ПО СЕТИ");
+    wsSummary.addRow([]);
+    wsSummary.addRow(["Показатель", "Значение"]);
+    wsSummary.addRow(["Торговая сеть", title]);
+    wsSummary.addRow(["Период анализа", periodLabel(selectedPeriod)]);
+    wsSummary.addRow(["Торговых точек", networkPrices.length]);
+    wsSummary.addRow(["Видов топлива", stats.length]);
+    wsSummary.addRow(["Дата формирования", new Date().toLocaleString("ru-RU")]);
+    wsSummary.addRow([]);
+    sectionTitle(wsSummary, "СТАТИСТИКА ПО ВИДАМ ТОПЛИВА");
+    wsSummary.addRow([]);
+    headerRow(wsSummary, [
+      "Вид топлива", "Средняя, ₽", "Мин, ₽", "Точка (мин)", "Макс, ₽", "Точка (макс)",
+      "Разброс, ₽", "Разброс, %", "Изм. за период, ₽", "Изм. за период, %", "Продажи, л", "Выручка, ₽",
+    ]);
     stats.forEach((s) => {
-      summaryData.push([
+      wsSummary.addRow([
         s.fuelType,
         Number(s.averagePrice.toFixed(2)),
         Number(s.minPrice.toFixed(2)),
@@ -341,34 +354,24 @@ export async function exportPricingToExcel({
         s.salesRevenue !== undefined ? Number(s.salesRevenue.toFixed(2)) : "—",
       ]);
     });
-
-    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-    summaryWs["!cols"] = [
-      { wch: 18 }, { wch: 12 }, { wch: 11 }, { wch: 22 }, { wch: 11 }, { wch: 22 },
-      { wch: 12 }, { wch: 11 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 15 },
-    ];
-    markTitle(summaryData, "ЦЕНООБРАЗОВАНИЕ — ОТЧЁТ ПО СЕТИ", summaryWs);
-    markTitle(summaryData, "СТАТИСТИКА ПО ВИДАМ ТОПЛИВА", summaryWs);
-    XLSX.utils.book_append_sheet(workbook, summaryWs, "Сводка");
+    setWidths(wsSummary, [18, 12, 11, 22, 11, 22, 12, 11, 16, 16, 14, 15]);
 
     // ── Лист 2: Цены по точкам (матрица) ──
-    const priceData: any[] = [
-      ["ЦЕНЫ ПО ТОРГОВЫМ ТОЧКАМ (текущие)"],
-      [""],
-      ["№", "Торговая точка", ...fuels],
-    ];
-
+    const wsPrices = workbook.addWorksheet("Цены по точкам");
+    sectionTitle(wsPrices, "ЦЕНЫ ПО ТОРГОВЫМ ТОЧКАМ (текущие)");
+    wsPrices.addRow([]);
+    headerRow(wsPrices, ["№", "Торговая точка", ...fuels]);
     networkPrices.forEach((station) => {
-      const row: any[] = [station.stationNumber, station.stationName];
+      const row: (string | number)[] = [station.stationNumber, station.stationName];
       fuels.forEach((f) => {
         const p = station.prices.find((pr) => pr.fuelType === f);
         row.push(p ? Number(p.price.toFixed(2)) : "");
       });
-      priceData.push(row);
+      wsPrices.addRow(row);
     });
 
     // Итоги по колонкам: средняя / мин / макс
-    const colAgg = (f: string) => {
+    const colAgg = (f: string): { avg: number | ""; min: number | ""; max: number | "" } => {
       const vals = networkPrices
         .map((s) => s.prices.find((p) => p.fuelType === f)?.price)
         .filter((v): v is number => typeof v === "number");
@@ -379,15 +382,15 @@ export async function exportPricingToExcel({
         max: Number(Math.max(...vals).toFixed(2)),
       };
     };
-    priceData.push([""]);
-    priceData.push(["", "Средняя", ...fuels.map((f) => colAgg(f).avg)]);
-    priceData.push(["", "Минимум", ...fuels.map((f) => colAgg(f).min)]);
-    priceData.push(["", "Максимум", ...fuels.map((f) => colAgg(f).max)]);
-
-    const priceWs = XLSX.utils.aoa_to_sheet(priceData);
-    priceWs["!cols"] = [{ wch: 8 }, { wch: 32 }, ...fuels.map(() => ({ wch: 12 }))];
-    markTitle(priceData, "ЦЕНЫ ПО ТОРГОВЫМ ТОЧКАМ (текущие)", priceWs);
-    XLSX.utils.book_append_sheet(workbook, priceWs, "Цены по точкам");
+    wsPrices.addRow([]);
+    const aggRows: Array<[string, "avg" | "min" | "max"]> = [
+      ["Средняя", "avg"], ["Минимум", "min"], ["Максимум", "max"],
+    ];
+    aggRows.forEach(([label, key]) => {
+      const r = wsPrices.addRow(["", label, ...fuels.map((f) => colAgg(f)[key])]);
+      r.getCell(2).font = { bold: true };
+    });
+    setWidths(wsPrices, [8, 32, ...fuels.map(() => 12)]);
 
     // ── Лист 3: Динамика цен (дата × вид топлива → средняя по сети) ──
     const dynFuels = sortStats(statistics.filter((s) => s.priceHistory && s.priceHistory.length > 0));
@@ -396,43 +399,45 @@ export async function exportPricingToExcel({
       dynFuels.forEach((s) => s.priceHistory!.forEach((h) => dateSet.add(h.date)));
       const dates = Array.from(dateSet).sort();
 
-      const dynData: any[] = [
-        ["ДИНАМИКА ЦЕН (средняя по сети)"],
-        [""],
-        ["Дата", ...dynFuels.map((s) => s.fuelType)],
-      ];
+      const wsDyn = workbook.addWorksheet("Динамика цен");
+      sectionTitle(wsDyn, "ДИНАМИКА ЦЕН (средняя по сети)");
+      wsDyn.addRow([]);
+      headerRow(wsDyn, ["Дата", ...dynFuels.map((s) => s.fuelType)]);
       dates.forEach((d) => {
-        const row: any[] = [fmtDate(d)];
+        const row: (string | number)[] = [fmtDate(d)];
         dynFuels.forEach((s) => {
           const h = s.priceHistory!.find((x) => x.date === d);
           row.push(h ? Number(h.price.toFixed(2)) : "");
         });
-        dynData.push(row);
+        wsDyn.addRow(row);
       });
-
-      const dynWs = XLSX.utils.aoa_to_sheet(dynData);
-      dynWs["!cols"] = [{ wch: 12 }, ...dynFuels.map(() => ({ wch: 12 }))];
-      markTitle(dynData, "ДИНАМИКА ЦЕН (средняя по сети)", dynWs);
-      XLSX.utils.book_append_sheet(workbook, dynWs, "Динамика цен");
+      setWidths(wsDyn, [12, ...dynFuels.map(() => 12)]);
     }
 
-    // ── Лист 4: Продажи по ценам ──
+    // ── Лист 4: График динамики (сам график, встроенный картинкой) ──
+    const chartImage = renderPriceDynamicsChart(statistics);
+    if (chartImage) {
+      const wsChart = workbook.addWorksheet("График динамики");
+      const imageId = workbook.addImage({ base64: chartImage.split(",")[1], extension: "png" });
+      // canvas 1240×620 → вставляем 1000×500 (пропорции сохранены), с полем слева/сверху
+      wsChart.addImage(imageId, { tl: { col: 0.3, row: 0.5 }, ext: { width: 1000, height: 500 } });
+    }
+
+    // ── Лист 5: Продажи по ценам ──
     if (salesByPrice.length > 0) {
       const grouped = salesByPrice.reduce((acc, s) => {
         (acc[s.fuelType] ??= []).push(s);
         return acc;
       }, {} as Record<string, SalesByPrice[]>);
 
-      const salesData: any[] = [
-        ["ПРОДАЖИ ПО ЦЕНАМ (из закрытых смен)"],
-        [""],
-        ["Вид топлива", "Цена, ₽/л", "Объём, л", "Выручка, ₽"],
-      ];
-
+      const wsSales = workbook.addWorksheet("Продажи по ценам");
+      sectionTitle(wsSales, "ПРОДАЖИ ПО ЦЕНАМ (из закрытых смен)");
+      wsSales.addRow([]);
+      headerRow(wsSales, ["Вид топлива", "Цена, ₽/л", "Объём, л", "Выручка, ₽"]);
       sortFuelTypes(Object.keys(grouped)).forEach((fuel) => {
         const rows = grouped[fuel].sort((a, b) => a.price - b.price);
         rows.forEach((s, i) => {
-          salesData.push([
+          wsSales.addRow([
             i === 0 ? fuel : "",
             Number(s.price.toFixed(2)),
             Number(s.volume.toFixed(2)),
@@ -441,19 +446,20 @@ export async function exportPricingToExcel({
         });
         const totalVol = rows.reduce((sum, s) => sum + s.volume, 0);
         const totalRev = rows.reduce((sum, s) => sum + s.revenue, 0);
-        salesData.push([`Итого ${fuel}`, "", Number(totalVol.toFixed(2)), Number(totalRev.toFixed(2))]);
-        salesData.push([""]);
+        const tr = wsSales.addRow([`Итого ${fuel}`, "", Number(totalVol.toFixed(2)), Number(totalRev.toFixed(2))]);
+        tr.font = { bold: true };
+        wsSales.addRow([]);
       });
-
-      const salesWs = XLSX.utils.aoa_to_sheet(salesData);
-      salesWs["!cols"] = [{ wch: 20 }, { wch: 12 }, { wch: 14 }, { wch: 15 }];
-      markTitle(salesData, "ПРОДАЖИ ПО ЦЕНАМ (из закрытых смен)", salesWs);
-      XLSX.utils.book_append_sheet(workbook, salesWs, "Продажи по ценам");
+      setWidths(wsSales, [20, 12, 14, 15]);
     }
 
     const dateStr = new Date().toISOString().split("T")[0];
     const fileName = `Ценообразование_${fileSlug(selectedNetwork, selectedNetworks)}_${dateStr}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+    const buffer = await workbook.xlsx.writeBuffer();
+    downloadBlob(
+      new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      fileName,
+    );
 
     toast({ title: "Экспорт завершён", description: `Данные сохранены в файл: ${fileName}` });
   } catch (error) {
