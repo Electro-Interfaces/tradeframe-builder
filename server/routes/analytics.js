@@ -16,9 +16,15 @@ router.use(requireAuth);
 // Выбор источника: если запрошенный период начинается РАНЬШЕ материализованного
 // окна PG (или покрытия нет вовсе) — берём данные напрямую из STS (историю
 // глубже окна PG не держит). Иначе — быстрый PG-источник.
+// Дополнительно: при уходе в STS запускаем ленивую до-материализацию сети до
+// запрошенной даты В ФОНЕ (не блокируя ответ) — повторные заходы пойдут из PG.
 async function pickSource(networkIds, from) {
   const cov = await analytics.coverageStart(networkIds);
-  return (!cov || String(from) < cov) ? stsSource : analytics;
+  if (cov && String(from) >= cov) return analytics;
+  for (const nid of networkIds) {
+    stsSync.ensureCoverage(nid, String(from)).catch(() => {});
+  }
+  return stsSource;
 }
 
 // Разрешённые станции пользователя (scope). null = без ограничений.

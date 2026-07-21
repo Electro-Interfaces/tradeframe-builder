@@ -338,4 +338,111 @@ async function syncAllNetworks() {
   return out;
 }
 
-module.exports = { syncStation, syncNetwork, syncAllNetworks, getNetworkStations, extractRows, fetchStationDayRows, fetchStationRangeRows, DUAL_STATION_CODES };
+// ─────────────── Ленивая материализация (on-demand backfill) ───────────────
+// Когда analytics-роут отдаёт исторический период из STS-фолбэка, в фоне
+// докачиваем этот период в sts_transactions для ВСЕХ станций сети и опускаем
+// курсоры — чтобы повторные заходы шли из быстрого PG.
+//
+// Инвариант «покрытие равномерно по станциям сети» (на нём держится
+// pickSource через MIN(first_synced_date)) сохраняется: курсоры двигаем ТОЛЬКО
+// ПОСЛЕ материализации всех станций. Иначе MIN опустится раньше, чем PG реально
+// получит данные всех точек, и запрос «все АЗС» за старый период вернёт неполно.
+
+function eachDayStr(from, to) {
+  const out = [];
+  const end = new Date(`${to}T00:00:00`);
+  for (let d = new Date(`${from}T00:00:00`); d <= end; d = addDays(d, 1)) out.push(ymd(d));
+  return out;
+}
+function monthChunksStr(from, to) {
+  const chunks = [];
+  const end = new Date(`${to}T00:00:00`);
+  let cur = new Date(`${from}T00:00:00`);
+  while (cur <= end) {
+    const monthEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+    const chunkEnd = monthEnd < end ? monthEnd : end;
+    chunks.push({ from: ymd(cur), to: ymd(chunkEnd) });
+    cur = addDays(chunkEnd, 1);
+  }
+  return chunks;
+}
+
+// Материализация диапазона одной станции (месячные чанки → upsert в PG).
+// writeStation != null — для dual-code (читаем старый номер, пишем под текущим).
+async function materializeStationRange(networkId, system, readStation, fromStr, toStr, writeStation) {
+  let total = 0;
+  for (const chunk of monthChunksStr(fromStr, toStr)) {
+    let rows;
+    try {
+      rows = await fetchStationRangeRows(system, readStation, chunk.from, chunk.to);
+    } catch (e) {
+      rows = []; // капризный чанк — по дням
+      for (const day of eachDayStr(chunk.from, chunk.to)) {
+        try { rows.push(...await fetchStationDayRows(system, readStation, day)); } catch (_) { /* skip */ }
+      }
+    }
+    for (let i = 0; i < rows.length; i += 500) {
+      total += await upsertBatch(networkId, system, rows.slice(i, i + 500), writeStation);
+    }
+  }
+  return total;
+}
+
+const coverageJobs = new Set(); // одна ленивая до-материализация на сеть за раз
+
+// Докрыть материализацию сети до fromStr (фоном, не блокируя ответ роута).
+async function ensureCoverage(networkId, fromStr) {
+  if (coverageJobs.has(networkId)) return;
+  coverageJobs.add(networkId);
+  try {
+    const net = await postgres.queryOne(
+      `SELECT external_id FROM networks WHERE id=$1 AND deleted_at IS NULL`, [networkId]
+    );
+    const system = int(net?.external_id);
+    if (system == null) return;
+    const from = midnight(new Date(`${fromStr}T00:00:00`));
+    const stations = await getNetworkStations(networkId);
+
+    // Станции с реальным гэпом [from, first_synced_date-1]
+    const gaps = [];
+    for (const st of stations) {
+      const cur = await postgres.queryOne(
+        `SELECT first_synced_date FROM sts_sync_cursor WHERE system=$1 AND station_code=$2`, [system, st]
+      );
+      const curFirst = cur?.first_synced_date ? midnight(cur.first_synced_date) : null;
+      if (curFirst && curFirst <= from) continue; // уже покрыто
+      gaps.push({ station: st, gapEnd: curFirst ? addDays(curFirst, -1) : midnight(new Date()) });
+    }
+    if (!gaps.length) return;
+
+    // 1. Материализуем гэпы всех станций (+ dual-code), НЕ трогая курсоры.
+    let total = 0;
+    for (const g of gaps) {
+      total += await materializeStationRange(networkId, system, g.station, ymd(from), ymd(g.gapEnd));
+      for (const alias of (DUAL_STATION_CODES[g.station] || [])) {
+        total += await materializeStationRange(networkId, system, alias, ymd(from), ymd(g.gapEnd), g.station);
+      }
+    }
+
+    // 2. ТОЛЬКО ПОСЛЕ материализации всех станций — опускаем курсоры
+    //    (first_synced_date вниз через LEAST). Теперь MIN станет = from и
+    //    pickSource переключит период на PG (данные всех станций уже в PG).
+    for (const g of gaps) {
+      await postgres.query(
+        `INSERT INTO sts_sync_cursor (system, station_code, network_id, last_synced_date, first_synced_date, backfill_done, last_run_at)
+         VALUES ($1,$2,$3,$4,$4,false, now())
+         ON CONFLICT (system, station_code) DO UPDATE SET
+           first_synced_date = LEAST(sts_sync_cursor.first_synced_date, EXCLUDED.first_synced_date),
+           network_id = EXCLUDED.network_id, last_ok_at = now()`,
+        [system, g.station, networkId, ymd(from)]
+      );
+    }
+    console.log(`[STS lazy-mat] сеть ${networkId} докрыта до ${fromStr}: +${total} строк, станций ${gaps.length}`);
+  } catch (e) {
+    console.warn(`[STS lazy-mat] сеть ${networkId} до ${fromStr}: ${e.message}`);
+  } finally {
+    coverageJobs.delete(networkId);
+  }
+}
+
+module.exports = { syncStation, syncNetwork, syncAllNetworks, getNetworkStations, extractRows, fetchStationDayRows, fetchStationRangeRows, ensureCoverage, DUAL_STATION_CODES };
