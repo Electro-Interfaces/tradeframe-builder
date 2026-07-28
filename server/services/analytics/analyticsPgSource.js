@@ -34,7 +34,7 @@ async function getOverview({ networkIds, from, to, allowedStations, stations }) 
   const scope = stationScopeClause(allowedStations, stations, params);
   const where = `WHERE network_id = ANY($1::uuid[]) AND dt >= $2 AND dt <= $3${scope}`;
 
-  const [kpi, byFuel, byPayment, byDay, byHour, byStation, byDayFuel, byDayHour] = await Promise.all([
+  const [kpi, byFuel, byPayment, byDay, byHour, byStation, byDayFuel, byDayHour, byFuelPayment] = await Promise.all([
     postgres.queryOne(`
       SELECT count(*)::int ops,
              COALESCE(sum(quantity),0) volume,
@@ -78,6 +78,14 @@ async function getOverview({ networkIds, from, to, allowedStations, stations }) 
              count(*)::int ops, COALESCE(sum(cost),0) revenue
         FROM sts_transactions ${where}
        GROUP BY dt::date, extract(hour FROM dt) ORDER BY dt::date, hour_num`, params),
+    // Топливо × оплата — кросс-разрез для перекрёстной фильтрации KPI «Операций»:
+    // выбрали АИ-92 → карточки оплат показывают суммы только по АИ-92 (и наоборот).
+    // Считает браузер, поэтому клик по карточке не идёт в сеть.
+    postgres.query(`
+      SELECT fuel_name, payment_method, count(*)::int ops,
+             COALESCE(sum(quantity),0) volume, COALESCE(sum(cost),0) revenue
+        FROM sts_transactions ${where}
+       GROUP BY fuel_name, payment_method`, params),
   ]);
 
   return {
@@ -95,6 +103,7 @@ async function getOverview({ networkIds, from, to, allowedStations, stations }) 
     byStation: byStation.rows.map(r => ({ stationCode: r.station_code, operations: r.ops, volume: Number(r.volume), revenue: Number(r.revenue) })),
     byDayFuel: byDayFuel.rows.map(r => ({ date: r.day_date, fuel: r.fuel_name, operations: r.ops, volume: Number(r.volume), revenue: Number(r.revenue) })),
     byDayHour: byDayHour.rows.map(r => ({ date: r.day_date, hour: r.hour_num, operations: r.ops, revenue: Number(r.revenue) })),
+    byFuelPayment: byFuelPayment.rows.map(r => ({ fuel: r.fuel_name, method: r.payment_method, operations: r.ops, volume: Number(r.volume), revenue: Number(r.revenue) })),
   };
 }
 

@@ -27,6 +27,7 @@ import {
   mapServerRowToOperation,
   triggerSync,
   type OverviewResponse,
+  type OverviewFuelPayment,
 } from "@/services/analyticsService";
 import { parseOperationsSearch } from "@/utils/operationsSearchParser";
 import {
@@ -37,6 +38,16 @@ import {
   FILTER_PANEL_HEADER_CLASS,
   FILTER_PANEL_TITLE_CLASS,
 } from "@/components/common/filterPanel";
+
+// Сумма ячеек кросс-разреза «топливо × оплата» по предикату
+function sumCross(cross: OverviewFuelPayment[], match: (c: OverviewFuelPayment) => boolean) {
+  let volume = 0, revenue = 0, count = 0;
+  for (const c of cross) {
+    if (!match(c)) continue;
+    volume += c.volume; revenue += c.revenue; count += c.operations;
+  }
+  return { volume, revenue, count };
+}
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedTradingPoints, selectedStation, isAllTradingPoints, isInitialized } = useSelection();
@@ -383,40 +394,64 @@ export default function OperationsTransactionsPageSimple() {
     clearFilters();
   };
 
-  // KPI-агрегаты строятся из серверного overview (сводка за период).
-  // Клик по карточке фильтрует только СПИСОК, но не пересчитывает эти агрегаты.
+  // KPI-агрегаты строятся из серверного overview (сводка за период) с
+  // ПЕРЕКРЁСТНОЙ фильтрацией через кросс-разрез «топливо × оплата»:
+  // выбрали АИ-92 → карточки оплат показывают суммы только по АИ-92, выбрали
+  // «Наличные» → карточки топлива только по наличным, «Итого» — по обоим.
+  // Всё считается локально, клик по карточке не идёт в сеть.
+  // Список карточек всегда полный (из byFuel/byPayment): невыбранное показывает
+  // нули, а не исчезает — иначе фильтр было бы нечем снять.
+  const cross = overview?.byFuelPayment;
 
-  // По видам топлива
+  // По видам топлива (сужены выбранными способами оплаты)
   const fuelKpis = useMemo(() => {
     if (!overview) return [] as { fuel: string; volume: number; revenue: number; count: number }[];
-    return overview.byFuel.map(f => ({
-      fuel: f.fuel,
-      volume: f.volume,
-      revenue: f.revenue,
-      count: f.operations,
-    }));
-  }, [overview]);
+    return overview.byFuel.map(f => {
+      // Нет кросс-разреза (старый backend) — прежнее поведение: итоги за период
+      if (!cross?.length) return { fuel: f.fuel, volume: f.volume, revenue: f.revenue, count: f.operations };
+      const s = sumCross(cross, c => c.fuel === f.fuel && (selectedKpiPayments.size === 0 || selectedKpiPayments.has(c.method)));
+      return { fuel: f.fuel, volume: s.volume, revenue: s.revenue, count: s.count };
+    });
+  }, [overview, cross, selectedKpiPayments]);
 
-  // По способам оплаты
+  // По способам оплаты (сужены выбранными видами топлива).
+  // Порядок — по общей выручке за период, чтобы карточки не прыгали при фильтре.
   const paymentKpiCards = useMemo(() => {
     if (!overview) return [] as { key: string; display: string; count: number; filteredRevenue: number; filteredVolume: number }[];
     return overview.byPayment
-      .map(p => ({
-        key: p.method,
-        display: p.method,
-        count: p.operations,
-        filteredRevenue: p.revenue,
-        filteredVolume: p.volume,
-      }))
-      .sort((a, b) => b.filteredRevenue - a.filteredRevenue);
-  }, [overview]);
+      .slice()
+      .sort((a, b) => b.revenue - a.revenue)
+      .map(p => {
+        const s = cross?.length
+          ? sumCross(cross, c => c.method === p.method && (selectedKpiFuels.size === 0 || selectedKpiFuels.has(c.fuel)))
+          : { volume: p.volume, revenue: p.revenue, count: p.operations };
+        return {
+          key: p.method,
+          display: p.method,
+          count: s.count,
+          filteredRevenue: s.revenue,
+          filteredVolume: s.volume,
+        };
+      });
+  }, [overview, cross, selectedKpiFuels]);
 
-  // Итого по периоду
-  const totalKpis = useMemo(() => ({
-    count: overview?.kpi.operations ?? 0,
-    volume: overview?.kpi.volume ?? 0,
-    revenue: overview?.kpi.revenue ?? 0,
-  }), [overview]);
+  // Итого по периоду (сужено обоими фильтрами)
+  const totalKpis = useMemo(() => {
+    if (!overview) return { count: 0, volume: 0, revenue: 0 };
+    const hasFilter = selectedKpiFuels.size > 0 || selectedKpiPayments.size > 0;
+    if (!cross?.length || !hasFilter) {
+      return { count: overview.kpi.operations, volume: overview.kpi.volume, revenue: overview.kpi.revenue };
+    }
+    const s = sumCross(cross, c =>
+      (selectedKpiFuels.size === 0 || selectedKpiFuels.has(c.fuel)) &&
+      (selectedKpiPayments.size === 0 || selectedKpiPayments.has(c.method))
+    );
+    return { count: s.count, volume: s.volume, revenue: s.revenue };
+  }, [overview, cross, selectedKpiFuels, selectedKpiPayments]);
+
+  // Показ блока KPI зависит от НАЛИЧИЯ данных за период, а не от результата
+  // фильтра — иначе пустое пересечение прячет карточки вместе с кнопкой сброса.
+  const hasPeriodData = (overview?.kpi.operations ?? 0) > 0;
 
   // Списки для селекторов. Сервер по сути отдаёт только завершённые операции.
   const statusTypes = ["Все", "completed"];
@@ -635,7 +670,7 @@ export default function OperationsTransactionsPageSimple() {
         </div>
 
         {/* KPI карточки */}
-        {!loading && !loadingFromSTS && totalKpis.count > 0 && (
+        {!loading && !loadingFromSTS && hasPeriodData && (
           <div className="space-y-4">
             {/* Карточки по видам топлива — одна строка */}
             <div className="space-y-2">
@@ -666,18 +701,22 @@ export default function OperationsTransactionsPageSimple() {
                 <span className="text-xs text-muted-foreground">выберите один или несколько элементов</span>
               </div>
               {(() => {
-                // Основные 4 типа оплаты — всегда в первом ряду
-                const primaryTypes = ['Банковские', 'Наличные', 'Онлайн', 'Корп. карты'];
-                const topCards = primaryTypes
-                  .map(name => paymentKpiCards.find(c => c.key === name))
-                  .filter(Boolean) as typeof paymentKpiCards;
+                // Основные типы оплаты — всегда в первом ряду, включая «Купон»:
+                // купонные отпуски отслеживают отдельно, а мелкой кнопкой они
+                // показывали цифры только после клика. Отсутствующие за период
+                // рисуем нулями — виден сам факт «купонов не было», и лэйаут не прыгает.
+                const primaryTypes = ['Банковские', 'Наличные', 'Онлайн', 'Корп. карты', 'Купон'];
+                const topCards = primaryTypes.map(name =>
+                  paymentKpiCards.find(c => c.key === name)
+                  || { key: name, display: name, count: 0, filteredRevenue: 0, filteredVolume: 0 }
+                );
                 const topKeys = new Set(topCards.map(c => c.key));
                 const restCards = paymentKpiCards.filter(c => !topKeys.has(c.key));
 
                 return (
                   <div className="space-y-3">
-                    {/* Топ-4 — крупные карточки */}
-                    <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
+                    {/* Основные способы — крупные карточки */}
+                    <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-5'}`}>
                       {topCards.map(({ key, display, count, filteredRevenue, filteredVolume }) => (
                         <KPIPaymentCard
                           key={key}

@@ -12,6 +12,8 @@ export interface OverviewPayment { method: string; operations: number; volume: n
 export interface OverviewDay { date: string; operations: number; volume: number; revenue: number; }
 export interface OverviewHour { hour: number; operations: number; revenue: number; }
 export interface OverviewStation { stationCode: number; operations: number; volume: number; revenue: number; }
+/** Ячейка кросс-разреза «вид топлива × способ оплаты» за период */
+export interface OverviewFuelPayment { fuel: string; method: string; operations: number; volume: number; revenue: number; }
 export interface OverviewResponse {
   kpi: OverviewKpi;
   byFuel: OverviewFuel[];
@@ -21,6 +23,7 @@ export interface OverviewResponse {
   byStation: OverviewStation[];
   byDayFuel?: { date: string; fuel: string; operations: number; volume: number; revenue: number }[];
   byDayHour?: { date: string; hour: number; operations: number; revenue: number }[];
+  byFuelPayment?: OverviewFuelPayment[];
 }
 
 export interface ServerOperationRow {

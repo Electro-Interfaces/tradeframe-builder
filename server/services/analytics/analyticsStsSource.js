@@ -158,6 +158,8 @@ async function getOverview(opts) {
   const dayMap = groupAgg(all, dayOf);
   const stationMap = groupAgg(all, (r) => r.stationCode);
   const dayFuelMap = groupAgg(all, (r) => `${dayOf(r)}${SEP}${r.fuelName ?? ''}`);
+  // Топливо × оплата — кросс-разрез для перекрёстной фильтрации KPI «Операций»
+  const fuelPayMap = groupAgg(all, (r) => `${r.fuelName ?? ''}${SEP}${r.paymentMethod || ''}`);
 
   // byHour (ops + revenue)
   const hourMap = new Map();
@@ -197,6 +199,10 @@ async function getOverview(opts) {
       const [date, hour] = k.split(SEP);
       return { date, hour: Number(hour), operations: g.ops, revenue: g.revenue };
     }).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.hour - b.hour)),
+    byFuelPayment: [...fuelPayMap.entries()].map(([k, g]) => {
+      const [fuel, method] = k.split(SEP);
+      return { fuel: fuel || null, method, operations: g.ops, volume: g.volume, revenue: g.revenue };
+    }),
   };
 }
 
