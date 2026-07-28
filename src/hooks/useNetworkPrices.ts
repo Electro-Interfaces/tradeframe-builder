@@ -100,12 +100,24 @@ interface ShiftFuelSale {
 export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetworkPricesReturn {
   const { network, networks, autoLoad = true, loadHistory = true, historyDays = 90, loadShiftSales = true, shiftsDays = 30, filterPeriod = 'all' } = options;
 
-  // Эффективный список сетей: мультиселект или одна основная
+  // Стабильная сигнатура набора сетей (id + external_id).
+  // Нужна, чтобы effectiveNetworks НЕ менял идентичность из-за смены ссылки на
+  // объект сети (напр. getById→getAll при резолве React Query), а только когда
+  // реально меняется состав сетей. Иначе loadNetworkPrices пересоздаётся и
+  // запускает лишнюю полную перезагрузку (десятки STS-запросов + гонки).
+  const networksSignature = useMemo(() => {
+    const list = (networks && networks.length > 0) ? networks : (network ? [network] : []);
+    return list.map(n => `${n.id}:${n.external_id ?? ''}`).sort().join('|');
+  }, [networks, network]);
+
+  // Эффективный список сетей: мультиселект или одна основная.
+  // Мемоизирован по сигнатуре — стабильная ссылка при неизменном составе сетей.
   const effectiveNetworks = useMemo(() => {
     if (networks && networks.length > 0) return networks;
     if (network) return [network];
     return [];
-  }, [networks, network]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [networksSignature]);
   const { user } = useNewAuth();
 
   const [networkPrices, setNetworkPrices] = useState<NetworkPriceData[]>([]);
@@ -322,6 +334,10 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
     if (effectiveNetworks.length === 0 || !effectiveNetworks.some(n => n.external_id)) {
       setNetworkPrices([]);
       setStatistics([]);
+      setSalesByPrice([]);
+      // Важно снять loading: иначе после отмены предыдущей загрузки спиннер
+      // повисает навсегда, а кнопка «Обновить» (disabled={loading}) блокируется.
+      setLoading(false);
       return;
     }
 
@@ -596,7 +612,13 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
 
   // Пересчёт статистики при смене периода или загрузке данных (без API-запросов)
   useEffect(() => {
-    if (networkPrices.length === 0) return;
+    if (networkPrices.length === 0) {
+      // Нет цен (напр. переключились на сеть без данных) — чистим статистику,
+      // иначе KPI-карточки показывают цифры ПРЕДЫДУЩЕЙ сети («не обновляется»).
+      setStatistics([]);
+      setSalesByPrice([]);
+      return;
+    }
 
     const periodStartDate = getStartDate(filterPeriod);
 

@@ -1,4 +1,6 @@
-# TradeFrame (TF)
+# ElsyPlus Monitor (Элси+ Монитор) — панель управления сетью АЗС
+
+> **Бренд ElsyPlus** (ребрендинг 2026-06-26). Прежнее имя: TradeFrame (TF). Канон имён — память `reference-brand-elsyplus-naming`.
 
 ## Актуальный вход для AI/разработчиков
 
@@ -27,12 +29,12 @@
 
 | Сервис | Порт | URL |
 |--------|------|-----|
-| TradeFrame frontend | 3000 | http://localhost:3000 |
-| TradeFrame backend | 3001 | http://localhost:3001 |
-| TSupport frontend | 3002 | http://localhost:3002 |
-| TSupport backend | 3080 (prod) | http://81.200.148.35:3080 |
+| ElsyPlus Monitor frontend | 3000 | http://localhost:3000 |
+| ElsyPlus Monitor backend | 3001 | http://localhost:3001 |
+| ElsyPlus Support (бывш. TSupport) frontend | 3002 | http://localhost:3002 |
+| ElsyPlus Support backend | 3080 (prod) | http://81.200.148.35:3080 |
 
-> Важно: `3002` в TradeFrame test-контуре используется backend на сервере `testtf.dataworker.ru`; локально TradeFrame backend — `3001`.
+> Важно: `3002` в ElsyPlus Monitor test-контуре используется backend на сервере `testtf.dataworker.ru`; локально ElsyPlus Monitor backend — `3001`.
 
 ## Запуск dev-окружения
 
@@ -132,7 +134,7 @@ docs/               # Документация (architecture, deployment, mobile
 
 ## STS (Station Terminal Service) — poscontrol
 
-**STS** — это проект **poscontrol** (`ELSYPLUS/poscontrol/`), от которого TradeFrame получает данные по АЗС.
+**STS** — это проект **poscontrol** (`ELSYPLUS/poscontrol/`), от которого ElsyPlus Monitor получает данные по АЗС.
 
 | Параметр | Значение |
 |----------|----------|
@@ -143,7 +145,7 @@ docs/               # Документация (architecture, deployment, mobile
 | Сервер | 195.133.27.26 (логин: gavrilov.v) |
 | Порт | 8012 (Docker) / 5001 (dev) |
 
-### API-эндпоинты STS (используемые TradeFrame)
+### API-эндпоинты STS (используемые ElsyPlus Monitor)
 
 | Метод | Эндпоинт | Описание |
 |-------|----------|----------|
@@ -164,4 +166,4 @@ docs/               # Документация (architecture, deployment, mobile
 - `STS_API_USERNAME` / `STS_API_PASSWORD` — авторизация backend proxy
 
 ---
-> Связи: [[CLAUDE|Мастер-контекст]] | [[Dashboard]] | [[DW_Business/products/tradesuite-overview|TradeSuite обзор]] | [[ELSYPLUS/TradeCorp/CLAUDE|TradeCorp]] | [[OnlineOrders/MSTO-Terminal/CLAUDE|TradeGate]] | [[ELSYPLUS/poscontrol|STS (poscontrol)]]
+> Связи: [[CLAUDE|Мастер-контекст]] | [[Dashboard]] | [[DW_Business/products/tradesuite-overview|ElsyPlus обзор (бывш. TradeSuite)]] | [[ELSYPLUS/TradeCorp/CLAUDE|ElsyPlus Processing (бывш. TradeCorp)]] | [[OnlineOrders/MSTO-Terminal/CLAUDE|ElsyPlus Gate (бывш. TradeGate)]] | [[ELSYPLUS/poscontrol|STS (poscontrol)]]

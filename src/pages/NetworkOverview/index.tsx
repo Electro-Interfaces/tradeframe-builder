@@ -35,7 +35,8 @@ import { todayString, monthsAgoString } from "@/utils/dateUtils";
 import { useNetworkOverviewData } from "./hooks/useNetworkOverviewData";
 import { useNetworkOverviewStats } from "./hooks/useNetworkOverviewStats";
 import { useNetworkOverviewAnalytics } from "./hooks/useNetworkOverviewAnalytics";
-import { exportToExcel, exportDashboardToPdf } from "./components/NetworkOverviewExport";
+import { exportToExcel, exportDashboardToPdf, loadReceiptsByFuel, type ReceiptFuelRow } from "./components/NetworkOverviewExport";
+import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { OverviewKPICards } from "./components/OverviewKPICards";
 import { OverviewTables } from "./components/OverviewTables";
 
@@ -55,6 +56,8 @@ export function NetworkOverview() {
 
   // Выбранные сети — для серверных агрегатов расширенной аналитики.
   const { selectedNetworkIds } = useSelection();
+  // external_id выбранных сетей + объекты сетей — для загрузки поступлений в экспорт.
+  const { selectedExternalIds, selectedNetworks } = useSelectedNetworks();
 
   // Основной блок — из готовых серверных агрегатов (мгновенно).
   const analytics = useNetworkOverviewAnalytics({
@@ -74,6 +77,7 @@ export function NetworkOverview() {
   const {
     selectedNetwork,
     selectedTradingPoint,
+    selectedStation,
     isAllTradingPoints,
 
     dateFrom,
@@ -297,7 +301,35 @@ export function NetworkOverview() {
 
   // Export runners. Агрегатные показатели берём из адаптера (совпадают с экраном),
   // сырьё (filteredTransactions/сравнение) и связка «оплата×топливо» — из stats.
-  const runExportExcel = () => {
+  // Поступления топлива по видам за период (приход — отдельно от продаж).
+  // Для конкретной точки берём её родную сеть + номер, иначе все выбранные сети.
+  const computeReceiptsByFuel = async (): Promise<ReceiptFuelRow[]> => {
+    const usePointStation = Boolean(
+      selectedTradingPoint && selectedTradingPoint !== 'all' && selectedStation?.external_id
+    );
+    const receiptExternalIds = (usePointStation
+      ? [(selectedStation?.networkId
+          ? selectedNetworks.find(n => n.id === selectedStation.networkId)?.external_id
+          : null) || selectedExternalIds[0]]
+      : selectedExternalIds
+    ).filter(Boolean) as string[];
+
+    try {
+      return await loadReceiptsByFuel({
+        externalIds: receiptExternalIds,
+        station: usePointStation ? selectedStation!.external_id : undefined,
+        dateFrom,
+        dateTo,
+      });
+    } catch {
+      // Поступления недоступны — отчёт формируем без этого блока
+      return [];
+    }
+  };
+
+  const runExportExcel = async () => {
+    const receiptsByFuel = await computeReceiptsByFuel();
+
     exportToExcel({
       dateFrom,
       dateTo,
@@ -313,11 +345,13 @@ export function NetworkOverview() {
       dailyActivityData: analytics.dailyActivityData,
       dailySalesData: analytics.dailySalesData,
       heatmapData: analytics.heatmapData,
+      receiptsByFuel,
       toast,
     });
   };
 
-  const runExportPdf = () => {
+  const runExportPdf = async () => {
+    const receiptsByFuel = await computeReceiptsByFuel();
     exportDashboardToPdf({
       initializing,
       selectedNetwork,
@@ -330,6 +364,7 @@ export function NetworkOverview() {
       averageCheck: analytics.averageCheck,
       fuelTypeStats: analytics.fuelTypeStats,
       paymentTypeStats: analytics.paymentTypeStats,
+      receiptsByFuel,
       dateFrom,
       dateTo,
       loading,

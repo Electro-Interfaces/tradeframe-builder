@@ -1,6 +1,61 @@
 import { loadPdfMake } from "@/utils/pdfMake";
 import { loadXlsx } from "@/utils/xlsxLoader";
 import { getFuelPriority } from "../hooks/useNetworkOverviewStats";
+import {
+  fetchReceipts,
+  flattenReceipts,
+  calculateReceiptsStats,
+} from "@/services/receiptsService";
+import type { FlatReceipt } from "@/types/receipts";
+
+/** Строка сводки поступлений топлива по виду за период */
+export interface ReceiptFuelRow {
+  fuelType: string;
+  count: number;   // Кол-во поступлений (ТТН)
+  volume: number;  // Фактический объём, л
+}
+
+/**
+ * Загрузка поступлений топлива за период и агрегация по видам топлива.
+ * Переиспользует receiptsService (API /v1/report/receipts).
+ * @param externalIds external_id сетей (system). При выбранной точке — только её родная сеть.
+ * @param station номер точки (external_id); undefined = все точки сети.
+ */
+export async function loadReceiptsByFuel(params: {
+  externalIds: string[];
+  station?: string;
+  dateFrom: string;
+  dateTo: string;
+}): Promise<ReceiptFuelRow[]> {
+  const { externalIds, station, dateFrom, dateTo } = params;
+  const all: FlatReceipt[] = [];
+
+  for (const sys of externalIds) {
+    const systemNum = Number(sys);
+    if (!systemNum || isNaN(systemNum)) continue;
+    try {
+      const resp = await fetchReceipts({
+        system: systemNum,
+        station: station ? Number(station) : undefined,
+        dt_beg: dateFrom,
+        dt_end: dateTo,
+      });
+      all.push(...flattenReceipts(resp));
+    } catch {
+      // Поступления по сети недоступны — пропускаем, отчёт формируем без них
+    }
+  }
+
+  const stats = calculateReceiptsStats(all);
+  return Object.entries(stats.byFuelType)
+    .map(([fuelType, v]) => ({ fuelType, count: v.count, volume: v.volume }))
+    .sort((a, b) => {
+      const pa = getFuelPriority(a.fuelType);
+      const pb = getFuelPriority(b.fuelType);
+      if (pa !== pb) return pa - pb;
+      return a.fuelType.localeCompare(b.fuelType, 'ru');
+    });
+}
 
 interface ExportToExcelParams {
   dateFrom: string;
@@ -17,6 +72,7 @@ interface ExportToExcelParams {
   dailyActivityData: any[];
   dailySalesData: { data: any[]; fuelTypes: string[] };
   heatmapData: any[];
+  receiptsByFuel?: ReceiptFuelRow[];
   toast: (opts: any) => void;
 }
 
@@ -35,6 +91,7 @@ export async function exportToExcel({
   dailyActivityData,
   dailySalesData,
   heatmapData,
+  receiptsByFuel,
   toast,
 }: ExportToExcelParams) {
   try {
@@ -87,6 +144,33 @@ export async function exportToExcel({
         Number(totalVolume.toFixed(2)),
         Number(averageCheck.toFixed(2)),
         100
+      ]);
+
+      mainData.push(['']);
+      mainData.push(['']);
+    }
+
+    // Добавляем таблицу поступлений топлива по видам (приход за период)
+    if (receiptsByFuel && receiptsByFuel.length > 0) {
+      const receiptsTotalVolume = receiptsByFuel.reduce((sum, r) => sum + r.volume, 0);
+      const receiptsTotalCount = receiptsByFuel.reduce((sum, r) => sum + r.count, 0);
+
+      mainData.push(['ПОСТУПЛЕНИЯ ТОПЛИВА ПО ВИДАМ']);
+      mainData.push(['']);
+      mainData.push(['Вид топлива', 'Поступлений', 'Объем (л)']);
+
+      receiptsByFuel.forEach(fuel => {
+        mainData.push([
+          fuel.fuelType,
+          fuel.count,
+          Number(fuel.volume.toFixed(2)),
+        ]);
+      });
+
+      mainData.push([
+        'ИТОГО',
+        receiptsTotalCount,
+        Number(receiptsTotalVolume.toFixed(2)),
       ]);
 
       mainData.push(['']);
@@ -210,10 +294,12 @@ export async function exportToExcel({
     const headerCells = ['A1', 'A9'];
 
     const fuelStatsIndex = mainData.findIndex(row => row[0] === 'СТАТИСТИКА ПО ВИДАМ ТОПЛИВА');
+    const receiptsStatsIndex = mainData.findIndex(row => row[0] === 'ПОСТУПЛЕНИЯ ТОПЛИВА ПО ВИДАМ');
     const paymentStatsIndex = mainData.findIndex(row => row[0] === 'СТАТИСТИКА ПО СПОСОБАМ ОПЛАТЫ');
     const detailStatsIndex = mainData.findIndex(row => row[0] === 'ДЕТАЛЬНАЯ СТАТИСТИКА: СПОСОБЫ ОПЛАТЫ × ВИДЫ ТОПЛИВА');
 
     if (fuelStatsIndex > -1) headerCells.push('A' + (fuelStatsIndex + 1));
+    if (receiptsStatsIndex > -1) headerCells.push('A' + (receiptsStatsIndex + 1));
     if (paymentStatsIndex > -1) headerCells.push('A' + (paymentStatsIndex + 1));
     if (detailStatsIndex > -1) headerCells.push('A' + (detailStatsIndex + 1));
 
@@ -570,6 +656,7 @@ interface ExportDashboardToPdfParams {
   averageCheck: number;
   fuelTypeStats: any[];
   paymentTypeStats: any[];
+  receiptsByFuel?: ReceiptFuelRow[];
   dateFrom: string;
   dateTo: string;
   loading: boolean;
@@ -594,6 +681,7 @@ export async function exportDashboardToPdf({
   averageCheck,
   fuelTypeStats,
   paymentTypeStats,
+  receiptsByFuel,
   dateFrom,
   dateTo,
   loading,
@@ -722,6 +810,22 @@ export async function exportDashboardToPdf({
       content.push({
         columns: breakdownColumns,
         columnGap: 18,
+        margin: [0, 0, 0, 16],
+      });
+    }
+
+    // Поступления топлива по видам за период (приход)
+    if (receiptsByFuel && receiptsByFuel.length > 0) {
+      const receiptsTotalVolume = receiptsByFuel.reduce((sum, r) => sum + r.volume, 0);
+      content.push({
+        stack: [
+          { text: 'Поступления топлива по видам', style: 'sectionLabel' },
+          ...receiptsByFuel.map((fuel) => ({
+            text: `${fuel.fuelType}: ${formatNumber(fuel.volume)} л • ${fuel.count} пост.`,
+            style: 'summaryDetail',
+          })),
+          { text: `Итого поступило: ${formatNumber(receiptsTotalVolume)} л`, style: 'summaryDetail' },
+        ],
         margin: [0, 0, 0, 16],
       });
     }
