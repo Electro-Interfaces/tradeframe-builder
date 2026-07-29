@@ -17,9 +17,10 @@ interface CouponTableProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   loading: boolean;
+  onCouponClick?: (coupon: CouponWithAge) => void;
 }
 
-export function CouponTable({ coupons, currentPage, totalPages, onPageChange, loading }: CouponTableProps) {
+export function CouponTable({ coupons, currentPage, totalPages, onPageChange, loading, onCouponClick }: CouponTableProps) {
   const { toast } = useToast();
 
   return (
@@ -45,7 +46,11 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
         </TableHeader>
         <TableBody>
           {coupons.map((coupon) => (
-            <TableRow key={coupon.number} className={`bg-di-surface-low hover:bg-di-surface-high transition-colors group h-16 border-b-0 ${coupon.isOptimistic ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : ''}`}>
+            <TableRow
+              key={coupon.number}
+              onClick={() => onCouponClick?.(coupon)}
+              className={`bg-di-surface-low hover:bg-di-surface-high transition-colors group h-16 border-b-0 ${onCouponClick ? 'cursor-pointer' : ''} ${coupon.isOptimistic ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : ''}`}
+            >
               <TableCell className="text-foreground/80 text-sm min-w-[120px] rounded-l-xl">
                 <span>{coupon.stationName || `ТТ ${coupon.stationCode}`}</span>
               </TableCell>
@@ -159,7 +164,8 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation(); // кнопка копирования не должна открывать карточку купона
                     navigator.clipboard.writeText(coupon.number);
                     toast({
                       title: 'Номер скопирован',

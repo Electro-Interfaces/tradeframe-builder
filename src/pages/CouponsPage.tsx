@@ -257,6 +257,7 @@ export default function CouponsPage() {
               totalPages={totalPages}
               onPageChange={setCurrentPage}
               loading={loading}
+              onCouponClick={handleCouponClick}
             />
           )}
         </div>
