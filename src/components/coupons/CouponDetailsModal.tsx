@@ -10,11 +10,12 @@ import type { Coupon } from '@/types/coupons';
 interface CouponDetailsModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  coupon: Coupon | null;
+  coupon: (Coupon & { redeemedAt?: string }) | null;
 }
 
 export function CouponDetailsModal({ isOpen, onOpenChange, coupon }: CouponDetailsModalProps) {
   if (!coupon) return null;
+  const redeemedAt = coupon.redeemedAt;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -63,6 +64,13 @@ export function CouponDetailsModal({ isOpen, onOpenChange, coupon }: CouponDetai
               <span className="text-muted-foreground">Дата выдачи:</span>
               <span className="text-foreground font-mono text-xs">
                 {formatCouponFullDateTime(coupon.dt)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b border-border">
+              <span className="text-muted-foreground">Дата реализации:</span>
+              <span className={`font-mono text-xs ${redeemedAt ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {redeemedAt ? formatCouponFullDateTime(redeemedAt) : '—'}
               </span>
             </div>
 

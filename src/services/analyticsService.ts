@@ -81,6 +81,23 @@ export function fetchOperations(p: OperationsParams): Promise<OperationsResponse
   });
 }
 
+/**
+ * Даты реализации купонов. STS такой даты не отдаёт — сервер восстанавливает её
+ * по транзакциям заправки (номер купона в поле card либо совпадение станции,
+ * суммы и литров с использованными). Ответ: { номер купона → ISO-дата }.
+ */
+export function fetchCouponUsage(
+  networkIds: string[],
+  coupons: { number: string; station: number; dt: string; qty_used: number; summ_used: number }[]
+): Promise<Record<string, string>> {
+  const token = getToken();
+  return fetch(`${getBackendOrigin()}/api/analytics/coupon-usage?networkId=${networkIds.join(',')}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ coupons }),
+  }).then(r => (r.ok ? r.json() : {}));
+}
+
 export function triggerSync(networkIds: string[]): Promise<{ ok: boolean; synced: number }> {
   const token = getToken();
   return fetch(`${getBackendOrigin()}/api/analytics/sync?networkId=${networkIds.join(',')}`, {

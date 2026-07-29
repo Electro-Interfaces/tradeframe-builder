@@ -18,6 +18,8 @@ import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
 import { VirtualizedOperationsTable } from "@/components/operations/VirtualizedOperationsTable";
 import { exportToExcel, exportToPdf } from "@/services/operationsExportService";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
+import { couponsApiService } from "@/services/couponsApiService";
+import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { todayString, daysAgoString } from "@/utils/dateUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -51,6 +53,7 @@ function sumCross(cross: OverviewFuelPayment[], match: (c: OverviewFuelPayment) 
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedNetworkIds, selectedTradingPoint, selectedTradingPoints, selectedStation, isAllTradingPoints, isInitialized } = useSelection();
+  const { selectedNetworks } = useSelectedNetworks();
   const isMobile = useIsMobile();
 
   // Справочник точек выбранных сетей — перевод выбранных id точек в номера
@@ -137,6 +140,9 @@ export default function OperationsTransactionsPageSimple() {
   // Модальное окно деталей операции
   const [selectedOperation, setSelectedOperation] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  // Купон, которым оплачена операция: его номер лежит в card, а дату выдачи
+  // знает только STS — подтягиваем при открытии карточки купонной операции.
+  const [couponIssuedAt, setCouponIssuedAt] = useState<string | null>(null);
 
   // Гонки ответов + ключ перезагрузки overview + сигнатура фильтров
   const currentRequestIdRef = useRef(0);
@@ -320,6 +326,42 @@ export default function OperationsTransactionsPageSimple() {
     lastOverviewKeyRef.current = null;
     await loadServerData();
   };
+
+  // Дата выдачи купона для открытой купонной операции. Купоны живут только в
+  // STS, поэтому дёргаем их точечно — по станции операции за 30 дней до неё
+  // (срок жизни купона по умолчанию 7 дней, запас на «долгие» купоны).
+  useEffect(() => {
+    setCouponIssuedAt(null);
+    const op = selectedOperation;
+    const number = op?.cardNumber && op.cardNumber !== '-' ? String(op.cardNumber) : '';
+    if (!isDetailsOpen || !number || !op?.stationNumber) return;
+    if (normalizePaymentMethod(op.paymentMethod) !== 'Купон') return;
+    // Сеть берём по станции операции, а не из выбора в шапке: при мультисети
+    // выбранная сеть может быть не той, которой принадлежит операция.
+    const point = networkPoints.find((p: any) => String(p.external_id) === String(op.stationNumber));
+    const system = selectedNetworks.find(n => n.id === point?.networkId)?.external_id
+      || selectedNetwork?.external_id;
+    if (!system) return;
+
+    let cancelled = false;
+    const opTime = new Date(op.startTime);
+    couponsApiService
+      .getCoupons({
+        system: Number(system),
+        station: Number(op.stationNumber),
+        dt_beg: new Date(opTime.getTime() - 30 * 24 * 3600 * 1000).toISOString(),
+        dt_end: new Date(opTime.getTime() + 24 * 3600 * 1000).toISOString(),
+      })
+      .then((res) => {
+        if (cancelled || !Array.isArray(res)) return;
+        const found = res
+          .flatMap((s) => s.coupons || [])
+          .find((c) => String(c.number) === number);
+        if (found) setCouponIssuedAt(found.dt);
+      })
+      .catch(() => { /* нет доступа к STS — покажем только номер купона */ });
+    return () => { cancelled = true; };
+  }, [isDetailsOpen, selectedOperation, selectedNetwork?.external_id, networkPoints, selectedNetworks]);
 
   // Держим актуальную ссылку на handleRefresh для стабильных слушателей событий
   const handleRefreshRef = useRef(handleRefresh);
@@ -1116,6 +1158,28 @@ export default function OperationsTransactionsPageSimple() {
                     {normalizePaymentMethod(selectedOperation.paymentMethod)}
                   </span>
                 </div>
+
+                {normalizePaymentMethod(selectedOperation.paymentMethod) === 'Купон' &&
+                 selectedOperation.cardNumber && selectedOperation.cardNumber !== '-' && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground">Номер купона:</span>
+                      <span className="text-foreground font-mono font-bold">{selectedOperation.cardNumber}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground">Купон выдан:</span>
+                      <span className={`font-mono text-xs ${couponIssuedAt ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {couponIssuedAt ? new Date(couponIssuedAt).toLocaleString('ru-RU') : '—'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground">Купон реализован:</span>
+                      <span className="text-foreground font-mono text-xs">
+                        {new Date(selectedOperation.startTime).toLocaleString('ru-RU')}
+                      </span>
+                    </div>
+                  </>
+                )}
 
                 {selectedOperation.posNumber && selectedOperation.posNumber !== '-' && (
                   <div className="flex justify-between py-2 border-b border-border">

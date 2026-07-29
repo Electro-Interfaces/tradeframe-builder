@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSelection } from '@/contexts/SelectionContext';
 import { couponsApiService } from '@/services/couponsApiService';
 import { tradingPointsService } from '@/services/tradingPointsService';
+import { fetchCouponUsage } from '@/services/analyticsService';
+import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
 import type {
   CouponsSearchResult,
   CouponsFilter,
@@ -17,6 +19,7 @@ import type {
 export function useCouponsData() {
   const { toast } = useToast();
   const { selectedTradingPoint, selectedNetwork } = useSelection();
+  const { selectedNetworks } = useSelectedNetworks();
 
   const [searchResult, setSearchResult] = useState<CouponsSearchResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,6 +115,34 @@ export function useCouponsData() {
       const filteredResult = couponsApiService.filterCoupons(processedResult, filters);
 
       setSearchResult(filteredResult);
+
+      // Даты реализации — вторым шагом: страница уже показана, а сопоставление с
+      // транзакциями идёт по нашей БД и не должно задерживать список купонов.
+      setLoading(false);
+      const networkIds = selectedNetworks.map(n => n.id).filter(Boolean);
+      const toMatch = filteredResult.groups.flatMap(g =>
+        g.coupons
+          .filter(c => !c.isOptimistic && c.stationCode != null)
+          .map(c => ({
+            number: String(c.number),
+            station: Number(c.stationCode),
+            dt: new Date(c.dt).toISOString(),
+            qty_used: c.qty_used,
+            summ_used: c.summ_used,
+          }))
+      );
+      if (networkIds.length > 0 && toMatch.length > 0) {
+        const usage = await fetchCouponUsage(networkIds, toMatch).catch(() => ({}));
+        if (Object.keys(usage).length > 0) {
+          setSearchResult(prev => prev && {
+            ...prev,
+            groups: prev.groups.map(g => ({
+              ...g,
+              coupons: g.coupons.map(c => (usage[c.number] ? { ...c, redeemedAt: usage[c.number] } : c)),
+            })),
+          });
+        }
+      }
 
     } catch (err: any) {
       const errorMessage = err.message || 'Неизвестная ошибка при загрузке данных';

@@ -55,6 +55,11 @@ export function CouponTableMobile({
                       <span className="text-muted-foreground text-[10px] font-mono whitespace-nowrap">
                         {formatCouponDateTime(coupon.dt)}
                       </span>
+                      {coupon.redeemedAt && (
+                        <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-mono whitespace-nowrap">
+                          ✓ {formatCouponDateTime(coupon.redeemedAt)}
+                        </span>
+                      )}
                       {coupon.isOptimistic ? (
                         <span className="text-amber-600 dark:text-amber-400 text-[10px] whitespace-nowrap animate-pulse">⏳ Ожидает подтверждения</span>
                       ) : coupon.state.id === 0 && coupon.qty_used === 0 ? (

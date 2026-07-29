@@ -102,6 +102,7 @@ export interface CouponWithAge extends Coupon {
   stationName?: string;     // Название торговой точки
   stationCode?: number;     // Код торговой точки
   isOptimistic?: boolean;   // Оптимистичный купон (ещё не подтверждён API)
+  redeemedAt?: string;      // Дата реализации (ISO) — сопоставление с транзакцией заправки
 }
 
 // Приоритеты купонов для мониторинга

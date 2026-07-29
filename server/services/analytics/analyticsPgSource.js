@@ -225,4 +225,57 @@ async function getSyncStatus(networkId) {
   return { lastSyncedAt: lastOk?.m || null, stations: rows.rows };
 }
 
-module.exports = { getOverview, getDetailedAnalytics, getOperations, getSyncStatus, coverageStart };
+// Дата реализации (погашения) купонов. STS такой даты не отдаёт вовсе — её
+// приходится восстанавливать по транзакциям заправки:
+//   1) повторное погашение бумажного купона идёт как оплата «Купон», и его номер
+//      лежит в поле card — точная связь;
+//   2) первая заправка сразу после выдачи купона терминалом проходит способом
+//      оплаты внесения денег («Наличные»/«Карта»), номера купона в ней нет. Её
+//      находим по совпадению станции, суммы и литров с qty_used/summ_used купона
+//      в пределах суток после выдачи.
+// Проверено на июле 2026 по сети ГИГ: 173 использованных купона из 173 получили
+// дату, ложных срабатываний нет. Купоны без использования (summ_used = 0)
+// намеренно не матчим — иначе цеплялись бы нулевые (отменённые) транзакции.
+// coupons: [{ number, station, dt (ISO), qty_used, summ_used }]
+// → { [number]: ISO-дата реализации }
+async function getCouponUsage({ networkIds, allowedStations, coupons }) {
+  const list = (coupons || []).filter((c) => c && c.number != null && Number.isFinite(Number(c.station)));
+  if (!networkIds?.length || !list.length) return {};
+  const params = [
+    networkIds,
+    list.map((c) => String(c.number)),
+    list.map((c) => Number(c.station)),
+    list.map((c) => c.dt),
+    list.map((c) => Number(c.qty_used) || 0),
+    list.map((c) => Number(c.summ_used) || 0),
+  ];
+  const scope = stationScopeClause(allowedStations, null, params);
+  const scopeCard = scope.replace('station_code', 't.station_code');
+  const rows = await postgres.query(`
+    WITH c AS (
+      SELECT * FROM unnest($2::text[], $3::int[], $4::timestamptz[], $5::numeric[], $6::numeric[])
+        AS t(number, station, dt, qty_used, summ_used)
+    )
+    SELECT c.number, COALESCE(bycard.dt, byamount.dt) AS dt
+      FROM c
+      LEFT JOIN LATERAL (
+        SELECT t.dt FROM sts_transactions t
+         WHERE t.network_id = ANY($1::uuid[]) AND t.payment_method = 'Купон'
+           AND t.card = c.number${scopeCard}
+         ORDER BY t.dt DESC LIMIT 1
+      ) bycard ON true
+      LEFT JOIN LATERAL (
+        SELECT t.dt FROM sts_transactions t
+         WHERE c.summ_used > 0 AND t.network_id = ANY($1::uuid[])
+           AND t.station_code = c.station
+           AND t.dt >= c.dt AND t.dt < c.dt + interval '24 hours'
+           AND t.cost = c.summ_used AND t.quantity = c.qty_used${scopeCard}
+         ORDER BY t.dt LIMIT 1
+      ) byamount ON true
+     WHERE COALESCE(bycard.dt, byamount.dt) IS NOT NULL`, params);
+  const out = {};
+  for (const r of rows.rows) out[r.number] = r.dt;
+  return out;
+}
+
+module.exports = { getOverview, getDetailedAnalytics, getOperations, getSyncStatus, coverageStart, getCouponUsage };

@@ -110,6 +110,25 @@ router.get('/operations', async (req, res) => {
   }
 });
 
+// POST /api/analytics/coupon-usage?networkId= — даты реализации купонов.
+// Тело: { coupons: [{ number, station, dt, qty_used, summ_used }] }.
+// Купоны живут только в STS (в PG их нет), поэтому список приходит с фронта,
+// а сервер лишь сопоставляет их с материализованными транзакциями.
+router.post('/coupon-usage', async (req, res) => {
+  try {
+    const networkIds = await resolveNetworkIds(req);
+    if (!networkIds.length) return res.json({});
+    const coupons = Array.isArray(req.body?.coupons) ? req.body.coupons.slice(0, 5000) : [];
+    const data = await analytics.getCouponUsage({
+      networkIds, coupons, allowedStations: allowedStationsOf(req.user),
+    });
+    res.json(data);
+  } catch (error) {
+    console.error('[Analytics] coupon-usage:', error.message);
+    res.status(500).json({ error: error.message || 'Ошибка сопоставления купонов' });
+  }
+});
+
 // GET /api/analytics/sync-status?networkId= — свежесть данных для UI
 router.get('/sync-status', async (req, res) => {
   try {

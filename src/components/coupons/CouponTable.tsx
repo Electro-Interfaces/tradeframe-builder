@@ -29,17 +29,18 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
           <TableRow className="hover:bg-transparent border-none">
             <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[8%]">ТТ</TableHead>
             <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[9%]">Номер купона</TableHead>
-            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[9%]">Дата создания</TableHead>
-            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[8%]">Тип топлива</TableHead>
-            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Цена за литр</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[8%]">Дата выдачи</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[8%]">Дата реализации</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Тип топлива</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[6%]">Цена за литр</TableHead>
             <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Остаток (л)</TableHead>
             <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Остаток (₽)</TableHead>
             <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Статус</TableHead>
-            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Тип</TableHead>
-            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[7%]">Автор</TableHead>
-            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[10%]">Комментарий</TableHead>
-            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[9%]">Смена</TableHead>
-            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[5%]">Действия</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[6%]">Тип</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[6%]">Автор</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[9%]">Комментарий</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[8%]">Смена</TableHead>
+            <TableHead className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap py-3 w-[4%]">Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -69,6 +70,18 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                     {formatCouponTime(coupon.dt)}
                   </span>
                 </div>
+              </TableCell>
+              <TableCell className="text-foreground/80 text-sm min-w-[140px]">
+                {coupon.redeemedAt ? (
+                  <div className="flex flex-col">
+                    <span className="font-mono">{formatCouponDate(coupon.redeemedAt)}</span>
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {formatCouponTime(coupon.redeemedAt)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-xs">—</span>
+                )}
               </TableCell>
               <TableCell className="text-foreground/80 text-sm min-w-[100px] text-center">
                 <div className="flex flex-col items-center">

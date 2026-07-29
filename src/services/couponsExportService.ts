@@ -139,8 +139,10 @@ class CouponsExportService {
     // Заголовки
     const headers = [
       'Номер купона',
-      'Дата создания',
-      'Время создания',
+      'Дата выдачи',
+      'Время выдачи',
+      'Дата реализации',
+      'Время реализации',
       'Тип топлива',
       'Цена за литр (₽)',
       'Общее количество (л)',
@@ -167,10 +169,13 @@ class CouponsExportService {
     // Данные купонов
     const rows = allCoupons.map(coupon => {
       const date = new Date(coupon.dt);
+      const redeemed = coupon.redeemedAt ? new Date(coupon.redeemedAt) : null;
       return [
         coupon.number,
         date.toLocaleDateString('ru-RU'),
         date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        redeemed ? redeemed.toLocaleDateString('ru-RU') : '',
+        redeemed ? redeemed.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '',
         coupon.service.service_name,
         coupon.price,
         coupon.qty_total,
@@ -211,12 +216,12 @@ class CouponsExportService {
     } else if (type === 'details') {
       // Форматирование для детальной таблицы
       for (let row = 1; row <= range.e.r; row++) {
-        const numericColumns = [4, 5, 6, 7, 8, 9, 10, 13, 14];
+        const numericColumns = [6, 7, 8, 9, 10, 11, 12, 15, 16];
         numericColumns.forEach(col => {
           const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
           const cell = sheet[cellAddress];
           if (cell && typeof cell.v === 'number') {
-            if (col >= 4 && col <= 10) {
+            if (col >= 6 && col <= 12) {
               cell.z = '0.00';
             } else {
               cell.z = '0';
