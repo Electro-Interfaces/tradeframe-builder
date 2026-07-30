@@ -13,9 +13,11 @@
  */
 const postgres = require('../../db/pool');
 const stsSync = require('./stsSync');
+const { DIMS } = require('./pivotDims');
 
 const FETCH_CONCURRENCY = 6;   // одновременных запросов к STS
 const FETCH_RETRIES = 3;       // попыток на (станция, день)
+const PIVOT_ROW_LIMIT = 20000; // как в analyticsPgSource
 
 function ymd(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -288,4 +290,28 @@ async function getOperations(opts) {
   };
 }
 
-module.exports = { getOverview, getDetailedAnalytics, getOperations };
+// ── Сводная — формат как analyticsPgSource.getPivot ──
+// Периоды глубже покрытия PG приходят сюда, поэтому измерения берём из того же
+// справочника DIMS (valueOf), что и SQL-версия: иначе разрезы разъедутся.
+async function getPivot(opts) {
+  const { dims } = opts;
+  const all = await fetchAllRows(opts);
+  const filtered = applyOperationFilters(all, opts);
+
+  const SEP = '|@|';
+  const NULL_MARK = ' '; // отличить настоящий null от строки 'null'
+  const enc = (v) => (v == null ? NULL_MARK : String(v));
+  const grouped = groupAgg(filtered, (r) => dims.map((k) => enc(DIMS[k].valueOf(r))).join(SEP));
+
+  const rows = [...grouped.entries()]
+    .map(([key, g]) => ({
+      keys: key.split(SEP).map((v) => (v === NULL_MARK ? null : v)),
+      ops: g.ops, volume: g.volume, revenue: g.revenue,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+
+  const truncated = rows.length > PIVOT_ROW_LIMIT;
+  return { dims, truncated, rows: truncated ? rows.slice(0, PIVOT_ROW_LIMIT) : rows };
+}
+
+module.exports = { getOverview, getDetailedAnalytics, getOperations, getPivot };

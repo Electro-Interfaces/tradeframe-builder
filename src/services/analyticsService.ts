@@ -81,6 +81,24 @@ export function fetchOperations(p: OperationsParams): Promise<OperationsResponse
   });
 }
 
+/** Сводная («Операции» → таб «Сводная»): агрегаты по выбранным измерениям. */
+export interface PivotResponse {
+  dims: string[];
+  rows: { keys: (string | number | null)[]; ops: number; volume: number; revenue: number }[];
+  truncated: boolean;
+}
+export interface PivotParams extends Omit<OperationsParams, 'page' | 'pageSize'> {
+  /** Ключи измерений из server/services/analytics/pivotDims.js */
+  dims: string[];
+}
+export function fetchPivot(p: PivotParams): Promise<PivotResponse> {
+  return apiGet<PivotResponse>('pivot', {
+    networkId: p.networkIds, from: p.from, to: p.to, dims: p.dims,
+    fuels: p.fuels, payments: p.payments, station: p.station, stations: p.stations,
+    shift: p.shift, receipt: p.receipt, pos: p.pos, card: p.card, search: p.search,
+  });
+}
+
 /**
  * Даты реализации купонов. STS такой даты не отдаёт — сервер восстанавливает её
  * по транзакциям заправки (номер купона в поле card либо совпадение станции,

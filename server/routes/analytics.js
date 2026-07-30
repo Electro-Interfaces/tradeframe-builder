@@ -9,6 +9,7 @@ const { getUserScope, getAllowedNetworkIds } = require('../middleware/scopeFilte
 const analytics = require('../services/analytics/analyticsPgSource');
 const stsSource = require('../services/analytics/analyticsStsSource');
 const stsSync = require('../services/analytics/stsSync');
+const { parseDims } = require('../services/analytics/pivotDims');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -106,6 +107,35 @@ router.get('/operations', async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('[Analytics] operations:', error.message);
+    res.status(500).json({ error: error.message || 'Ошибка аналитики' });
+  }
+});
+
+// GET /api/analytics/pivot?networkId=&from=&to=&dims=station,fuel,payment&...
+// Отдаёт «листья» сводной (агрегаты по выбранным измерениям). Иерархию, подытоги
+// и доли считает браузер — перестановка порядка группировок не идёт в сеть.
+router.get('/pivot', async (req, res) => {
+  try {
+    const networkIds = await resolveNetworkIds(req);
+    let dims;
+    try {
+      dims = parseDims(req.query.dims);
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+    if (!networkIds.length) return res.json({ dims, rows: [], truncated: false });
+    const { from, to, fuels, payments, station, stations, shift, receipt, pos, card, search } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'Параметры from и to обязательны' });
+    const splitCsv = (v) => (v ? String(v).split(',').map(s => s.trim()).filter(Boolean) : []);
+    const source = await pickSource(networkIds, from);
+    const data = await source.getPivot({
+      networkIds, from, to, allowedStations: allowedStationsOf(req.user), dims,
+      fuels: splitCsv(fuels), payments: splitCsv(payments),
+      station, stations: splitCsv(stations), shift, receipt, pos, card, search,
+    });
+    res.json(data);
+  } catch (error) {
+    console.error('[Analytics] pivot:', error.message);
     res.status(500).json({ error: error.message || 'Ошибка аналитики' });
   }
 });

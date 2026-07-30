@@ -16,7 +16,9 @@ import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, 
 import KPIFuelCard from "@/components/operations/KPIFuelCard";
 import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
 import { VirtualizedOperationsTable } from "@/components/operations/VirtualizedOperationsTable";
-import { exportToExcel, exportToPdf } from "@/services/operationsExportService";
+import OperationsPivot, { PIVOT_DIMENSIONS } from "@/components/operations/OperationsPivot";
+import { buildPivotTree, type PivotSortBy } from "@/utils/pivotTree";
+import { exportToExcel, exportToPdf, exportPivotToExcel } from "@/services/operationsExportService";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
 import { couponsApiService } from "@/services/couponsApiService";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
@@ -26,10 +28,12 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   fetchOverview,
   fetchOperations,
+  fetchPivot,
   mapServerRowToOperation,
   triggerSync,
   type OverviewResponse,
   type OverviewFuelPayment,
+  type PivotResponse,
 } from "@/services/analyticsService";
 import { parseOperationsSearch } from "@/utils/operationsSearchParser";
 import {
@@ -136,6 +140,28 @@ export default function OperationsTransactionsPageSimple() {
 
   // Выгрузка ВСЕХ строк периода для экспорта (не только текущей страницы)
   const [exportingAll, setExportingAll] = useState(false);
+
+  // ── Сводная (таб «Сводная») ───────────────────────────────────────────
+  // Сервер отдаёт «листья» по НАБОРУ измерений, иерархию собирает браузер —
+  // поэтому перестановка порядка группировок не идёт в сеть.
+  const [viewMode, setViewMode] = useState<'list' | 'pivot'>(
+    () => (localStorage.getItem('ops.viewMode') === 'pivot' ? 'pivot' : 'list')
+  );
+  const [pivotDims, setPivotDims] = useState<string[]>(() => {
+    const saved = localStorage.getItem('ops.pivotDims');
+    const parsed = saved ? saved.split(',').filter((k) => PIVOT_DIMENSIONS.some((d) => d.key === k)) : [];
+    return parsed.length ? parsed : ['station', 'fuel', 'payment'];
+  });
+  const [pivotSortBy, setPivotSortBy] = useState<PivotSortBy>('revenue');
+  const [pivotData, setPivotData] = useState<PivotResponse | null>(null);
+  const [pivotLoading, setPivotLoading] = useState(false);
+  const [pivotError, setPivotError] = useState<string | null>(null);
+  // Ответы по набору измерений в пределах текущих фильтров (см. useEffect ниже)
+  const pivotCacheRef = useRef<Map<string, PivotResponse>>(new Map());
+  const pivotCacheKeyRef = useRef<string | null>(null);
+
+  useEffect(() => { localStorage.setItem('ops.viewMode', viewMode); }, [viewMode]);
+  useEffect(() => { localStorage.setItem('ops.pivotDims', pivotDims.join(',')); }, [pivotDims]);
 
   // Модальное окно деталей операции
   const [selectedOperation, setSelectedOperation] = useState<any>(null);
@@ -270,10 +296,113 @@ export default function OperationsTransactionsPageSimple() {
     return all;
   };
 
-  const tradingPointLabel = (): string =>
-    isAllTradingPoints
-      ? 'Все торговые точки'
-      : (selectedStation?.name || selectedTradingPoint || '');
+  // Подпись выбранных точек для шапки отчётов. Служебное значение 'all' (иногда
+  // лежит в localStorage закавыченным) не должно протекать в отчёт как есть.
+  const tradingPointLabel = (): string => {
+    const raw = String(selectedTradingPoint || '').replace(/^"+|"+$/g, '');
+    if (isAllTradingPoints || raw === 'all' || !raw) return 'Все торговые точки';
+    if (selectedTradingPoints && selectedTradingPoints.length > 1) {
+      const names = selectedTradingPoints
+        .map((id) => networkPoints.find((p: any) => p.id === id)?.name)
+        .filter(Boolean);
+      if (names.length) return names.join(', ');
+    }
+    return selectedStation?.name || raw;
+  };
+
+  // Подпись сетей: в шапке возможен мультивыбор, одна selectedNetwork тогда врёт
+  const networkLabel = (): string => {
+    if (selectedNetworks && selectedNetworks.length > 1) {
+      return selectedNetworks.map((n: any) => n.name).filter(Boolean).join(', ');
+    }
+    return selectedNetwork?.name || selectedNetworks?.[0]?.name || '—';
+  };
+
+  // Подпись значения измерения: код станции → название точки из справочника
+  const pivotLabeler = useMemo(() => {
+    const names = new Map<string, string>();
+    networkPoints.forEach((p: any) => { if (p.external_id) names.set(String(p.external_id), p.name); });
+    return (dim: string, value: string | number | null) => {
+      if (value == null || value === '') return '— не указано —';
+      if (dim === 'station') return names.get(String(value)) || `АЗС ${value}`;
+      if (dim === 'hour') return `${String(value).padStart(2, '0')}:00`;
+      return String(value);
+    };
+  }, [networkPoints]);
+
+  // Запрос сводной. В ключе — НАБОР измерений (отсортированный): смена порядка
+  // группировок пересобирает дерево локально, без обращения к серверу.
+  const pivotDimsKey = useMemo(() => [...pivotDims].sort().join(','), [pivotDims]);
+  const pivotFilterKey = [
+    selectedNetworkIds.join(','), debouncedDateFrom, debouncedDateTo,
+    selectedStationCodes?.slice().sort().join(',') || '',
+    Array.from(selectedKpiFuels).sort().join(','),
+    Array.from(selectedKpiPayments).sort().join(','),
+    debouncedSearchQuery,
+  ].join('|');
+
+  useEffect(() => {
+    if (viewMode !== 'pivot' || !selectedNetworkIds.length || !pivotDimsKey) return;
+    // Кэш живёт в пределах одного набора фильтров: возврат к уже показанному
+    // разрезу (например, после снятия и повторного добавления измерения)
+    // отрисовывается мгновенно, без повторного запроса.
+    if (pivotCacheKeyRef.current !== pivotFilterKey) {
+      pivotCacheRef.current.clear();
+      pivotCacheKeyRef.current = pivotFilterKey;
+    }
+    const cached = pivotCacheRef.current.get(pivotDimsKey);
+    if (cached) {
+      setPivotData(cached);
+      setPivotError(null);
+      setPivotLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const parsed = parseOperationsSearch(debouncedSearchQuery);
+    const stations = selectedStationCodes ?? (parsed.station ? [parsed.station] : undefined);
+    setPivotLoading(true);
+    setPivotError(null);
+    fetchPivot({
+      networkIds: selectedNetworkIds,
+      from: debouncedDateFrom,
+      to: debouncedDateTo,
+      dims: pivotDimsKey.split(','),
+      fuels: selectedKpiFuels.size > 0 ? Array.from(selectedKpiFuels) : undefined,
+      payments: selectedKpiPayments.size > 0 ? Array.from(selectedKpiPayments) : undefined,
+      stations,
+      shift: parsed.shift, receipt: parsed.receipt, pos: parsed.pos,
+      card: parsed.card, search: parsed.search,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        pivotCacheRef.current.set(pivotDimsKey, res);
+        setPivotData(res);
+      })
+      .catch((e) => { if (!cancelled) { setPivotData(null); setPivotError(e?.message || 'Ошибка загрузки сводной'); } })
+      .finally(() => { if (!cancelled) setPivotLoading(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, pivotDimsKey, pivotFilterKey]);
+
+  const handleExportPivot = async () => {
+    if (exportingAll || !pivotData) return;
+    setExportingAll(true);
+    try {
+      const { nodes, totals } = buildPivotTree(pivotData.rows, pivotData.dims, pivotDims, pivotSortBy, pivotLabeler);
+      await exportPivotToExcel({
+        nodes,
+        totals,
+        dims: pivotDims.map((k) => PIVOT_DIMENSIONS.find((d) => d.key === k) || { key: k, label: k }),
+        dateFrom, dateTo,
+        networkName: networkLabel(),
+        tradingPointName: tradingPointLabel(),
+        isMobile,
+      });
+    } finally {
+      setExportingAll(false);
+    }
+  };
 
   // Обработчики экспорта — выгружаем ВЕСЬ период, не только текущую страницу
   const handleExportToExcel = async () => {
@@ -285,7 +414,7 @@ export default function OperationsTransactionsPageSimple() {
         operations: rows,
         dateFrom,
         dateTo,
-        networkName: selectedNetwork?.name,
+        networkName: networkLabel(),
         tradingPointName: tradingPointLabel(),
         isMobile
       });
@@ -303,7 +432,7 @@ export default function OperationsTransactionsPageSimple() {
         operations: rows,
         dateFrom,
         dateTo,
-        networkName: selectedNetwork?.name,
+        networkName: networkLabel(),
         tradingPointName: tradingPointLabel(),
         isMobile
       });
@@ -605,7 +734,17 @@ export default function OperationsTransactionsPageSimple() {
           <div className="flex items-end justify-between gap-4">
             <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Операции</h1>
             <div className="flex items-center gap-2 shrink-0">
-              {serverTotal > 0 && (
+              {viewMode === 'pivot' ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportPivot}
+                  disabled={exportingAll || !pivotData?.rows.length}
+                >
+                  {exportingAll ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 mr-2" />}
+                  Экспорт сводной
+                </Button>
+              ) : serverTotal > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -907,8 +1046,40 @@ export default function OperationsTransactionsPageSimple() {
           </Card>
         )}
 
+        {/* Переключатель представления: плоский список ↔ сводная с группировками */}
+        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 w-fit">
+          {([['list', 'Список'], ['pivot', 'Сводная']] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setViewMode(mode)}
+              className={`rounded-md px-4 py-1.5 text-sm transition-colors ${
+                viewMode === mode ? 'bg-secondary font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {viewMode === 'pivot' && (
+          <OperationsPivot
+            leaves={pivotData?.rows || []}
+            serverDims={pivotData?.dims || []}
+            dims={pivotDims}
+            onDimsChange={setPivotDims}
+            sortBy={pivotSortBy}
+            onSortByChange={setPivotSortBy}
+            labeler={pivotLabeler}
+            loading={pivotLoading}
+            truncated={pivotData?.truncated}
+            error={pivotError}
+            isMobile={isMobile}
+          />
+        )}
+
         {/* Таблица № */}
-        {!loading && !loadingFromSTS && (
+        {viewMode === 'list' && !loading && !loadingFromSTS && (
           <Card className={`bg-card rounded-xl border border-border ${isMobile ? 'mx-0 mt-1' : ''}`}>
             <CardHeader className={`${isMobile ? 'px-3 py-1.5' : 'pb-2'}`}>
               <div className="flex items-center justify-between">

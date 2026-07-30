@@ -4,6 +4,11 @@
  * браузер. Период произвольный: [from, to] по дате.
  */
 const postgres = require('../../db/pool');
+const { DIMS } = require('./pivotDims');
+
+// Потолок «листьев» сводной: станции × топливо × оплата ≈ 500, с днём за месяц
+// ≈ 15 тыс. Больше — в дереве всё равно не читается, отдаём срез и truncated.
+const PIVOT_ROW_LIMIT = 20000;
 
 // Границы периода в timestamptz (весь день to включительно)
 function bounds(from, to) {
@@ -145,7 +150,9 @@ async function getDetailedAnalytics({ networkIds, from, to, allowedStations, sta
 }
 
 // Список операций с серверной пагинацией + те же KPI/разбивки для шапки.
-async function getOperations({ networkIds, from, to, allowedStations, fuels, payments, station, stations, shift, receipt, pos, card, search, page = 1, pageSize = 100 }) {
+// WHERE для запросов по списку операций: scope + фильтры UI + умный поиск.
+// Общий для getOperations и getPivot — иначе фильтры списка и сводной разъедутся.
+function buildTxWhere({ networkIds, from, to, allowedStations, fuels, payments, station, stations, shift, receipt, pos, card, search }) {
   const b = bounds(from, to);
   const params = [networkIds, b.from, b.to];
   const conds = [`network_id = ANY($1::uuid[])`, `dt >= $2`, `dt <= $3`];
@@ -167,7 +174,12 @@ async function getOperations({ networkIds, from, to, allowedStations, fuels, pay
   if (card) { params.push(`%${card}%`); conds.push(`card ILIKE $${params.length}`); }
   // Свободный текст (остаток запроса) — по карте/топливу/чеку
   if (search) { params.push(`%${search}%`); conds.push(`(CAST(receipt AS TEXT) ILIKE $${params.length} OR card ILIKE $${params.length} OR fuel_name ILIKE $${params.length})`); }
-  const where = `WHERE ${conds.join(' AND ')}`;
+  return { where: `WHERE ${conds.join(' AND ')}`, params };
+}
+
+async function getOperations(opts) {
+  const { page = 1, pageSize = 100 } = opts;
+  const { where, params } = buildTxWhere(opts);
 
   const total = await postgres.queryOne(`SELECT count(*)::int c FROM sts_transactions ${where}`, params);
 
@@ -196,6 +208,43 @@ async function getOperations({ networkIds, from, to, allowedStations, fuels, pay
       payTypeName: r.pay_type_name, card: r.card, status: r.status,
       orderQty: r.order_qty != null ? Number(r.order_qty) : null,
       orderCost: r.order_cost != null ? Number(r.order_cost) : null,
+    })),
+  };
+}
+
+// Сводная: агрегаты по выбранным измерениям («листья»). Иерархию и подытоги
+// собирает браузер — поэтому здесь обычный GROUP BY, без ROLLUP, а перестановка
+// порядка группировок на фронте вообще не идёт в сеть.
+async function getPivot(opts) {
+  const { dims } = opts;
+  const { where, params } = buildTxWhere(opts);
+
+  // dims уже провалидированы parseDims в роуте; в SQL идёт только выражение из DIMS
+  const selectDims = dims.map((k, i) => `${DIMS[k].sql} AS d${i}`).join(', ');
+  const groupDims = dims.map((_, i) => `d${i}`).join(', ');
+
+  params.push(PIVOT_ROW_LIMIT + 1);
+  const rows = await postgres.query(`
+    SELECT ${selectDims},
+           count(*)::int ops,
+           COALESCE(sum(quantity),0) volume,
+           COALESCE(sum(cost),0) revenue
+      FROM sts_transactions ${where}
+     GROUP BY ${groupDims}
+     ORDER BY revenue DESC NULLS LAST
+     LIMIT $${params.length}`, params);
+
+  const truncated = rows.rows.length > PIVOT_ROW_LIMIT;
+  const kept = truncated ? rows.rows.slice(0, PIVOT_ROW_LIMIT) : rows.rows;
+
+  return {
+    dims,
+    truncated,
+    rows: kept.map((r) => ({
+      keys: dims.map((_, i) => r[`d${i}`]),
+      ops: r.ops,
+      volume: Number(r.volume),
+      revenue: Number(r.revenue),
     })),
   };
 }
@@ -278,4 +327,4 @@ async function getCouponUsage({ networkIds, allowedStations, coupons }) {
   return out;
 }
 
-module.exports = { getOverview, getDetailedAnalytics, getOperations, getSyncStatus, coverageStart, getCouponUsage };
+module.exports = { getOverview, getDetailedAnalytics, getOperations, getPivot, getSyncStatus, coverageStart, getCouponUsage };

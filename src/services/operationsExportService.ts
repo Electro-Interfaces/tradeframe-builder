@@ -5,6 +5,7 @@
 import { normalizePaymentMethod } from '@/utils/paymentUtils';
 import { loadPdfMake } from '@/utils/pdfMake';
 import { loadXlsx } from '@/utils/xlsxLoader';
+import type { PivotNode } from '@/utils/pivotTree';
 
 interface ExportOperation {
   id?: string;
@@ -129,7 +130,24 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
     });
 
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
+
+    // Шапка идёт ПЕРВОЙ, таблица дописывается ниже (origin: -1). Раньше шапка
+    // вставлялась поверх готового листа в A1 и затирала колонку «Чек» у первых
+    // строк — в файле выходила мешанина из подписей и данных.
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['Отчёт по операциям'],
+      [`Сеть: ${networkName || '—'}`],
+      [`Точка: ${tradingPointName || '—'}`],
+      [`Период: ${dateFrom || '—'} — ${dateTo || '—'}`],
+      [`Дата формирования: ${new Date().toLocaleString('ru-RU')}`],
+      [],
+      [`Количество операций: ${operations.length}`],
+      [`Отпуск: ${formatNumberDisplay(totals.liters)} л`],
+      [`Сумма: ${formatNumberDisplay(totals.amount)} ₽`],
+      [`Заказано: ${formatNumberDisplay(totals.orderedLiters)} л на ${formatNumberDisplay(totals.orderedAmount)} ₽`],
+      [],
+    ]);
+    XLSX.utils.sheet_add_json(ws, data, { origin: -1 });
 
     // Применяем числовой формат к числовым колонкам
     const numericColumns = [3, 5, 6, 7, 10, 11, 12]; // Пистолет, Кол-во, Цена, Сумма, POS, Смена, Заказ
@@ -162,24 +180,6 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
       { wch: 12 },  // Статус
     ];
 
-    XLSX.utils.sheet_add_aoa(
-      ws,
-      [
-        ['Отчёт по операциям'],
-        [`Сеть: ${networkName || '—'}`],
-        [`Точка: ${tradingPointName || '—'}`],
-        [`Период: ${dateFrom || '—'} — ${dateTo || '—'}`],
-        [`Дата формирования: ${new Date().toLocaleString('ru-RU')}`],
-        [],
-        [`Количество операций: ${operations.length}`],
-        [`Отпуск: ${formatNumberDisplay(totals.liters)} л`],
-        [`Сумма: ${formatNumberDisplay(totals.amount)} ₽`],
-        [`Заказано: ${formatNumberDisplay(totals.orderedLiters)} л на ${formatNumberDisplay(totals.orderedAmount)} ₽`],
-        [],
-      ],
-      { origin: 'A1' }
-    );
-
     XLSX.utils.book_append_sheet(wb, ws, 'Операции');
     const fileName = `operations_${dateFrom || 'start'}_${dateTo || 'end'}.xlsx`;
     XLSX.writeFile(wb, fileName);
@@ -187,6 +187,104 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
     showNotification(`Excel файл создан: ${operations.length} записей`, 'success', isMobile);
   } catch (error) {
     showNotification('Ошибка при создании Excel файла', 'error', isMobile);
+  }
+}
+
+/**
+ * Экспорт сводной в Excel: лист «Сводная» (иерархия с подытогами, как на экране)
+ * + лист «Данные» (плоские листья — из них удобно строить свои сводные в Excel).
+ */
+export async function exportPivotToExcel(options: {
+  nodes: PivotNode[];
+  totals: { ops: number; volume: number; revenue: number };
+  dims: { key: string; label: string }[];
+  dateFrom?: string;
+  dateTo?: string;
+  networkName?: string;
+  tradingPointName?: string;
+  isMobile?: boolean;
+}): Promise<void> {
+  const { nodes, totals, dims, dateFrom, dateTo, networkName, tradingPointName, isMobile = false } = options;
+
+  if (!nodes.length) {
+    showNotification('Нет данных для экспорта', 'warning', isMobile);
+    return;
+  }
+
+  try {
+    const XLSX = await loadXlsx();
+    const wb = XLSX.utils.book_new();
+
+    // ── Лист 1: иерархия. Отступ уровня — неразрывными пробелами, чтобы
+    // структура читалась и после сортировки колонок в Excel.
+    const treeRows: any[][] = [[
+      'Группировка', 'Уровень', 'Операции', 'Литры', 'Сумма, ₽', 'Ср. цена, ₽/л', 'Доля от родителя, %',
+    ]];
+    const walk = (list: PivotNode[]) => {
+      for (const node of list) {
+        treeRows.push([
+          `${' '.repeat(node.level * 4)}${node.label}`,
+          dims[node.level]?.label || node.dim,
+          node.ops,
+          Number(node.volume.toFixed(2)),
+          Number(node.revenue.toFixed(2)),
+          node.avgPrice != null ? Number(node.avgPrice.toFixed(2)) : null,
+          Number((node.share * 100).toFixed(1)),
+        ]);
+        walk(node.children);
+      }
+    };
+    walk(nodes);
+    treeRows.push([]);
+    treeRows.push([
+      'ИТОГО', '', totals.ops, Number(totals.volume.toFixed(2)), Number(totals.revenue.toFixed(2)),
+      totals.volume > 0 ? Number((totals.revenue / totals.volume).toFixed(2)) : null, 100,
+    ]);
+
+    const wsTree = XLSX.utils.aoa_to_sheet([
+      ['Сводная по операциям'],
+      [`Сеть: ${networkName || '—'}`],
+      [`Точка: ${tradingPointName || '—'}`],
+      [`Период: ${dateFrom || '—'} — ${dateTo || '—'}`],
+      [`Группировка: ${dims.map((d) => d.label).join(' → ')}`],
+      [`Дата формирования: ${new Date().toLocaleString('ru-RU')}`],
+      [],
+      ...treeRows,
+    ]);
+    wsTree['!cols'] = [{ wch: 34 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsTree, 'Сводная');
+
+    // ── Лист 2: плоские листья (последний уровень дерева) — сырьё для
+    // собственных сводных таблиц в Excel.
+    const flat: any[][] = [[...dims.map((d) => d.label), 'Операции', 'Литры', 'Сумма, ₽', 'Ср. цена, ₽/л']];
+    const walkLeaves = (list: PivotNode[], trail: string[]) => {
+      for (const node of list) {
+        const path = [...trail, node.label];
+        if (node.children.length) walkLeaves(node.children, path);
+        else {
+          flat.push([
+            ...path,
+            ...Array(Math.max(0, dims.length - path.length)).fill(''),
+            node.ops,
+            Number(node.volume.toFixed(2)),
+            Number(node.revenue.toFixed(2)),
+            node.avgPrice != null ? Number(node.avgPrice.toFixed(2)) : null,
+          ]);
+        }
+      }
+    };
+    walkLeaves(nodes, []);
+
+    const wsFlat = XLSX.utils.aoa_to_sheet(flat);
+    wsFlat['!cols'] = [...dims.map(() => ({ wch: 20 })), { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, wsFlat, 'Данные');
+
+    XLSX.writeFile(wb, `svodnaya_${dateFrom || 'start'}_${dateTo || 'end'}.xlsx`);
+    showNotification(`Excel файл создан: ${flat.length - 1} строк данных`, 'success', isMobile);
+  } catch (error: any) {
+    // Молчаливый catch прятал причину — без текста ошибку невозможно разобрать
+    console.error('[Экспорт сводной]', error);
+    showNotification(`Ошибка при создании Excel: ${error?.message || 'неизвестная'}`, 'error', isMobile);
   }
 }
 
