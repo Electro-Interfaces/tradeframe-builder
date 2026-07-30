@@ -192,6 +192,43 @@ function clearCache() {
   return old;
 }
 
+// ─── Фолбэк /v2/info → /v1/info ────────────────────────
+// По отдельным системам STS отдаёт 500 на /v2/info (кейс system=71), а краткий
+// /v1/info по той же станции работает. Формы отличаются только устройствами:
+//   v2: devices: [{ id, name, params: [{ name: 'Состояние', value: 'OK' }, …] }]
+//   v1: devices: [{ name, state }] — параметры «расплющены» в отдельные записи
+//       с одинаковым name (Купюроприемник: '0', '[]', 'Отсутствует', '0.00')
+// Приводим v1 к форме v2, чтобы не учить фронтовый маппер второму формату.
+// Имена параметров в v1 потеряны, поэтому восстанавливаем только «Состояние» —
+// первое значение группы, не похожее на число или пустой массив.
+
+function looksLikeState(value) {
+  if (value == null) return false;
+  const s = String(value).trim();
+  if (s === '' || s === '[]') return false;
+  return !/^-?\d+([.,]\d+)?$/.test(s);
+}
+
+function normalizeV1InfoToV2(stations) {
+  if (!Array.isArray(stations)) return stations;
+  return stations.map((station) => ({
+    ...station,
+    pos: (station?.pos || []).map((pos) => {
+      const statesByName = new Map();
+      for (const device of pos?.devices || []) {
+        if (!device?.name) continue;
+        if (!statesByName.has(device.name)) statesByName.set(device.name, []);
+        statesByName.get(device.name).push(device.state);
+      }
+      const devices = [...statesByName.entries()].map(([name, states]) => ({
+        name,
+        params: [{ name: 'Состояние', value: states.find(looksLikeState) ?? states[0] ?? '' }],
+      }));
+      return { ...pos, devices };
+    }),
+  }));
+}
+
 // ─── STS Client & Token ────────────────────────────────
 
 let stsClient = null;
@@ -457,7 +494,17 @@ async function proxyRequest(req, res) {
         return { data: merged, status: primaryResp.status };
       }
 
-      const response = await client.request(primaryRequestConfig);
+      let response;
+      try {
+        response = await client.request(primaryRequestConfig);
+      } catch (err) {
+        // Расширенный info по некоторым системам ложится на стороне STS —
+        // добираем краткий v1 и приводим его к форме v2 (см. normalizeV1InfoToV2).
+        if (urlPath !== '/v2/info' || !(err.response?.status >= 500)) throw err;
+        console.warn(`[STS Proxy] /v2/info → ${err.response.status} (system=${effectiveQuery.system}) → фолбэк на /v1/info`);
+        const v1 = await client.request({ ...primaryRequestConfig, url: '/v1/info' });
+        response = { ...v1, data: normalizeV1InfoToV2(v1.data) };
+      }
 
       // Filter-out: если это per-network запрос на родную сеть алиасов —
       // убрать из ответа данные станций, «уехавших» в другие сети.
@@ -576,6 +623,7 @@ function loadCacheSnapshot() {
 
 module.exports = {
   getStsClient,
+  normalizeV1InfoToV2,
   proxyRequest,
   stsInternalRequest,
   updateCurrentUser,
