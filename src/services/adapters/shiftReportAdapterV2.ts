@@ -8,6 +8,7 @@ import type {
   TankSnapshot,
   FuelSalesItem,
   PaymentSalesItem,
+  SalesCrossItem,
   ReceiptItem,
   CashMovementItem,
   PosInfoItem,
@@ -37,6 +38,11 @@ export class ShiftReportAdapterV2 {
 
     // Извлекаем детализированные продажи для расшифровки реализации
     const salesBreakdown = this.extractSalesBreakdown(apiResponse.sales, nozzleReadings);
+
+    // Кросс «способ оплаты × вид топлива» без схлопывания — для сводной дашборда.
+    // extractSales агрегирует отдельно по топливу и отдельно по оплате, пересечение
+    // там теряется, а в самом отчёте STS оно есть (sales[].fuel[]).
+    const salesCross = this.extractSalesCross(apiResponse.sales);
 
     // Извлекаем поступления
     const receipts = this.extractReceipts(apiResponse.receipt);
@@ -153,6 +159,7 @@ export class ShiftReportAdapterV2 {
       fuelSales,
       paymentSales,
       salesBreakdown,
+      salesCross,
       cashMovements,
       reportCreatedAt: new Date().toISOString(),
 
@@ -306,6 +313,35 @@ export class ShiftReportAdapterV2 {
       fuelSales: Array.from(fuelSalesMap.values()),
       paymentSales,
     };
+  }
+
+  /**
+   * Кросс «способ оплаты × вид топлива» из sales — как отдаёт STS, без агрегации.
+   * Нужен сводной на дашборде: только здесь известно, сколько АИ-92 продано
+   * за наличные, а сколько по БАЛТОП. fuelSales/paymentSales это схлопывают.
+   */
+  private static extractSalesCross(sales: any[]): SalesCrossItem[] {
+    if (!sales || !Array.isArray(sales)) return [];
+
+    const out: SalesCrossItem[] = [];
+    sales.forEach((sale: any) => {
+      const paymentTypeId = sale.pay_type?.id ?? 0;
+      const paymentTypeName = sale.pay_type?.name || 'Неизвестно';
+      if (!Array.isArray(sale.fuel)) return;
+
+      sale.fuel.forEach((fuelItem: any) => {
+        out.push({
+          paymentTypeId,
+          paymentTypeName,
+          fuelCode: fuelItem.service?.service_code ?? 0,
+          fuelName: fuelItem.service?.service_name || 'Неизвестно',
+          quantity: parseFloat(fuelItem.release?.volume || '0') || 0,
+          cost: parseFloat(fuelItem.release?.cost || '0') || 0,
+          discount: parseFloat(fuelItem.release?.discount || '0') || 0,
+        });
+      });
+    });
+    return out;
   }
 
   /**

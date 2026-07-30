@@ -9,8 +9,10 @@ import {
   type PivotLeaf, type PivotNode, type PivotSortBy, type PivotLabeler,
 } from "@/utils/pivotTree";
 
-/** Измерения — подписи и порядок в конструкторе. Ключи = server/services/analytics/pivotDims.js */
-export const PIVOT_DIMENSIONS: { key: string; label: string }[] = [
+export interface PivotDimension { key: string; label: string }
+
+/** Измерения «Операций». Ключи = server/services/analytics/pivotDims.js */
+export const PIVOT_DIMENSIONS: PivotDimension[] = [
   { key: 'station', label: 'Станция' },
   { key: 'fuel', label: 'Вид топлива' },
   { key: 'payment', label: 'Способ оплаты' },
@@ -26,10 +28,14 @@ export const PIVOT_DIMENSIONS: { key: string; label: string }[] = [
 
 export const MAX_PIVOT_DIMS = 5;
 
-interface OperationsPivotProps {
+interface PivotTableProps {
   leaves: PivotLeaf[];
-  /** Порядок измерений в leaves[].keys — как отдал сервер */
+  /** Порядок измерений в leaves[].keys — как отдал источник данных */
   serverDims: string[];
+  /** Доступные измерения. По умолчанию — измерения «Операций» */
+  availableDims?: PivotDimension[];
+  /** Показывать колонку «Операции» (в сменных отчётах счётчика чеков нет) */
+  showOps?: boolean;
   /** Выбранные измерения в порядке отображения */
   dims: string[];
   onDimsChange: (dims: string[]) => void;
@@ -47,9 +53,11 @@ interface OperationsPivotProps {
 const fmt2 = (v: number) => v.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtInt = (v: number) => v.toLocaleString('ru-RU');
 
-export default function OperationsPivot({
-  leaves, serverDims, dims, onDimsChange, sortBy, onSortByChange, labeler, loading, truncated, error, isMobile,
-}: OperationsPivotProps) {
+export default function PivotTable({
+  leaves, serverDims, dims, onDimsChange, availableDims = PIVOT_DIMENSIONS, showOps = true,
+  sortBy, onSortByChange, labeler, loading, truncated, error, isMobile,
+}: PivotTableProps) {
+  const opsColumn = showOps && !isMobile;
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Перетаскивание уровней группировки (HTML5 DnD; на тач-устройствах порядок
   // задаётся снятием/добавлением измерений в палитре)
@@ -120,7 +128,7 @@ export default function OperationsPivot({
             <span className="text-xs text-muted-foreground">Ничего не выбрано — добавьте измерение ниже</span>
           )}
           {dims.map((key, index) => {
-            const label = PIVOT_DIMENSIONS.find((d) => d.key === key)?.label || key;
+            const label = availableDims.find((d) => d.key === key)?.label || key;
             const isDragged = dragIndex === index;
             const isOver = overIndex === index && dragIndex !== null && dragIndex !== index;
             return (
@@ -161,10 +169,10 @@ export default function OperationsPivot({
         </div>
 
         {/* Палитра: измерения, которых ещё нет в группировке */}
-        {dims.length < PIVOT_DIMENSIONS.length && (
+        {dims.length < availableDims.length && (
           <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
             <span className="text-xs text-muted-foreground self-center mr-1">Добавить:</span>
-            {PIVOT_DIMENSIONS.filter((d) => !dims.includes(d.key)).map((d) => {
+            {availableDims.filter((d) => !dims.includes(d.key)).map((d) => {
               const disabled = dims.length >= MAX_PIVOT_DIMS;
               return (
                 <button
@@ -213,7 +221,7 @@ export default function OperationsPivot({
               <TableHeader>
                 <TableRow className="border-border">
                   <TableHead className="text-muted-foreground">Группировка</TableHead>
-                  {!isMobile && <TableHead className="text-muted-foreground text-right">Операции</TableHead>}
+                  {opsColumn && <TableHead className="text-muted-foreground text-right">Операции</TableHead>}
                   <TableHead className="text-muted-foreground text-right">Литры</TableHead>
                   <TableHead className="text-muted-foreground text-right">Сумма</TableHead>
                   {!isMobile && <TableHead className="text-muted-foreground text-right">Ср. цена</TableHead>}
@@ -241,12 +249,12 @@ export default function OperationsPivot({
                           <span className={`truncate ${node.level === 0 ? 'font-medium text-foreground' : 'text-foreground/80'}`}>
                             {node.label}
                           </span>
-                          {isMobile && (
+                          {isMobile && showOps && (
                             <Badge variant="outline" className="ml-1 shrink-0 text-[10px]">{fmtInt(node.ops)}</Badge>
                           )}
                         </div>
                       </TableCell>
-                      {!isMobile && <TableCell className="text-right font-mono text-foreground/80">{fmtInt(node.ops)}</TableCell>}
+                      {opsColumn && <TableCell className="text-right font-mono text-foreground/80">{fmtInt(node.ops)}</TableCell>}
                       <TableCell className="text-right font-mono text-foreground/80 whitespace-nowrap">{fmt2(node.volume)} л</TableCell>
                       <TableCell className="text-right font-medium text-foreground whitespace-nowrap">{fmt2(node.revenue)} ₽</TableCell>
                       {!isMobile && (
@@ -262,7 +270,7 @@ export default function OperationsPivot({
                 })}
                 <TableRow className="border-border bg-secondary/50 font-medium">
                   <TableCell className="text-foreground">Итого</TableCell>
-                  {!isMobile && <TableCell className="text-right font-mono text-foreground">{fmtInt(totals.ops)}</TableCell>}
+                  {opsColumn && <TableCell className="text-right font-mono text-foreground">{fmtInt(totals.ops)}</TableCell>}
                   <TableCell className="text-right font-mono text-foreground whitespace-nowrap">{fmt2(totals.volume)} л</TableCell>
                   <TableCell className="text-right text-foreground whitespace-nowrap">{fmt2(totals.revenue)} ₽</TableCell>
                   {!isMobile && (

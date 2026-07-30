@@ -20,7 +20,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowLeft, AlertCircle, Filter, ChevronDown } from "lucide-react";
+import { ArrowLeft, AlertCircle, Filter, ChevronDown, FileSpreadsheet } from "lucide-react";
+import PivotTable from "@/components/pivot/PivotTable";
+import { buildPivotTree, type PivotSortBy } from "@/utils/pivotTree";
+import { buildShiftPivotLeaves, SHIFT_PIVOT_DIMENSIONS, SHIFT_PIVOT_DIM_KEYS } from "@/utils/shiftPivotLeaves";
 import { useNavigate } from "react-router-dom";
 import { tradingPointsService } from "@/services/tradingPointsService";
 
@@ -136,6 +139,51 @@ export default function ShiftDashboard() {
     selectedShifts: selectedShifts.length > 0 ? selectedShifts : undefined,
     enabled: stations.length > 0 && !loadingStations && systemId != null,
   });
+
+  // ── Сводная по сменным отчётам ────────────────────────────────────────
+  // Источник — те же смены, что и KPI выше (блок sales отчёта STS), никаких
+  // транзакций: иначе итог сводной разошёлся бы с карточками дашборда.
+  const [dashboardView, setDashboardView] = useState<'charts' | 'pivot'>(
+    () => (localStorage.getItem('shiftDash.view') === 'pivot' ? 'pivot' : 'charts')
+  );
+  const [pivotDims, setPivotDims] = useState<string[]>(() => {
+    const saved = localStorage.getItem('shiftDash.pivotDims');
+    const parsed = saved ? saved.split(',').filter((k) => SHIFT_PIVOT_DIM_KEYS.includes(k)) : [];
+    return parsed.length ? parsed : ['station', 'fuel', 'payment'];
+  });
+  const [pivotSortBy, setPivotSortBy] = useState<PivotSortBy>('revenue');
+
+  useEffect(() => { localStorage.setItem('shiftDash.view', dashboardView); }, [dashboardView]);
+  useEffect(() => { localStorage.setItem('shiftDash.pivotDims', pivotDims.join(',')); }, [pivotDims]);
+
+  const pivotLeaves = useMemo(
+    () => buildShiftPivotLeaves((data?.shifts || []) as any[], pivotDims),
+    [data?.shifts, pivotDims]
+  );
+
+  const pivotLabeler = useMemo(() => (dim: string, value: string | number | null) => {
+    if (value == null || value === '') return '— не указано —';
+    if (dim === 'station') return stationNames[Number(value)] || `АЗС ${value}`;
+    if (dim === 'shift') return `Смена №${value}`;
+    return String(value);
+  }, [stationNames]);
+
+  const handleExportPivot = async () => {
+    const { nodes, totals } = buildPivotTree(pivotLeaves, pivotDims, pivotDims, pivotSortBy, pivotLabeler);
+    const { exportPivotToExcel } = await import('@/services/operationsExportService');
+    await exportPivotToExcel({
+      nodes,
+      totals,
+      dims: pivotDims.map((k) => SHIFT_PIVOT_DIMENSIONS.find((d) => d.key === k) || { key: k, label: k }),
+      dateFrom: period.dateFrom,
+      dateTo: period.dateTo,
+      networkName: selectedNetwork?.name,
+      tradingPointName: isAllTradingPoints ? 'Все торговые точки' : (selectedStation?.name || ''),
+      isMobile,
+      includeOps: false,
+      title: 'Сводная по сменным отчётам',
+    });
+  };
 
   // Обёртка для pull-to-refresh (refetch возвращает Promise из react-query)
   const refreshData = useCallback(async () => {
@@ -379,8 +427,51 @@ export default function ShiftDashboard() {
           </div>
         )}
 
-        {/* Графики */}
+        {/* Сводная по сменным отчётам — все цифры из тех же смен, что и KPI выше */}
         {data && (
+          <div className="mb-4 sm:mb-6">
+            <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 w-fit">
+                {([['charts', 'Графики'], ['pivot', 'Сводная']] as const).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setDashboardView(mode)}
+                    className={`rounded-md px-4 py-1.5 text-sm transition-colors ${
+                      dashboardView === mode ? 'bg-secondary font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {dashboardView === 'pivot' && (
+                <Button variant="outline" size="sm" onClick={handleExportPivot} disabled={!pivotLeaves.length}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Экспорт сводной
+                </Button>
+              )}
+            </div>
+
+            {dashboardView === 'pivot' && (
+              <PivotTable
+                leaves={pivotLeaves}
+                serverDims={pivotDims}
+                dims={pivotDims}
+                onDimsChange={setPivotDims}
+                availableDims={SHIFT_PIVOT_DIMENSIONS}
+                showOps={false}
+                sortBy={pivotSortBy}
+                onSortByChange={setPivotSortBy}
+                labeler={pivotLabeler}
+                isMobile={isMobile}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Графики */}
+        {data && dashboardView === 'charts' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
             <RevenueByDayChart
               data={data.charts.daily}

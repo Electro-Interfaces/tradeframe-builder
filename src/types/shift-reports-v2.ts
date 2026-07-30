@@ -178,6 +178,34 @@ export interface PaymentSalesItem {
 }
 
 /**
+ * Продажи в разрезе «способ оплаты × вид топлива» — как в блоке sales отчёта STS.
+ * В отличие от FuelSalesItem/PaymentSalesItem пересечение здесь сохранено:
+ * видно, сколько конкретного топлива продано конкретным способом оплаты.
+ */
+export interface SalesCrossItem {
+  /** ID типа оплаты */
+  paymentTypeId: number;
+
+  /** Название способа оплаты */
+  paymentTypeName: string;
+
+  /** Код топлива */
+  fuelCode: number;
+
+  /** Название топлива */
+  fuelName: string;
+
+  /** Количество (литры) */
+  quantity: number;
+
+  /** Стоимость (рубли) */
+  cost: number;
+
+  /** Скидка (рубли) */
+  discount: number;
+}
+
+/**
  * Детализированные продажи по топливу и способам оплаты
  * Для таблицы "Расшифровка реализации"
  */
@@ -427,6 +455,9 @@ export interface ShiftDetails extends ShiftListItem {
 
   /** Детализированные продажи (для расшифровки реализации) */
   salesBreakdown: FuelSalesBreakdown[];
+
+  /** Продажи в разрезе «способ оплаты × вид топлива» (для сводной дашборда) */
+  salesCross?: SalesCrossItem[];
 
   // ========== Движение наличных ==========
 

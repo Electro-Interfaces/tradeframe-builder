@@ -16,7 +16,7 @@ import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, 
 import KPIFuelCard from "@/components/operations/KPIFuelCard";
 import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
 import { VirtualizedOperationsTable } from "@/components/operations/VirtualizedOperationsTable";
-import OperationsPivot, { PIVOT_DIMENSIONS } from "@/components/operations/OperationsPivot";
+import PivotTable, { PIVOT_DIMENSIONS } from "@/components/pivot/PivotTable";
 import { buildPivotTree, type PivotSortBy } from "@/utils/pivotTree";
 import { exportToExcel, exportToPdf, exportPivotToExcel } from "@/services/operationsExportService";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
@@ -1063,7 +1063,7 @@ export default function OperationsTransactionsPageSimple() {
         </div>
 
         {viewMode === 'pivot' && (
-          <OperationsPivot
+          <PivotTable
             leaves={pivotData?.rows || []}
             serverDims={pivotData?.dims || []}
             dims={pivotDims}

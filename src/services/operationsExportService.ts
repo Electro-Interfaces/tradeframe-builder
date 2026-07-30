@@ -203,8 +203,15 @@ export async function exportPivotToExcel(options: {
   networkName?: string;
   tradingPointName?: string;
   isMobile?: boolean;
+  /** Колонка «Операции»: в сменных отчётах счётчика чеков нет */
+  includeOps?: boolean;
+  /** Заголовок листа (по умолчанию — сводная по операциям) */
+  title?: string;
 }): Promise<void> {
-  const { nodes, totals, dims, dateFrom, dateTo, networkName, tradingPointName, isMobile = false } = options;
+  const {
+    nodes, totals, dims, dateFrom, dateTo, networkName, tradingPointName,
+    isMobile = false, includeOps = true, title = 'Сводная по операциям',
+  } = options;
 
   if (!nodes.length) {
     showNotification('Нет данных для экспорта', 'warning', isMobile);
@@ -218,14 +225,15 @@ export async function exportPivotToExcel(options: {
     // ── Лист 1: иерархия. Отступ уровня — неразрывными пробелами, чтобы
     // структура читалась и после сортировки колонок в Excel.
     const treeRows: any[][] = [[
-      'Группировка', 'Уровень', 'Операции', 'Литры', 'Сумма, ₽', 'Ср. цена, ₽/л', 'Доля от родителя, %',
+      'Группировка', 'Уровень', ...(includeOps ? ['Операции'] : []),
+      'Литры', 'Сумма, ₽', 'Ср. цена, ₽/л', 'Доля от родителя, %',
     ]];
     const walk = (list: PivotNode[]) => {
       for (const node of list) {
         treeRows.push([
           `${' '.repeat(node.level * 4)}${node.label}`,
           dims[node.level]?.label || node.dim,
-          node.ops,
+          ...(includeOps ? [node.ops] : []),
           Number(node.volume.toFixed(2)),
           Number(node.revenue.toFixed(2)),
           node.avgPrice != null ? Number(node.avgPrice.toFixed(2)) : null,
@@ -237,12 +245,13 @@ export async function exportPivotToExcel(options: {
     walk(nodes);
     treeRows.push([]);
     treeRows.push([
-      'ИТОГО', '', totals.ops, Number(totals.volume.toFixed(2)), Number(totals.revenue.toFixed(2)),
+      'ИТОГО', '', ...(includeOps ? [totals.ops] : []),
+      Number(totals.volume.toFixed(2)), Number(totals.revenue.toFixed(2)),
       totals.volume > 0 ? Number((totals.revenue / totals.volume).toFixed(2)) : null, 100,
     ]);
 
     const wsTree = XLSX.utils.aoa_to_sheet([
-      ['Сводная по операциям'],
+      [title],
       [`Сеть: ${networkName || '—'}`],
       [`Точка: ${tradingPointName || '—'}`],
       [`Период: ${dateFrom || '—'} — ${dateTo || '—'}`],
@@ -251,12 +260,14 @@ export async function exportPivotToExcel(options: {
       [],
       ...treeRows,
     ]);
-    wsTree['!cols'] = [{ wch: 34 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 20 }];
+    wsTree['!cols'] = [{ wch: 34 }, { wch: 16 }, ...(includeOps ? [{ wch: 12 }] : []), { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(wb, wsTree, 'Сводная');
 
     // ── Лист 2: плоские листья (последний уровень дерева) — сырьё для
     // собственных сводных таблиц в Excel.
-    const flat: any[][] = [[...dims.map((d) => d.label), 'Операции', 'Литры', 'Сумма, ₽', 'Ср. цена, ₽/л']];
+    const flat: any[][] = [[
+      ...dims.map((d) => d.label), ...(includeOps ? ['Операции'] : []), 'Литры', 'Сумма, ₽', 'Ср. цена, ₽/л',
+    ]];
     const walkLeaves = (list: PivotNode[], trail: string[]) => {
       for (const node of list) {
         const path = [...trail, node.label];
@@ -265,7 +276,7 @@ export async function exportPivotToExcel(options: {
           flat.push([
             ...path,
             ...Array(Math.max(0, dims.length - path.length)).fill(''),
-            node.ops,
+            ...(includeOps ? [node.ops] : []),
             Number(node.volume.toFixed(2)),
             Number(node.revenue.toFixed(2)),
             node.avgPrice != null ? Number(node.avgPrice.toFixed(2)) : null,
@@ -276,7 +287,7 @@ export async function exportPivotToExcel(options: {
     walkLeaves(nodes, []);
 
     const wsFlat = XLSX.utils.aoa_to_sheet(flat);
-    wsFlat['!cols'] = [...dims.map(() => ({ wch: 20 })), { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 14 }];
+    wsFlat['!cols'] = [...dims.map(() => ({ wch: 20 })), ...(includeOps ? [{ wch: 12 }] : []), { wch: 14 }, { wch: 16 }, { wch: 14 }];
     XLSX.utils.book_append_sheet(wb, wsFlat, 'Данные');
 
     XLSX.writeFile(wb, `svodnaya_${dateFrom || 'start'}_${dateTo || 'end'}.xlsx`);
