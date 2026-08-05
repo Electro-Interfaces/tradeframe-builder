@@ -120,17 +120,38 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
     load();
   }, [isInitialized, selectedNetworkIds, stationsKey, dateFrom, dateTo, load]);
 
-  // Кнопка «Обновить»: принудительный досинк выбранной сети + перечитать агрегаты.
+  // Быстрое обновление: досинхронизировать только свежий хвост и перечитать агрегаты.
   const refresh = useCallback(async () => {
     const networkIds = selectedNetworkIds;
     if (!networkIds || networkIds.length === 0) return;
     setLoading(true);
     try {
-      await triggerSync(networkIds, { from: dateFrom, to: dateTo, stations: selectedStationCodes });
+      await triggerSync(networkIds);
     } catch {
       /* если синк не удался — всё равно перечитываем то, что есть */
     }
     await load();
+  }, [selectedNetworkIds, load]);
+
+  // Ручная сверка: заново получить из STS весь выбранный период и перечитать агрегаты.
+  const reconcile = useCallback(async () => {
+    const networkIds = selectedNetworkIds;
+    if (!networkIds || networkIds.length === 0) {
+      throw new Error('Сеть не выбрана');
+    }
+
+    setLoading(true);
+    try {
+      const result = await triggerSync(networkIds, {
+        from: dateFrom,
+        to: dateTo,
+        stations: selectedStationCodes,
+      });
+      await load();
+      return result;
+    } finally {
+      setLoading(false);
+    }
   }, [selectedNetworkIds, dateFrom, dateTo, stationsKey, load]);
 
   // ── Маппинг агрегатов в форматы компонентов основного блока ────────────────
@@ -300,5 +321,6 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
 
     reload: load,
     refresh,
+    reconcile,
   };
 }

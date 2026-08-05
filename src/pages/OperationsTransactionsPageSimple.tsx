@@ -441,19 +441,14 @@ export default function OperationsTransactionsPageSimple() {
     }
   };
 
-  // Кнопка «Обновить»: сначала принудительный досинк, затем перечитываем данные
+  // Кнопка «Обновить»: быстрый досинк свежего хвоста, затем перечитываем данные.
+  // Полная ручная сверка выбранного периода доступна отдельно на «Обзоре».
   const handleRefresh = async () => {
     const networkIds = selectedNetworkIds;
     if (networkIds.length === 0) return;
-    const parsed = parseOperationsSearch(debouncedSearchQuery);
-    const stations = selectedStationCodes ?? (parsed.station ? [parsed.station] : undefined);
     setLoadingFromSTS(true);
     try {
-      await triggerSync(networkIds, {
-        from: debouncedDateFrom,
-        to: debouncedDateTo,
-        stations,
-      });
+      await triggerSync(networkIds);
     } catch {
       /* если синк не удался — всё равно перечитываем то, что есть */
     }

@@ -122,7 +122,14 @@ export interface SyncParams {
   stations?: (string | number)[];
 }
 
-export async function triggerSync(networkIds: string[], params: SyncParams = {}): Promise<{ ok: boolean; synced: number }> {
+export interface SyncResult {
+  ok: boolean;
+  synced: number;
+  networks: number;
+  range: { from: string; to: string; days: number } | null;
+}
+
+export async function triggerSync(networkIds: string[], params: SyncParams = {}): Promise<SyncResult> {
   const token = getToken();
   const res = await fetch(`${getBackendOrigin()}/api/analytics/sync?networkId=${networkIds.join(',')}`, {
     method: 'POST',

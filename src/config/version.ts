@@ -1,5 +1,5 @@
 // Централизованное управление версией приложения
-export const APP_VERSION = '2.3.42';
+export const APP_VERSION = '2.3.43';
 
 // Дополнительная информация о версии
 export const VERSION_INFO = {

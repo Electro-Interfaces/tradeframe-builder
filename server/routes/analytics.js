@@ -9,9 +9,11 @@ const { getUserScope, getAllowedNetworkIds } = require('../middleware/scopeFilte
 const analytics = require('../services/analytics/analyticsPgSource');
 const stsSource = require('../services/analytics/analyticsStsSource');
 const stsSync = require('../services/analytics/stsSync');
+const { createManualSyncGate } = require('../services/analytics/manualSyncGate');
 const { parseDims } = require('../services/analytics/pivotDims');
 
 const router = express.Router();
+const manualSyncGate = createManualSyncGate();
 router.use(requireAuth);
 
 // Выбор источника: если запрошенный период начинается РАНЬШЕ материализованного
@@ -174,6 +176,7 @@ router.get('/sync-status', async (req, res) => {
 // С переданным периодом перечитывает выбранные даты напрямую из STS, иначе
 // сохраняет быстрый режим «хвоста» для старых клиентов.
 router.post('/sync', async (req, res) => {
+  let reservedNetworks = null;
   try {
     const networkIds = await resolveNetworkIds(req);
     if (!networkIds.length) return res.status(400).json({ error: 'Сеть не выбрана или нет доступа' });
@@ -189,6 +192,18 @@ router.post('/sync', async (req, res) => {
       } catch (error) {
         return res.status(400).json({ error: error.message });
       }
+
+      const reservation = manualSyncGate.acquire(networkIds);
+      if (!reservation.ok) {
+        if (reservation.retryAfterSeconds) {
+          res.set('Retry-After', String(reservation.retryAfterSeconds));
+        }
+        return res.status(reservation.status).json({
+          error: reservation.error,
+          retryAfterSeconds: reservation.retryAfterSeconds,
+        });
+      }
+      reservedNetworks = reservation.networkIds;
     }
 
     const requestedStations = Array.isArray(req.body?.stations)
@@ -210,6 +225,8 @@ router.post('/sync', async (req, res) => {
   } catch (error) {
     console.error('[Analytics] sync:', error.message);
     res.status(500).json({ error: error.message || 'Ошибка синхронизации' });
+  } finally {
+    if (reservedNetworks) manualSyncGate.release(reservedNetworks);
   }
 });
 

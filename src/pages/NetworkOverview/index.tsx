@@ -8,6 +8,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ChartSkeleton, HeatmapSkeleton } from "@/components/ui/chart-skeleton";
 import { DailySalesChart } from "@/components/charts/DailySalesChart";
 import { FuelPerformanceChart } from "@/components/charts/FuelPerformanceChart";
@@ -47,6 +57,8 @@ export function NetworkOverview() {
   // экспорт: сырьё STS грузим ТОЛЬКО для экспорта, по явному клику пользователя.
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [exportPending, setExportPending] = useState<null | 'excel' | 'pdf'>(null);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [forceSyncing, setForceSyncing] = useState(false);
   // Раньше расширенная аналитика тоже тянула сырьё; теперь она на агрегатах,
   // поэтому сырьё нужно исключительно экспорту.
   const rawEnabled = exportPending !== null;
@@ -271,11 +283,33 @@ export function NetworkOverview() {
     }
   };
 
-  // Обновление: принудительный досинк + перечитать агрегаты (и сырьё, если оно загружено).
+  // Быстрое обновление свежего хвоста + перечитать агрегаты и загруженное сырьё.
   const handleCombinedRefresh = async () => {
     if (!selectedNetwork) return;
     await analytics.refresh();
     if (rawEnabled) handleManualRefresh();
+  };
+
+  const handleForcedReconcile = async () => {
+    if (!selectedNetwork || forceSyncing) return;
+    setForceSyncing(true);
+    try {
+      const result = await analytics.reconcile();
+      if (rawEnabled) await handleManualRefresh();
+      if (showAdvanced) await loadDetailed();
+      toast({
+        title: 'Сверка завершена',
+        description: `Обработано операций: ${result.synced.toLocaleString('ru-RU')}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Не удалось выполнить сверку',
+        description: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        variant: 'destructive',
+      });
+    } finally {
+      setForceSyncing(false);
+    }
   };
 
   const handleTouchEnd = async () => {
@@ -477,6 +511,22 @@ export function NetworkOverview() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-foreground">Обзор сети</h1>
             <div className="flex items-center gap-2">
+              {!initializing && selectedNetwork && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSyncDialogOpen(true)}
+                  disabled={mainBusy || forceSyncing}
+                >
+                  {forceSyncing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  <span className="hidden sm:inline">Сверить данные с STS</span>
+                  <span className="sm:hidden">Сверить</span>
+                </Button>
+              )}
               {!initializing && selectedNetwork && analytics.hasData && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -541,7 +591,8 @@ export function NetworkOverview() {
                         handleCombinedRefresh();
                       }}
                       disabled={mainBusy}
-
+                      aria-label="Быстро обновить данные"
+                      title="Быстро обновить данные"
                     >
                       <RefreshCw className={`w-4 h-4 ${mainBusy ? 'animate-spin' : ''}`} />
                     </Button>
@@ -839,13 +890,13 @@ export function NetworkOverview() {
               <Activity className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Нет данных за выбранный период</h3>
-            <p className="text-muted-foreground mb-4">Измените диапазон дат или нажмите кнопку "Обновить данные" для загрузки актуальной информации.</p>
+            <p className="text-muted-foreground mb-4">Измените диапазон дат или запустите сверку выбранного периода с STS.</p>
             <Button
-              onClick={() => analytics.refresh()}
+              onClick={() => setSyncDialogOpen(true)}
               className="bg-primary hover:bg-primary/80 text-white"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              Обновить данные
+              Сверить данные с STS
             </Button>
           </div>
         )}
@@ -895,6 +946,30 @@ export function NetworkOverview() {
         )}
         </div>
       </div>
+
+      <AlertDialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen}>
+        <AlertDialogContent className="w-[calc(100%-2rem)] rounded-lg sm:w-full">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Сверить данные с STS?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Будет заново запрошен весь период с {new Date(`${dateFrom}T00:00:00`).toLocaleDateString('ru-RU')}
+                {' '}по {new Date(`${dateTo}T00:00:00`).toLocaleDateString('ru-RU')} для выбранных сетей и торговых точек.
+              </span>
+              <span className="block">
+                Сверка может занять некоторое время. Повторный запуск для той же сети будет доступен через минуту.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={forceSyncing}>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleForcedReconcile} disabled={forceSyncing}>
+              {forceSyncing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Запустить сверку
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }
