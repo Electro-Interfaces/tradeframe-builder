@@ -10,6 +10,9 @@ const syncPath = require.resolve('../services/analytics/stsSync');
 const savedPool = require.cache[poolPath];
 const savedProxy = require.cache[proxyPath];
 const calls = { requests: [], inserts: [] };
+let requestDelayMs = 0;
+let activeRequests = 0;
+let maxActiveRequests = 0;
 
 require.cache[poolPath] = {
   id: poolPath,
@@ -36,20 +39,29 @@ require.cache[proxyPath] = {
   loaded: true,
   exports: {
     stsInternalRequest: async (path, params, headers, options) => {
+      activeRequests++;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
       calls.requests.push({ path, params, headers, options });
-      return [{
-        number: 3,
-        items: [{
-          id: 1,
-          dt: '2026-07-03T23:58:48',
-          fuel: 2,
-          fuel_name: 'АИ-92',
-          quantity: '20.35',
-          price: '81.90',
-          cost: '1666.67',
-          pay_type: { id: 1, name: 'Наличные' },
-        }],
-      }];
+      try {
+        if (requestDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, requestDelayMs));
+        }
+        return [{
+          number: 3,
+          items: [{
+            id: 1,
+            dt: '2026-07-03T23:58:48',
+            fuel: 2,
+            fuel_name: 'АИ-92',
+            quantity: '20.35',
+            price: '81.90',
+            cost: '1666.67',
+            pay_type: { id: 1, name: 'Наличные' },
+          }],
+        }];
+      } finally {
+        activeRequests--;
+      }
     },
   },
 };
@@ -81,9 +93,23 @@ test('ручная синхронизация перечитывает выбр�
   assert.equal(calls.requests[0].params.dt_beg, '2026-07-01 00:00:00');
   assert.equal(calls.requests[0].params.dt_end, '2026-07-31 23:59:59');
   assert.equal(calls.requests[0].options.bypassCache, true);
+  assert.equal(calls.requests[0].options.cacheResult, false);
   assert.equal(calls.inserts.length, 1);
   assert.equal(calls.inserts[0][3], 1);
   assert.equal(calls.inserts[0][12], 20.35);
+});
+
+test('параллельные ручные синхронизации выполняются последовательно', async () => {
+  requestDelayMs = 20;
+  maxActiveRequests = 0;
+
+  await Promise.all([
+    syncNetworkRange('73ccc1c3-dc69-4684-8c21-18a1fcec967c', '2026-07-01', '2026-07-02', [3]),
+    syncNetworkRange('73ccc1c3-dc69-4684-8c21-18a1fcec967c', '2026-07-03', '2026-07-04', [3]),
+  ]);
+
+  requestDelayMs = 0;
+  assert.equal(maxActiveRequests, 1);
 });
 
 test('валидация ограничивает ручную синхронизацию безопасным диапазоном', () => {

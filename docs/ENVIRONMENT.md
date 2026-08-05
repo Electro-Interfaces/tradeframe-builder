@@ -1,6 +1,6 @@
 # Окружение и переменные
 
-Дата актуализации: 2026-04-24
+Дата актуализации: 2026-08-05
 
 ## Главный принцип
 
@@ -75,7 +75,18 @@ TELEGRAM_BOT_USERNAME=
 PG_MAX_POOL_SIZE=10
 PG_IDLE_TIMEOUT_MS=30000
 PG_CONNECT_TIMEOUT_MS=5000
+
+# Фоновые задачи STS
+DISABLE_STS_SYNC=false
+DISABLE_STS_FUEL_WARMUP=false
+STS_FUEL_WARMUP_DAYS=7
 ```
+
+`DISABLE_STS_SYNC=true` отключает стартовую и периодическую материализацию транзакций STS→PostgreSQL.
+
+`DISABLE_STS_FUEL_WARMUP=true` отключает только стартовый прогрев экрана «Остатки».
+
+`STS_FUEL_WARMUP_DAYS` задаёт единственный прогреваемый период от 1 до 31 дня; production-дефолт — 7 дней.
 
 ## CI/CD secrets
 

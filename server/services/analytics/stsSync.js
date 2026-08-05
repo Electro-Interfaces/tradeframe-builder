@@ -32,6 +32,15 @@ const BACKFILL_MAX_DAYS = Number(process.env.STS_SYNC_BACKFILL_MAX || 60);
 // пишутся под текущим station_code. Расширяется по мере переименований.
 const DUAL_STATION_CODES = { 8: [9008] };
 
+let syncQueue = Promise.resolve();
+let allNetworksSyncPromise = null;
+
+function enqueueSyncJob(job) {
+  const run = syncQueue.catch(() => {}).then(job);
+  syncQueue = run.then(() => undefined, () => undefined);
+  return run;
+}
+
 const num = (v) => {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
@@ -138,7 +147,7 @@ async function syncStationDay(networkId, system, readStation, date, writeStation
   const data = await stsProxy.stsInternalRequest('/v2/transactions', {
     system, station: readStation,
     dt_beg: `${date} 00:00:00`, dt_end: `${date} 23:59:59`,
-  }, {});
+  }, {}, { cacheResult: false });
   const rows = extractRows(data, readStation);
   let total = 0;
   for (let i = 0; i < rows.length; i += 500) {
@@ -321,7 +330,7 @@ async function getNetworkStations(networkId) {
 }
 
 // Синк всей сети (все станции последовательно — не долбим STS)
-async function syncNetwork(networkId) {
+async function syncNetworkInternal(networkId) {
   const net = await postgres.queryOne(
     `SELECT external_id FROM networks WHERE id=$1 AND deleted_at IS NULL`, [networkId]
   );
@@ -337,16 +346,29 @@ async function syncNetwork(networkId) {
   return { ok: true, network_id: networkId, system, stations: stations.length, rows, results };
 }
 
+function syncNetwork(networkId) {
+  return enqueueSyncJob(() => syncNetworkInternal(networkId));
+}
+
 // Синк всех сетей с external_id
-async function syncAllNetworks() {
-  const nets = await postgres.query(
-    `SELECT id FROM networks WHERE deleted_at IS NULL AND external_id ~ '^[0-9]+$'`
-  );
-  const out = [];
-  for (const n of nets.rows) {
-    out.push(await syncNetwork(n.id));
-  }
-  return out;
+function syncAllNetworks() {
+  if (allNetworksSyncPromise) return allNetworksSyncPromise;
+
+  const run = enqueueSyncJob(async () => {
+    const nets = await postgres.query(
+      `SELECT id FROM networks WHERE deleted_at IS NULL AND external_id ~ '^[0-9]+$'`
+    );
+    const out = [];
+    for (const n of nets.rows) {
+      out.push(await syncNetworkInternal(n.id));
+    }
+    return out;
+  });
+
+  allNetworksSyncPromise = run.finally(() => {
+    allNetworksSyncPromise = null;
+  });
+  return allNetworksSyncPromise;
 }
 
 // ─────────────── Ленивая материализация (on-demand backfill) ───────────────
@@ -382,15 +404,16 @@ function monthChunksStr(from, to) {
 // writeStation != null — для dual-code (читаем старый номер, пишем под текущим).
 async function materializeStationRange(networkId, system, readStation, fromStr, toStr, writeStation, options = {}) {
   let total = 0;
+  const requestOptions = { ...options, cacheResult: false };
   for (const chunk of monthChunksStr(fromStr, toStr)) {
     let rows;
     try {
-      rows = await fetchStationRangeRows(system, readStation, chunk.from, chunk.to, null, options);
+      rows = await fetchStationRangeRows(system, readStation, chunk.from, chunk.to, null, requestOptions);
     } catch (e) {
       rows = []; // капризный чанк — по дням
       for (const day of eachDayStr(chunk.from, chunk.to)) {
         try {
-          rows.push(...await fetchStationDayRows(system, readStation, day, null, options));
+          rows.push(...await fetchStationDayRows(system, readStation, day, null, requestOptions));
         } catch (error) {
           if (options.strict) throw error;
         }
@@ -422,7 +445,7 @@ function validateSyncRange(from, to, maxDays = Number(process.env.STS_SYNC_MANUA
   return { from: String(from), to: String(to), days };
 }
 
-async function syncNetworkRange(networkId, fromStr, toStr, requestedStations) {
+async function syncNetworkRangeInternal(networkId, fromStr, toStr, requestedStations) {
   const range = validateSyncRange(fromStr, toStr);
   const net = await postgres.queryOne(
     `SELECT external_id FROM networks WHERE id=$1 AND deleted_at IS NULL`, [networkId]
@@ -470,12 +493,14 @@ async function syncNetworkRange(networkId, fromStr, toStr, requestedStations) {
   };
 }
 
+function syncNetworkRange(networkId, fromStr, toStr, requestedStations) {
+  return enqueueSyncJob(() => syncNetworkRangeInternal(networkId, fromStr, toStr, requestedStations));
+}
+
 const coverageJobs = new Set(); // одна ленивая до-материализация на сеть за раз
 
 // Докрыть материализацию сети до fromStr (фоном, не блокируя ответ роута).
-async function ensureCoverage(networkId, fromStr) {
-  if (coverageJobs.has(networkId)) return;
-  coverageJobs.add(networkId);
+async function ensureCoverageInternal(networkId, fromStr) {
   try {
     const net = await postgres.queryOne(
       `SELECT external_id FROM networks WHERE id=$1 AND deleted_at IS NULL`, [networkId]
@@ -522,9 +547,14 @@ async function ensureCoverage(networkId, fromStr) {
     console.log(`[STS lazy-mat] сеть ${networkId} докрыта до ${fromStr}: +${total} строк, станций ${gaps.length}`);
   } catch (e) {
     console.warn(`[STS lazy-mat] сеть ${networkId} до ${fromStr}: ${e.message}`);
-  } finally {
-    coverageJobs.delete(networkId);
   }
+}
+
+function ensureCoverage(networkId, fromStr) {
+  if (coverageJobs.has(networkId)) return Promise.resolve();
+  coverageJobs.add(networkId);
+  return enqueueSyncJob(() => ensureCoverageInternal(networkId, fromStr))
+    .finally(() => coverageJobs.delete(networkId));
 }
 
 module.exports = { syncStation, syncNetwork, syncNetworkRange, syncAllNetworks, getNetworkStations, extractRows, fetchStationDayRows, fetchStationRangeRows, ensureCoverage, validateSyncRange, DUAL_STATION_CODES };

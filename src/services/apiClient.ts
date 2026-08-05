@@ -8,6 +8,25 @@ import { getToken } from '@/utils/authStorage';
 
 const BASE = `${getBackendOrigin()}/api`;
 
+export async function authorizedFetch(
+  input: RequestInfo | URL,
+  options: RequestInit = {},
+): Promise<Response> {
+  const token = getToken();
+  if (!token) {
+    throw new Error('Требуется повторный вход в систему');
+  }
+
+  const headers = new Headers(options.headers);
+  headers.set('Authorization', `Bearer ${token}`);
+
+  return fetch(input, {
+    ...options,
+    headers,
+    credentials: options.credentials ?? 'include',
+  });
+}
+
 async function parseResponse(response: Response): Promise<any> {
   const text = await response.text();
   if (!text) return null;

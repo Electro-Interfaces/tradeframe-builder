@@ -270,13 +270,15 @@ async function warmupCache() {
 
     const fmt = (d, eod) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${eod ? '23:59:59' : '00:00:00'}`;
-    // Кэш «Остатков» — по ТОЧНОМУ периоду (fuelinv:sys:st:dt_beg:dt_end), поэтому
-    // прогрев обязан совпасть с периодом, который открывает фронт по умолчанию
-    // (последние 7 дней, daysAgoString(7)). Раньше грелся 31-дневный период —
-    // другой ключ, промах кэша, каждый заход был холодным. Греем оба частых
-    // периода: 7 дней (дефолт) и 31 день (месячный отчёт).
+    // Прогреваем только дефолтный период. Прогрев месяца удерживает сотни
+    // сменных отчётов и вместе с STS sync превышает лимит памяти backend.
+    // Нестандартные периоды загружаются по запросу пользователя.
     const end = new Date();
-    const WARMUP_PERIODS = [7, 31];
+    const configuredDays = Number(process.env.STS_FUEL_WARMUP_DAYS || 7);
+    const warmupDays = Number.isFinite(configuredDays)
+      ? Math.min(31, Math.max(1, Math.round(configuredDays)))
+      : 7;
+    const WARMUP_PERIODS = [warmupDays];
 
     let warmed = 0;
     for (const net of active) {

@@ -34,6 +34,7 @@ import {
   Zap,
   Trash2,
 } from 'lucide-react';
+import { authorizedFetch } from '@/services/apiClient';
 import { getBackendOrigin } from '@/utils/backendUrl';
 
 // ============================================================================
@@ -215,6 +216,13 @@ interface CacheStats {
     hitRate: string;
     uptime: string;
   };
+  entriesByEndpoint?: Record<string, number>;
+  memory?: {
+    rssMb: number;
+    heapUsedMb: number;
+    heapTotalMb: number;
+    externalMb: number;
+  };
   ttl: Record<string, number>;
 }
 
@@ -265,7 +273,7 @@ export default function STSApiSettings() {
   // Загрузка статистики кэша при монтировании
   const loadCacheStats = useCallback(async () => {
     try {
-      const resp = await fetch(`${apiOrigin}/api/sts/_cache/stats`);
+      const resp = await authorizedFetch(`${apiOrigin}/api/sts/_cache/stats`);
       if (resp.ok) {
         const data = await resp.json();
         setCacheStats(data);
@@ -282,7 +290,7 @@ export default function STSApiSettings() {
     const startTime = Date.now();
 
     try {
-      const resp = await fetch(`${apiOrigin}/api/sts/v1/info?system=${defaultSystem}`, {
+      const resp = await authorizedFetch(`${apiOrigin}/api/sts/v1/info?system=${defaultSystem}`, {
         signal: AbortSignal.timeout(15000),
       });
       const responseTime = Date.now() - startTime;
@@ -362,7 +370,7 @@ export default function STSApiSettings() {
         fetchOptions.body = body;
       }
 
-      const resp = await fetch(url.toString(), fetchOptions);
+      const resp = await authorizedFetch(url, fetchOptions);
       const responseTime = Date.now() - startTime;
 
       let data: any;
@@ -520,6 +528,11 @@ export default function STSApiSettings() {
                   <p className="text-xs text-muted-foreground">
                     ключей | hit rate: {cacheStats.cache.hitRate} | uptime: {cacheStats.cache.uptime}
                   </p>
+                  {cacheStats.memory ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      RSS: {cacheStats.memory.rssMb} МБ | heap: {cacheStats.memory.heapUsedMb}/{cacheStats.memory.heapTotalMb} МБ
+                    </p>
+                  ) : null}
                 </>
               ) : (
                 <div className="text-sm text-muted-foreground">Загрузка...</div>
@@ -733,11 +746,13 @@ export default function STSApiSettings() {
                 Параметры запроса
               </DialogTitle>
               {selectedEndpoint && (
-                <DialogDescription className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className={`${getMethodColor(selectedEndpoint.method)} text-xs font-mono`}>
-                    {selectedEndpoint.method}
-                  </Badge>
-                  <code className="text-sm">/api/sts{selectedEndpoint.path}</code>
+                <DialogDescription asChild>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className={`${getMethodColor(selectedEndpoint.method)} text-xs font-mono`}>
+                      {selectedEndpoint.method}
+                    </Badge>
+                    <code className="text-sm">/api/sts{selectedEndpoint.path}</code>
+                  </div>
                 </DialogDescription>
               )}
             </DialogHeader>

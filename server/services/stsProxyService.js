@@ -176,11 +176,24 @@ function invalidateCache(urlPath) {
 
 function getCacheStats() {
   const stats = cache.getStats();
+  const entriesByEndpoint = {};
+  for (const key of cache.keys()) {
+    const endpoint = key.split('?')[0] || 'unknown';
+    entriesByEndpoint[endpoint] = (entriesByEndpoint[endpoint] || 0) + 1;
+  }
+  const memory = process.memoryUsage();
   const uptime = Date.now() - cacheStats.lastReset;
   const total = cacheStats.hits + cacheStats.misses;
   const hitRate = total > 0 ? ((cacheStats.hits / total) * 100).toFixed(2) : 0;
   return {
     cache: { keys: stats.keys, hits: cacheStats.hits, misses: cacheStats.misses, hitRate: `${hitRate}%`, uptime: `${Math.round(uptime / 1000)}s` },
+    entriesByEndpoint,
+    memory: {
+      rssMb: Math.round(memory.rss / 1024 / 1024),
+      heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+      heapTotalMb: Math.round(memory.heapTotal / 1024 / 1024),
+      externalMb: Math.round(memory.external / 1024 / 1024),
+    },
     ttl: CACHE_TTL,
   };
 }
@@ -606,7 +619,9 @@ async function stsInternalRequest(urlPath, params, userHeaders, options = {}) {
   const fakeReq = { headers: userHeaders || {} };
   const client = await getStsClient(fakeReq);
   const response = await client.request({ method: 'GET', url: urlPath, params: effectiveParams });
-  cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data, effectiveParams));
+  if (options.cacheResult !== false) {
+    cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data, effectiveParams));
+  }
   return response.data;
 }
 

@@ -300,25 +300,27 @@ const server = app.listen(PORT, () => {
     });
   }
 
-  // Прогрев кэша «Остатки» (fuel-inventory) — отчёты закрытых смен, асинхронно
-  if (stsRoutes.warmupCache) {
-    stsRoutes.warmupCache().catch(err => {
-      console.error('[Server] STS fuel-inventory warmup failed:', err.message);
-    });
-  }
+  // Тяжёлые STS-задачи выполняются последовательно, чтобы крупные ответы
+  // синхронизации и прогрева не находились в памяти одновременно.
+  setTimeout(async () => {
+    if (process.env.DISABLE_STS_SYNC !== 'true') {
+      try {
+        const res = await require('./services/analytics/stsSync').syncAllNetworks();
+        const rows = res.reduce((s, r) => s + (r.rows || 0), 0);
+        console.log(`[STS Sync] стартовый синк: ${rows} транзакций по ${res.length} сетям`);
+      } catch (err) {
+        console.error('[STS Sync] стартовый синк failed:', err.message);
+      }
+    }
 
-  // Материализация транзакций STS→PG при старте (фоново, не блокирует запуск).
-  // Отключается через DISABLE_STS_SYNC=true.
-  if (process.env.DISABLE_STS_SYNC !== 'true') {
-    setTimeout(() => {
-      require('./services/analytics/stsSync').syncAllNetworks()
-        .then(res => {
-          const rows = res.reduce((s, r) => s + (r.rows || 0), 0);
-          console.log(`[STS Sync] стартовый синк: ${rows} транзакций по ${res.length} сетям`);
-        })
-        .catch(err => console.error('[STS Sync] стартовый синк failed:', err.message));
-    }, 15000); // даём серверу подняться и прогреть кэши STS
-  }
+    if (process.env.DISABLE_STS_FUEL_WARMUP !== 'true' && stsRoutes.warmupCache) {
+      try {
+        await stsRoutes.warmupCache();
+      } catch (err) {
+        console.error('[Server] STS fuel-inventory warmup failed:', err.message);
+      }
+    }
+  }, 5000);
 });
 
 let isShuttingDown = false;

@@ -57,6 +57,19 @@ test('протухшие записи не восстанавливаются', 
   assert.equal(dst.get('stale'), undefined);
 });
 
+test('повторное сохранение атомарно заменяет предыдущий снапшот', () => {
+  const src = new NodeCache({ stdTTL: 0, useClones: false });
+  src.set('value', 'old', 3600);
+  assert.equal(saveSnapshot(src, 'unittest'), 1);
+
+  src.set('value', 'new', 3600);
+  assert.equal(saveSnapshot(src, 'unittest'), 1);
+
+  const dst = new NodeCache({ stdTTL: 0, useClones: false });
+  assert.equal(loadSnapshot(dst, 'unittest'), 1);
+  assert.equal(dst.get('value'), 'new');
+});
+
 test('нет файла — load возвращает 0 и не падает', () => {
   const dst = new NodeCache();
   assert.equal(loadSnapshot(dst, 'unittest'), 0);

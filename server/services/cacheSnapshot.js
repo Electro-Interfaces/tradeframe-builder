@@ -20,6 +20,8 @@ function snapshotPath(name) {
 }
 
 function saveSnapshot(cache, name) {
+  const file = snapshotPath(name);
+  const tempFile = `${file}.${process.pid}.tmp`;
   try {
     const now = Date.now();
     const entries = [];
@@ -31,11 +33,22 @@ function saveSnapshot(cache, name) {
       if (value === undefined) continue;
       entries.push({ key, value, expiresAt: expiresAt || 0 });
     }
-    fs.writeFileSync(snapshotPath(name), JSON.stringify({ savedAt: now, entries }));
+    fs.writeFileSync(tempFile, JSON.stringify({ savedAt: now, entries }));
+    try {
+      fs.renameSync(tempFile, file);
+    } catch (error) {
+      if (error.code !== 'EEXIST' && error.code !== 'EPERM') throw error;
+      try { fs.unlinkSync(file); } catch (unlinkError) {
+        if (unlinkError.code !== 'ENOENT') throw unlinkError;
+      }
+      fs.renameSync(tempFile, file);
+    }
     return entries.length;
   } catch (error) {
     console.error(`[CacheSnapshot] save ${name} failed:`, error.message);
     return -1;
+  } finally {
+    try { fs.unlinkSync(tempFile); } catch { /* файл уже переименован или не создан */ }
   }
 }
 
