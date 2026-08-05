@@ -116,12 +116,25 @@ export function fetchCouponUsage(
   }).then(r => (r.ok ? r.json() : {}));
 }
 
-export function triggerSync(networkIds: string[]): Promise<{ ok: boolean; synced: number }> {
+export interface SyncParams {
+  from?: string;
+  to?: string;
+  stations?: (string | number)[];
+}
+
+export async function triggerSync(networkIds: string[], params: SyncParams = {}): Promise<{ ok: boolean; synced: number }> {
   const token = getToken();
-  return fetch(`${getBackendOrigin()}/api/analytics/sync?networkId=${networkIds.join(',')}`, {
+  const res = await fetch(`${getBackendOrigin()}/api/analytics/sync?networkId=${networkIds.join(',')}`, {
     method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  }).then(r => r.json());
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(params),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `Ошибка ${res.status}`);
+  return body;
 }
 
 /**

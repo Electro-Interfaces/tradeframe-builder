@@ -445,9 +445,15 @@ export default function OperationsTransactionsPageSimple() {
   const handleRefresh = async () => {
     const networkIds = selectedNetworkIds;
     if (networkIds.length === 0) return;
+    const parsed = parseOperationsSearch(debouncedSearchQuery);
+    const stations = selectedStationCodes ?? (parsed.station ? [parsed.station] : undefined);
     setLoadingFromSTS(true);
     try {
-      await triggerSync(networkIds);
+      await triggerSync(networkIds, {
+        from: debouncedDateFrom,
+        to: debouncedDateTo,
+        stations,
+      });
     } catch {
       /* если синк не удался — всё равно перечитываем то, что есть */
     }

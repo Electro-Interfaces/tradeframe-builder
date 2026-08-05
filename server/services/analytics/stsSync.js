@@ -151,11 +151,11 @@ async function syncStationDay(networkId, system, readStation, date, writeStation
 // для STS-фолбэка на исторические периоды вне материализованного окна.
 // writeStation != null → подменяем station_code (dual-code: читаем старый номер,
 // отдаём под текущим).
-async function fetchStationDayRows(system, readStation, date, writeStation) {
+async function fetchStationDayRows(system, readStation, date, writeStation, requestOptions = {}) {
   const data = await stsProxy.stsInternalRequest('/v2/transactions', {
     system, station: readStation,
     dt_beg: `${date} 00:00:00`, dt_end: `${date} 23:59:59`,
-  }, {});
+  }, {}, requestOptions);
   const rows = extractRows(data, readStation);
   if (writeStation != null) rows.forEach((r) => { r.stationCode = writeStation; });
   return rows;
@@ -164,11 +164,11 @@ async function fetchStationDayRows(system, readStation, date, writeStation) {
 // Выборка транзакций ОДНОЙ станции за произвольный диапазон [from, to] одним
 // запросом (STS отдаёт месяц станции за ~секунды). Для STS-фолбэка на историю.
 // Падает лишь очень широкий запрос (год+) — вызывающий откатывается на чанки.
-async function fetchStationRangeRows(system, readStation, from, to, writeStation) {
+async function fetchStationRangeRows(system, readStation, from, to, writeStation, requestOptions = {}) {
   const data = await stsProxy.stsInternalRequest('/v2/transactions', {
     system, station: readStation,
     dt_beg: `${from} 00:00:00`, dt_end: `${to} 23:59:59`,
-  }, {});
+  }, {}, requestOptions);
   const rows = extractRows(data, readStation);
   if (writeStation != null) rows.forEach((r) => { r.stationCode = writeStation; });
   return rows;
@@ -380,16 +380,20 @@ function monthChunksStr(from, to) {
 
 // Материализация диапазона одной станции (месячные чанки → upsert в PG).
 // writeStation != null — для dual-code (читаем старый номер, пишем под текущим).
-async function materializeStationRange(networkId, system, readStation, fromStr, toStr, writeStation) {
+async function materializeStationRange(networkId, system, readStation, fromStr, toStr, writeStation, options = {}) {
   let total = 0;
   for (const chunk of monthChunksStr(fromStr, toStr)) {
     let rows;
     try {
-      rows = await fetchStationRangeRows(system, readStation, chunk.from, chunk.to);
+      rows = await fetchStationRangeRows(system, readStation, chunk.from, chunk.to, null, options);
     } catch (e) {
       rows = []; // капризный чанк — по дням
       for (const day of eachDayStr(chunk.from, chunk.to)) {
-        try { rows.push(...await fetchStationDayRows(system, readStation, day)); } catch (_) { /* skip */ }
+        try {
+          rows.push(...await fetchStationDayRows(system, readStation, day, null, options));
+        } catch (error) {
+          if (options.strict) throw error;
+        }
       }
     }
     for (let i = 0; i < rows.length; i += 500) {
@@ -397,6 +401,73 @@ async function materializeStationRange(networkId, system, readStation, fromStr, 
     }
   }
   return total;
+}
+
+function validateSyncRange(from, to, maxDays = Number(process.env.STS_SYNC_MANUAL_MAX_DAYS || 62)) {
+  const parse = (value) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null;
+    const [year, month, day] = String(value).split('-').map(Number);
+    const timestamp = Date.UTC(year, month - 1, day);
+    const date = new Date(timestamp);
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+    return timestamp;
+  };
+
+  const fromMs = parse(from);
+  const toMs = parse(to);
+  if (fromMs == null || toMs == null) throw new Error('Период синхронизации должен быть в формате YYYY-MM-DD');
+  if (fromMs > toMs) throw new Error('Начало периода синхронизации позже окончания');
+  const days = Math.floor((toMs - fromMs) / 86400000) + 1;
+  if (days > maxDays) throw new Error(`Период ручной синхронизации не может превышать ${maxDays} дней`);
+  return { from: String(from), to: String(to), days };
+}
+
+async function syncNetworkRange(networkId, fromStr, toStr, requestedStations) {
+  const range = validateSyncRange(fromStr, toStr);
+  const net = await postgres.queryOne(
+    `SELECT external_id FROM networks WHERE id=$1 AND deleted_at IS NULL`, [networkId]
+  );
+  const system = int(net?.external_id);
+  if (system == null) return { ok: false, error: 'сеть без external_id', network_id: networkId };
+
+  const nativeStations = await getNetworkStations(networkId);
+  const requested = Array.isArray(requestedStations)
+    ? new Set(requestedStations.map(int).filter((value) => value != null))
+    : null;
+  const stations = requested ? nativeStations.filter((station) => requested.has(station)) : nativeStations;
+  const results = [];
+
+  for (const station of stations) {
+    try {
+      let rows = await materializeStationRange(
+        networkId, system, station, range.from, range.to, null,
+        { bypassCache: true, strict: true }
+      );
+      for (const alias of (DUAL_STATION_CODES[station] || [])) {
+        rows += await materializeStationRange(
+          networkId, system, alias, range.from, range.to, station,
+          { bypassCache: true, strict: true }
+        );
+      }
+      results.push({ stationCode: station, rows, ok: true });
+    } catch (error) {
+      results.push({ stationCode: station, rows: 0, ok: false, error: error.message });
+    }
+  }
+
+  const failed = results.filter((result) => !result.ok);
+  if (failed.length > 0) {
+    throw new Error(`Не удалось синхронизировать станции: ${failed.map((result) => result.stationCode).join(', ')}`);
+  }
+  return {
+    ok: true,
+    network_id: networkId,
+    system,
+    stations: stations.length,
+    rows: results.reduce((sum, result) => sum + result.rows, 0),
+    range,
+    results,
+  };
 }
 
 const coverageJobs = new Set(); // одна ленивая до-материализация на сеть за раз
@@ -456,4 +527,4 @@ async function ensureCoverage(networkId, fromStr) {
   }
 }
 
-module.exports = { syncStation, syncNetwork, syncAllNetworks, getNetworkStations, extractRows, fetchStationDayRows, fetchStationRangeRows, ensureCoverage, DUAL_STATION_CODES };
+module.exports = { syncStation, syncNetwork, syncNetworkRange, syncAllNetworks, getNetworkStations, extractRows, fetchStationDayRows, fetchStationRangeRows, ensureCoverage, validateSyncRange, DUAL_STATION_CODES };

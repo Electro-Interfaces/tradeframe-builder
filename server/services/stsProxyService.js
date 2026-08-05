@@ -575,7 +575,7 @@ async function proxyRequest(req, res) {
 
 // ─── Internal request (for server-side aggregation) ────
 
-async function stsInternalRequest(urlPath, params, userHeaders) {
+async function stsInternalRequest(urlPath, params, userHeaders, options = {}) {
   // Подмена system для alias-точек, чтобы внутренние агрегации
   // (например /api/sts/fuel-inventory) автоматически работали с настоящим STS.
   let effectiveParams = { ...(params || {}) };
@@ -594,10 +594,12 @@ async function stsInternalRequest(urlPath, params, userHeaders) {
   }
 
   const cacheKey = generateCacheKey(urlPath, effectiveParams);
-  const cached = cache.get(cacheKey);
-  if (cached !== undefined) {
-    cacheStats.hits++;
-    return cached;
+  if (!options.bypassCache) {
+    const cached = cache.get(cacheKey);
+    if (cached !== undefined) {
+      cacheStats.hits++;
+      return cached;
+    }
   }
   cacheStats.misses++;
 

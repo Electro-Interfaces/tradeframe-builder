@@ -171,17 +171,42 @@ router.get('/sync-status', async (req, res) => {
 });
 
 // POST /api/analytics/sync — кнопка «Обновить»: принудительный досинк выбранной сети.
-// Синкает только «хвост» (сегодня + незакрытые дни через курсор) — быстро.
+// С переданным периодом перечитывает выбранные даты напрямую из STS, иначе
+// сохраняет быстрый режим «хвоста» для старых клиентов.
 router.post('/sync', async (req, res) => {
   try {
     const networkIds = await resolveNetworkIds(req);
     if (!networkIds.length) return res.status(400).json({ error: 'Сеть не выбрана или нет доступа' });
+    const { from, to } = req.body || {};
+    if ((from && !to) || (!from && to)) {
+      return res.status(400).json({ error: 'Для синхронизации периода нужны обе даты: from и to' });
+    }
+
+    let range = null;
+    if (from && to) {
+      try {
+        range = stsSync.validateSyncRange(from, to);
+      } catch (error) {
+        return res.status(400).json({ error: error.message });
+      }
+    }
+
+    const requestedStations = Array.isArray(req.body?.stations)
+      ? req.body.stations.map(Number).filter(Number.isFinite)
+      : null;
+    const allowedStations = allowedStationsOf(req.user);
+    const stations = requestedStations && allowedStations
+      ? requestedStations.filter((station) => allowedStations.includes(station))
+      : requestedStations || allowedStations;
+
     const results = [];
     for (const id of networkIds) {
-      results.push(await stsSync.syncNetwork(id));
+      results.push(range
+        ? await stsSync.syncNetworkRange(id, range.from, range.to, stations)
+        : await stsSync.syncNetwork(id));
     }
     const rows = results.reduce((s, r) => s + (r.rows || 0), 0);
-    res.json({ ok: true, synced: rows, networks: results.length });
+    res.json({ ok: true, synced: rows, networks: results.length, range });
   } catch (error) {
     console.error('[Analytics] sync:', error.message);
     res.status(500).json({ error: error.message || 'Ошибка синхронизации' });

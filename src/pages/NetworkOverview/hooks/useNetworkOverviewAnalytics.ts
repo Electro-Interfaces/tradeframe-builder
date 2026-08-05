@@ -126,12 +126,12 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
     if (!networkIds || networkIds.length === 0) return;
     setLoading(true);
     try {
-      await triggerSync(networkIds);
+      await triggerSync(networkIds, { from: dateFrom, to: dateTo, stations: selectedStationCodes });
     } catch {
       /* если синк не удался — всё равно перечитываем то, что есть */
     }
     await load();
-  }, [selectedNetworkIds, load]);
+  }, [selectedNetworkIds, dateFrom, dateTo, stationsKey, load]);
 
   // ── Маппинг агрегатов в форматы компонентов основного блока ────────────────
 
