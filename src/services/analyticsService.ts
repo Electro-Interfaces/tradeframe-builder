@@ -131,14 +131,27 @@ export interface SyncResult {
 
 export async function triggerSync(networkIds: string[], params: SyncParams = {}): Promise<SyncResult> {
   const token = getToken();
-  const res = await fetch(`${getBackendOrigin()}/api/analytics/sync?networkId=${networkIds.join(',')}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(params),
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 130000);
+  let res: Response;
+  try {
+    res = await fetch(`${getBackendOrigin()}/api/analytics/sync?networkId=${networkIds.join(',')}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('Сверка заняла больше двух минут. Повторите позже.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `Ошибка ${res.status}`);
   return body;

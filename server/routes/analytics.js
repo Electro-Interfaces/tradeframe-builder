@@ -224,7 +224,7 @@ router.post('/sync', async (req, res) => {
     res.json({ ok: true, synced: rows, networks: results.length, range });
   } catch (error) {
     console.error('[Analytics] sync:', error.message);
-    res.status(500).json({ error: error.message || 'Ошибка синхронизации' });
+    res.status(error.status || 500).json({ error: error.message || 'Ошибка синхронизации' });
   } finally {
     if (reservedNetworks) manualSyncGate.release(reservedNetworks);
   }

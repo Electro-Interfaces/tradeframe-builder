@@ -3,6 +3,10 @@ const assert = require('node:assert/strict');
 
 process.env.JWT_SECRET = 'test-secret-for-unit-tests';
 process.env.NODE_ENV = 'test';
+const savedManualTimeout = process.env.STS_SYNC_MANUAL_TIMEOUT_MS;
+const savedRequestTimeout = process.env.STS_SYNC_MANUAL_REQUEST_TIMEOUT_MS;
+process.env.STS_SYNC_MANUAL_TIMEOUT_MS = '200';
+process.env.STS_SYNC_MANUAL_REQUEST_TIMEOUT_MS = '50';
 
 const poolPath = require.resolve('../db/pool');
 const proxyPath = require.resolve('../services/stsProxyService');
@@ -68,6 +72,10 @@ require.cache[proxyPath] = {
 
 delete require.cache[syncPath];
 const { syncNetworkRange, validateSyncRange } = require(syncPath);
+if (savedManualTimeout === undefined) delete process.env.STS_SYNC_MANUAL_TIMEOUT_MS;
+else process.env.STS_SYNC_MANUAL_TIMEOUT_MS = savedManualTimeout;
+if (savedRequestTimeout === undefined) delete process.env.STS_SYNC_MANUAL_REQUEST_TIMEOUT_MS;
+else process.env.STS_SYNC_MANUAL_REQUEST_TIMEOUT_MS = savedRequestTimeout;
 
 after(() => {
   delete require.cache[syncPath];
@@ -94,6 +102,7 @@ test('ручная синхронизация перечитывает выбр�
   assert.equal(calls.requests[0].params.dt_end, '2026-07-31 23:59:59');
   assert.equal(calls.requests[0].options.bypassCache, true);
   assert.equal(calls.requests[0].options.cacheResult, false);
+  assert.equal(calls.requests[0].options.timeoutMs, 50);
   assert.equal(calls.inserts.length, 1);
   assert.equal(calls.inserts[0][3], 1);
   assert.equal(calls.inserts[0][12], 20.35);
@@ -110,6 +119,22 @@ test('параллельные ручные синхронизации выпо�
 
   requestDelayMs = 0;
   assert.equal(maxActiveRequests, 1);
+});
+
+test('зависшая ручная синхронизация завершается по общему дедлайну', async () => {
+  requestDelayMs = 300;
+  const insertsBefore = calls.inserts.length;
+  const startedAt = Date.now();
+
+  await assert.rejects(
+    syncNetworkRange('73ccc1c3-dc69-4684-8c21-18a1fcec967c', '2026-07-01', '2026-07-02', [3]),
+    (error) => error.status === 504 && /Сверка не завершилась/.test(error.message)
+  );
+
+  assert.ok(Date.now() - startedAt < 280);
+  await new Promise((resolve) => setTimeout(resolve, 120));
+  requestDelayMs = 0;
+  assert.equal(calls.inserts.length, insertsBefore);
 });
 
 test('валидация ограничивает ручную синхронизацию безопасным диапазоном', () => {

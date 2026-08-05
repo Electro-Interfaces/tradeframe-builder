@@ -27,6 +27,8 @@ const BACKFILL_EMPTY_STOP = Number(process.env.STS_SYNC_BACKFILL_STOP || 5);
 // Потолок дней backfill за один прогон станции — чтобы не молотить STS слишком
 // долго в одном тике; хвост догоняется в следующих прогонах.
 const BACKFILL_MAX_DAYS = Number(process.env.STS_SYNC_BACKFILL_MAX || 60);
+const MANUAL_SYNC_TIMEOUT_MS = Math.max(1, Number(process.env.STS_SYNC_MANUAL_TIMEOUT_MS || 120000));
+const MANUAL_SYNC_REQUEST_TIMEOUT_MS = Math.max(1, Number(process.env.STS_SYNC_MANUAL_REQUEST_TIMEOUT_MS || 30000));
 
 // Станции, сменившие STS-номер: текущий → [старые номера]. Данные старых номеров
 // пишутся под текущим station_code. Расширяется по мере переименований.
@@ -39,6 +41,33 @@ function enqueueSyncJob(job) {
   const run = syncQueue.catch(() => {}).then(job);
   syncQueue = run.then(() => undefined, () => undefined);
   return run;
+}
+
+function createManualSyncTimeoutError() {
+  const seconds = Math.ceil(MANUAL_SYNC_TIMEOUT_MS / 1000);
+  const error = new Error(`Сверка не завершилась за ${seconds} сек. Повторите позже.`);
+  error.status = 504;
+  return error;
+}
+
+function assertManualSyncDeadline(deadlineAt) {
+  if (deadlineAt && Date.now() >= deadlineAt) throw createManualSyncTimeoutError();
+}
+
+function withManualSyncDeadline(promise) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(createManualSyncTimeoutError()), MANUAL_SYNC_TIMEOUT_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
 }
 
 const num = (v) => {
@@ -404,22 +433,40 @@ function monthChunksStr(from, to) {
 // writeStation != null — для dual-code (читаем старый номер, пишем под текущим).
 async function materializeStationRange(networkId, system, readStation, fromStr, toStr, writeStation, options = {}) {
   let total = 0;
-  const requestOptions = { ...options, cacheResult: false };
+  const getRequestOptions = () => {
+    assertManualSyncDeadline(options.deadlineAt);
+    const requestOptions = { ...options, cacheResult: false };
+    if (options.timeoutMs) {
+      const remainingMs = options.deadlineAt ? options.deadlineAt - Date.now() : options.timeoutMs;
+      requestOptions.timeoutMs = Math.max(1, Math.min(options.timeoutMs, remainingMs));
+    }
+    return requestOptions;
+  };
   for (const chunk of monthChunksStr(fromStr, toStr)) {
     let rows;
     try {
-      rows = await fetchStationRangeRows(system, readStation, chunk.from, chunk.to, null, requestOptions);
+      rows = await fetchStationRangeRows(system, readStation, chunk.from, chunk.to, null, getRequestOptions());
     } catch (e) {
+      if (e?.status === 504 || (options.deadlineAt && Date.now() >= options.deadlineAt)) {
+        throw createManualSyncTimeoutError();
+      }
       rows = []; // капризный чанк — по дням
       for (const day of eachDayStr(chunk.from, chunk.to)) {
         try {
-          rows.push(...await fetchStationDayRows(system, readStation, day, null, requestOptions));
+          rows.push(...await fetchStationDayRows(system, readStation, day, null, getRequestOptions()));
         } catch (error) {
-          if (options.strict) throw error;
+          if (options.strict) {
+            if (error?.status === 504 || error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '')) {
+              throw createManualSyncTimeoutError();
+            }
+            throw error;
+          }
         }
       }
     }
+    assertManualSyncDeadline(options.deadlineAt);
     for (let i = 0; i < rows.length; i += 500) {
+      assertManualSyncDeadline(options.deadlineAt);
       total += await upsertBatch(networkId, system, rows.slice(i, i + 500), writeStation);
     }
   }
@@ -445,7 +492,8 @@ function validateSyncRange(from, to, maxDays = Number(process.env.STS_SYNC_MANUA
   return { from: String(from), to: String(to), days };
 }
 
-async function syncNetworkRangeInternal(networkId, fromStr, toStr, requestedStations) {
+async function syncNetworkRangeInternal(networkId, fromStr, toStr, requestedStations, deadlineAt) {
+  assertManualSyncDeadline(deadlineAt);
   const range = validateSyncRange(fromStr, toStr);
   const net = await postgres.queryOne(
     `SELECT external_id FROM networks WHERE id=$1 AND deleted_at IS NULL`, [networkId]
@@ -461,19 +509,31 @@ async function syncNetworkRangeInternal(networkId, fromStr, toStr, requestedStat
   const results = [];
 
   for (const station of stations) {
+    assertManualSyncDeadline(deadlineAt);
     try {
       let rows = await materializeStationRange(
         networkId, system, station, range.from, range.to, null,
-        { bypassCache: true, strict: true }
+        {
+          bypassCache: true,
+          strict: true,
+          deadlineAt,
+          timeoutMs: MANUAL_SYNC_REQUEST_TIMEOUT_MS,
+        }
       );
       for (const alias of (DUAL_STATION_CODES[station] || [])) {
         rows += await materializeStationRange(
           networkId, system, alias, range.from, range.to, station,
-          { bypassCache: true, strict: true }
+          {
+            bypassCache: true,
+            strict: true,
+            deadlineAt,
+            timeoutMs: MANUAL_SYNC_REQUEST_TIMEOUT_MS,
+          }
         );
       }
       results.push({ stationCode: station, rows, ok: true });
     } catch (error) {
+      if (error?.status === 504) throw error;
       results.push({ stationCode: station, rows: 0, ok: false, error: error.message });
     }
   }
@@ -494,7 +554,15 @@ async function syncNetworkRangeInternal(networkId, fromStr, toStr, requestedStat
 }
 
 function syncNetworkRange(networkId, fromStr, toStr, requestedStations) {
-  return enqueueSyncJob(() => syncNetworkRangeInternal(networkId, fromStr, toStr, requestedStations));
+  const deadlineAt = Date.now() + MANUAL_SYNC_TIMEOUT_MS;
+  const queued = enqueueSyncJob(() => syncNetworkRangeInternal(
+    networkId,
+    fromStr,
+    toStr,
+    requestedStations,
+    deadlineAt
+  ));
+  return withManualSyncDeadline(queued);
 }
 
 const coverageJobs = new Set(); // одна ленивая до-материализация на сеть за раз

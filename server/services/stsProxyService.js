@@ -618,7 +618,11 @@ async function stsInternalRequest(urlPath, params, userHeaders, options = {}) {
 
   const fakeReq = { headers: userHeaders || {} };
   const client = await getStsClient(fakeReq);
-  const response = await client.request({ method: 'GET', url: urlPath, params: effectiveParams });
+  const requestConfig = { method: 'GET', url: urlPath, params: effectiveParams };
+  if (Number.isFinite(options.timeoutMs) && options.timeoutMs > 0) {
+    requestConfig.timeout = options.timeoutMs;
+  }
+  const response = await client.request(requestConfig);
   if (options.cacheResult !== false) {
     cacheSet(cacheKey, response.data, getEffectiveTTL(urlPath, response.data, effectiveParams));
   }

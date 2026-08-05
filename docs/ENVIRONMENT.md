@@ -80,6 +80,8 @@ PG_CONNECT_TIMEOUT_MS=5000
 DISABLE_STS_SYNC=false
 DISABLE_STS_FUEL_WARMUP=false
 STS_FUEL_WARMUP_DAYS=7
+STS_SYNC_MANUAL_TIMEOUT_MS=120000
+STS_SYNC_MANUAL_REQUEST_TIMEOUT_MS=30000
 ```
 
 `DISABLE_STS_SYNC=true` отключает стартовую и периодическую материализацию транзакций STS→PostgreSQL.
@@ -87,6 +89,10 @@ STS_FUEL_WARMUP_DAYS=7
 `DISABLE_STS_FUEL_WARMUP=true` отключает только стартовый прогрев экрана «Остатки».
 
 `STS_FUEL_WARMUP_DAYS` задаёт единственный прогреваемый период от 1 до 31 дня; production-дефолт — 7 дней.
+
+`STS_SYNC_MANUAL_TIMEOUT_MS` ограничивает полное время ручной сверки, включая ожидание очереди.
+
+`STS_SYNC_MANUAL_REQUEST_TIMEOUT_MS` ограничивает один запрос ручной сверки к STS.
 
 ## CI/CD secrets
 
