@@ -1,4 +1,3 @@
-import React from "react";
 import { Fuel, CreditCard, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 

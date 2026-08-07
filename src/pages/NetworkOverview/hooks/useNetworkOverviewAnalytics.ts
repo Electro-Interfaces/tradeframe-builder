@@ -41,6 +41,64 @@ export interface AnalyticsPaymentStat {
   volume: number;
 }
 
+/**
+ * Сетка тепловой карты «день × час» за выбранный период.
+ *
+ * Строки — все дни периода (дни без операций остаются нулевыми), а не «последние
+ * 7 дней от сегодня», как было раньше: при отчёте за прошлый месяц лист уходил
+ * пустым. Границы периода ('YYYY-MM-DD') разбираем вручную — new Date(строка)
+ * трактует её как UTC и в зонах UTC+N сдвигает день назад.
+ */
+export function buildHeatmapGrid(
+  rows: { date: string; hour: number; operations: number; revenue: number }[] | undefined,
+  dateFrom: string,
+  dateTo: string
+): any[] {
+  if (!rows || rows.length === 0) return [];
+
+  const buckets = new Map<string, { count: number; revenue: number }>();
+  rows.forEach((r) => {
+    const d = new Date(r.date);
+    const localDayKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    buckets.set(`${localDayKey}|${r.hour}`, { count: r.operations, revenue: r.revenue });
+  });
+
+  const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const parseLocal = (s: string) => {
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+  const endDate = parseLocal(dateTo);
+  const grid: any[] = [];
+
+  for (
+    let currentDate = parseLocal(dateFrom);
+    currentDate <= endDate;
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1)
+  ) {
+    const localDayKey = `${currentDate.getFullYear()}-${pad(currentDate.getMonth() + 1)}-${pad(currentDate.getDate())}`;
+    const dayRow: any = {
+      date: localDayKey,
+      dayName: dayNames[currentDate.getDay()],
+      dayOfWeek: currentDate.getDay(),
+      hours: [],
+    };
+    for (let hour = 0; hour < 24; hour++) {
+      const bucket = buckets.get(`${localDayKey}|${hour}`);
+      const transactionCount = bucket?.count || 0;
+      dayRow.hours.push({
+        hour,
+        transactions: transactionCount,
+        revenue: Math.round(bucket?.revenue || 0),
+        intensity: transactionCount > 0 ? Math.min(transactionCount / 3, 1) : 0,
+        displayTime: `${pad(hour)}:00`,
+      });
+    }
+    grid.push(dayRow);
+  }
+  return grid;
+}
+
 export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOverviewAnalyticsParams) {
   const { selectedNetworkIds, selectedTradingPoints, isInitialized } = useSelection();
 
@@ -250,47 +308,11 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
     return hourly;
   }, [overview]);
 
-  // Тепловая карта активности за последние 7 дней (нужна только для экспорта).
-  const heatmapData = useMemo(() => {
-    const rows = overview?.byDayHour;
-    if (!rows || rows.length === 0) return [] as any[];
-
-    const buckets = new Map<string, { count: number; revenue: number }>();
-    rows.forEach((r) => {
-      const d = new Date(r.date);
-      const localDayKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-      buckets.set(`${localDayKey}|${r.hour}`, { count: r.operations, revenue: r.revenue });
-    });
-
-    const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    const grid: any[] = [];
-
-    for (let dayOffset = 6; dayOffset >= 0; dayOffset--) {
-      const currentDate = new Date();
-      currentDate.setDate(today.getDate() - dayOffset);
-      currentDate.setHours(0, 0, 0, 0);
-      const dateStr = currentDate.toISOString().split('T')[0];
-      const localDayKey = `${currentDate.getFullYear()}-${pad(currentDate.getMonth() + 1)}-${pad(currentDate.getDate())}`;
-      const dayOfWeek = currentDate.getDay();
-
-      const dayRow: any = { date: dateStr, dayName: dayNames[dayOfWeek], dayOfWeek, hours: [] };
-      for (let hour = 0; hour < 24; hour++) {
-        const bucket = buckets.get(`${localDayKey}|${hour}`);
-        const transactionCount = bucket?.count || 0;
-        dayRow.hours.push({
-          hour,
-          transactions: transactionCount,
-          revenue: Math.round(bucket?.revenue || 0),
-          intensity: transactionCount > 0 ? Math.min(transactionCount / 3, 1) : 0,
-          displayTime: `${pad(hour)}:00`,
-        });
-      }
-      grid.push(dayRow);
-    }
-    return grid;
-  }, [overview]);
+  // Тепловая карта активности за выбранный период (нужна только для экспорта).
+  const heatmapData = useMemo(
+    () => buildHeatmapGrid(overview?.byDayHour, dateFrom, dateTo),
+    [overview, dateFrom, dateTo]
+  );
 
   const hasData = fuelTypeStats.length > 0;
 
@@ -307,6 +329,10 @@ export function useNetworkOverviewAnalytics({ dateFrom, dateTo }: UseNetworkOver
     // Коды выбранных станций (undefined = вся сеть) — расширенная аналитика
     // передаёт их в /overview-detailed и prev-period /overview.
     selectedStationCodes,
+
+    // Справочник точек выбранных сетей — экспорт подписывает станции именами,
+    // а не голыми номерами.
+    networkPoints,
 
     totalRevenue,
     totalVolume,

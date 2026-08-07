@@ -45,10 +45,48 @@ import { todayString, monthsAgoString } from "@/utils/dateUtils";
 import { useNetworkOverviewData } from "./hooks/useNetworkOverviewData";
 import { useNetworkOverviewStats } from "./hooks/useNetworkOverviewStats";
 import { useNetworkOverviewAnalytics } from "./hooks/useNetworkOverviewAnalytics";
-import { exportToExcel, exportDashboardToPdf, loadReceiptsByFuel, type ReceiptFuelRow } from "./components/NetworkOverviewExport";
+import { exportToExcel, exportDashboardToPdf, loadReceiptsByFuel, buildPaymentFuelBreakdown, type ReceiptFuelRow } from "./components/NetworkOverviewExport";
 import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { OverviewKPICards } from "./components/OverviewKPICards";
 import { OverviewTables } from "./components/OverviewTables";
+
+/**
+ * Предыдущий период той же длины: prevTo = dateFrom − 1 день,
+ * prevFrom = prevTo − длина периода. Та же логика, что в подзаголовке
+ * «Сравнения периодов», — экспорт сравнивает ровно то же, что экран.
+ */
+function prevPeriodRange(dateFrom: string, dateTo: string) {
+  const fromMs = new Date(dateFrom).getTime();
+  const toMs = new Date(dateTo).getTime();
+  const prevTo = new Date(fromMs - 86400000);
+  const prevFrom = new Date(prevTo.getTime() - (toMs - fromMs));
+  return { from: prevFrom.toISOString().split('T')[0], to: prevTo.toISOString().split('T')[0] };
+}
+
+/**
+ * Дневной агрегат «частных» операций из byDayPayment: все методы, КРОМЕ
+ * fuel_card / corporate / coupon. По нему считается средний чек частного клиента
+ * (график «Средний чек» и одноимённый блок листа «Тренды»).
+ */
+function buildRetailByDay(rows: DetailedAnalyticsResponse['byDayPayment'] | undefined): OverviewDay[] {
+  if (!rows || rows.length === 0) return [];
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const byDay = new Map<string, { operations: number; revenue: number }>();
+  for (const r of rows) {
+    const cat = classifyPayment(r.method || '');
+    if (cat === 'fuel_card' || cat === 'corporate' || cat === 'coupon') continue; // корп/талоны/купоны
+    const d = new Date(r.date);
+    if (isNaN(d.getTime())) continue;
+    // День в локальной зоне — как в остальных графиках страницы.
+    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const e = byDay.get(key);
+    if (e) { e.operations += r.operations; e.revenue += r.revenue; }
+    else byDay.set(key, { operations: r.operations, revenue: r.revenue });
+  }
+  return Array.from(byDay.entries())
+    .map(([date, v]) => ({ date, operations: v.operations, revenue: v.revenue, volume: 0 }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
 
 export function NetworkOverview() {
   const isMobile = useIsMobile();
@@ -59,9 +97,10 @@ export function NetworkOverview() {
   const [exportPending, setExportPending] = useState<null | 'excel' | 'pdf'>(null);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [forceSyncing, setForceSyncing] = useState(false);
-  // Раньше расширенная аналитика тоже тянула сырьё; теперь она на агрегатах,
-  // поэтому сырьё нужно исключительно экспорту.
-  const rawEnabled = exportPending !== null;
+  // Раньше сырьё тянули и расширенная аналитика, и оба экспорта. Теперь Excel
+  // целиком на агрегатах — сырьё осталось нужно только PDF (снимки карточек +
+  // сравнение с прошлым периодом).
+  const rawEnabled = exportPending === 'pdf';
 
   // Сырьё STS тянется лениво (enabled=rawEnabled). Расширенная аналитика его НЕ трогает.
   const data = useNetworkOverviewData(rawEnabled);
@@ -150,16 +189,7 @@ export function NetworkOverview() {
     setDetailedLoading(true);
     setDetailedError(null);
 
-    // Предыдущий период той же длины: prevTo = dateFrom − 1 день,
-    // prevFrom = prevTo − длина периода (совпадает с логикой сырья и подзаголовком
-    // «Сравнения периодов»).
-    const fromMs = new Date(data.dateFrom).getTime();
-    const toMs = new Date(data.dateTo).getTime();
-    const periodMs = toMs - fromMs;
-    const prevTo = new Date(fromMs - 86400000);
-    const prevFrom = new Date(prevTo.getTime() - periodMs);
-    const prevFromStr = prevFrom.toISOString().split('T')[0];
-    const prevToStr = prevTo.toISOString().split('T')[0];
+    const { from: prevFromStr, to: prevToStr } = prevPeriodRange(data.dateFrom, data.dateTo);
 
     const stations = analytics.selectedStationCodes;
     try {
@@ -187,31 +217,8 @@ export function NetworkOverview() {
     loadDetailed();
   }, [showAdvanced, loadDetailed]);
 
-  // Дневной агрегат «частных» операций для «Среднего чека» — из byDayPayment.
-  // Частные = ВСЕ методы, КРОМЕ исключаемых прежним isRetail: fuel_card /
-  // corporate / coupon (тот же classifyPayment, что был в старой версии графика,
-  // — список исключений совпадает). Средний чек дня компонент считает как
-  // retailRevenue / retailOperations.
-  const retailByDay = useMemo<OverviewDay[]>(() => {
-    const rows = detailed?.byDayPayment;
-    if (!rows || rows.length === 0) return [];
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const byDay = new Map<string, { operations: number; revenue: number }>();
-    for (const r of rows) {
-      const cat = classifyPayment(r.method || '');
-      if (cat === 'fuel_card' || cat === 'corporate' || cat === 'coupon') continue; // корп/талоны/купоны
-      const d = new Date(r.date);
-      if (isNaN(d.getTime())) continue;
-      // День в локальной зоне — как в остальных графиках страницы.
-      const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-      const e = byDay.get(key);
-      if (e) { e.operations += r.operations; e.revenue += r.revenue; }
-      else byDay.set(key, { operations: r.operations, revenue: r.revenue });
-    }
-    return Array.from(byDay.entries())
-      .map(([date, v]) => ({ date, operations: v.operations, revenue: v.revenue, volume: 0 }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [detailed]);
+  // Средний чек частного клиента по дням — из byDayPayment (см. buildRetailByDay).
+  const retailByDay = useMemo<OverviewDay[]>(() => buildRetailByDay(detailed?.byDayPayment), [detailed]);
 
   // Функция для вибрации на поддерживаемых устройствах
   const triggerHapticFeedback = () => {
@@ -333,8 +340,16 @@ export function NetworkOverview() {
     }
   };
 
-  // Export runners. Агрегатные показатели берём из адаптера (совпадают с экраном),
-  // сырьё (filteredTransactions/сравнение) и связка «оплата×топливо» — из stats.
+  // Разбивка «способ оплаты × вид топлива» для Excel — из серверного кросс-разреза
+  // byFuelPayment. Ключ method тот же, что в paymentTypeStats.type, поэтому строки
+  // детальной таблицы бьются с таблицей оплат и с экраном.
+  const paymentFuelBreakdown = useMemo(
+    () => buildPaymentFuelBreakdown(analytics.overview?.byFuelPayment),
+    [analytics.overview]
+  );
+
+  // Export runners. Excel — целиком на агрегатах (совпадает с экраном), PDF всё ещё
+  // берёт сырьё для снимков карточек и сравнения периодов.
   // Поступления топлива по видам за период (приход — отдельно от продаж).
   // Для конкретной точки берём её родную сеть + номер, иначе все выбранные сети.
   const computeReceiptsByFuel = async (): Promise<ReceiptFuelRow[]> => {
@@ -361,10 +376,40 @@ export function NetworkOverview() {
     }
   };
 
+  // Номер станции → название точки. Экспорт подписывает разрезы по точкам именами.
+  const stationNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    (analytics.networkPoints as any[]).forEach((p: any) => {
+      if (p?.external_id && p?.name) map[String(p.external_id)] = p.name;
+    });
+    return map;
+  }, [analytics.networkPoints]);
+
   const runExportExcel = async () => {
     const receiptsByFuel = await computeReceiptsByFuel();
 
-    exportToExcel({
+    // Разрезы по точкам (станция×топливо, станция×день) и день×оплата живут в
+    // detailed, сравнение периодов — в агрегатах прошлого периода. Если
+    // расширенный блок не раскрывали, догружаем и то, и другое ради экспорта.
+    const prevRange = prevPeriodRange(dateFrom, dateTo);
+    const [det, prev] = selectedNetworkIds.length > 0
+      ? await Promise.all([
+          detailed ?? fetchDetailedAnalytics({
+            networkIds: selectedNetworkIds,
+            from: dateFrom,
+            to: dateTo,
+            stations: analytics.selectedStationCodes,
+          }).catch(() => null),
+          prevOverview ?? fetchOverview({
+            networkIds: selectedNetworkIds,
+            from: prevRange.from,
+            to: prevRange.to,
+            stations: analytics.selectedStationCodes,
+          }).catch(() => null),
+        ])
+      : [null, null];
+
+    await exportToExcel({
       dateFrom,
       dateTo,
       selectedNetwork,
@@ -372,14 +417,25 @@ export function NetworkOverview() {
       totalRevenue: analytics.totalRevenue,
       totalVolume: analytics.totalVolume,
       averageCheck: analytics.averageCheck,
-      filteredTransactions: stats.filteredTransactions,
+      operationsCount: analytics.operationsCount,
       fuelTypeStats: analytics.fuelTypeStats,
-      paymentTypeStats: stats.paymentTypeStats,
-      paymentFuelBreakdown: stats.paymentFuelBreakdown,
+      paymentTypeStats: analytics.paymentTypeStats,
+      paymentFuelBreakdown,
       dailyActivityData: analytics.dailyActivityData,
       dailySalesData: analytics.dailySalesData,
       heatmapData: analytics.heatmapData,
       receiptsByFuel,
+      stationStats: analytics.overview?.byStation,
+      stationFuelStats: det?.byStationFuel,
+      stationDayStats: det?.byStationDay,
+      stationNames,
+      currentPeriod: analytics.overview
+        ? { kpi: analytics.overview.kpi, byDay: analytics.overview.byDay }
+        : undefined,
+      previousPeriod: prev ? { kpi: prev.kpi, byDay: prev.byDay } : undefined,
+      previousPeriodRange: prevRange,
+      dayPayments: det?.byDayPayment,
+      retailByDay: buildRetailByDay(det?.byDayPayment),
       toast,
     });
   };
@@ -391,8 +447,6 @@ export function NetworkOverview() {
       selectedNetwork,
       selectedTradingPoint,
       filteredTransactions: stats.filteredTransactions,
-      completedTransactions: stats.completedTransactions,
-      prevPeriodTransactions,
       totalRevenue: analytics.totalRevenue,
       totalVolume: analytics.totalVolume,
       averageCheck: analytics.averageCheck,
@@ -401,8 +455,6 @@ export function NetworkOverview() {
       receiptsByFuel,
       dateFrom,
       dateTo,
-      loading,
-      exportingPdf,
       setExportingPdf,
       dailySalesCardRef,
       heatmapCardRef,
@@ -412,14 +464,17 @@ export function NetworkOverview() {
     });
   };
 
-  // Export handlers: если сырьё ещё не загружено — сначала ленивая загрузка,
-  // затем экспорт выполнит эффект ниже (когда данные будут готовы).
-  const handleExportExcel = () => {
-    if (!hasLoadedRaw) {
-      setExportPending('excel');
-      return;
+  // Excel готовится сразу из агрегатов; ждать приходится только поступления
+  // топлива (запрос в STS), поэтому 'excel' в exportPending — просто индикатор
+  // занятости и сырьё не поднимает.
+  const handleExportExcel = async () => {
+    if (exportPending) return;
+    setExportPending('excel');
+    try {
+      await runExportExcel();
+    } finally {
+      setExportPending(null);
     }
-    runExportExcel();
   };
 
   const handleExportPdf = () => {
@@ -433,14 +488,13 @@ export function NetworkOverview() {
     runExportPdf();
   };
 
-  // Досрочный запуск экспорта после ленивой загрузки сырья.
+  // Досрочный запуск PDF после ленивой загрузки сырья.
   useEffect(() => {
-    if (!exportPending) return;
+    if (exportPending !== 'pdf') return;
     if (!hasLoadedRaw || loading) return;
     // Небольшая задержка — дать transition разложить транзакции и DOM отрисоваться.
     const t = setTimeout(() => {
-      if (exportPending === 'excel') runExportExcel();
-      else runExportPdf();
+      runExportPdf();
       setExportPending(null);
     }, 250);
     return () => clearTimeout(t);

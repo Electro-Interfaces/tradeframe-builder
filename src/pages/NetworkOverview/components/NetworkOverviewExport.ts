@@ -1,5 +1,6 @@
 import { loadPdfMake } from "@/utils/pdfMake";
 import { loadXlsx } from "@/utils/xlsxLoader";
+import { classifyPayment } from "@/utils/paymentUtils";
 import { getFuelPriority } from "../hooks/useNetworkOverviewStats";
 import {
   fetchReceipts,
@@ -57,6 +58,33 @@ export async function loadReceiptsByFuel(params: {
     });
 }
 
+/** Ячейка разбивки «способ оплаты × вид топлива» */
+export interface PaymentFuelCell { operations: number; revenue: number; volume: number }
+
+/**
+ * Разбивка «способ оплаты × вид топлива» из серверного кросс-разреза byFuelPayment.
+ * Ключ верхнего уровня — method (тот же, что в paymentTypeStats.type), поэтому
+ * детальная таблица Excel сходится с таблицей оплат и с экраном. Пустые fuel/method
+ * схлопываются в «Неизвестно», поэтому значения именно накапливаются, а не заменяются.
+ */
+export function buildPaymentFuelBreakdown(
+  rows: { fuel: string; method: string; operations: number; volume: number; revenue: number }[] | undefined
+): Record<string, Record<string, PaymentFuelCell>> {
+  const out: Record<string, Record<string, PaymentFuelCell>> = {};
+  if (!rows) return out;
+
+  for (const r of rows) {
+    const method = r.method || 'Неизвестно';
+    const fuel = r.fuel || 'Неизвестно';
+    if (!out[method]) out[method] = {};
+    const cell = out[method][fuel] || (out[method][fuel] = { operations: 0, revenue: 0, volume: 0 });
+    cell.operations += r.operations;
+    cell.revenue += r.revenue;
+    cell.volume += r.volume;
+  }
+  return out;
+}
+
 interface ExportToExcelParams {
   dateFrom: string;
   dateTo: string;
@@ -65,7 +93,7 @@ interface ExportToExcelParams {
   totalRevenue: number;
   totalVolume: number;
   averageCheck: number;
-  filteredTransactions: any[];
+  operationsCount: number;
   fuelTypeStats: any[];
   paymentTypeStats: any[];
   paymentFuelBreakdown: Record<string, Record<string, { operations: number; revenue: number; volume: number }>>;
@@ -73,7 +101,30 @@ interface ExportToExcelParams {
   dailySalesData: { data: any[]; fuelTypes: string[] };
   heatmapData: any[];
   receiptsByFuel?: ReceiptFuelRow[];
+  /** Разрез по станциям (overview.byStation) */
+  stationStats?: { stationCode: number; operations: number; volume: number; revenue: number }[];
+  /** Станция × топливо (detailed.byStationFuel) */
+  stationFuelStats?: { stationCode: number; fuel: string; operations: number; volume: number; revenue: number }[];
+  /** Станция × день (detailed.byStationDay) — динамика выручки по точкам */
+  stationDayStats?: { stationCode: number; date: string; operations: number; volume: number; revenue: number }[];
+  /** Номер станции → название точки; для номеров без названия подписываем «Станция N» */
+  stationNames?: Record<string, string>;
+  /** Агрегаты текущего периода — для сравнения периодов и паттерна по дням недели */
+  currentPeriod?: PeriodAggregate;
+  /** Агрегаты предыдущего периода той же длины */
+  previousPeriod?: PeriodAggregate;
+  /** Границы предыдущего периода — в подпись блока сравнения */
+  previousPeriodRange?: { from: string; to: string };
+  /** День × способ оплаты (detailed.byDayPayment) — структура оплат по дням */
+  dayPayments?: { date: string; method: string; operations: number; revenue: number }[];
+  /** Дневной агрегат частных операций — средний чек частного клиента */
+  retailByDay?: { date: string; operations: number; revenue: number }[];
   toast: (opts: any) => void;
+}
+
+interface PeriodAggregate {
+  kpi: { operations: number; volume: number; revenue: number; avgCheck: number };
+  byDay: { date: string; operations: number; volume: number; revenue: number }[];
 }
 
 export async function exportToExcel({
@@ -84,7 +135,7 @@ export async function exportToExcel({
   totalRevenue,
   totalVolume,
   averageCheck,
-  filteredTransactions,
+  operationsCount,
   fuelTypeStats,
   paymentTypeStats,
   paymentFuelBreakdown,
@@ -92,6 +143,15 @@ export async function exportToExcel({
   dailySalesData,
   heatmapData,
   receiptsByFuel,
+  stationStats,
+  stationFuelStats,
+  stationDayStats,
+  stationNames,
+  currentPeriod,
+  previousPeriod,
+  previousPeriodRange,
+  dayPayments,
+  retailByDay,
   toast,
 }: ExportToExcelParams) {
   try {
@@ -113,9 +173,9 @@ export async function exportToExcel({
       ['ОСНОВНЫЕ ПОКАЗАТЕЛИ'],
       [''],
       ['Показатель', 'Значение', '', 'Показатель', 'Значение'],
-      ['Общая выручка (₽)', Number(totalRevenue.toFixed(2)), '', 'Количество операций', filteredTransactions.length],
+      ['Общая выручка (₽)', Number(totalRevenue.toFixed(2)), '', 'Количество операций', operationsCount],
       ['Общий объем (л)', Number(totalVolume.toFixed(2)), '', 'Средний чек (₽)', Number(averageCheck.toFixed(2))],
-      ['Средний объем на операцию (л)', filteredTransactions.length > 0 ? Number((totalVolume / filteredTransactions.length).toFixed(2)) : 0],
+      ['Средний объем на операцию (л)', operationsCount > 0 ? Number((totalVolume / operationsCount).toFixed(2)) : 0],
       [''],
       ['']
     ];
@@ -139,7 +199,7 @@ export async function exportToExcel({
 
       mainData.push([
         'ИТОГО',
-        filteredTransactions.length,
+        operationsCount,
         Number(totalRevenue.toFixed(2)),
         Number(totalVolume.toFixed(2)),
         Number(averageCheck.toFixed(2)),
@@ -196,7 +256,7 @@ export async function exportToExcel({
 
       mainData.push([
         'ИТОГО',
-        filteredTransactions.length,
+        operationsCount,
         Number(totalRevenue.toFixed(2)),
         Number(totalVolume.toFixed(2)),
         Number(averageCheck.toFixed(2)),
@@ -205,8 +265,12 @@ export async function exportToExcel({
 
       mainData.push(['']);
       mainData.push(['']);
+    }
 
-      // Детальная разбивка по способам оплаты и видам топлива
+    // Детальная разбивка по способам оплаты и видам топлива.
+    // Источник — серверный кросс-разрез byFuelPayment; если его нет, блок не выводим,
+    // чтобы не печатать пустую таблицу с «0 видов топлива».
+    if (paymentTypeStats.length > 0 && Object.keys(paymentFuelBreakdown).length > 0) {
       mainData.push(['ДЕТАЛЬНАЯ СТАТИСТИКА: СПОСОБЫ ОПЛАТЫ × ВИДЫ ТОПЛИВА']);
       mainData.push(['']);
 
@@ -268,7 +332,7 @@ export async function exportToExcel({
       mainData.push([
         'ОБЩИЙ ИТОГ',
         `${allFuelTypes.length} видов топлива`,
-        filteredTransactions.length,
+        operationsCount,
         Number(totalRevenue.toFixed(2)),
         Number(totalVolume.toFixed(2)),
         Number(averageCheck.toFixed(2)),
@@ -276,41 +340,13 @@ export async function exportToExcel({
       ]);
     }
 
+    // Оформление ячеек (жирные заголовки, заливка) здесь не задаётся: xlsx
+    // (SheetJS Community) свойство cell.s при записи игнорирует. Разделы книги
+    // разделены пустыми строками и заголовками-строками.
     const mainWorksheet = XLSX.utils.aoa_to_sheet(mainData);
-
-    const range = XLSX.utils.decode_range(mainWorksheet['!ref']!);
-
-    const columnWidths = [
-      { wch: 25 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 }
+    mainWorksheet['!cols'] = [
+      { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
     ];
-    mainWorksheet['!cols'] = columnWidths;
-
-    const headerCells = ['A1', 'A9'];
-
-    const fuelStatsIndex = mainData.findIndex(row => row[0] === 'СТАТИСТИКА ПО ВИДАМ ТОПЛИВА');
-    const receiptsStatsIndex = mainData.findIndex(row => row[0] === 'ПОСТУПЛЕНИЯ ТОПЛИВА ПО ВИДАМ');
-    const paymentStatsIndex = mainData.findIndex(row => row[0] === 'СТАТИСТИКА ПО СПОСОБАМ ОПЛАТЫ');
-    const detailStatsIndex = mainData.findIndex(row => row[0] === 'ДЕТАЛЬНАЯ СТАТИСТИКА: СПОСОБЫ ОПЛАТЫ × ВИДЫ ТОПЛИВА');
-
-    if (fuelStatsIndex > -1) headerCells.push('A' + (fuelStatsIndex + 1));
-    if (receiptsStatsIndex > -1) headerCells.push('A' + (receiptsStatsIndex + 1));
-    if (paymentStatsIndex > -1) headerCells.push('A' + (paymentStatsIndex + 1));
-    if (detailStatsIndex > -1) headerCells.push('A' + (detailStatsIndex + 1));
-
-    headerCells.forEach(cellAddr => {
-      if ((mainWorksheet as any)[cellAddr]) {
-        (mainWorksheet as any)[cellAddr].s = {
-          font: { bold: true, sz: 14 },
-          alignment: { horizontal: 'left' }
-        };
-      }
-    });
 
     XLSX.utils.book_append_sheet(workbook, mainWorksheet, 'Основные показатели');
 
@@ -329,20 +365,7 @@ export async function exportToExcel({
       ];
 
       const hourlyWorksheet = XLSX.utils.aoa_to_sheet(hourlyData);
-
-      hourlyWorksheet['!cols'] = [
-        { wch: 10 },
-        { wch: 12 },
-        { wch: 15 },
-        { wch: 20 }
-      ];
-
-      if ((hourlyWorksheet as any)['A1']) {
-        (hourlyWorksheet as any)['A1'].s = {
-          font: { bold: true, sz: 14 },
-          alignment: { horizontal: 'center' }
-        };
-      }
+      hourlyWorksheet['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 20 }];
 
       XLSX.utils.book_append_sheet(workbook, hourlyWorksheet, 'Активность по часам');
     }
@@ -376,53 +399,371 @@ export async function exportToExcel({
       ];
 
       const salesWorksheet = XLSX.utils.aoa_to_sheet(salesData);
-
-      const salesColWidths: { wch: number }[] = [
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 15 },
-        { wch: 12 },
-        { wch: 15 }
+      salesWorksheet['!cols'] = [
+        { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 15 },
+        ...dailySalesData.fuelTypes.map(() => ({ wch: 15 })),
       ];
-
-      dailySalesData.fuelTypes.forEach(() => {
-        salesColWidths.push({ wch: 15 });
-      });
-
-      salesWorksheet['!cols'] = salesColWidths;
-
-      if ((salesWorksheet as any)['A1']) {
-        (salesWorksheet as any)['A1'].s = {
-          font: { bold: true, sz: 14 },
-          alignment: { horizontal: 'center' }
-        };
-      }
 
       XLSX.utils.book_append_sheet(workbook, salesWorksheet, 'Реализация по дням');
     }
 
-    // Лист 4: Тепловая карта активности
+    // Лист 4: Торговые точки — то, что на экране показывает блок «Сравнение работы
+    // станций» (выручка по точкам, точка × топливо). Раньше в файл не попадало.
+    const stationLabel = (code: number) => stationNames?.[String(code)] || `Станция ${code}`;
+
+    if (stationStats && stationStats.length > 0) {
+      const stationsSorted = [...stationStats].sort((a, b) => b.revenue - a.revenue);
+      const stationsRevenue = stationsSorted.reduce((sum, s) => sum + s.revenue, 0);
+
+      const stationData: any[] = [
+        [`ПОКАЗАТЕЛИ ПО ТОРГОВЫМ ТОЧКАМ: ${dateFrom} - ${dateTo}`],
+        [''],
+        ['Точка', 'Номер', 'Операции', 'Выручка (₽)', 'Объем (л)', 'Средний чек (₽)', 'Доля выручки (%)'],
+      ];
+
+      stationsSorted.forEach(s => {
+        stationData.push([
+          stationLabel(s.stationCode),
+          s.stationCode,
+          s.operations,
+          Number(s.revenue.toFixed(2)),
+          Number(s.volume.toFixed(2)),
+          s.operations > 0 ? Number((s.revenue / s.operations).toFixed(2)) : 0,
+          stationsRevenue > 0 ? Number(((s.revenue / stationsRevenue) * 100).toFixed(2)) : 0,
+        ]);
+      });
+
+      const stationsOperations = stationsSorted.reduce((sum, s) => sum + s.operations, 0);
+      stationData.push([
+        'ИТОГО',
+        '',
+        stationsOperations,
+        Number(stationsRevenue.toFixed(2)),
+        Number(stationsSorted.reduce((sum, s) => sum + s.volume, 0).toFixed(2)),
+        stationsOperations > 0 ? Number((stationsRevenue / stationsOperations).toFixed(2)) : 0,
+        100,
+      ]);
+
+      // Точка × вид топлива
+      if (stationFuelStats && stationFuelStats.length > 0) {
+        stationData.push(['']);
+        stationData.push(['']);
+        stationData.push(['ДЕТАЛЬНАЯ СТАТИСТИКА: ТОРГОВЫЕ ТОЧКИ × ВИДЫ ТОПЛИВА']);
+        stationData.push(['']);
+        stationData.push(['Точка', 'Вид топлива', 'Операции', 'Выручка (₽)', 'Объем (л)', 'Средний чек (₽)', '% от точки']);
+
+        stationsSorted.forEach(s => {
+          const rows = stationFuelStats
+            .filter(r => r.stationCode === s.stationCode)
+            .sort((a, b) => {
+              const pa = getFuelPriority(a.fuel || '');
+              const pb = getFuelPriority(b.fuel || '');
+              if (pa !== pb) return pa - pb;
+              return (a.fuel || '').localeCompare(b.fuel || '', 'ru');
+            });
+          if (rows.length === 0) return;
+
+          let isFirstRow = true;
+          rows.forEach(r => {
+            stationData.push([
+              isFirstRow ? stationLabel(s.stationCode) : '',
+              r.fuel || 'Неизвестно',
+              r.operations,
+              Number(r.revenue.toFixed(2)),
+              Number(r.volume.toFixed(2)),
+              r.operations > 0 ? Number((r.revenue / r.operations).toFixed(2)) : 0,
+              s.revenue > 0 ? Number(((r.revenue / s.revenue) * 100).toFixed(2)) : 0,
+            ]);
+            isFirstRow = false;
+          });
+
+          stationData.push([
+            `ИТОГО по "${stationLabel(s.stationCode)}"`,
+            '',
+            s.operations,
+            Number(s.revenue.toFixed(2)),
+            Number(s.volume.toFixed(2)),
+            s.operations > 0 ? Number((s.revenue / s.operations).toFixed(2)) : 0,
+            100,
+          ]);
+          stationData.push(['', '', '', '', '', '', '']);
+        });
+      }
+
+      const stationWorksheet = XLSX.utils.aoa_to_sheet(stationData);
+      stationWorksheet['!cols'] = [
+        { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 16 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, stationWorksheet, 'Торговые точки');
+    }
+
+    // Лист 5: Динамика выручки по точкам (день × точка) — график «Динамика по точкам».
+    if (stationDayStats && stationDayStats.length > 0) {
+      const codes = stationStats && stationStats.length > 0
+        ? [...stationStats].sort((a, b) => b.revenue - a.revenue).map(s => s.stationCode)
+        : [...new Set(stationDayStats.map(r => r.stationCode))].sort((a, b) => a - b);
+
+      const pad2 = (n: number) => String(n).padStart(2, '0');
+      const byDate = new Map<string, Map<number, number>>();
+      stationDayStats.forEach(r => {
+        const d = new Date(r.date);
+        const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+        if (!byDate.has(key)) byDate.set(key, new Map());
+        const row = byDate.get(key)!;
+        row.set(r.stationCode, (row.get(r.stationCode) || 0) + r.revenue);
+      });
+
+      const trendData: any[] = [
+        [`ДИНАМИКА ВЫРУЧКИ ПО ТОРГОВЫМ ТОЧКАМ (₽): ${dateFrom} - ${dateTo}`],
+        [''],
+        ['Дата', ...codes.map(stationLabel), 'Итого (₽)'],
+      ];
+
+      [...byDate.keys()].sort().forEach(date => {
+        const row = byDate.get(date)!;
+        const values = codes.map(code => Number((row.get(code) || 0).toFixed(2)));
+        trendData.push([date, ...values, Number(values.reduce((s, v) => s + v, 0).toFixed(2))]);
+      });
+
+      trendData.push([
+        'ИТОГО',
+        ...codes.map(code => {
+          const total = [...byDate.values()].reduce((sum, row) => sum + (row.get(code) || 0), 0);
+          return Number(total.toFixed(2));
+        }),
+        Number(stationDayStats.reduce((sum, r) => sum + r.revenue, 0).toFixed(2)),
+      ]);
+
+      const trendWorksheet = XLSX.utils.aoa_to_sheet(trendData);
+      trendWorksheet['!cols'] = [{ wch: 12 }, ...codes.map(() => ({ wch: 18 })), { wch: 16 }];
+      XLSX.utils.book_append_sheet(workbook, trendWorksheet, 'Динамика по точкам');
+    }
+
+    // Лист 6: Тренды — то, что показывает нижняя часть расширенного блока:
+    // сравнение с прошлым периодом, средний чек частного клиента по дням,
+    // структура оплат по дням и паттерн по дням недели.
+    const trendSheet: any[] = [];
+
+    // Блок 1: сравнение с предыдущим периодом той же длины
+    if (currentPeriod && previousPeriod) {
+      const splitDays = (agg: PeriodAggregate) => {
+        let wdRevenue = 0, wdOps = 0, wdVolume = 0, wdDays = 0;
+        let weRevenue = 0, weOps = 0, weVolume = 0, weDays = 0;
+        for (const day of agg.byDay) {
+          const d = new Date(day.date);
+          if (isNaN(d.getTime())) continue;
+          const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+          if (isWeekend) { weRevenue += day.revenue; weOps += day.operations; weVolume += day.volume; weDays++; }
+          else { wdRevenue += day.revenue; wdOps += day.operations; wdVolume += day.volume; wdDays++; }
+        }
+        return { wdRevenue, wdOps, wdVolume, wdDays, weRevenue, weOps, weVolume, weDays };
+      };
+
+      const cur = splitDays(currentPeriod);
+      const prv = splitDays(previousPeriod);
+      const delta = (now: number, before: number) => Number((now - before).toFixed(2));
+      // Роста «с нуля» в процентах не бывает — пишем прочерк, а не 0%.
+      const deltaPct = (now: number, before: number) =>
+        before > 0 ? Number((((now - before) / before) * 100).toFixed(2)) : '—';
+
+      const prevLabel = previousPeriodRange
+        ? `${previousPeriodRange.from} - ${previousPeriodRange.to}`
+        : 'предыдущий период';
+
+      trendSheet.push([`СРАВНЕНИЕ ПЕРИОДОВ: ${dateFrom} - ${dateTo} против ${prevLabel}`]);
+      trendSheet.push(['']);
+      trendSheet.push(['Показатель', 'Текущий период', 'Предыдущий период', 'Изменение', 'Изменение (%)']);
+
+      const rows: [string, number, number][] = [
+        ['Выручка (₽)', currentPeriod.kpi.revenue, previousPeriod.kpi.revenue],
+        ['Объем (л)', currentPeriod.kpi.volume, previousPeriod.kpi.volume],
+        ['Операции', currentPeriod.kpi.operations, previousPeriod.kpi.operations],
+        ['Средний чек (₽)', currentPeriod.kpi.avgCheck, previousPeriod.kpi.avgCheck],
+        ['Выручка в будни (₽)', cur.wdRevenue, prv.wdRevenue],
+        ['Выручка в выходные (₽)', cur.weRevenue, prv.weRevenue],
+        ['Операции в будни', cur.wdOps, prv.wdOps],
+        ['Операции в выходные', cur.weOps, prv.weOps],
+        ['Средняя выручка буднего дня (₽)', cur.wdDays > 0 ? cur.wdRevenue / cur.wdDays : 0, prv.wdDays > 0 ? prv.wdRevenue / prv.wdDays : 0],
+        ['Средняя выручка выходного дня (₽)', cur.weDays > 0 ? cur.weRevenue / cur.weDays : 0, prv.weDays > 0 ? prv.weRevenue / prv.weDays : 0],
+      ];
+
+      rows.forEach(([label, now, before]) => {
+        trendSheet.push([
+          label,
+          Number(now.toFixed(2)),
+          Number(before.toFixed(2)),
+          delta(now, before),
+          deltaPct(now, before),
+        ]);
+      });
+
+      trendSheet.push(['Дней в периоде', cur.wdDays + cur.weDays, prv.wdDays + prv.weDays, '', '']);
+      trendSheet.push(['']);
+      trendSheet.push(['']);
+    }
+
+    // Блок 2: средний чек частного клиента по дням (без корп. карт, талонов и купонов)
+    if (retailByDay && retailByDay.length > 0) {
+      trendSheet.push(['СРЕДНИЙ ЧЕК ЧАСТНОГО КЛИЕНТА ПО ДНЯМ (без корп. карт, талонов и купонов)']);
+      trendSheet.push(['']);
+      trendSheet.push(['Дата', 'Операции', 'Выручка (₽)', 'Средний чек (₽)']);
+
+      let totalOps = 0;
+      let totalRevenue = 0;
+      retailByDay.forEach(d => {
+        totalOps += d.operations;
+        totalRevenue += d.revenue;
+        trendSheet.push([
+          d.date,
+          d.operations,
+          Number(d.revenue.toFixed(2)),
+          d.operations > 0 ? Number((d.revenue / d.operations).toFixed(2)) : 0,
+        ]);
+      });
+
+      trendSheet.push([
+        'ИТОГО',
+        totalOps,
+        Number(totalRevenue.toFixed(2)),
+        totalOps > 0 ? Number((totalRevenue / totalOps).toFixed(2)) : 0,
+      ]);
+      trendSheet.push(['']);
+      trendSheet.push(['']);
+    }
+
+    // Блок 3: структура оплат по дням. Группы те же, что на графике «Структура
+    // клиентов»: корпоративные = топливные карты + корп. договоры + купоны/талоны.
+    if (dayPayments && dayPayments.length > 0) {
+      const pad2 = (n: number) => String(n).padStart(2, '0');
+      const groups = new Map<string, { cash: number; card: number; online: number; corp: number }>();
+      dayPayments.forEach(r => {
+        if (r.revenue <= 0) return;
+        const d = new Date(r.date);
+        if (isNaN(d.getTime())) return;
+        const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+        const cat = classifyPayment(r.method || '');
+        const group = (cat === 'fuel_card' || cat === 'corporate' || cat === 'coupon') ? 'corp'
+          : cat === 'card' ? 'card'
+          : cat === 'online' ? 'online'
+          : 'cash';
+        const cell = groups.get(key) || { cash: 0, card: 0, online: 0, corp: 0 };
+        cell[group] += r.revenue;
+        groups.set(key, cell);
+      });
+
+      if (groups.size > 0) {
+        trendSheet.push(['СТРУКТУРА ОПЛАТ ПО ДНЯМ (выручка, ₽)']);
+        trendSheet.push(['']);
+        trendSheet.push(['Дата', 'Наличные', 'Карты', 'Онлайн', 'Корпоративные', 'Итого', 'Доля частных (%)', 'Доля корпоративных (%)']);
+
+        const totals = { cash: 0, card: 0, online: 0, corp: 0 };
+        [...groups.keys()].sort().forEach(date => {
+          const v = groups.get(date)!;
+          const total = v.cash + v.card + v.online + v.corp;
+          totals.cash += v.cash; totals.card += v.card; totals.online += v.online; totals.corp += v.corp;
+          trendSheet.push([
+            date,
+            Number(v.cash.toFixed(2)),
+            Number(v.card.toFixed(2)),
+            Number(v.online.toFixed(2)),
+            Number(v.corp.toFixed(2)),
+            Number(total.toFixed(2)),
+            total > 0 ? Number((((v.cash + v.card + v.online) / total) * 100).toFixed(2)) : 0,
+            total > 0 ? Number(((v.corp / total) * 100).toFixed(2)) : 0,
+          ]);
+        });
+
+        const grandTotal = totals.cash + totals.card + totals.online + totals.corp;
+        trendSheet.push([
+          'ИТОГО',
+          Number(totals.cash.toFixed(2)),
+          Number(totals.card.toFixed(2)),
+          Number(totals.online.toFixed(2)),
+          Number(totals.corp.toFixed(2)),
+          Number(grandTotal.toFixed(2)),
+          grandTotal > 0 ? Number((((totals.cash + totals.card + totals.online) / grandTotal) * 100).toFixed(2)) : 0,
+          grandTotal > 0 ? Number(((totals.corp / grandTotal) * 100).toFixed(2)) : 0,
+        ]);
+        trendSheet.push(['']);
+        trendSheet.push(['']);
+      }
+    }
+
+    // Блок 4: паттерн по дням недели (средние за день недели по всем дням периода)
+    if (currentPeriod && currentPeriod.byDay.length > 0) {
+      const names = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+      const weekdays = Array.from({ length: 7 }, () => ({ revenue: 0, volume: 0, operations: 0, days: 0 }));
+
+      currentPeriod.byDay.forEach(day => {
+        const d = new Date(day.date);
+        if (isNaN(d.getTime())) return;
+        if (day.revenue <= 0) return; // как на графике: дни без выручки не усредняем
+        const idx = d.getDay() === 0 ? 6 : d.getDay() - 1;
+        weekdays[idx].revenue += day.revenue;
+        weekdays[idx].volume += day.volume;
+        weekdays[idx].operations += day.operations;
+        weekdays[idx].days++;
+      });
+
+      if (weekdays.some(w => w.days > 0)) {
+        trendSheet.push(['АКТИВНОСТЬ ПО ДНЯМ НЕДЕЛИ (средние значения за день)']);
+        trendSheet.push(['']);
+        trendSheet.push(['День недели', 'Дней в периоде', 'Средняя выручка (₽)', 'Средние операции', 'Средний объем (л)', 'Выручка за период (₽)']);
+
+        weekdays.forEach((w, i) => {
+          const days = w.days || 1;
+          trendSheet.push([
+            names[i],
+            w.days,
+            Number((w.revenue / days).toFixed(2)),
+            Math.round(w.operations / days),
+            Number((w.volume / days).toFixed(2)),
+            Number(w.revenue.toFixed(2)),
+          ]);
+        });
+      }
+    }
+
+    if (trendSheet.length > 0) {
+      const trendWorksheet = XLSX.utils.aoa_to_sheet(trendSheet);
+      trendWorksheet['!cols'] = [
+        { wch: 38 }, { wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 22 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, trendWorksheet, 'Тренды');
+    }
+
+    // Лист 7: Тепловая карта активности
     if (heatmapData.length > 0) {
       const heatmapHeaders = ['День недели', 'Дата'];
       for (let hour = 0; hour < 24; hour++) {
         heatmapHeaders.push(`${hour.toString().padStart(2, '0')}:00`);
       }
 
+      // Максимум по всей карте — один раз на лист (раньше пересчитывался в каждой
+      // из 24×N ячеек).
+      let peakTransactions = 0;
+      heatmapData.forEach((day: any) => {
+        day.hours.forEach((h: any) => {
+          if (h.transactions > peakTransactions) peakTransactions = h.transactions;
+        });
+      });
+
+      // 4 ступени активности, каждая своим символом. Раньше ступеней было 5, но
+      // «средняя» и «максимальная» рисовались одним 🟦 — по файлу их различить
+      // было нельзя, и легенда врала.
       const getColorIndicator = (value: number) => {
         if (value === 0) return '\u2B1C';
 
-        const maxVal = Math.max(...heatmapData.flatMap((day: any) => day.hours.map((h: any) => h.transactions)));
-        const normalized = maxVal > 0 ? value / maxVal : 0;
+        const normalized = peakTransactions > 0 ? value / peakTransactions : 0;
 
-        if (normalized <= 0.2) return '\uD83D\uDD37';
-        else if (normalized <= 0.4) return '\uD83D\uDD39';
-        else if (normalized <= 0.6) return '\uD83D\uDFE6';
-        else if (normalized <= 0.8) return '\uD83D\uDD35';
+        if (normalized <= 0.25) return '\uD83D\uDD39';
+        else if (normalized <= 0.5) return '\uD83D\uDD37';
+        else if (normalized <= 0.75) return '\uD83D\uDD35';
         else return '\uD83D\uDFE6';
       };
 
       const heatmapExportData: any[] = [
-        ['АКТИВНОСТЬ ПО ДНЯМ И ЧАСАМ (ТЕПЛОВАЯ КАРТА)'],
+        [`АКТИВНОСТЬ ПО ДНЯМ И ЧАСАМ (ТЕПЛОВАЯ КАРТА): ${dateFrom} - ${dateTo}`],
         [''],
         heatmapHeaders,
         ...heatmapData.map((day: any) => {
@@ -437,177 +778,30 @@ export async function exportToExcel({
         })
       ];
 
+      // Легенда — обычными строками листа. Заливку ячеек и color scale тут
+      // держать бессмысленно: xlsx (SheetJS Community) стили не пишет, поэтому
+      // уровень активности показываем символом рядом с числом. Понадобится
+      // настоящее оформление — книгу надо собирать на ExcelJS, как в сменном
+      // отчёте (src/services/excelExportWithStyles.ts).
+      if (peakTransactions > 0) {
+        // Границы ступеней — те же четверти от пика, что в getColorIndicator.
+        const q1 = Math.ceil(peakTransactions * 0.25);
+        const q2 = Math.ceil(peakTransactions * 0.5);
+        const q3 = Math.ceil(peakTransactions * 0.75);
+
+        heatmapExportData.push(['']);
+        heatmapExportData.push(['']);
+        heatmapExportData.push(['ЦВЕТОВАЯ ЛЕГЕНДА:']);
+        heatmapExportData.push(['']);
+        heatmapExportData.push(['\u2B1C', '0 операций']);
+        heatmapExportData.push(['\uD83D\uDD39', `1-${q1} операций (низкая активность)`]);
+        heatmapExportData.push(['\uD83D\uDD37', `${q1 + 1}-${q2} операций (ниже среднего)`]);
+        heatmapExportData.push(['\uD83D\uDD35', `${q2 + 1}-${q3} операций (высокая активность)`]);
+        heatmapExportData.push(['\uD83D\uDFE6', `${q3 + 1}+ операций (максимальная активность)`]);
+      }
+
       const heatmapWorksheet = XLSX.utils.aoa_to_sheet(heatmapExportData);
-
-      const heatmapColWidths: { wch: number }[] = [
-        { wch: 12 },
-        { wch: 12 }
-      ];
-
-      for (let i = 0; i < 24; i++) {
-        heatmapColWidths.push({ wch: 6 });
-      }
-
-      heatmapWorksheet['!cols'] = heatmapColWidths;
-
-      if ((heatmapWorksheet as any)['A1']) {
-        (heatmapWorksheet as any)['A1'].s = {
-          font: { bold: true, sz: 14 },
-          alignment: { horizontal: 'center' }
-        };
-      }
-
-      const heatmapRange = XLSX.utils.decode_range(heatmapWorksheet['!ref']!);
-
-      const allValues: number[] = [];
-      heatmapData.forEach((day: any) => {
-        day.hours.forEach((hourData: any) => {
-          if (hourData.transactions > 0) {
-            allValues.push(hourData.transactions);
-          }
-        });
-      });
-
-      if (allValues.length > 0) {
-        const minValue = Math.min(...allValues);
-        const maxValue = Math.max(...allValues);
-
-        const getBlueColor = (value: number) => {
-          if (value === 0) return 'FFFFFF';
-
-          const normalized = maxValue > minValue ? (value - minValue) / (maxValue - minValue) : 0;
-
-          if (normalized <= 0.2) return 'E3F2FD';
-          else if (normalized <= 0.4) return 'BBDEFB';
-          else if (normalized <= 0.6) return '90CAF9';
-          else if (normalized <= 0.8) return '64B5F6';
-          else return '2196F3';
-        };
-
-        heatmapData.forEach((day: any, dayIndex: number) => {
-          const rowIndex = dayIndex + 3;
-
-          day.hours.forEach((hourData: any, hourIndex: number) => {
-            const colIndex = hourIndex + 2;
-            const cellAddr = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
-
-            if ((heatmapWorksheet as any)[cellAddr]) {
-              const bgColor = getBlueColor(hourData.transactions);
-
-              if (!(heatmapWorksheet as any)[cellAddr].s) {
-                (heatmapWorksheet as any)[cellAddr].s = {};
-              }
-
-              (heatmapWorksheet as any)[cellAddr].s = {
-                ...(heatmapWorksheet as any)[cellAddr].s,
-                fill: {
-                  patternType: 'solid',
-                  fgColor: { rgb: bgColor }
-                },
-                alignment: {
-                  horizontal: 'center',
-                  vertical: 'middle'
-                },
-                font: {
-                  sz: 10,
-                  color: { rgb: hourData.transactions > 0 && bgColor === '2196F3' ? 'FFFFFF' : '000000' }
-                },
-                border: {
-                  top: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                  bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                  left: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                  right: { style: 'thin', color: { rgb: 'CCCCCC' } }
-                }
-              };
-            }
-          });
-        });
-
-        const dataStartRow = 4;
-        const dataStartCol = 3;
-        const dataEndRow = dataStartRow + heatmapData.length - 1;
-        const dataEndCol = dataStartCol + 23;
-
-        if (!(heatmapWorksheet as any)['!conditionalFormatting']) {
-          (heatmapWorksheet as any)['!conditionalFormatting'] = [];
-        }
-
-        (heatmapWorksheet as any)['!conditionalFormatting'].push({
-          ref: XLSX.utils.encode_range({
-            s: { r: dataStartRow - 1, c: dataStartCol - 1 },
-            e: { r: dataEndRow - 1, c: dataEndCol - 1 }
-          }),
-          rules: [
-            {
-              type: 'colorScale',
-              priority: 1,
-              colorScale: {
-                cfvo: [
-                  { type: 'min', val: 0 },
-                  { type: 'percentile', val: 50 },
-                  { type: 'max', val: maxValue }
-                ],
-                color: [
-                  { rgb: 'FFFFFF' },
-                  { rgb: '90CAF9' },
-                  { rgb: '2196F3' }
-                ]
-              }
-            }
-          ]
-        });
-
-        const legendStartRow = heatmapData.length + 6;
-
-        const legendTitleAddr = XLSX.utils.encode_cell({ r: legendStartRow, c: 0 });
-        (heatmapWorksheet as any)[legendTitleAddr] = {
-          v: 'ЦВЕТОВАЯ ЛЕГЕНДА:',
-          t: 's',
-          s: {
-            font: { bold: true, sz: 12 },
-            alignment: { horizontal: 'left' }
-          }
-        };
-
-        const legendItems = [
-          { label: '0 операций', indicator: '\u2B1C' },
-          { label: `1-${Math.ceil(maxValue * 0.2)} операций (низкая активность)`, indicator: '\uD83D\uDD37' },
-          { label: `${Math.ceil(maxValue * 0.2 + 1)}-${Math.ceil(maxValue * 0.4)} операций (ниже среднего)`, indicator: '\uD83D\uDD39' },
-          { label: `${Math.ceil(maxValue * 0.4 + 1)}-${Math.ceil(maxValue * 0.6)} операций (средняя активность)`, indicator: '\uD83D\uDFE6' },
-          { label: `${Math.ceil(maxValue * 0.6 + 1)}-${Math.ceil(maxValue * 0.8)} операций (высокая активность)`, indicator: '\uD83D\uDD35' },
-          { label: `${Math.ceil(maxValue * 0.8 + 1)}+ операций (максимальная активность)`, indicator: '\uD83D\uDFE6' }
-        ];
-
-        legendItems.forEach((item, index) => {
-          const legendRow = legendStartRow + index + 2;
-
-          const indicatorCellAddr = XLSX.utils.encode_cell({ r: legendRow, c: 0 });
-          (heatmapWorksheet as any)[indicatorCellAddr] = {
-            v: item.indicator,
-            t: 's',
-            s: {
-              font: { sz: 16 },
-              alignment: { horizontal: 'center', vertical: 'middle' }
-            }
-          };
-
-          const labelCellAddr = XLSX.utils.encode_cell({ r: legendRow, c: 1 });
-          (heatmapWorksheet as any)[labelCellAddr] = {
-            v: item.label,
-            t: 's',
-            s: {
-              font: { sz: 10 },
-              alignment: { horizontal: 'left', vertical: 'middle' }
-            }
-          };
-        });
-
-        const newRange = XLSX.utils.encode_range({
-          s: { r: 0, c: 0 },
-          e: { r: legendStartRow + legendItems.length + 3, c: 25 }
-        });
-        heatmapWorksheet['!ref'] = newRange;
-      }
+      heatmapWorksheet['!cols'] = [{ wch: 12 }, { wch: 44 }, ...Array.from({ length: 24 }, () => ({ wch: 6 }))];
 
       XLSX.utils.book_append_sheet(workbook, heatmapWorksheet, 'Тепловая карта');
     }
@@ -649,8 +843,6 @@ interface ExportDashboardToPdfParams {
   selectedNetwork: any;
   selectedTradingPoint: any;
   filteredTransactions: any[];
-  completedTransactions: any[];
-  prevPeriodTransactions: any[];
   totalRevenue: number;
   totalVolume: number;
   averageCheck: number;
@@ -659,8 +851,6 @@ interface ExportDashboardToPdfParams {
   receiptsByFuel?: ReceiptFuelRow[];
   dateFrom: string;
   dateTo: string;
-  loading: boolean;
-  exportingPdf: boolean;
   setExportingPdf: (v: boolean) => void;
   dailySalesCardRef: React.RefObject<HTMLDivElement | null>;
   heatmapCardRef: React.RefObject<HTMLDivElement | null>;
@@ -674,8 +864,6 @@ export async function exportDashboardToPdf({
   selectedNetwork,
   selectedTradingPoint,
   filteredTransactions,
-  completedTransactions,
-  prevPeriodTransactions,
   totalRevenue,
   totalVolume,
   averageCheck,
@@ -684,8 +872,6 @@ export async function exportDashboardToPdf({
   receiptsByFuel,
   dateFrom,
   dateTo,
-  loading,
-  exportingPdf,
   setExportingPdf,
   dailySalesCardRef,
   heatmapCardRef,
