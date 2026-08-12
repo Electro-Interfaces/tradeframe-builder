@@ -104,6 +104,48 @@ describe('ShiftReportAdapterV2.toDetails', () => {
   });
 });
 
+describe('ShiftReportAdapterV2 · свод движения наличных', () => {
+  const summaryOf = (money: any[]) =>
+    ShiftReportAdapterV2.toDetails({ ...API_3842, money }, 3842, 15, 209, 'АКАЗС №209', SHIFT_INFO).cashSummary;
+
+  it('АЗС Н-1 смена 5898: сходится с бумажным отчётом', () => {
+    // Реальный money из STS (system=71, station=3, shift=5898), shift подставлен под фикстуру
+    const s = summaryOf([
+      { pos: 1, shift: 3842, volume: 40000, operation: { id: 0, name: 'Остаток на начало смены по раб.местам' } },
+      { pos: 2, shift: 3842, volume: 0, operation: { id: 0, name: 'Остаток на начало смены по раб.местам' } },
+      { pos: 1, shift: 3842, volume: 86146, operation: { id: 1, name: 'Инкассация' } },
+      { pos: 1, shift: 3842, volume: 86146, operation: { id: 3, name: 'Выручка' } },
+      { pos: 2, shift: 3842, volume: 0, operation: { id: 3, name: 'Выручка' } },
+      { pos: 1, shift: 3842, volume: 40000, operation: { id: 4, name: 'Остаток на конец смены по раб.местам' } },
+      { pos: 1, shift: 3842, volume: 40000, operation: { id: 7, name: 'Остаток на конец смены по всей АЗС' } },
+    ]);
+    expect(s.opening).toBe(40000);   // Принято по смене
+    expect(s.revenue).toBe(86146);   // Выручка за смену
+    expect(s.toBank).toBe(86146);    // Сдано в банк (инкассация, раньше было 0)
+    expect(s.closing).toBe(40000);   // Передано по смене (раньше было 126146)
+    expect(s.opening + s.deposited + s.revenue).toBe(126146);
+    expect(s.toBank + s.cashOut + s.closing).toBe(126146);
+  });
+
+  it('АКАЗС 209: приход равен расходу', () => {
+    const s = summaryOf(API_3842.money);
+    expect(s.opening).toBe(17850);
+    expect(s.closing).toBeCloseTo(25943.26, 2);
+    expect(s.opening + s.deposited + s.revenue).toBeCloseTo(s.toBank + s.cashOut + s.closing, 2);
+  });
+
+  it('ГИГ: отрицательный id=7 в свод не попадает', () => {
+    const s = summaryOf([
+      { pos: 1, shift: 3842, volume: 12500, operation: { id: 3, name: 'Выручка' } },
+      { pos: 1, shift: 3842, volume: 12500, operation: { id: 4, name: 'Остаток на конец смены по раб.местам' } },
+      { pos: 1, shift: 3842, volume: -569018, operation: { id: 7, name: 'Остаток на конец смены по всей АЗС' } },
+    ]);
+    expect(s.opening).toBe(0);
+    expect(s.closing).toBe(12500);
+    expect(s.opening + s.deposited + s.revenue).toBe(s.toBank + s.cashOut + s.closing);
+  });
+});
+
 describe('ShiftReportAdapterV2 · фактический остаток (rest)', () => {
   const withRest = (rest: any) => ShiftReportAdapterV2.toDetails(
     { ...API_3842, release: [{ ...API_3842.release[0], rest }] },

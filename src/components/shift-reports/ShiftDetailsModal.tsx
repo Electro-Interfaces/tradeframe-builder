@@ -818,29 +818,18 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                 </div>
 
                 {(() => {
-                  // Вычисляем суммы по типам операций
-
-                  // "Выручка за смену" (НАЛИЧНЫЕ) - берем из paymentSales
-                  const revenue = details.paymentSales
-                    .find(p => p.paymentTypeName.toLowerCase().includes('наличн'))
-                    ?.cost || 0;
-
-                  // "Принято по смене" = operation.id: 7 (closing) из API
-                  // Это остаток на конец предыдущей смены = начало текущей
-                  const openingAmount = details.cashMovements
-                    .filter(m => m.operationType === 'closing')
-                    .reduce((sum, m) => sum + m.amount, 0);
-
-                  const incomeAmount = 0; // "Внесено за смену" - нет в данных
-
-                  // "Передано по смене" = Принято + Внесено + Выручка
-                  const closingAmount = openingAmount + incomeAmount + revenue;
+                  // Суммы берём из свода адаптера — он считает их по кодам операций
+                  // STS ровно как в бумажном сменном отчёте.
+                  const {
+                    opening: openingAmount,
+                    deposited: incomeAmount,
+                    revenue,
+                    toBank: toBankAmount,
+                    cashOut: cashOutAmount,
+                    closing: closingAmount,
+                  } = details.cashSummary;
 
                   const totalIncome = openingAmount + incomeAmount + revenue;
-
-                  const toBankAmount = 0; // "Сдано в банк" - нет в API
-                  const cashOutAmount = 0; // "Выдано наличными" - нет в API
-
                   const totalExpense = toBankAmount + cashOutAmount + closingAmount;
 
                   return (
