@@ -278,7 +278,12 @@ async function proxyRequest(req, res) {
 
     // Per-station alias подмена: если фронт прислал (system=целевая, station=код)
     // и есть alias на эту пару — подменяем system на physical для запроса к STS.
+    // Принудительное обновление (?force=1): читаем STS мимо кэша, свежий ответ
+    // кладём в кэш как обычно. Нужно, когда данные в STS пересчитали задним
+    // числом, а у отчёта закрытой смены TTL — сутки.
+    const forceRefresh = query?.force === '1' || query?.force === 'true';
     let effectiveQuery = { ...(query || {}) };
+    delete effectiveQuery.force; // в STS не отправляем и в cache-key не берём
     let effectiveBody = body && typeof body === 'object' ? { ...body } : body;
     let aliasSubstituted = false;
 
@@ -330,7 +335,7 @@ async function proxyRequest(req, res) {
       + buildOutgoingCacheTag(movedStations);
 
     // Cache check (GET only)
-    if (method === 'GET') {
+    if (method === 'GET' && !forceRefresh) {
       const cachedData = cache.get(cacheKey);
       if (cachedData !== undefined) {
         cacheStats.hits++;
