@@ -11,6 +11,7 @@ import type {
   ReceiptItem,
   CashMovementItem,
   CashSummary,
+  CashByPos,
   PosInfoItem,
   NozzleReading,
 } from '@/types/shift-reports-v2';
@@ -98,6 +99,7 @@ export class ShiftReportAdapterV2 {
     // чтобы проставить корректные даты operation'ам вместо new Date()
     const cashMovements = this.extractCashMovements(apiResponse.money, shiftNumber, openedAt, closedAt);
     const cashSummary = this.extractCashSummary(apiResponse.money, shiftNumber);
+    const cashByPos = this.extractCashByPos(apiResponse.money, shiftNumber, posInfo);
 
     const result = {
       // Базовая информация
@@ -166,6 +168,7 @@ export class ShiftReportAdapterV2 {
       salesBreakdown,
       cashMovements,
       cashSummary,
+      cashByPos,
       reportCreatedAt: new Date().toISOString(),
 
       // Сырые данные для дополнительных расчетов
@@ -542,6 +545,33 @@ export class ShiftReportAdapterV2 {
       cashOut: 0,
       closing: sumByOperation(4),
     };
+  }
+
+  /**
+   * Движение наличных по кассам (рабочим местам) — блок бумажного отчёта
+   * «Внесено / Изъято / Выручка за смену касса N».
+   * Кассы берём из самих записей money: STS отдаёт их не для всех станций
+   * (на односменной АЗС будет один pos).
+   */
+  private static extractCashByPos(money: any[], shiftNumber: number, posInfo: PosInfoItem[]): CashByPos[] {
+    const rows = (money || []).filter((item: any) => item.shift === shiftNumber);
+    const posNumbers = [...new Set(rows.map((item: any) => item.pos))]
+      .filter((pos): pos is number => typeof pos === 'number')
+      .sort((a, b) => a - b);
+
+    return posNumbers.map((posNumber) => {
+      const sumByOperation = (operationId: number) => rows
+        .filter((item: any) => item.pos === posNumber && item.operation?.id === operationId)
+        .reduce((sum: number, item: any) => sum + (item.volume || 0), 0);
+
+      return {
+        posNumber,
+        deposited: 0,
+        withdrawn: sumByOperation(1),
+        revenue: sumByOperation(3),
+        operator: posInfo.find((p) => p.posNumber === posNumber)?.operator,
+      };
+    });
   }
 
   private static mapOperationType(operationId: number): 'income' | 'expense' | 'opening' | 'closing' | null {

@@ -480,6 +480,26 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
   const closingAmount = cash.closing;
   const totalExpense = toBankAmount + cashOutAmount + closingAmount;
 
+  // Блок по кассам (рабочим местам) — как в бумажном отчёте, перед сводом
+  (details.cashByPos || []).forEach((pos) => {
+    const posRows: Array<[string, number]> = [
+      [`Внесено за смену касса N ${pos.posNumber}`, pos.deposited],
+      [`Изъято за смену касса N ${pos.posNumber}`, pos.withdrawn],
+      [`Выручка за смену касса N ${pos.posNumber}`, pos.revenue],
+    ];
+    posRows.forEach(([label, amount], idx) => {
+      writeCell(row, 1, label, { font: { size: 10 }, alignment: { horizontal: 'right' } });
+      writeCell(row, 2, amount, { font: { size: 10 }, alignment: { horizontal: 'right' } }, 'decimal2');
+      writeCell(row, 3, 'руб.', { font: { size: 10 }, alignment: { horizontal: 'left' } });
+      // Оператор кассы — в бумажном отчёте стоит справа от строки выручки
+      if (idx === 2 && pos.operator) {
+        writeCell(row, 5, `Оператор: ${pos.operator}`, { font: { size: 10 }, alignment: { horizontal: 'left' } });
+      }
+      row++;
+    });
+  });
+  if ((details.cashByPos || []).length > 0) row++;
+
   const cashRows: Array<[string, number]> = [
     ['Принято по смене', openingAmount],
     ['Внесено за смену', incomeAmount],

@@ -146,6 +146,41 @@ describe('ShiftReportAdapterV2 · свод движения наличных', (
   });
 });
 
+describe('ShiftReportAdapterV2 · движение наличных по кассам', () => {
+  const details = ShiftReportAdapterV2.toDetails({
+    ...API_3842,
+    money: [
+      { pos: 1, shift: 3842, volume: 40000, operation: { id: 0, name: 'Остаток на начало смены по раб.местам' } },
+      { pos: 2, shift: 3842, volume: 0, operation: { id: 0, name: 'Остаток на начало смены по раб.местам' } },
+      { pos: 1, shift: 3842, volume: 86146, operation: { id: 1, name: 'Инкассация' } },
+      { pos: 1, shift: 3842, volume: 86146, operation: { id: 3, name: 'Выручка' } },
+      { pos: 2, shift: 3842, volume: 0, operation: { id: 3, name: 'Выручка' } },
+    ],
+  }, 3842, 15, 209, 'АКАЗС №209', SHIFT_INFO);
+
+  it('кассы берутся из money и идут по возрастанию', () => {
+    expect(details.cashByPos.map(p => p.posNumber)).toEqual([1, 2]);
+  });
+
+  it('касса 1: изъято и выручка по 86146', () => {
+    const pos1 = details.cashByPos[0];
+    expect(pos1.withdrawn).toBe(86146);
+    expect(pos1.revenue).toBe(86146);
+    expect(pos1.deposited).toBe(0);
+  });
+
+  it('касса 2 без операций — нули, а не пропуск строки', () => {
+    const pos2 = details.cashByPos[1];
+    expect(pos2.withdrawn).toBe(0);
+    expect(pos2.revenue).toBe(0);
+  });
+
+  it('сумма выручки по кассам равна выручке свода', () => {
+    const byPos = details.cashByPos.reduce((s, p) => s + p.revenue, 0);
+    expect(byPos).toBe(details.cashSummary.revenue);
+  });
+});
+
 describe('ShiftReportAdapterV2 · фактический остаток (rest)', () => {
   const withRest = (rest: any) => ShiftReportAdapterV2.toDetails(
     { ...API_3842, release: [{ ...API_3842.release[0], rest }] },

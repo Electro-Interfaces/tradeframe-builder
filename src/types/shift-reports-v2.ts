@@ -377,6 +377,24 @@ export interface CashSummary {
   closing: number;
 }
 
+/** Движение наличных по одному рабочему месту (кассе) — блок бумажного отчёта */
+export interface CashByPos {
+  /** Номер кассы (рабочего места) */
+  posNumber: number;
+
+  /** Внесено за смену (отдельной операции в STS нет) */
+  deposited: number;
+
+  /** Изъято за смену — инкассация (STS id=1) */
+  withdrawn: number;
+
+  /** Выручка за смену (STS id=3) */
+  revenue: number;
+
+  /** Оператор кассы, если известен */
+  operator?: string;
+}
+
 export interface CashMovementItem {
   /** ID записи */
   id: string;
@@ -468,6 +486,9 @@ export interface ShiftDetails extends ShiftListItem {
 
   /** Свод движения наличных как в бумажном сменном отчёте */
   cashSummary: CashSummary;
+
+  /** Движение наличных в разрезе касс (рабочих мест) */
+  cashByPos: CashByPos[];
 
   // ========== Метаданные ==========
 
