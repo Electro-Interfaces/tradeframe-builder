@@ -353,6 +353,30 @@ export interface ReceiptItem {
 /**
  * Движение наличных денежных средств
  */
+/**
+ * Свод движения наличных — строки бумажного сменного отчёта.
+ * Приход = opening + deposited + revenue, расход = toBank + cashOut + closing.
+ */
+export interface CashSummary {
+  /** Принято по смене (остаток на начало по рабочим местам, STS id=0) */
+  opening: number;
+
+  /** Внесено за смену (отдельной операции в STS нет) */
+  deposited: number;
+
+  /** Выручка за смену наличными (STS id=3) */
+  revenue: number;
+
+  /** Сдано в банк — инкассация (STS id=1) */
+  toBank: number;
+
+  /** Выдано наличными (отдельной операции в STS нет) */
+  cashOut: number;
+
+  /** Передано по смене (остаток на конец по рабочим местам, STS id=4) */
+  closing: number;
+}
+
 export interface CashMovementItem {
   /** ID записи */
   id: string;
@@ -441,6 +465,9 @@ export interface ShiftDetails extends ShiftListItem {
 
   /** Движение наличных денежных средств */
   cashMovements: CashMovementItem[];
+
+  /** Свод движения наличных как в бумажном сменном отчёте */
+  cashSummary: CashSummary;
 
   // ========== Метаданные ==========
 

@@ -10,6 +10,7 @@ import type {
   PaymentSalesItem,
   ReceiptItem,
   CashMovementItem,
+  CashSummary,
   PosInfoItem,
   NozzleReading,
 } from '@/types/shift-reports-v2';
@@ -96,6 +97,7 @@ export class ShiftReportAdapterV2 {
     // Извлекаем движение наличных — после определения openedAt/closedAt,
     // чтобы проставить корректные даты operation'ам вместо new Date()
     const cashMovements = this.extractCashMovements(apiResponse.money, shiftNumber, openedAt, closedAt);
+    const cashSummary = this.extractCashSummary(apiResponse.money, shiftNumber);
 
     const result = {
       // Базовая информация
@@ -163,6 +165,7 @@ export class ShiftReportAdapterV2 {
       paymentSales,
       salesBreakdown,
       cashMovements,
+      cashSummary,
       reportCreatedAt: new Date().toISOString(),
 
       // Сырые данные для дополнительных расчетов
@@ -513,10 +516,38 @@ export class ShiftReportAdapterV2 {
    * Маппинг типа операции по ID.
    * Разные АЗС могут использовать id 0 или 1 для «Принято по смене» — учитываем оба.
    */
+  /**
+   * Свод движения наличных как в бумажном сменном отчёте.
+   *
+   * Коды операций STS: 0 — остаток на начало по раб.местам, 1 — инкассация,
+   * 3 — выручка наличными, 4 — остаток на конец по раб.местам, 5/6 — показания ККТ.
+   * id=7 («остаток на конец по всей АЗС») НЕ используем: на ГИГ он приходит
+   * отрицательным (−569018 на ст.1), а на АКАЗС 209 равен остатку на начало —
+   * согласованного смысла у него нет. Операций «Внесено за смену» и «Выдано
+   * наличными» STS не отдаёт вовсе, поэтому они нулевые.
+   *
+   * Проверено на АЗС Н-1 (смена 5898 — сходится с бумажным отчётом до копейки),
+   * ГИГ ст.1 и АКАЗС 209: приход всегда равен расходу.
+   */
+  private static extractCashSummary(money: any[], shiftNumber: number): CashSummary {
+    const sumByOperation = (operationId: number) => (money || [])
+      .filter((item: any) => item.shift === shiftNumber && item.operation?.id === operationId)
+      .reduce((sum: number, item: any) => sum + (item.volume || 0), 0);
+
+    return {
+      opening: sumByOperation(0),
+      deposited: 0,
+      revenue: sumByOperation(3),
+      toBank: sumByOperation(1),
+      cashOut: 0,
+      closing: sumByOperation(4),
+    };
+  }
+
   private static mapOperationType(operationId: number): 'income' | 'expense' | 'opening' | 'closing' | null {
     switch (operationId) {
-      case 0:                      // "Остаток на начало смены по раб.местам" (некоторые АЗС)
-      case 1: return 'opening';    // "Принято по смене"
+      case 0: return 'opening';    // "Остаток на начало смены по раб.местам"
+      case 1: return 'expense';    // "Инкассация" — деньги ушли из кассы, не приход
       case 2: return 'expense';    // Возможно расход
       case 3: return 'income';     // "Выручка за смену" (только наличные)
       case 4: return null;         // Остаток на конец по ПСМ - не используем, берём id:7

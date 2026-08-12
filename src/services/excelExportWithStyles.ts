@@ -467,23 +467,17 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
   writeCell(row, 1, 'Движение наличных денег:', sectionTitleStyle);
   row += 2;
 
-  // Суммы по cashMovements (operationType). API возвращает:
-  //   opening (id 0/1) → «Принято по смене»
-  //   income  (id 3)   → «Выручка за смену» (наличная)
-  //   closing (id 7)   → «Передано по смене» (остаток на конец по всей АЗС)
-  // Отдельных операций «Внесено за смену», «Сдано в банк», «Выдано наличными» API не возвращает —
-  // считаем их исходя из баланса (приход = расход).
-  const cashMovs = details.cashMovements || [];
-  const sumByType = (t: string) => cashMovs.filter(m => m.operationType === t).reduce((s, m) => s + (m.amount || 0), 0);
-
-  const openingAmount = sumByType('opening');
-  const incomeAmount = 0; // «Внесено за смену» — нет в API
-  const revenue = sumByType('income');
+  // Суммы берём из свода адаптера (cashSummary) — он считает их по кодам операций
+  // STS ровно как в бумажном сменном отчёте. Выгрузка обязана совпадать с экраном.
+  const cash = details.cashSummary || { opening: 0, deposited: 0, revenue: 0, toBank: 0, cashOut: 0, closing: 0 };
+  const openingAmount = cash.opening;
+  const incomeAmount = cash.deposited;
+  const revenue = cash.revenue;
   const totalIncome = openingAmount + incomeAmount + revenue;
 
-  const closingAmount = sumByType('closing');
-  const toBankAmount = totalIncome - closingAmount; // инкассация = разница между приходом и переданным
-  const cashOutAmount = 0;
+  const toBankAmount = cash.toBank;
+  const cashOutAmount = cash.cashOut;
+  const closingAmount = cash.closing;
   const totalExpense = toBankAmount + cashOutAmount + closingAmount;
 
   const cashRows: Array<[string, number]> = [
