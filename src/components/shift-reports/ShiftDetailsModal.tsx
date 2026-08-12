@@ -834,6 +834,28 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
 
                   return (
                     <div className="space-y-1">
+                      {/* По кассам (рабочим местам) — как в бумажном отчёте */}
+                      {details.cashByPos.map((pos) => (
+                        <React.Fragment key={pos.posNumber}>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-foreground pl-8">Внесено за смену касса N {pos.posNumber}</span>
+                            <span className="text-foreground font-medium">{formatCurrency(pos.deposited)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-foreground pl-8">Изъято за смену касса N {pos.posNumber}</span>
+                            <span className="text-foreground font-medium">{formatCurrency(pos.withdrawn)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-border">
+                            <span className="text-foreground pl-8">
+                              Выручка за смену касса N {pos.posNumber}
+                              {pos.operator && <span className="text-muted-foreground ml-2">— {pos.operator}</span>}
+                            </span>
+                            <span className="text-foreground font-medium">{formatCurrency(pos.revenue)}</span>
+                          </div>
+                        </React.Fragment>
+                      ))}
+                      {details.cashByPos.length > 0 && <div className="h-3" />}
+
                       {/* Приход */}
                       <div className="flex justify-between items-center py-2">
                         <span className="text-foreground pl-8">Принято по смене</span>
