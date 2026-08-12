@@ -278,6 +278,15 @@ export interface TankSnapshot {
   /** Плотность (г/см³) */
   density?: number;
 
+  /** Плотность на начало смены (г/см³) */
+  densityBegin?: number;
+
+  /** Фактический остаток по уровнемеру на конец смены (литры), rest.volume */
+  volumeFact?: number;
+
+  /** Фактический остаток по уровнемеру на конец смены (кг), rest.amount */
+  massFact?: number;
+
   /** Уровень воды (см) */
   waterLevel?: number;
 

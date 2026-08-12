@@ -16,6 +16,15 @@ import type {
 import { classifyPayment } from '@/utils/paymentUtils';
 
 /**
+ * Масса из API считается достоверной, только если сходится с литрами по вменяемой
+ * плотности нефтепродукта. В shift_report ряда систем amount оторван от volume
+ * (встречается «плотность» до 2,66) — там массу считаем сами по density.
+ * ponytail: снять проверку, когда STS починит массу в shift_report.
+ */
+const isPlausibleMass = (mass: number, volume: number): boolean =>
+  mass > 0 && volume > 0 && mass / volume >= 0.6 && mass / volume <= 1.0;
+
+/**
  * Преобразует ответ API в детальную информацию о смене
  */
 export class ShiftReportAdapterV2 {
@@ -229,6 +238,11 @@ export class ShiftReportAdapterV2 {
       const waterLevel = tank.water?.level;
       const waterVolume = tank.water?.volume;
 
+      const density = tank.density_end;
+      // Фактический замер уровнемера. doc_end — книжный остаток, факт брать из него нельзя.
+      const volumeFact = parseFloat(tank.rest?.volume ?? tank.volume_end ?? tank.doc_end?.volume ?? '0');
+      const restMass = parseFloat(tank.rest?.amount || '0');
+
       return {
         tankNumber: tank.tank || 0,
         fuelCode: tank.service?.service_code || 0,
@@ -242,7 +256,10 @@ export class ShiftReportAdapterV2 {
         hasExcessError: Math.abs(volumeDifference) > 10, // Превышение 10 литров
         level: tank.level_end,
         temperature: tank.temp_end,
-        density: tank.density_end,
+        density,
+        densityBegin: tank.density_beg ?? density,
+        volumeFact,
+        massFact: isPlausibleMass(restMass, volumeFact) ? restMass : volumeFact * (density || 1),
         waterLevel,
         waterVolume,
       };

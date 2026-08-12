@@ -247,10 +247,12 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       const volumeReceived = t.volumeReceived ?? 0;
       const volumeDispensed = t.volumeDispensed ?? 0;
       const volumeCalculated = t.volumeCalculated ?? volumeEnd;
+      const volumeFact = t.volumeFact ?? volumeEnd;
+      const massFact = t.massFact ?? volumeFact * density;
 
       writeCell(row, 1, tank.fuelName ?? '', dataLeftStyle);
       writeCell(row, 2, tank.tankNumber ?? '', dataStyle);
-      writeCell(row, 3, density, dataStyle, 'decimal4');
+      writeCell(row, 3, t.densityBegin ?? density, dataStyle, 'decimal4');
       writeCell(row, 4, volumeBegin, dataStyle, 'decimal2');
       writeCell(row, 5, volumeBegin * density, dataStyle, 'decimal2');
       writeCell(row, 6, volumeReceived, dataStyle, 'decimal2');
@@ -260,11 +262,11 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       writeCell(row, 10, density, dataStyle, 'decimal4');
       writeCell(row, 11, t.temperature ?? 0, dataStyle, 'decimal2');
       writeCell(row, 12, t.level ?? 0, dataStyle, 'decimal2');
-      writeCell(row, 13, volumeEnd, dataStyle, 'decimal2');
+      writeCell(row, 13, volumeFact, dataStyle, 'decimal2');
       writeCell(row, 14, t.waterLevel ?? 0, dataStyle, 'decimal2');
       writeCell(row, 15, t.waterVolume ?? 0, dataStyle, 'decimal2');
-      writeCell(row, 16, volumeEnd, dataStyle, 'decimal2');
-      writeCell(row, 17, volumeEnd * density, dataStyle, 'decimal2');
+      writeCell(row, 16, volumeFact, dataStyle, 'decimal2');
+      writeCell(row, 17, massFact, dataStyle, 'decimal2');
       writeCell(row, 18, volumeCalculated, dataStyle, 'decimal2');
       writeCell(row, 19, volumeCalculated * density, dataStyle, 'decimal2');
       row++;
