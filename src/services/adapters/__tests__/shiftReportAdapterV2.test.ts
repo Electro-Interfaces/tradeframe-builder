@@ -104,6 +104,30 @@ describe('ShiftReportAdapterV2.toDetails', () => {
   });
 });
 
+describe('ShiftReportAdapterV2 · фактический остаток (rest)', () => {
+  const withRest = (rest: any) => ShiftReportAdapterV2.toDetails(
+    { ...API_3842, release: [{ ...API_3842.release[0], rest }] },
+    3842, 15, 209, 'АКАЗС №209', SHIFT_INFO,
+  ).tanks[0];
+
+  it('факт берётся из rest, а не из doc_end', () => {
+    const t = withRest({ volume: '17836.98', amount: '13288.55' });
+    expect(t.volumeFact).toBeCloseTo(17836.98, 2);
+    expect(t.massFact).toBeCloseTo(13288.55, 2);
+    expect(t.volumeEnd).toBeCloseTo(17837.55, 2); // книжный остался книжным
+  });
+
+  it('битая масса из API отбраковывается и считается по плотности', () => {
+    const t = withRest({ volume: '17836.98', amount: '47000.00' });
+    expect(t.massFact).toBeCloseTo(17836.98 * 0.745, 2);
+  });
+
+  it('без rest факт падает на volume_end', () => {
+    const t = ShiftReportAdapterV2.toDetails(API_3842, 3842, 15, 209, 'АКАЗС №209', SHIFT_INFO).tanks[0];
+    expect(t.volumeFact).toBeCloseTo(17836.98, 2);
+  });
+});
+
 describe('ShiftReportAdapterV2 · salesBreakdown', () => {
   const details = ShiftReportAdapterV2.toDetails(API_3842, 3842, 15, 209, 'АКАЗС №209', SHIFT_INFO);
   const byFuel = new Map(details.salesBreakdown.map((s: any) => [s.fuelCode, s]));

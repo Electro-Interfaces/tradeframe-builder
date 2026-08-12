@@ -688,7 +688,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                           <tr key={idx} className="border-b border-border">
                             <td className={`${tdClass} text-foreground font-medium border-r-2 border-border`}>{tank.fuelName}</td>
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{tank.tankNumber}</td>
-                            <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{tank.density ? tank.density.toFixed(4) : '—'}</td>
+                            <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{tank.densityBegin ? tank.densityBegin.toFixed(4) : '—'}</td>
                             <td className={`${tdClass} text-right text-foreground font-medium border-r-2 border-border`}>{tank.volumeBegin.toFixed(2)}</td>
                             <td className={`${tdClass} text-right text-foreground border-r-2 border-border`}>{(tank.volumeBegin * (tank.density || 1)).toFixed(2)}</td>
                             <td className={`${tdClass} text-right text-foreground font-medium border-r-2 border-border`}>{tank.volumeReceived.toFixed(2)}</td>
@@ -698,11 +698,11 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{tank.density ? tank.density.toFixed(4) : '—'}</td>
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{tank.temperature?.toFixed(1) || '—'}</td>
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{tank.level?.toFixed(2) || '—'}</td>
-                            <td className={`${tdClass} text-right text-foreground font-medium border-r-2 border-border`}>{tank.volumeEnd.toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-foreground font-medium border-r-2 border-border`}>{(tank.volumeFact ?? tank.volumeEnd).toFixed(2)}</td>
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{tank.waterLevel?.toFixed(2) || '—'}</td>
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{tank.waterVolume?.toFixed(2) || '—'}</td>
-                            <td className={`${tdClass} text-right text-foreground font-medium border-r-2 border-border`}>{tank.volumeEnd.toFixed(2)}</td>
-                            <td className={`${tdClass} text-right text-foreground border-r-2 border-border`}>{(tank.volumeEnd * (tank.density || 1)).toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-foreground font-medium border-r-2 border-border`}>{(tank.volumeFact ?? tank.volumeEnd).toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-foreground border-r-2 border-border`}>{(tank.massFact ?? tank.volumeEnd * (tank.density || 1)).toFixed(2)}</td>
                             <td className={`${tdClass} text-right text-foreground font-medium border-r-2 border-border`}>{tank.volumeCalculated.toFixed(2)}</td>
                             <td className={`${tdClass} text-right text-foreground`}>{(tank.volumeCalculated * (tank.density || 1)).toFixed(2)}</td>
                           </tr>
