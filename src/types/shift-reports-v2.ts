@@ -575,4 +575,7 @@ export interface GetShiftDetailsParams {
 
   /** Номер смены */
   shift: number;
+
+  /** Читать из STS мимо кэша прокси (кнопка «Обновить») */
+  force?: 1;
 }

@@ -8,7 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Clock, AlertTriangle, FileDown } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle, FileDown, RefreshCw } from "lucide-react";
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { ShiftDetails } from '@/types/shift-reports-v2';
@@ -55,7 +55,9 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
     }
   }, [isOpen, shiftNumber, station, system]);
 
-  const loadShiftDetails = async () => {
+  // force=true — читать из STS мимо кэша прокси: отчёт закрытой смены кэшируется
+  // на сутки, а данные в STS могут пересчитать задним числом.
+  const loadShiftDetails = async (force = false) => {
     if (shiftNumber === null) return;
 
     try {
@@ -67,11 +69,15 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
           system,
           station,
           shift: shiftNumber,
+          ...(force && { force: 1 as const }),
         },
         stationName
       );
 
       setDetails(data);
+      if (force) {
+        toast({ title: 'Данные обновлены', description: `Смена #${shiftNumber} перечитана из STS` });
+      }
     } catch (err) {
       console.error('Ошибка загрузки деталей смены:', err);
       setError('Не удалось загрузить детали смены');
@@ -164,16 +170,27 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                   })()}
                 </DialogTitle>
                 {details && !isMobile && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setExportDialogOpen(true)}
-                    disabled={isExporting}
-                    className=" mr-2"
-                  >
-                    <FileDown className="h-4 w-4 mr-2" />
-                    Экспорт
-                  </Button>
+                  <div className="flex items-center gap-2 mr-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadShiftDetails(true)}
+                      disabled={loading}
+                      title="Перечитать смену из STS, минуя кэш"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                      Обновить
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setExportDialogOpen(true)}
+                      disabled={isExporting}
+                    >
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Экспорт
+                    </Button>
+                  </div>
                 )}
               </div>
               {stationName && (
@@ -181,16 +198,28 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
               )}
             </div>
             {details && isMobile && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setExportDialogOpen(true)}
-                disabled={isExporting}
-                className="w-full "
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                Экспорт
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadShiftDetails(true)}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Обновить
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExportDialogOpen(true)}
+                  disabled={isExporting}
+                  className="flex-1"
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Экспорт
+                </Button>
+              </div>
             )}
           </div>
         </DialogHeader>
