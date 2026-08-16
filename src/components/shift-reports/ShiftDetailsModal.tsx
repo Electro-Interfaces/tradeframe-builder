@@ -661,6 +661,53 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                     })()}
                   </div>
                 </div>
+
+                {/* Бонусы и скидки — расшифровка внутри уже учтённой реализации.
+                    STS отдаёт её не везде: на сетях без бонусных программ блок скрыт. */}
+                {details.bonusBreakdown && details.bonusBreakdown.length > 0 && (
+                  <div className="mt-8">
+                    <h4 className="text-md font-semibold text-foreground mb-3 text-center">Бонусы и скидки</h4>
+                    <div className="overflow-x-auto rounded-lg border border-border">
+                      <table className={`w-full border-collapse ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <thead className="bg-secondary/80">
+                          <tr className="border-b-2 border-border">
+                            <th className={`${thClass} text-center text-foreground border-r-2 border-border`}>Программа</th>
+                            <th className={`${thClass} text-center text-foreground border-r-2 border-border`}>Наименование</th>
+                            <th className={`${thClass} text-center text-foreground border-r-2 border-border`}>Объём<br/>л.</th>
+                            <th className={`${thClass} text-center text-foreground border-r-2 border-border`}>Деньгами<br/>руб.</th>
+                            <th className={`${thClass} text-center text-foreground`}>Спасибо<br/>руб.</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-card">
+                          {details.bonusBreakdown.map((item, idx) => (
+                            <tr key={idx} className="border-b border-border">
+                              <td className={`${tdClass} text-foreground border-r-2 border-border`}>{item.payTypeName}</td>
+                              <td className={`${tdClass} text-foreground font-medium border-r-2 border-border`}>{item.fuelName}</td>
+                              <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{item.quantity.toFixed(2)}</td>
+                              <td className={`${tdClass} text-right text-foreground border-r-2 border-border`}>{formatCurrency(item.paidCash)}</td>
+                              <td className={`${tdClass} text-right text-foreground`}>{formatCurrency(item.paidBonus)}</td>
+                            </tr>
+                          ))}
+                          <tr className="border-t-2 border-border bg-secondary/50">
+                            <td className={`${tdClass} text-foreground font-bold border-r-2 border-border`} colSpan={2}>Всего:</td>
+                            <td className={`${tdClass} text-center text-foreground font-bold border-r-2 border-border`}>
+                              {details.bonusBreakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}
+                            </td>
+                            <td className={`${tdClass} text-right text-foreground font-bold border-r-2 border-border`}>
+                              {formatCurrency(details.bonusBreakdown.reduce((sum, item) => sum + item.paidCash, 0))}
+                            </td>
+                            <td className={`${tdClass} text-right text-foreground font-bold`}>
+                              {formatCurrency(details.bonusBreakdown.reduce((sum, item) => sum + item.paidBonus, 0))}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Объём уже учтён в основной реализации — бонусы списываются по карте, отдельным отпуском не являются.
+                    </p>
+                  </div>
+                )}
               </TabsContent>
 
               {/* Состояние резервуаров */}
@@ -788,7 +835,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                             <td className={`${tdClass} text-foreground border-r-2 border-border`}>{receipt.fuelName}</td>
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{receipt.fuelCode}</td>
                             <td className={`${tdClass} text-foreground border-r-2 border-border`}>{receipt.supplier || 'Нефтебаза'}</td>
-                            <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>1</td>
+                            <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{receipt.supplierCode ?? '—'}</td>
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{receipt.documentNumber || '—'}</td>
                             <td className={`${tdClass} text-center text-foreground border-r-2 border-border`}>{receipt.tankNumber}</td>
                             {/* По документу */}
