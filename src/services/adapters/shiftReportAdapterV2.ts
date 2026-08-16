@@ -8,6 +8,7 @@ import type {
   TankSnapshot,
   FuelSalesItem,
   PaymentSalesItem,
+  BonusBreakdownItem,
   ReceiptItem,
   CashMovementItem,
   CashSummary,
@@ -16,6 +17,38 @@ import type {
   NozzleReading,
 } from '@/types/shift-reports-v2';
 import { classifyPayment } from '@/utils/paymentUtils';
+
+/**
+ * Строки sales, которые не являются отдельным отпуском, а расшифровывают уже
+ * учтённый объём. АЗС Н1 (STS system=71): бонусы «Спасибо» списываются по карте
+ * Сбера, поэтому литры сидят внутри строки «СберБанк», а эти строки показывают
+ * лишь, сколько из них закрыто бонусами и сколько — дисконтом. «Баллы» — вообще
+ * денежное выражение списанных бонусов (литры фиктивные, по 1 л на топливо) и
+ * повторяет discount строки «Спасибо», поэтому в расшифровку не идёт.
+ *
+ * Складывать их с остальными нельзя: на смене 5921 это давало 4902 л вместо
+ * 4182 (+17%) и 396 613 ₽ вместо 331 359 (+20%).
+ */
+const BREAKDOWN_PAY_TYPES = ['баллы', 'спасибо', 'дисконт'];
+
+const isBreakdownPayType = (payTypeName: string | undefined): boolean =>
+  BREAKDOWN_PAY_TYPES.includes((payTypeName || '').toLowerCase().trim());
+
+/**
+ * Названия граф как в бумажном сменном отчёте АЗС: то, что STS зовёт «Спасибо»
+ * (объём и деньги по чекам с бонусами), на бумаге печатается как «ЦФТ Лояльность»,
+ * а графа «Спасибо» там содержит только сумму списанных бонусов.
+ */
+const BREAKDOWN_DISPLAY_NAMES: Record<string, string> = {
+  'спасибо': 'ЦФТ Лояльность',
+};
+
+/**
+ * Плотность в shift_report приходит вразнобой: в резервуарах уже в г/см³ (0.733),
+ * в поступлениях — в кг/м³ (732). На бумаге везде г/см³.
+ */
+const toGramsPerCm3 = (density: number | undefined): number | undefined =>
+  density == null || density === 0 ? undefined : density > 10 ? density / 1000 : density;
 
 /**
  * Масса из API считается достоверной, только если сходится с литрами по вменяемой
@@ -43,11 +76,16 @@ export class ShiftReportAdapterV2 {
     // Извлекаем данные по резервуарам
     const tanks = this.extractTanks(apiResponse.release);
 
+    // Реальная реализация — без строк-расшифровок бонусов и скидок: их объём и
+    // деньги уже сидят в основном способе оплаты (см. BREAKDOWN_PAY_TYPES).
+    const sales = (apiResponse.sales || []).filter((sale: any) => !isBreakdownPayType(sale.pay_type?.name));
+    const bonusBreakdown = this.extractBonusBreakdown(apiResponse.sales);
+
     // Извлекаем продажи по топливу и способам оплаты
-    const { fuelSales, paymentSales } = this.extractSales(apiResponse.sales);
+    const { fuelSales, paymentSales } = this.extractSales(sales);
 
     // Извлекаем детализированные продажи для расшифровки реализации
-    const salesBreakdown = this.extractSalesBreakdown(apiResponse.sales, nozzleReadings);
+    const salesBreakdown = this.extractSalesBreakdown(sales, nozzleReadings);
 
     // Извлекаем поступления
     const receipts = this.extractReceipts(apiResponse.receipt);
@@ -166,13 +204,15 @@ export class ShiftReportAdapterV2 {
       fuelSales,
       paymentSales,
       salesBreakdown,
+      bonusBreakdown,
       cashMovements,
       cashSummary,
       cashByPos,
       reportCreatedAt: new Date().toISOString(),
 
-      // Сырые данные для дополнительных расчетов
-      salesRaw: apiResponse.sales || [],
+      // Сырые данные для дополнительных расчетов — уже без строк-расшифровок,
+      // иначе KPI дашборда, «Безналичная реализация» и Excel задваивают бонусы
+      salesRaw: sales,
       receiptsRaw: apiResponse.receipt || [],
     } as any;
 
@@ -332,6 +372,36 @@ export class ShiftReportAdapterV2 {
   }
 
   /**
+   * Расшифровка бонусов и скидок — строки sales, которые не являются отпуском.
+   * Берём только те, где есть сумма скидки: «Баллы» её не несёт (там cost —
+   * то же денежное выражение бонусов, что и discount строки «Спасибо»).
+   */
+  private static extractBonusBreakdown(sales: any[]): BonusBreakdownItem[] {
+    if (!sales || !Array.isArray(sales)) return [];
+
+    const out: BonusBreakdownItem[] = [];
+    sales.forEach((sale: any) => {
+      if (!isBreakdownPayType(sale.pay_type?.name) || !Array.isArray(sale.fuel)) return;
+
+      sale.fuel.forEach((fuelItem: any) => {
+        const paidBonus = parseFloat(fuelItem.release?.discount || '0') || 0;
+        if (paidBonus <= 0) return;
+
+        const rawName = sale.pay_type?.name || 'Неизвестно';
+        out.push({
+          payTypeName: BREAKDOWN_DISPLAY_NAMES[rawName.toLowerCase().trim()] || rawName,
+          fuelCode: fuelItem.service?.service_code ?? 0,
+          fuelName: fuelItem.service?.service_name || 'Неизвестно',
+          quantity: parseFloat(fuelItem.release?.volume || '0') || 0,
+          paidCash: parseFloat(fuelItem.release?.cost || '0') || 0,
+          paidBonus,
+        });
+      });
+    });
+    return out;
+  }
+
+  /**
    * Извлечь детализированные продажи по топливу и способам оплаты
    * Для таблицы "Расшифровка реализации"
    *
@@ -459,17 +529,18 @@ export class ShiftReportAdapterV2 {
         // По документу
         volume: parseFloat(receipt.doc?.volume || '0'),
         amount: parseFloat(receipt.doc?.amount || '0'),
-        density: receipt.doc?.density || undefined,
+        density: toGramsPerCm3(receipt.doc?.density),
         temperature: receipt.doc?.temp || undefined,
 
         // Фактически
         actualVolume: parseFloat(receipt.fact?.volume || receipt.doc?.volume || '0'),
         actualAmount: parseFloat(receipt.fact?.amount || receipt.doc?.amount || '0'),
-        actualDensity: receipt.fact?.density || receipt.doc?.density || undefined,
+        actualDensity: toGramsPerCm3(receipt.fact?.density ?? receipt.doc?.density),
         actualTemperature: receipt.fact?.temp || receipt.doc?.temp || undefined,
 
         documentNumber: receipt.ttn || undefined,
         supplier: receipt.base?.name || undefined,
+        supplierCode: receipt.base?.id ?? undefined,
       };
     });
   }

@@ -308,7 +308,7 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       writeCell(row, 1, receipt.fuelName ?? '', dataLeftStyle);
       writeCell(row, 2, r.fuelCode ?? 0, dataStyle);
       writeCell(row, 3, r.supplier ?? '', dataLeftStyle);
-      writeCell(row, 4, 1, dataStyle); // код поставщика
+      writeCell(row, 4, r.supplierCode ?? '', dataStyle); // код нефтебазы из STS
       writeCell(row, 5, r.documentNumber ?? receipt.waybillNumber ?? '', dataStyle);
       writeCell(row, 6, receipt.tankNumber ?? 0, dataStyle);
       writeCell(row, 7, receipt.volume ?? 0, dataStyle, 'integer');

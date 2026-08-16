@@ -311,3 +311,106 @@ describe('ShiftReportAdapterV2 · общие сводки', () => {
     expect(details.cardRevenue).toBeCloseTo(52986.17, 2);
   });
 });
+
+/**
+ * АЗС Н1 (STS system=71, station=3), смена 5921 — единственная известная станция,
+ * где sales содержит строки-расшифровки бонусов «Спасибо»/«Баллы»/«Дисконт».
+ * Их объём уже входит в строку «СберБанк», поэтому сумма всех строк (4902.38 л /
+ * 396 613.11 ₽) больше фактического отпуска по ПСМ (4181.70 л / 331 358.92 ₽).
+ */
+const SALES_5921: any[] = [
+  { pay_type: { id: 1, name: 'Наличные' }, fuel: [
+    { service: { service_code: 1, service_name: 'АИ-95' }, release: { volume: '186.350', cost: '16877.00', discount: 80.58 } },
+    { service: { service_code: 2, service_name: 'АИ-92' }, release: { volume: '69.090', cost: '5935.00', discount: 6.74 } },
+  ] },
+  { pay_type: { id: 14, name: 'НКТ' }, fuel: [
+    { service: { service_code: 1, service_name: 'АИ-95' }, release: { volume: '22.500', cost: '2047.50', discount: 0 } },
+    { service: { service_code: 2, service_name: 'АИ-92' }, release: { volume: '35.000', cost: '3010.00', discount: 0 } },
+    { service: { service_code: 4, service_name: 'ДТ' }, release: { volume: '70.000', cost: '6650.00', discount: 0 } },
+  ] },
+  { pay_type: { id: 15, name: 'СНК' }, fuel: [
+    { service: { service_code: 1, service_name: 'АИ-95' }, release: { volume: '150.000', cost: '13650.00', discount: 0 } },
+    { service: { service_code: 2, service_name: 'АИ-92' }, release: { volume: '20.000', cost: '1720.00', discount: 0 } },
+  ] },
+  { pay_type: { id: 21, name: 'Баллы' }, fuel: [
+    { service: { service_code: 1, service_name: 'АИ-95' }, release: { volume: '1.000', cost: '14726.20', discount: 0 } },
+    { service: { service_code: 2, service_name: 'АИ-92' }, release: { volume: '1.000', cost: '16223.31', discount: 0 } },
+    { service: { service_code: 5, service_name: 'АИ-98' }, release: { volume: '1.000', cost: '13339.42', discount: 0 } },
+  ] },
+  { pay_type: { id: 23, name: 'Спасибо' }, fuel: [
+    { service: { service_code: 1, service_name: 'АИ-95' }, release: { volume: '242.310', cost: '7324.01', discount: 14726.2 } },
+    { service: { service_code: 2, service_name: 'АИ-92' }, release: { volume: '198.470', cost: '845.11', discount: 16223.31 } },
+    { service: { service_code: 5, service_name: 'АИ-98' }, release: { volume: '188.620', cost: '4862.41', discount: 13339.42 } },
+  ] },
+  { pay_type: { id: 26, name: 'СберБанк' }, fuel: [
+    { service: { service_code: 1, service_name: 'АИ-95' }, release: { volume: '1811.330', cost: '149314.42', discount: 15516.61 } },
+    { service: { service_code: 2, service_name: 'АИ-92' }, release: { volume: '1179.870', cost: '84741.81', discount: 16727.01 } },
+    { service: { service_code: 4, service_name: 'ДТ' }, release: { volume: '82.620', cost: '7819.40', discount: 29.5 } },
+    { service: { service_code: 5, service_name: 'АИ-98' }, release: { volume: '494.400', cost: '34200.90', discount: 13508.7 } },
+  ] },
+  { pay_type: { id: 27, name: 'Дисконт' }, fuel: [
+    { service: { service_code: 1, service_name: 'АИ-95' }, release: { volume: '84.750', cost: '7633.73', discount: 78.25 } },
+    { service: { service_code: 2, service_name: 'АИ-92' }, release: { volume: '3.530', cost: '300.00', discount: 3.58 } },
+  ] },
+  { pay_type: { id: 234, name: 'Янд.ЮЛ' }, fuel: [
+    { service: { service_code: 1, service_name: 'АИ-95' }, release: { volume: '37.290', cost: '3393.39', discount: 0 } },
+    { service: { service_code: 2, service_name: 'АИ-92' }, release: { volume: '23.250', cost: '1999.50', discount: 0 } },
+  ] },
+];
+
+describe('ShiftReportAdapterV2 · бонусы Сбербанка (АЗС Н1, смена 5921)', () => {
+  const details = ShiftReportAdapterV2.toDetails(
+    { psm: { total: [], data: [] }, release: [], receipt: [], sales: SALES_5921, money: [] },
+    5921, 71, 3, 'АЗС №3',
+    { shift: 5921, dt_open: '2026-08-15T07:58:25', dt_close: '2026-08-16T07:47:44' },
+  );
+
+  it('totalVolume равен фактическому отпуску по ПСМ, а не сумме всех строк sales', () => {
+    expect(details.totalVolume).toBeCloseTo(4181.70, 2);
+  });
+
+  it('totalRevenue не включает денежное выражение бонусов из строки «Баллы»', () => {
+    expect(details.totalRevenue).toBeCloseTo(331358.92, 2);
+  });
+
+  it('строки-расшифровки не попадают ни в paymentSales, ни в salesRaw', () => {
+    const names = details.paymentSales.map(p => p.paymentTypeName);
+    expect(names).toEqual(['Наличные', 'НКТ', 'СНК', 'СберБанк', 'Янд.ЮЛ']);
+    const rawNames = ((details as any).salesRaw as any[]).map(s => s.pay_type.name);
+    expect(rawNames).not.toContain('Спасибо');
+  });
+
+  it('«Скидка руб.» считается по реальным типам оплаты, без задвоения бонусов', () => {
+    const discount = details.salesBreakdown.reduce((sum, item: any) => sum + item.discountCost, 0);
+    expect(discount).toBeCloseTo(45869.14, 2);
+  });
+
+  it('bonusBreakdown отдаёт «Спасибо» и «Дисконт», но не «Баллы» (у неё нет скидки)', () => {
+    const rows = details.bonusBreakdown!;
+    expect(rows).toHaveLength(5);
+    // «Спасибо» из STS на бумаге печатается как «ЦФТ Лояльность»
+    expect([...new Set(rows.map(r => r.payTypeName))]).toEqual(['ЦФТ Лояльность', 'Дисконт']);
+    expect(rows.reduce((sum, r) => sum + r.paidBonus, 0)).toBeCloseTo(44370.76, 2);
+    expect(rows.reduce((sum, r) => sum + r.quantity, 0)).toBeCloseTo(717.68, 2);
+  });
+
+  it('на сети без бонусных программ поведение не меняется', () => {
+    const plain = ShiftReportAdapterV2.toDetails(API_3842, 3842, 15, 209, 'АКАЗС №209', SHIFT_INFO);
+    expect(plain.bonusBreakdown).toHaveLength(0);
+    expect(plain.totalRevenue).toBeCloseTo(107101.43, 2);
+  });
+});
+
+describe('ShiftReportAdapterV2 · поступления', () => {
+  const details = ShiftReportAdapterV2.toDetails(API_3842, 3842, 15, 209, 'АКАЗС №209', SHIFT_INFO);
+
+  it('код нефтебазы берётся из base.id, а не подставляется единицей', () => {
+    expect(details.receipts[0].supplierCode).toBe(1);
+    expect(details.receipts[0].supplier).toBe('Нефтебаза');
+  });
+
+  it('плотность приводится к г/см3, как на бумажном отчёте (STS отдаёт кг/м3)', () => {
+    expect(details.receipts[0].density).toBeCloseTo(0.7418, 4);
+    expect(details.receipts[0].actualDensity).toBeCloseTo(0.7418, 4);
+  });
+});
