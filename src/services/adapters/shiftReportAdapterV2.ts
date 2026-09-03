@@ -45,11 +45,16 @@ const BREAKDOWN_DISPLAY_NAMES: Record<string, string> = {
 };
 
 /**
- * Плотность в shift_report приходит вразнобой: в резервуарах уже в г/см³ (0.733),
- * в поступлениях — в кг/м³ (732). На бумаге везде г/см³.
+ * Плотность в shift_report приходит вразнобой: числом и строкой, в резервуарах
+ * уже в г/см³ (0.733), в поступлениях — в кг/м³ (732). На бумаге везде г/см³.
+ * Строку обязательно приводим к числу: иначе в отчёте смены падает
+ * `density.toFixed is not a function` и вся вкладка уходит в ошибку.
  */
-const toGramsPerCm3 = (density: number | undefined): number | undefined =>
-  density == null || density === 0 ? undefined : density > 10 ? density / 1000 : density;
+const toGramsPerCm3 = (density: number | string | undefined | null): number | undefined => {
+  const value = typeof density === 'string' ? parseFloat(density) : density;
+  if (value == null || !Number.isFinite(value) || value === 0) return undefined;
+  return value > 10 ? value / 1000 : value;
+};
 
 /**
  * Масса из API считается достоверной, только если сходится с литрами по вменяемой
@@ -268,7 +273,7 @@ export class ShiftReportAdapterV2 {
       fuelCode: reading.service?.service_code || 0,
       fuelName: reading.service?.service_name || 'Неизвестно',
       tankNumber: reading.tank || 0,
-      density: reading.density || 0,
+      density: Number(reading.density) || 0,
     }));
   }
 
@@ -291,7 +296,7 @@ export class ShiftReportAdapterV2 {
       const waterLevel = tank.water?.level;
       const waterVolume = tank.water?.volume;
 
-      const density = tank.density_end;
+      const density = toGramsPerCm3(tank.density_end);
       // Фактический замер уровнемера. doc_end — книжный остаток, факт брать из него нельзя.
       const volumeFact = parseFloat(tank.rest?.volume ?? tank.volume_end ?? tank.doc_end?.volume ?? '0');
       const restMass = parseFloat(tank.rest?.amount || '0');
@@ -310,7 +315,7 @@ export class ShiftReportAdapterV2 {
         level: tank.level_end,
         temperature: tank.temp_end,
         density,
-        densityBegin: tank.density_beg ?? density,
+        densityBegin: toGramsPerCm3(tank.density_beg) ?? density,
         volumeFact,
         massFact: isPlausibleMass(restMass, volumeFact) ? restMass : volumeFact * (density || 1),
         waterLevel,

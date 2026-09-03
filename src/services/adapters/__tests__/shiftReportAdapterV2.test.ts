@@ -413,4 +413,27 @@ describe('ShiftReportAdapterV2 · поступления', () => {
     expect(details.receipts[0].density).toBeCloseTo(0.7418, 4);
     expect(details.receipts[0].actualDensity).toBeCloseTo(0.7418, 4);
   });
+
+  it('плотность строкой не роняет отчёт — приводится к числу', () => {
+    const stringy = {
+      ...API_3842,
+      release: [{ ...API_3842.release[0], density_beg: '745', density_end: '0.745' }],
+      psm: { ...API_3842.psm, data: API_3842.psm.data.map((d: any) => ({ ...d, density: '745' })) },
+      receipt: [{
+        ...API_3842.receipt[0],
+        doc: { ...API_3842.receipt[0].doc, density: '741.8' },
+        fact: { ...API_3842.receipt[0].fact, density: '0.7418' },
+      }],
+    };
+
+    const parsed = ShiftReportAdapterV2.toDetails(stringy, 3842, 15, 209, 'АКАЗС №209', SHIFT_INFO);
+
+    // Все значения, которые отчёт печатает через toFixed, обязаны быть числами
+    expect(typeof parsed.tanks[0].density).toBe('number');
+    expect(parsed.tanks[0].density).toBeCloseTo(0.745, 4);
+    expect(parsed.tanks[0].densityBegin).toBeCloseTo(0.745, 4);
+    expect(typeof parsed.nozzleReadings[0].density).toBe('number');
+    expect(parsed.receipts[0].density).toBeCloseTo(0.7418, 4);
+    expect(parsed.receipts[0].actualDensity).toBeCloseTo(0.7418, 4);
+  });
 });
