@@ -18,29 +18,37 @@ import type {
 
 const AUTH_REQUIRED_ERROR = 'Сессия истекла. Войдите в систему повторно.';
 
-// Fallback-маппинг видов топлива (используется пока не загружен справочник из API)
+// Fallback-маппинг видов топлива (используется пока не загружен справочник из API).
+// Значения — как в /v1/services системы 15 (ГИГ). Прежние 'ДТ Зимнее'/'ДТ Евро' в STS
+// не встречаются: 6 это 'ДТ зим.', 7 — 'СУГ', а газ на АЗС №235 идёт кодом 16.
 const DEFAULT_FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = {
+  'АИ-100': '1',
   'АИ-92': '2',
   'АИ-95': '3',
   'АИ-98': '4',
   'ДТ': '5',
-  'ДТ Зимнее': '6',
-  'ДТ Евро': '7'
+  'ДТ зим.': '6',
+  'СУГ': '7',
+  'ГАЗ': '16'
 };
 
 const DEFAULT_SERVICE_CODE_TO_FUEL_TYPE: Record<string, string> = {
+  '1': 'АИ-100',
   '2': 'АИ-92',
   '3': 'АИ-95',
   '4': 'АИ-98',
   '5': 'ДТ',
-  '6': 'ДТ Зимнее',
-  '7': 'ДТ Евро'
+  '6': 'ДТ зим.',
+  '7': 'СУГ',
+  '16': 'ГАЗ'
 };
 
 // Динамические маппинги — заполняются из GET /v1/services
 let FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = { ...DEFAULT_FUEL_TYPE_TO_SERVICE_CODE };
 let SERVICE_CODE_TO_FUEL_TYPE: Record<string, string> = { ...DEFAULT_SERVICE_CODE_TO_FUEL_TYPE };
-let servicesLoaded = false;
+// Справочник кэшируется по системе: в system=29 (Энтиком) те же цифры значат другое
+// топливо (4 — АИ-95, 6 — ДТ), поэтому при смене сети маппинг надо перечитывать.
+let servicesLoadedFor: string | null = null;
 let servicesLoadPromise: Promise<void> | null = null;
 
 class STSApiService {
@@ -65,7 +73,7 @@ class STSApiService {
    * При ошибке — используются fallback-значения.
    */
   async loadServicesMap(systemId?: string): Promise<void> {
-    if (servicesLoaded) return;
+    if (servicesLoadedFor !== null && servicesLoadedFor === (systemId ?? '')) return;
     if (servicesLoadPromise) return servicesLoadPromise;
 
     servicesLoadPromise = (async () => {
@@ -104,7 +112,7 @@ class STSApiService {
 
         FUEL_TYPE_TO_SERVICE_CODE = { ...DEFAULT_FUEL_TYPE_TO_SERVICE_CODE, ...fuelToCode };
         SERVICE_CODE_TO_FUEL_TYPE = { ...DEFAULT_SERVICE_CODE_TO_FUEL_TYPE, ...codeToFuel };
-        servicesLoaded = true;
+        servicesLoadedFor = systemId ?? '';
       } catch (error) {
         console.warn('[STS] Не удалось загрузить справочник услуг, используются значения по умолчанию:', error);
       } finally {

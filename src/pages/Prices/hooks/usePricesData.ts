@@ -107,11 +107,15 @@ export const getSourceText = (source: string) => {
 
 // Fuel nomenclature (static)
 export const fuelNomenclature = [
+  // Коды — из справочника STS /v1/services системы 15 (ГИГ): 6 это ДТ зим., газ идёт под 16.
+  // У других систем те же цифры значат другое топливо — при отправке цен код берётся
+  // из живого справочника (STSApiService.loadServicesMap), здесь он только для формы.
   { id: '1', name: 'АИ-92', internal_code: 'AI92', network_api_code: '2', status: 'active' as const },
   { id: '2', name: 'АИ-95', internal_code: 'AI95', network_api_code: '3', status: 'active' as const },
   { id: '3', name: 'АИ-98', internal_code: 'AI98', network_api_code: '4', status: 'active' as const },
   { id: '4', name: 'ДТ', internal_code: 'DT', network_api_code: '5', status: 'active' as const },
-  { id: '5', name: 'Газ', internal_code: 'GAS', network_api_code: '6', status: 'active' as const }
+  { id: '5', name: 'ДТ зим.', internal_code: 'DTW', network_api_code: '6', status: 'active' as const },
+  { id: '6', name: 'ГАЗ', internal_code: 'GAS', network_api_code: '16', status: 'active' as const }
 ];
 
 const ensureSTSProxyMode = () => {
