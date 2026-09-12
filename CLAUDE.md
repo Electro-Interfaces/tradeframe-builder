@@ -11,7 +11,6 @@
 - `docs/ENVIRONMENT.md`
 - `docs/OPERATIONS_RUNBOOK.md`
 - `docs/DOCS_STATUS.md`
-- `docs/PLANE_SETUP.md`
 - `docs/TECH_DEBT.md`
 
 ## Назначение
@@ -81,7 +80,9 @@ npm run test:e2e:ui   # Playwright UI
 
 ## Трекер задач
 
-Текущий трекер задач - Plane self-hosted: `https://plan.dataworker.ru`, проект TradeFrame. Новые задачи, баги, приемку и приоритеты вести только там. YouTrack в старой документации - legacy-источник для исторических ссылок, не текущий процесс.
+Трекер задач — **«Трек» пространства Элси**: `https://desk.dataworker.ru`, проект `TF`. Задачи, баги, приёмку и приоритеты вести только там; навык `elsy-space` (`bash ~/.claude/skills/elsy-space/scripts/space.sh task "…" --project TF --assignee кто`). Ссылка на конкретное поручение — `https://desk.dataworker.ru/t/TF-42`.
+
+Plane (`plan.dataworker.ru`) **выведен из эксплуатации 12.09.2026**, YouTrack — legacy до него. Оба остаются только историческими ссылками в старой документации.
 
 ## ENV-переменные
 
