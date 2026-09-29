@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useSelection } from "@/contexts/SelectionContext";
+import { formatStationTime, networkTimezone } from "@/utils/stationTime";
 import { useStationNetworkId } from "@/hooks/useStationNetworkId";
 import { useDataSourceInfo } from "@/components/data-source/DataSourceIndicator";
 import { tradingPointsService } from "@/services/tradingPointsService";
@@ -414,14 +415,9 @@ export function usePricesData() {
         price: item.price
       }));
 
-      const year = effectiveDateTime.getFullYear();
-      const month = String(effectiveDateTime.getMonth() + 1).padStart(2, '0');
-      const day = String(effectiveDateTime.getDate()).padStart(2, '0');
-      const hours = String(effectiveDateTime.getHours()).padStart(2, '0');
-      const minutes = String(effectiveDateTime.getMinutes()).padStart(2, '0');
-      const seconds = String(effectiveDateTime.getSeconds()).padStart(2, '0');
-
-      const effectiveDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      // STS ждёт время по часам станции: выбранный момент переводим в пояс сети
+      // (АЗС Н1 — МСК+2; без перевода цена включилась бы на 2 ч раньше)
+      const effectiveDate = formatStationTime(effectiveDateTime, networkTimezone(selectedNetwork));
 
       const result = await stsApiService.setPrices(prices, effectiveDate, contextParams);
 

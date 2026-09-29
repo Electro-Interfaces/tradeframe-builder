@@ -22,6 +22,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { PriceForUpdate } from "../hooks/usePricesData";
+import { formatStationTime, mskOffsetLabel, networkTimezone } from "@/utils/stationTime";
 
 interface PriceSetDialogProps {
   isMobile: boolean;
@@ -50,6 +51,12 @@ export function PriceSetDialog({
   isSettingPrices,
   onConfirmSetPrices,
 }: PriceSetDialogProps) {
+  // Сеть не в МСК: показываем, во сколько цена вступит по часам АЗС
+  const tz = networkTimezone(selectedNetwork);
+  const tzLabel = mskOffsetLabel(tz);
+  const stationTime = tzLabel && effectiveDateTime
+    ? formatStationTime(effectiveDateTime, tz).slice(0, 16).replace(/^(\d{4})-(\d\d)-(\d\d)T/, '$3.$2.$1 ')
+    : '';
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-4xl max-h-[90vh]'} bg-card border border-di-outline-variant/20 rounded-xl overflow-y-auto`}>
@@ -131,6 +138,11 @@ export function PriceSetDialog({
                 </div>
               </PopoverContent>
             </Popover>
+            {stationTime && (
+              <p className="mt-1.5 text-xs text-di-on-surface-variant">
+                На АЗС: <span className="font-medium text-foreground">{stationTime}</span> (время АЗС, {tzLabel})
+              </p>
+            )}
           </div>
 
           {/* Prices list for update */}

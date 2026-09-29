@@ -5,7 +5,8 @@
 
 import { useEquipment } from '@/hooks/useEquipment';
 import { useSelection } from '@/contexts/SelectionContext';
-import { useStationNetworkId } from '@/hooks/useStationNetworkId';
+import { useStationNetworkId, useStationTimezone } from '@/hooks/useStationNetworkId';
+import { stationTimeToDate } from '@/utils/stationTime';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LastDataTransferProps {
@@ -15,6 +16,7 @@ interface LastDataTransferProps {
 export function LastDataTransfer({ className = '' }: LastDataTransferProps) {
   const { selectedTradingPoint, selectedStation } = useSelection();
   const stationNetworkId = useStationNetworkId();
+  const tz = useStationTimezone();
   const isMobile = useIsMobile();
 
   // Загружаем информацию о терминале
@@ -40,7 +42,8 @@ export function LastDataTransfer({ className = '' }: LastDataTransferProps) {
 
   const lastUpdate = new Date(latestPosUpdate);
   const now = new Date();
-  const diffMs = now.getTime() - lastUpdate.getTime();
+  // Время станции → настоящий момент (у сетей не в МСК часы станции сдвинуты)
+  const diffMs = now.getTime() - stationTimeToDate(latestPosUpdate, tz)!.getTime();
   const diffMinutes = Math.floor(diffMs / 60000);
 
   if (isMobile) {

@@ -7,6 +7,7 @@ const telegramService = require('./telegramService');
 const axios = require('axios');
 const notificationEngineDataSource = require('./notifications/notificationEngineDataSource');
 const notificationEngineOrgSource = require('./notifications/notificationEngineOrgSource');
+const { stationTimeToDate } = require('./stationTime');
 
 const STS_API_URL = process.env.STS_API_URL;
 const STS_API_USERNAME = process.env.STS_API_USERNAME;
@@ -855,8 +856,9 @@ class NotificationEngine {
         }
 
         // Вычисляем задержку
+        // dt_info — часы станции без пояса; переводим по поясу сети (АЗС Н1 — МСК+2)
         const now = new Date();
-        const lastUpdateDate = new Date(lastUpdate);
+        const lastUpdateDate = stationTimeToDate(lastUpdate, tenant.settings?.timezone);
         const delayMs = now - lastUpdateDate;
         const delayMinutes = Math.floor(delayMs / 60000);
 

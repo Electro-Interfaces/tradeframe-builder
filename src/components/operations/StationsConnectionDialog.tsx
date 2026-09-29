@@ -8,6 +8,7 @@ import { useSelectedNetworks } from "@/hooks/useSelectedNetworks";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { stsApiService } from "@/services/stsApi";
 import { TradingPoint } from "@/types/tradingpoint";
+import { networkTimezone, stationTimeToDate } from '@/utils/stationTime';
 
 interface StationConnectionInfo {
   id: string;
@@ -47,11 +48,13 @@ export function StationsConnectionDialog({ open, onOpenChange, modal = true }: S
     try {
       // Загружаем точки из всех выбранных сетей и строим маппинг point -> network external_id
       const pointToNetworkExtId = new Map<string, string>();
+      const pointToTz = new Map<string, string>();
       const tradingPoints = (await Promise.all(
         selectedNetworks.map(async (network) => {
           const points = await tradingPointsService.getByNetworkId(network.id).catch(() => [] as TradingPoint[]);
           points.forEach(p => {
             if (network.external_id) pointToNetworkExtId.set(p.id, network.external_id);
+            pointToTz.set(p.id, networkTimezone(network));
           });
           return points;
         })
@@ -99,7 +102,8 @@ export function StationsConnectionDialog({ open, onOpenChange, modal = true }: S
           }, undefined);
           const lastConnectionStr = latestPosUpdate || terminalInfo.terminal?.lastHeartbeat;
 
-          const lastConnection = lastConnectionStr ? new Date(lastConnectionStr) : null;
+          // Время станции → момент по поясу её сети (АЗС Н1 живёт в МСК+2)
+          const lastConnection = stationTimeToDate(lastConnectionStr, pointToTz.get(tp.id));
 
           let status: 'online' | 'offline' | 'unknown' = 'unknown';
           if (lastConnection) {

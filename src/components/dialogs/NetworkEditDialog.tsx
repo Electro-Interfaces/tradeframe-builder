@@ -7,6 +7,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Network, NetworkInput } from "@/types/network";
+import { DEFAULT_TIMEZONE } from "@/utils/stationTime";
+
+// Пояса РФ: время STS у станций — по местным часам, пояс сети переводит его в настоящее
+const TIMEZONES: [string, string][] = [
+  ["Europe/Kaliningrad", "Калининград (МСК−1)"],
+  ["Europe/Moscow", "Москва (МСК)"],
+  ["Europe/Samara", "Самара (МСК+1)"],
+  ["Asia/Yekaterinburg", "Екатеринбург, Тюмень (МСК+2)"],
+  ["Asia/Omsk", "Омск (МСК+3)"],
+  ["Asia/Krasnoyarsk", "Красноярск (МСК+4)"],
+  ["Asia/Irkutsk", "Иркутск (МСК+5)"],
+  ["Asia/Yakutsk", "Якутск (МСК+6)"],
+  ["Asia/Vladivostok", "Владивосток (МСК+7)"],
+  ["Asia/Magadan", "Магадан (МСК+8)"],
+  ["Asia/Kamchatka", "Камчатка (МСК+9)"],
+];
 
 interface NetworkEditDialogProps {
   open: boolean;
@@ -24,7 +40,8 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
     type: "",
     external_id: "",
     code: "",
-    status: "active"
+    status: "active",
+    timezone: DEFAULT_TIMEZONE
   });
   const [errors, setErrors] = useState<Partial<NetworkInput>>({});
 
@@ -37,7 +54,8 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
         type: network.type || "",
         external_id: network.external_id || "",
         code: network.code || "",
-        status: network.status || "active"
+        status: network.status || "active",
+        timezone: network.settings?.timezone || DEFAULT_TIMEZONE
       });
       setErrors({});
     }
@@ -76,7 +94,8 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
         type: network.type || "",
         external_id: network.external_id || "",
         code: network.code || "",
-        status: network.status || "active"
+        status: network.status || "active",
+        timezone: network.settings?.timezone || DEFAULT_TIMEZONE
       });
     }
     setErrors({});
@@ -176,6 +195,26 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
               placeholder="Уникальный код сети"
               className="bg-secondary border-border text-foreground placeholder-muted-foreground font-mono"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="timezone" className="text-foreground block">Часовой пояс</Label>
+            <Select
+              value={formData.timezone}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, timezone: value }))}
+            >
+              <SelectTrigger id="timezone" className="bg-secondary border-border text-foreground">
+                <SelectValue placeholder="Москва (МСК)" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                {TIMEZONES.map(([value, label]) => (
+                  <SelectItem key={value} value={value} className="text-foreground hover:bg-secondary">{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Пояс станций сети. Время из торговой системы приходит по местным часам станции
+            </p>
           </div>
 
           <div className="space-y-2">

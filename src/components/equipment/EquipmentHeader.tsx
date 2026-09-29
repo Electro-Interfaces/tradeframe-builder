@@ -19,6 +19,8 @@ import { RefreshCw, Power, Loader2, AlertTriangle, CheckCircle2, ClipboardList }
 import type { TerminalInfo } from '@/types/equipment';
 import type { Tank } from '@/types/tanks';
 import { getEquipmentActionButtonClass, getEquipmentIconButtonClass } from './designTokens';
+import { useStationTimezone } from '@/hooks/useStationNetworkId';
+import { stationTimeToDate } from '@/utils/stationTime';
 
 interface EquipmentHeaderProps {
   terminalInfo: TerminalInfo | null;
@@ -66,6 +68,10 @@ export function EquipmentHeader({
     if (!latest) return dt;
     return new Date(dt) > new Date(latest) ? dt : latest;
   }, null);
+
+  // Возраст времени станции в минутах: время — по часам станции, «сейчас» — настоящее
+  const tz = useStationTimezone();
+  const ageMin = (dt: string) => Math.floor((Date.now() - stationTimeToDate(dt, tz)!.getTime()) / 60000);
   return (
     <div className={`${isMobile ? 'mb-3' : 'mb-6 pt-4'}`}>
       {/* Баннер предупреждения о состоянии терминала */}
@@ -101,7 +107,7 @@ export function EquipmentHeader({
           {!isMobile && (latestPosUpdate || latestTankDt) && (
             <div className="flex items-center gap-4 text-[11px] text-di-on-surface-variant">
               {latestPosUpdate && (() => {
-                const diffMinutes = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000);
+                const diffMinutes = ageMin(latestPosUpdate);
                 const isOk = diffMinutes < 11;
                 return (
                   <span>
@@ -113,7 +119,7 @@ export function EquipmentHeader({
                 );
               })()}
               {latestTankDt && (() => {
-                const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
+                const diffMinutes = ageMin(latestTankDt);
                 const isOk = diffMinutes < 11;
                 return (
                   <span>
@@ -130,12 +136,12 @@ export function EquipmentHeader({
               <p className="text-[10px] text-di-on-surface-variant mt-0.5">
                 {latestPosUpdate && (<>
                   Данные: {new Date(latestPosUpdate).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  {(() => { const d = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000); return d < 11 ? <span className="inline-flex items-center ml-1 align-middle"><CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" /></span> : <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 ml-1 align-middle"><AlertTriangle className="w-3 h-3" />{d}м</span>; })()}
+                  {(() => { const d = ageMin(latestPosUpdate); return d < 11 ? <span className="inline-flex items-center ml-1 align-middle"><CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" /></span> : <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 ml-1 align-middle"><AlertTriangle className="w-3 h-3" />{d}м</span>; })()}
                 </>)}
                 {latestPosUpdate && latestTankDt && <span className="mx-1.5">·</span>}
                 {latestTankDt && (<>
                   Рез: {new Date(latestTankDt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  {(() => { const d = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000); return d < 11 ? <span className="inline-flex items-center ml-1 align-middle"><CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" /></span> : <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 ml-1 align-middle"><AlertTriangle className="w-3 h-3" />{d}м</span>; })()}
+                  {(() => { const d = ageMin(latestTankDt); return d < 11 ? <span className="inline-flex items-center ml-1 align-middle"><CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" /></span> : <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 ml-1 align-middle"><AlertTriangle className="w-3 h-3" />{d}м</span>; })()}
                 </>)}
               </p>
             )}
