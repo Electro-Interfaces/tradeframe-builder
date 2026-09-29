@@ -166,6 +166,20 @@ async function createNetwork(input) {
 }
 
 async function updateNetwork(networkId, input) {
+  // Часовой пояс сети (IANA) — в settings.timezone. Время STS у станции без пояса;
+  // пустое значение = МСК. Кривой пояс уронил бы Intl на фронте и в уведомлениях.
+  let timezone = null; // null — поле не прислали, настройку не трогаем
+  if (input.timezone !== undefined) {
+    timezone = String(input.timezone || '').trim();
+    if (timezone) {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+      } catch {
+        throw new Error(`Неизвестный часовой пояс: ${timezone}`);
+      }
+    }
+  }
+
   const { rows } = await postgres.query(
     `UPDATE networks
         SET code = $2,
@@ -174,6 +188,10 @@ async function updateNetwork(networkId, input) {
             description = $5,
             network_type = $6,
             is_active = $7,
+            settings = CASE WHEN $8::text IS NULL THEN settings
+                            ELSE (settings - 'timezone')
+                                 || jsonb_strip_nulls(jsonb_build_object('timezone', NULLIF($8::text, '')))
+                       END,
             updated_at = now()
       WHERE id = $1
         AND deleted_at IS NULL
@@ -186,6 +204,7 @@ async function updateNetwork(networkId, input) {
       input.description || '',
       input.type || 'АЗС',
       input.status !== 'inactive',
+      timezone,
     ]
   );
 

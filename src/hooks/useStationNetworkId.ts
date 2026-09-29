@@ -13,6 +13,7 @@
 import { useMemo } from 'react';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useSelectedNetworks } from '@/hooks/useSelectedNetworks';
+import { networkTimezone } from '@/utils/stationTime';
 
 export function useStationNetworkId(): string | undefined {
   const { selectedStation, selectedNetwork } = useSelection();
@@ -28,4 +29,14 @@ export function useStationNetworkId(): string | undefined {
 
     return selectedNetwork?.external_id;
   }, [selectedStation?.networkId, selectedNetworks, selectedNetwork?.external_id]);
+}
+
+/** Часовой пояс сети выбранной точки (networks.settings.timezone), по умолчанию МСК. */
+export function useStationTimezone(): string {
+  const { selectedStation, selectedNetwork } = useSelection();
+  const { selectedNetworks } = useSelectedNetworks();
+  const stationNetwork = selectedStation?.networkId
+    ? selectedNetworks.find(n => n.id === selectedStation.networkId)
+    : undefined;
+  return networkTimezone(stationNetwork || selectedNetwork);
 }

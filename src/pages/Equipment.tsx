@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEquipment } from "@/hooks/useEquipment";
-import { useStationNetworkId } from "@/hooks/useStationNetworkId";
+import { useStationNetworkId, useStationTimezone } from "@/hooks/useStationNetworkId";
+import { stationTimeToDate } from "@/utils/stationTime";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useThresholds } from "@/hooks/useThresholds";
 import { useCashoutHistory } from "@/hooks/useCashoutHistory";
@@ -28,6 +29,7 @@ const FuelLevelThresholdsCard = lazy(() => import("@/components/equipment/FuelLe
 export default function Equipment() {
   const { selectedNetwork, selectedTradingPoint, selectedStation, isInitialized } = useSelection();
   const stationNetworkId = useStationNetworkId();
+  const stationTz = useStationTimezone();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -115,7 +117,8 @@ export default function Equipment() {
 
   // Когда станция последний раз реально передавала данные в облако (STS):
   // самый свежий dt_info постов, fallback — lastHeartbeat терминала.
-  const lastDataAt = (() => {
+  // Время станции переводим в момент по поясу сети — карточка считает «N мин назад».
+  const lastDataAt = stationTimeToDate((() => {
     const updates = (terminalInfo?.pos || [])
       .map((p) => p?.lastUpdate)
       .filter(Boolean) as string[];
@@ -123,7 +126,7 @@ export default function Equipment() {
       return updates.reduce((a, b) => (new Date(a) > new Date(b) ? a : b));
     }
     return terminalInfo?.terminal?.lastHeartbeat ?? null;
-  })();
+  })(), stationTz)?.toISOString() ?? null;
 
   const isMultiPos = (terminalInfo?.pos?.length || 0) > 1;
   const billAcceptor = !isMultiPos ? equipment.find(eq => eq.name === 'Купюроприемник') : null;

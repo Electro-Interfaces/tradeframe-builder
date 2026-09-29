@@ -21,4 +21,5 @@ export interface NetworkInput {
   external_id?: string; // ID для синхронизации с торговым API
   code?: string; // Код сети для API
   status?: string; // Статус сети (active, inactive)
+  timezone?: string; // Часовой пояс сети (IANA) → settings.timezone
 }
