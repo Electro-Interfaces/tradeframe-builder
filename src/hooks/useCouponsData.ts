@@ -126,7 +126,7 @@ export function useCouponsData() {
           .map(c => ({
             number: String(c.number),
             station: Number(c.stationCode),
-            dt: new Date(c.dt).toISOString(),
+            dt: String(c.dt), // часы станции как есть — в PG dt хранится так же, без сдвига на пояс браузера
             qty_used: c.qty_used,
             summ_used: c.summ_used,
           }))

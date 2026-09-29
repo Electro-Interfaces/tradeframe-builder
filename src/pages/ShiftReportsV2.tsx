@@ -30,6 +30,7 @@ import ShiftsTable from "@/components/shift-reports/ShiftsTable";
 import MobileShiftsTable from "@/components/shift-reports/MobileShiftsTable";
 import ShiftDetailsModal from "@/components/shift-reports/ShiftDetailsModal";
 import ReceiptsModal from "@/components/shift-reports/ReceiptsModal";
+import { StationTimeNote } from '@/components/common/StationTimeNote';
 
 export default function ShiftReportsV2() {
   const navigate = useNavigate();
@@ -108,6 +109,7 @@ export default function ShiftReportsV2() {
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-semibold text-foreground">Сменные отчеты</h1>
             <LastDataTransfer />
+            <StationTimeNote className="mt-1" />
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button

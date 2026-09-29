@@ -47,6 +47,7 @@ import {
   FILTER_PANEL_HEADER_CLASS,
   FILTER_PANEL_TITLE_CLASS,
 } from '@/components/common/filterPanel';
+import { StationTimeNote } from '@/components/common/StationTimeNote';
 
 // Единая сетка колонок для шапки/строк десктопной таблицы
 const GRID_COLS = 'grid grid-cols-[minmax(0,1.9fr)_130px_210px_140px] gap-3 items-center';
@@ -197,6 +198,7 @@ export default function FuelInventory() {
           <div className="flex-1 min-w-0">
             <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Остатки топлива</h1>
             <p className="text-xs text-muted-foreground mt-0.5">Книжные остатки по резервуарам на основании сменных отчетов</p>
+            <StationTimeNote className="mt-0.5" />
           </div>
           <div className="flex gap-3 items-center shrink-0">
             <Button variant="outline" size="sm" onClick={refresh} disabled={loading} title="Обновить (свежие данные, минуя кэш)">

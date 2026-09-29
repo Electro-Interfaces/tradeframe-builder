@@ -44,6 +44,7 @@ import {
   FILTER_PANEL_HEADER_CLASS,
   FILTER_PANEL_TITLE_CLASS,
 } from "@/components/common/filterPanel";
+import { StationTimeNote } from '@/components/common/StationTimeNote';
 
 // Сумма ячеек кросс-разреза «топливо × оплата» по предикату
 function sumCross(cross: OverviewFuelPayment[], match: (c: OverviewFuelPayment) => boolean) {
@@ -733,7 +734,10 @@ export default function OperationsTransactionsPageSimple() {
         {/* Заголовок страницы — Deep Intel */}
         <div className="mb-6 pt-4">
           <div className="flex items-end justify-between gap-4">
-            <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Операции</h1>
+            <div className="min-w-0">
+              <h1 className={`font-headline font-bold text-foreground ${isMobile ? 'text-lg' : 'text-xl'}`}>Операции</h1>
+              <StationTimeNote />
+            </div>
             <div className="flex items-center gap-2 shrink-0">
               {viewMode === 'pivot' ? (
                 <Button

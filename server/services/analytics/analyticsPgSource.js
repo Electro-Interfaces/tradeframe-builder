@@ -11,6 +11,10 @@ const { DIMS } = require('./pivotDims');
 const PIVOT_ROW_LIMIT = 20000;
 
 // Границы периода в timestamptz (весь день to включительно)
+// Время станции строкой без пояса (формат STS). Сессия PG в МСК, а dt записан
+// из «голой» строки STS — to_char возвращает ровно настенные часы станции.
+const WALL_CLOCK = 'YYYY-MM-DD"T"HH24:MI:SS';
+
 function bounds(from, to) {
   return { from: `${from} 00:00:00`, to: `${to} 23:59:59.999` };
 }
@@ -57,10 +61,10 @@ async function getOverview({ networkIds, from, to, allowedStations, stations }) 
         FROM sts_transactions ${where}
        GROUP BY payment_method ORDER BY revenue DESC NULLS LAST`, params),
     postgres.query(`
-      SELECT dt::date AS day_date, count(*)::int ops,
+      SELECT to_char(dt, 'YYYY-MM-DD') AS day_date, count(*)::int ops,
              COALESCE(sum(quantity),0) volume, COALESCE(sum(cost),0) revenue
         FROM sts_transactions ${where}
-       GROUP BY dt::date ORDER BY dt::date`, params),
+       GROUP BY day_date ORDER BY day_date`, params),
     postgres.query(`
       SELECT extract(hour FROM dt)::int AS hour_num, count(*)::int ops,
              COALESCE(sum(cost),0) revenue
@@ -73,16 +77,16 @@ async function getOverview({ networkIds, from, to, allowedStations, stations }) 
        GROUP BY station_code ORDER BY revenue DESC NULLS LAST`, params),
     // День × топливо — для стекового графика «Реализация по дням»
     postgres.query(`
-      SELECT dt::date AS day_date, fuel_name, count(*)::int ops,
+      SELECT to_char(dt, 'YYYY-MM-DD') AS day_date, fuel_name, count(*)::int ops,
              COALESCE(sum(quantity),0) volume, COALESCE(sum(cost),0) revenue
         FROM sts_transactions ${where}
-       GROUP BY dt::date, fuel_name ORDER BY dt::date`, params),
+       GROUP BY day_date, fuel_name ORDER BY day_date`, params),
     // День × час — для тепловой карты активности
     postgres.query(`
-      SELECT dt::date AS day_date, extract(hour FROM dt)::int AS hour_num,
+      SELECT to_char(dt, 'YYYY-MM-DD') AS day_date, extract(hour FROM dt)::int AS hour_num,
              count(*)::int ops, COALESCE(sum(cost),0) revenue
         FROM sts_transactions ${where}
-       GROUP BY dt::date, extract(hour FROM dt) ORDER BY dt::date, hour_num`, params),
+       GROUP BY day_date, hour_num ORDER BY day_date, hour_num`, params),
     // Топливо × оплата — кросс-разрез для перекрёстной фильтрации KPI «Операций»:
     // выбрали АИ-92 → карточки оплат показывают суммы только по АИ-92 (и наоборот).
     // Считает браузер, поэтому клик по карточке не идёт в сеть.
@@ -130,16 +134,16 @@ async function getDetailedAnalytics({ networkIds, from, to, allowedStations, sta
        GROUP BY station_code, fuel_name ORDER BY station_code`, params),
     // Станция × день — StationRevenueTrendChart
     postgres.query(`
-      SELECT station_code, dt::date AS day_date, count(*)::int ops,
+      SELECT station_code, to_char(dt, 'YYYY-MM-DD') AS day_date, count(*)::int ops,
              COALESCE(sum(quantity),0) volume, COALESCE(sum(cost),0) revenue
         FROM sts_transactions ${where}
-       GROUP BY station_code, dt::date ORDER BY station_code, dt::date`, params),
+       GROUP BY station_code, day_date ORDER BY station_code, day_date`, params),
     // День × оплата — CashlessShareTrend
     postgres.query(`
-      SELECT dt::date AS day_date, payment_method, count(*)::int ops,
+      SELECT to_char(dt, 'YYYY-MM-DD') AS day_date, payment_method, count(*)::int ops,
              COALESCE(sum(cost),0) revenue
         FROM sts_transactions ${where}
-       GROUP BY dt::date, payment_method ORDER BY dt::date`, params),
+       GROUP BY day_date, payment_method ORDER BY day_date`, params),
   ]);
 
   return {
@@ -188,12 +192,14 @@ async function getOperations(opts) {
   params.push(limit); const limitParam = params.length;
   params.push(offset); const offsetParam = params.length;
 
+  // dt — строкой без пояса, как отдаёт STS: это часы станции, браузер не должен
+  // сдвигать их на свой пояс (у АЗС Н1 время тюменское)
   const rows = await postgres.query(`
-    SELECT sts_id, dt, station_code, receipt, shift, pos, nozzle, tank, fuel_name, fuel_code,
+    SELECT sts_id, to_char(dt, '${WALL_CLOCK}') AS dt, station_code, receipt, shift, pos, nozzle, tank, fuel_name, fuel_code,
            quantity, price, cost, mass, payment_method, pay_type_name, card, status,
            order_qty, order_cost
       FROM sts_transactions ${where}
-     ORDER BY dt DESC
+     ORDER BY sts_transactions.dt DESC
      LIMIT $${limitParam} OFFSET $${offsetParam}`, params);
 
   return {
@@ -305,7 +311,7 @@ async function getCouponUsage({ networkIds, allowedStations, coupons }) {
       SELECT * FROM unnest($2::text[], $3::int[], $4::timestamptz[], $5::numeric[], $6::numeric[])
         AS t(number, station, dt, qty_used, summ_used)
     )
-    SELECT c.number, COALESCE(bycard.dt, byamount.dt) AS dt
+    SELECT c.number, to_char(COALESCE(bycard.dt, byamount.dt), '${WALL_CLOCK}') AS dt
       FROM c
       LEFT JOIN LATERAL (
         SELECT t.dt FROM sts_transactions t

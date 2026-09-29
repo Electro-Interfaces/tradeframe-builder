@@ -36,6 +36,7 @@ import { CashFlowKPIGrid } from "@/components/shift-dashboard/CashFlowKPIGrid";
 import { RevenueByDayChart } from "@/components/shift-dashboard/RevenueByDayChart";
 import { VolumeByFuelChart } from "@/components/shift-dashboard/VolumeByFuelChart";
 import { PaymentMethodsChart } from "@/components/shift-dashboard/PaymentMethodsChart";
+import { StationTimeNote } from '@/components/common/StationTimeNote';
 
 export default function ShiftDashboard() {
   const navigate = useNavigate();
@@ -278,6 +279,7 @@ export default function ShiftDashboard() {
               <h1 className={`font-semibold text-foreground truncate ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 {isMobile ? 'Аналитика смен' : 'Дашборд аналитики по сменным отчетам'}
               </h1>
+              <StationTimeNote />
               <div className="flex items-center gap-2">
                 <p className="text-xs sm:text-sm text-muted-foreground truncate">
                   {selectedStation?.name || selectedNetwork?.name || 'Все точки'}

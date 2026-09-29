@@ -21,6 +21,7 @@ import type { Tank } from '@/types/tanks';
 import { getEquipmentActionButtonClass, getEquipmentIconButtonClass } from './designTokens';
 import { useStationTimezone } from '@/hooks/useStationNetworkId';
 import { stationTimeToDate } from '@/utils/stationTime';
+import { StationTimeNote } from '@/components/common/StationTimeNote';
 
 interface EquipmentHeaderProps {
   terminalInfo: TerminalInfo | null;
@@ -104,6 +105,7 @@ export function EquipmentHeader({
             <h1 className={`font-headline font-bold text-di-on-surface whitespace-nowrap ${isMobile ? 'text-lg' : 'text-xl'}`}>
               Оборудование{!isMobile && stationName ? ` · ${stationName}` : ''}
             </h1>
+            <StationTimeNote />
           {!isMobile && (latestPosUpdate || latestTankDt) && (
             <div className="flex items-center gap-4 text-[11px] text-di-on-surface-variant">
               {latestPosUpdate && (() => {
