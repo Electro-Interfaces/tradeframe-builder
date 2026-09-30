@@ -197,6 +197,8 @@ const LoginPageWithLegal = () => {
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const [showPdnDialog, setShowPdnDialog] = useState(false);
   const [legalDocuments, setLegalDocuments] = useState<LegalDocument[]>([]);
+  // Галки показываем, только если сервер сказал, что учётка ещё не принимала текущие версии
+  const [needsConsent, setNeedsConsent] = useState(false);
   
   // Mobile state
   const mobileInfo = useMobile();
@@ -279,28 +281,39 @@ const LoginPageWithLegal = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // На мобильных устройствах пропускаем проверку legal documents
-    if (!isMobile) {
-      // Проверка согласия с правовыми документами только на desktop
-      if (!acceptedTerms || !acceptedPrivacy || !acceptedPdn) {
-        setError('Необходимо принять все правовые документы для продолжения');
-        return;
-      }
+    if (needsConsent && (!acceptedTerms || !acceptedPrivacy || !acceptedPdn)) {
+      setError('Необходимо принять все правовые документы для продолжения');
+      return;
     }
-    
+
     setIsLoading(true);
     setError('');
 
     try {
-      // Login first to get authentication with Remember Me option
-      await login(email, password, rememberMe);
+      // Вход; на втором шаге (после галок) сессия уже есть
+      if (!needsConsent) {
+        await login(email, password, rememberMe);
+      }
 
       // Пропускаем юридические документы для мобильных, МенеджерБТО и системных ролей
       const skipLegalDocs = isMobile ||
                            email.includes('bto.manager') ||
                            email.includes('admin@');
 
-      if (!skipLegalDocs) {
+      if (!skipLegalDocs && !needsConsent) {
+        // Согласие спрашиваем один раз на учётку (и заново — при новой версии документа)
+        try {
+          const requirement = await legalDocumentsService.getUserConsentRequirement('current_user');
+          if (requirement.requires_consent) {
+            setNeedsConsent(true);
+            return;
+          }
+        } catch {
+          // Не блокируем вход, если сервис согласий недоступен
+        }
+      }
+
+      if (!skipLegalDocs && needsConsent) {
         try {
           // Используем Promise.allSettled для параллельного выполнения, игнорируя ошибки
           const acceptanceResults = await Promise.allSettled([
@@ -437,7 +450,7 @@ const LoginPageWithLegal = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-8 bg-input border-border text-foreground placeholder:text-muted-foreground text-sm mt-1"
                   required
-                  autoComplete="email"
+                  autoComplete="email" disabled={needsConsent}
                 />
               </div>
 
@@ -453,7 +466,7 @@ const LoginPageWithLegal = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10 h-8 text-sm"
                     required
-                    autoComplete="off"
+                    autoComplete="off" disabled={needsConsent}
                   />
                   <Button
                     type="button"
@@ -467,7 +480,8 @@ const LoginPageWithLegal = () => {
                 </div>
               </div>
 
-              {/* Правовые документы */}
+              {/* Правовые документы — только при первом входе учётки */}
+              {needsConsent && (
               <div className="space-y-1 p-2 bg-muted rounded-lg border border-border">
                 <div className="flex items-start space-x-2">
                   <Checkbox 
@@ -535,6 +549,7 @@ const LoginPageWithLegal = () => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Запомнить меня */}
               <div className="flex items-center space-x-2 mt-1">
@@ -559,7 +574,7 @@ const LoginPageWithLegal = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary/80 h-8 text-sm mt-2"
-                disabled={isLoading || !acceptedTerms || !acceptedPrivacy || !acceptedPdn}
+                disabled={isLoading || (needsConsent && (!acceptedTerms || !acceptedPrivacy || !acceptedPdn))}
               >
                 {isLoading ? (
                   <>
@@ -569,7 +584,7 @@ const LoginPageWithLegal = () => {
                 ) : (
                   <>
                     <Lock className="mr-2 h-4 w-4" />
-                    Войти в систему
+                    {needsConsent ? 'Принять и войти' : 'Войти в систему'}
                   </>
                 )}
               </Button>
