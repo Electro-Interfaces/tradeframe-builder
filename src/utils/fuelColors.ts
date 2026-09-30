@@ -10,20 +10,21 @@ interface FuelColorRule extends FuelColorMeta {
   matches: Array<string | RegExp>;
 }
 
+// Цвета как на колонках АЗС: 92 — зелёный, 95 — красный, 98 — жёлтый, ДТ — чёрный
 const FUEL_COLOR_RULES: FuelColorRule[] = [
   {
     matches: ['аи-92', '92'],
-    bg: 'bg-red-500',
-    text: 'text-red-600 dark:text-red-400',
-    hex: '#ef4444',
+    bg: 'bg-green-600',
+    text: 'text-green-700 dark:text-green-400',
+    hex: '#16a34a',
     label: '92',
     name: 'АИ-92',
   },
   {
     matches: ['аи-95', '95'],
-    bg: 'bg-orange-500',
-    text: 'text-orange-600 dark:text-orange-400',
-    hex: '#f97316',
+    bg: 'bg-red-500',
+    text: 'text-red-600 dark:text-red-400',
+    hex: '#ef4444',
     label: '95',
     name: 'АИ-95',
   },
@@ -61,9 +62,10 @@ const FUEL_COLOR_RULES: FuelColorRule[] = [
   },
   {
     matches: ['дт', 'диз', 'дизель', 'diesel'],
-    bg: 'bg-emerald-500',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    hex: '#10b981',
+    // Чёрный; в тёмной теме бейдж светлее, чтобы не пропадал на фоне
+    bg: 'bg-zinc-900 dark:bg-zinc-600',
+    text: 'text-zinc-900 dark:text-zinc-300',
+    hex: '#3f3f46',
     label: 'ДТ',
     name: 'Дизельное топливо',
   },

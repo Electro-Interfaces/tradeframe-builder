@@ -32,6 +32,7 @@ import {
   Info
 } from 'lucide-react';
 import type { OnlineOrder } from '@/services/onlineOrdersService';
+import { getFuelColor } from '@/utils/fuelColors';
 import { onlineOrdersService } from '@/services/onlineOrdersService';
 import type { MSTOOrderDetailsResponse, MSTOTimelineEvent } from '@/types/mstoOrders';
 
@@ -61,18 +62,6 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   pending: <Timer className="w-3 h-3" />,
   failed: <XCircle className="w-3 h-3" />,
   cancelled: <AlertCircle className="w-3 h-3" />
-};
-
-/** Цвета топлива */
-const FUEL_COLORS: Record<string, string> = {
-  'АИ-92': 'bg-emerald-500',
-  'АИ-95': 'bg-primary',
-  'АИ-98': 'bg-purple-500',
-  'ДТ': 'bg-amber-500',
-  'ДТЗ': 'bg-orange-500',
-  'Пропан': 'bg-cyan-500',
-  'Газ': 'bg-cyan-500',
-  'Метан': 'bg-teal-500'
 };
 
 // ============================================================================
@@ -363,7 +352,7 @@ export function OrderDetailsDialog({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Fuel className="w-4 h-4 text-muted-foreground" />
-                    <div className={`w-3 h-3 rounded-full ${FUEL_COLORS[order.fuelType] || 'bg-muted-foreground'}`} />
+                    <div className={`w-3 h-3 rounded-full ${getFuelColor(order.fuelType).bg}`} />
                     <span className="text-foreground font-medium">{order.fuelType}</span>
                     {orderType && (
                       <Badge variant="outline" className="text-xs text-muted-foreground border-border">
