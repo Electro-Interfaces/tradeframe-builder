@@ -91,8 +91,9 @@ export function calculateReceiptsStats(receipts: FlatReceipt[]): ReceiptsStats {
   const byFuelType: Record<string, { count: number; volume: number; amount: number }> = {};
 
   receipts.forEach(receipt => {
-    const volume = parseFloat(receipt.fact.volume);
-    const amount = parseFloat(receipt.fact.amount);
+    // Объём и сумма по документу (ТТН) — как в карточках страницы «Поступления»
+    const volume = parseFloat(receipt.doc.volume) || 0;
+    const amount = parseFloat(receipt.doc.amount) || 0;
 
     totalVolume += volume;
     totalAmount += amount;
