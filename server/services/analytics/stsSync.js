@@ -27,6 +27,12 @@ const BACKFILL_EMPTY_STOP = Number(process.env.STS_SYNC_BACKFILL_STOP || 5);
 // Потолок дней backfill за один прогон станции — чтобы не молотить STS слишком
 // долго в одном тике; хвост догоняется в следующих прогонах.
 const BACKFILL_MAX_DAYS = Number(process.env.STS_SYNC_BACKFILL_MAX || 60);
+// Глубина поиска дыр материализации (день пуст, а соседние — нет).
+const GAP_SCAN_DAYS = Number(process.env.STS_SYNC_GAP_DAYS || INITIAL_DAYS);
+// ponytail: дыру длиннее этого считаем простоем станции, а не потерей синка, и не
+// трогаем — иначе каждую ночь перечитывали бы недельные простои. Поднять, если
+// когда-нибудь потеряется длинный кусок.
+const GAP_MAX_LEN = Number(process.env.STS_SYNC_GAP_MAX_LEN || 7);
 const MANUAL_SYNC_TIMEOUT_MS = Math.max(1, Number(process.env.STS_SYNC_MANUAL_TIMEOUT_MS || 120000));
 const MANUAL_SYNC_REQUEST_TIMEOUT_MS = Math.max(1, Number(process.env.STS_SYNC_MANUAL_REQUEST_TIMEOUT_MS || 30000));
 
@@ -372,7 +378,26 @@ async function syncNetworkInternal(networkId) {
     results.push(await syncStation(networkId, system, st));
   }
   const rows = results.reduce((s, r) => s + (r.rows || 0), 0);
+  await fillPayTypeNames(system);
   return { ok: true, network_id: networkId, system, stations: stations.length, rows, results };
+}
+
+// STS дописывает имя типа оплаты в справочник позже самих транзакций, а прошлые
+// дни синк не перечитывает — строки так и остаются без имени («-» в «Обзоре»).
+// Берём имя у свежей строки с тем же pay_type_id в той же системе (id у систем свои).
+const FILL_PAY_TYPE_NAMES_SQL = `
+  UPDATE sts_transactions t
+     SET pay_type_name = n.pay_type_name, payment_method = n.payment_method
+    FROM (SELECT DISTINCT ON (pay_type_id) pay_type_id, pay_type_name, payment_method
+            FROM sts_transactions
+           WHERE system = $1 AND pay_type_name <> ''
+           ORDER BY pay_type_id, synced_at DESC) n
+   WHERE t.system = $1 AND t.pay_type_id = n.pay_type_id
+     AND coalesce(t.pay_type_name, '') = ''`;
+
+async function fillPayTypeNames(system) {
+  const res = await postgres.query(FILL_PAY_TYPE_NAMES_SQL, [system]);
+  if (res?.rowCount) console.log(`[STS sync] system ${system}: имя типа оплаты дописано у ${res.rowCount} транзакций`);
 }
 
 function syncNetwork(networkId) {
@@ -625,4 +650,66 @@ function ensureCoverage(networkId, fromStr) {
     .finally(() => coverageJobs.delete(networkId));
 }
 
-module.exports = { syncStation, syncNetwork, syncNetworkRange, syncAllNetworks, getNetworkStations, extractRows, fetchStationDayRows, fetchStationRangeRows, ensureCoverage, validateSyncRange, DUAL_STATION_CODES };
+// Пустые дни между непустыми — по каждой станции внутри окна сканирования.
+// Границы окна не берём: там пусто просто потому, что данных ещё/уже нет.
+const GAPS_SQL = `
+  WITH present AS (
+    SELECT network_id, system, station_code,
+           (dt AT TIME ZONE 'Europe/Moscow')::date AS day
+      FROM sts_transactions
+     WHERE dt >= ((now() AT TIME ZONE 'Europe/Moscow')::date - $1::int)
+     GROUP BY 1, 2, 3, 4
+  ), seq AS (
+    SELECT network_id, system, station_code, day,
+           lead(day) OVER (PARTITION BY network_id, system, station_code ORDER BY day) AS next_day
+      FROM present
+  )
+  SELECT network_id, system, station_code,
+         to_char(day + 1, 'YYYY-MM-DD') AS gap_from,
+         to_char(next_day - 1, 'YYYY-MM-DD') AS gap_to,
+         (next_day - day - 1) AS gap_len
+    FROM seq
+   WHERE next_day > day + 1
+   ORDER BY station_code, day`;
+
+// Латание дыр материализации. Forward-проход перечитывает только RESYNC_TAIL_DAYS,
+// поэтому день, за который STS ответил пусто (станция выгрузила транзакции позже),
+// остаётся пустым навсегда: назад синк не возвращается, backfill стопорится на
+// первом непустом дне. Раз в сутки перечитываем такие дни напрямую из STS.
+// Курсоры не трогаем — дни лежат внутри уже пройденного окна.
+// Dual-code алиасы не латаем: у них своя история в sts_sync_alias_cursor.
+async function patchGapsInternal() {
+  const { rows: gaps } = await postgres.query(GAPS_SQL, [GAP_SCAN_DAYS]);
+  let days = 0;
+  let added = 0;
+  let skipped = 0;
+
+  for (const gap of gaps) {
+    if (Number(gap.gap_len) > GAP_MAX_LEN) { skipped++; continue; }
+    try {
+      // bypassCache — иначе вернётся тот же пустой ответ, из-за которого дыра и возникла.
+      const rows = await materializeStationRange(
+        gap.network_id, gap.system, gap.station_code, gap.gap_from, gap.gap_to, null,
+        { bypassCache: true }
+      );
+      days += Number(gap.gap_len);
+      added += rows;
+      if (rows > 0) {
+        console.log(`[STS gaps] станция ${gap.station_code} ${gap.gap_from}..${gap.gap_to}: +${rows} транзакций`);
+      }
+    } catch (e) {
+      console.warn(`[STS gaps] станция ${gap.station_code} ${gap.gap_from}..${gap.gap_to}: ${e.message}`);
+    }
+  }
+
+  if (gaps.length) {
+    console.log(`[STS gaps] дыр ${gaps.length} (длинных пропущено ${skipped}), перечитано дней ${days}, добавлено строк ${added}`);
+  }
+  return { gaps: gaps.length, days, rows: added, skipped };
+}
+
+function patchGaps() {
+  return enqueueSyncJob(() => patchGapsInternal());
+}
+
+module.exports = { syncStation, syncNetwork, syncNetworkRange, syncAllNetworks, getNetworkStations, extractRows, fetchStationDayRows, fetchStationRangeRows, ensureCoverage, patchGaps, validateSyncRange, DUAL_STATION_CODES };
