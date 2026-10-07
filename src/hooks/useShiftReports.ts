@@ -9,6 +9,9 @@ import { getSystemId } from '@/config/stsConfig';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useSelection } from '@/contexts/SelectionContext';
 import type { ShiftListItem, ShiftFilters } from '@/types/shift-reports-v2';
+import { shiftsService } from '@/services/shiftsService';
+import { ShiftReportAdapterV2 } from '@/services/adapters/shiftReportAdapterV2';
+import { applyShiftTotals, shiftReportParams, type ShiftTotals } from '@/utils/shiftTotals';
 
 interface UseShiftReportsOptions {
   tradingPoint: any | null;
@@ -243,6 +246,48 @@ export function useShiftReports({ tradingPoint, networkId, network, networkIds, 
     return filtered;
   }, [shifts, filters.status, filters.shiftNumber, filters.dateFrom, filters.dateTo, allowedStationNumbers]);
 
+  // Итоги смен из сменных отчётов: /v1/shifts сумм не отдаёт. Считаем тем же
+  // адаптером, что «Детали смены», — список и детали совпадают. Открытые смены
+  // не грузим: их отчёт ещё меняется, а прокси кэширует его на сутки.
+  // ponytail: по запросу на смену (пачками по 5, кэш прокси 24 ч); если журнал
+  // по всей сети станет медленным — серверный батч-эндпоинт.
+  const [totals, setTotals] = useState<Map<string, ShiftTotals>>(new Map());
+  const pendingKey = filteredShifts
+    .filter((s) => s.status === 'closed' && !totals.has(s.id))
+    .map((s) => s.id).join(',');
+
+  useEffect(() => {
+    if (!pendingKey) return;
+    let cancelled = false;
+    const todo = filteredShifts.filter((s) => pendingKey.split(',').includes(s.id));
+    (async () => {
+      for (let i = 0; i < todo.length && !cancelled; i += 5) {
+        const batch = await Promise.all(todo.slice(i, i + 5).map(async (s) => {
+          const params = shiftReportParams(s);
+          if (!params) return null;
+          try {
+            const raw = await shiftsService.getShiftReportRaw(params);
+            const d = ShiftReportAdapterV2.toDetails(raw, params.shift, params.system, params.station);
+            return [s.id, { revenue: d.totalRevenue, volume: d.totalVolume }] as const;
+          } catch (err) {
+            console.error(`Сменный отчёт ${s.id} не загружен:`, err);
+            return null;
+          }
+        }));
+        if (cancelled) return;
+        setTotals((prev) => {
+          const next = new Map(prev);
+          batch.forEach((e) => { if (e) next.set(e[0], e[1]); });
+          return next;
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingKey]);
+
+  const shiftsWithTotals = useMemo(() => applyShiftTotals(filteredShifts, totals), [filteredShifts, totals]);
+
   // Функция обновления данных
   const refresh = () => {
     // Принудительная перезагрузка через изменение состояния
@@ -251,7 +296,7 @@ export function useShiftReports({ tradingPoint, networkId, network, networkIds, 
 
   return {
     shifts,
-    filteredShifts,
+    filteredShifts: shiftsWithTotals,
     loading,
     error,
     refresh

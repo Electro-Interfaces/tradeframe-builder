@@ -92,7 +92,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
           return (
             <TableRow
               key={shift.id}
-              className="cursor-pointer align-top"
+              className={`cursor-pointer align-top ${shift.isEmpty ? 'bg-amber-500/10' : ''}`}
               data-state={isSelected ? 'selected' : undefined}
               onClick={() => onSelectShift(shift)}
             >
@@ -116,6 +116,9 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
                       <StatusIcon className="h-3 w-3" />
                       {status.label}
                     </Badge>
+                    {shift.isEmpty && (
+                      <Badge className={`${getShiftStatusBadgeClass('amber')} text-[11px]`}>Пустая</Badge>
+                    )}
                   </div>
                   <div className="font-mono text-sm font-semibold text-foreground">
                     #{shift.shiftNumber}
@@ -129,13 +132,13 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
               <TableCell className="min-w-[120px] align-top text-right">
                 <div className="space-y-1.5">
                   <div className="font-mono text-sm text-foreground/80">
-                    {formatInteger(shift.totalRevenue)} ₽
+                    {shift.totalsKnown ? `${formatInteger(shift.totalRevenue)} ₽` : '—'}
                   </div>
                   <div className="font-mono text-sm text-foreground/80">
-                    {formatInteger(shift.totalVolume)} л
+                    {shift.totalsKnown ? `${formatInteger(shift.totalVolume)} л` : '—'}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {shift.transactionCount} чек.
+                    {shift.transactionCount > 0 ? `${shift.transactionCount} чек.` : ''}
                   </div>
                 </div>
               </TableCell>

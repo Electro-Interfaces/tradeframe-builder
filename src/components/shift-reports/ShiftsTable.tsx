@@ -32,6 +32,10 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
     return value.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
   };
 
+  // Пока итоги из транзакций не пришли — прочерк, а не ложный ноль
+  const formatTotal = (shift: ShiftListItem, value: number, unit: string) =>
+    shift.totalsKnown ? `${formatInteger(value)} ${unit}` : '—';
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -76,7 +80,8 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
             return (
               <TableRow
                 key={shift.id}
-                className="cursor-pointer"
+                className={`cursor-pointer ${shift.isEmpty ? 'bg-amber-500/10 hover:bg-amber-500/15 text-muted-foreground' : ''}`}
+                title={shift.isEmpty ? 'Пустая смена: ни одной операции' : undefined}
                 onClick={() => {
                   onSelectShift(shift);
                 }}
@@ -94,16 +99,19 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
                   {shift.closedAt ? formatDateTime(shift.closedAt) : '—'}
                 </TableCell>
                 <TableCell className="text-right font-mono text-foreground/80">
-                  {formatInteger(shift.totalRevenue)} ₽
+                  {formatTotal(shift, shift.totalRevenue, '₽')}
                 </TableCell>
                 <TableCell className="text-right font-mono text-foreground/80">
-                  {formatInteger(shift.totalVolume)} л
+                  {formatTotal(shift, shift.totalVolume, 'л')}
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge className={`${getShiftStatusBadgeClass(status.tone)} inline-flex items-center gap-1 text-xs`}>
                     <StatusIcon className="h-3 w-3" />
                     {status.label}
                   </Badge>
+                  {shift.isEmpty && (
+                    <Badge className={`${getShiftStatusBadgeClass('amber')} ml-1 text-xs`}>Пустая</Badge>
+                  )}
                 </TableCell>
               </TableRow>
           )})}
