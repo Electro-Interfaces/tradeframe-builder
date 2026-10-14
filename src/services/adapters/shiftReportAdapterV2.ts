@@ -14,6 +14,7 @@ import type {
   CashMovementItem,
   CashSummary,
   CashByPos,
+  ShiftBills,
   PosInfoItem,
   NozzleReading,
 } from '@/types/shift-reports-v2';
@@ -149,6 +150,7 @@ export class ShiftReportAdapterV2 {
     const cashMovements = this.extractCashMovements(apiResponse.money, shiftNumber, openedAt, closedAt);
     const cashSummary = this.extractCashSummary(apiResponse.money, shiftNumber);
     const cashByPos = this.extractCashByPos(apiResponse.money, shiftNumber, posInfo);
+    const bills = this.extractBills(apiResponse.bills);
 
     const result = {
       // Базовая информация
@@ -220,6 +222,7 @@ export class ShiftReportAdapterV2 {
       cashMovements,
       cashSummary,
       cashByPos,
+      bills,
       reportCreatedAt: new Date().toISOString(),
 
       // Сырые данные для дополнительных расчетов — уже без строк-расшифровок,
@@ -684,6 +687,33 @@ export class ShiftReportAdapterV2 {
         operator: posInfo.find((p) => p.posNumber === posNumber)?.operator,
       };
     });
+  }
+
+  /**
+   * Купюры по номиналам на начало/конец смены. На станциях без купюроприёмника
+   * STS отдаёт пустые списки с нулевыми суммами — тогда блока нет.
+   */
+  static extractBills(bills: any): ShiftBills | undefined {
+    const beg = Array.isArray(bills?.beg?.items) ? bills.beg.items : [];
+    const end = Array.isArray(bills?.end?.items) ? bills.end.items : [];
+    if (beg.length === 0 && end.length === 0) return undefined;
+
+    const byNominal = new Map<number, { begCount: number; endCount: number }>();
+    const add = (list: any[], key: 'begCount' | 'endCount') => list.forEach((item: any) => {
+      const row = byNominal.get(item.nominal) || { begCount: 0, endCount: 0 };
+      row[key] += item.count || 0;
+      byNominal.set(item.nominal, row);
+    });
+    add(beg, 'begCount');
+    add(end, 'endCount');
+
+    return {
+      begSum: bills.beg?.sum || 0,
+      endSum: bills.end?.sum || 0,
+      items: [...byNominal.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([nominal, counts]) => ({ nominal, ...counts })),
+    };
   }
 
   private static mapOperationType(operationId: number): 'income' | 'expense' | 'opening' | 'closing' | null {

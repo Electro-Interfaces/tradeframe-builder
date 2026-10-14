@@ -945,6 +945,45 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                     </div>
                   );
                 })()}
+
+                {details.bills && (
+                  <div className="mt-6">
+                    <h4 className="text-base font-semibold text-foreground text-center mb-2">
+                      Купюры в купюроприёмнике
+                    </h4>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-muted-foreground border-b border-border">
+                          <th className="text-left font-medium py-2 pl-8">Номинал</th>
+                          <th className="text-right font-medium py-2">На начало, шт</th>
+                          <th className="text-right font-medium py-2">На конец, шт</th>
+                          <th className="text-right font-medium py-2 pr-2">Разница, шт</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {details.bills.items.map((item) => (
+                          <tr key={item.nominal} className="border-b border-border/50">
+                            <td className="py-2 pl-8 text-foreground">{item.nominal.toLocaleString('ru-RU')} ₽</td>
+                            <td className="py-2 text-right text-foreground">{item.begCount}</td>
+                            <td className="py-2 text-right text-foreground">{item.endCount}</td>
+                            <td className="py-2 pr-2 text-right text-foreground">
+                              {item.endCount - item.begCount > 0 ? '+' : ''}{item.endCount - item.begCount}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-secondary/30 font-semibold">
+                          <td className="py-2 pl-8 text-foreground">Сумма</td>
+                          <td className="py-2 text-right text-foreground">{formatCurrency(details.bills.begSum)}</td>
+                          <td className="py-2 text-right text-foreground">{formatCurrency(details.bills.endSum)}</td>
+                          <td className="py-2 pr-2 text-right text-foreground">
+                            {details.bills.endSum - details.bills.begSum > 0 ? '+' : ''}
+                            {formatCurrency(details.bills.endSum - details.bills.begSum)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>

@@ -530,6 +530,30 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
   });
   row += 2;
 
+  // ── 7а. КУПЮРЫ В КУПЮРОПРИЁМНИКЕ ───────────────────────────────────────
+  // Нет на бумаге — добавлено по просьбе МАГ (14.10.2026). Только там, где STS
+  // отдал секцию bills (автоматы с купюроприёмником). Совпадает с экраном.
+  if (details.bills) {
+    worksheet.mergeCells(row, 1, row, 4);
+    writeCell(row, 1, 'Купюры в купюроприёмнике:', sectionTitleStyle);
+    row += 2;
+    ['Номинал, руб.', 'На начало, шт', 'На конец, шт', 'Разница, шт']
+      .forEach((h, i) => writeCell(row, i + 1, h, headerStyle));
+    row++;
+    details.bills.items.forEach((item) => {
+      writeCell(row, 1, item.nominal, dataStyle, 'integer');
+      writeCell(row, 2, item.begCount, dataStyle, 'integer');
+      writeCell(row, 3, item.endCount, dataStyle, 'integer');
+      writeCell(row, 4, item.endCount - item.begCount, dataStyle, 'integer');
+      row++;
+    });
+    writeCell(row, 1, 'Сумма, руб.', totalsStyle);
+    writeCell(row, 2, details.bills.begSum, totalsStyle, 'decimal2');
+    writeCell(row, 3, details.bills.endSum, totalsStyle, 'decimal2');
+    writeCell(row, 4, details.bills.endSum - details.bills.begSum, totalsStyle, 'decimal2');
+    row += 3;
+  }
+
   // ── 8. ПОДПИСИ ─────────────────────────────────────────────────────────
   const signatureRows = [
     'Отчёт составили и смену сдали:',

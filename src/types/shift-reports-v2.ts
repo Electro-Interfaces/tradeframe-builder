@@ -441,6 +441,22 @@ export interface CashSummary {
 }
 
 /** Движение наличных по одному рабочему месту (кассе) — блок бумажного отчёта */
+/**
+ * Купюры в купюроприёмнике по номиналам на начало и конец смены (STS `bills`).
+ * Это содержимое кассеты, а не выручка: после инкассации на конец будет меньше.
+ */
+export interface ShiftBillsItem {
+  nominal: number;
+  begCount: number;
+  endCount: number;
+}
+
+export interface ShiftBills {
+  begSum: number;
+  endSum: number;
+  items: ShiftBillsItem[];
+}
+
 export interface CashByPos {
   /** Номер кассы (рабочего места) */
   posNumber: number;
@@ -558,6 +574,9 @@ export interface ShiftDetails extends ShiftListItem {
 
   /** Движение наличных в разрезе касс (рабочих мест) */
   cashByPos: CashByPos[];
+
+  /** Купюры в купюроприёмнике по номиналам; нет — STS не отдал (оператор, старые смены) */
+  bills?: ShiftBills;
 
   // ========== Метаданные ==========
 

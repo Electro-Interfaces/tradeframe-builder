@@ -70,6 +70,21 @@ function cacheSet(key, value, ttl) {
   }
 }
 
+// Чтение кэша. Отчёт смены, закэшированный до 14.10.2026, не содержит секции
+// bills (купюры по номиналам) — считаем его промахом, чтобы перечитать из STS,
+// а не ждать суток. Это касается и снапшота, поднятого с диска после рестарта.
+function cacheGet(key) {
+  const value = cache.get(key);
+  if (value !== undefined && key.startsWith('/v1/report/shift_report?')) {
+    const d = Array.isArray(value) ? value[0] : value;
+    if (d && typeof d === 'object' && !('bills' in d)) {
+      cache.del(key);
+      return undefined;
+    }
+  }
+  return value;
+}
+
 // Negative-cache: STS стойко отдаёт 500 на конкретных диапазонах (битые
 // транзакции на его стороне, напр. 03.06 у ГИГ). Сам 500 приходит через
 // ~4с «раздумий» STS, и без этого кэша КАЖДАЯ загрузка Обзора повторно
@@ -446,7 +461,7 @@ async function proxyRequest(req, res) {
 
     // Cache check (GET only)
     if (method === 'GET' && !forceRefresh) {
-      const cachedData = cache.get(cacheKey);
+      const cachedData = cacheGet(cacheKey);
       if (cachedData !== undefined) {
         cacheStats.hits++;
         return res.status(200).json(cachedData);
@@ -613,7 +628,7 @@ async function stsInternalRequest(urlPath, params, userHeaders, options = {}) {
 
   const cacheKey = generateCacheKey(urlPath, effectiveParams);
   if (!options.bypassCache) {
-    const cached = cache.get(cacheKey);
+    const cached = cacheGet(cacheKey);
     if (cached !== undefined) {
       cacheStats.hits++;
       return cached;

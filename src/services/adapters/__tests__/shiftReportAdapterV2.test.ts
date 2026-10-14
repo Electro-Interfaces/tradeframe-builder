@@ -437,3 +437,26 @@ describe('ShiftReportAdapterV2 · поступления', () => {
     expect(parsed.receipts[0].actualDensity).toBeCloseTo(0.7418, 4);
   });
 });
+
+describe('ShiftReportAdapterV2.extractBills', () => {
+  it('сводит купюры по номиналам на начало и конец (автомат ГИГ №2)', () => {
+    const bills = ShiftReportAdapterV2.extractBills({
+      beg: { sum: 76550, items: [{ count: 54, nominal: 1000 }, { count: 5, nominal: 50 }] },
+      end: { sum: 78550, items: [{ count: 5, nominal: 50 }, { count: 56, nominal: 1000 }, { count: 1, nominal: 200 }] },
+    });
+    expect(bills).toEqual({
+      begSum: 76550,
+      endSum: 78550,
+      items: [
+        { nominal: 50, begCount: 5, endCount: 5 },
+        { nominal: 200, begCount: 0, endCount: 1 },
+        { nominal: 1000, begCount: 54, endCount: 56 },
+      ],
+    });
+  });
+
+  it('пустые списки (станция без купюроприёмника) и старые смены — блока нет', () => {
+    expect(ShiftReportAdapterV2.extractBills({ beg: { sum: 0, items: [] }, end: { sum: 0, items: [] } })).toBeUndefined();
+    expect(ShiftReportAdapterV2.extractBills(undefined)).toBeUndefined();
+  });
+});
